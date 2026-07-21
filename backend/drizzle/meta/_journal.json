@@ -8,6 +8,34 @@
       "when": 1752778200000,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784461390674,
+      "tag": "0001_saved_listings",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784548620000,
+      "tag": "0002_listing_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784568000000,
+      "tag": "0003_gender_restriction",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784640000000,
+      "tag": "0004_roommate_finder",
+      "breakpoints": true
     }
   ]
 }

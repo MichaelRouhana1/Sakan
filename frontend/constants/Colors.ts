@@ -1,19 +1,22 @@
-const tintColorLight = '#2f95dc';
-const tintColorDark = '#fff';
+/** Shared nav tokens — lister UI uses constants/listerTheme.ts */
+import { Lister } from "@/constants/listerTheme";
+
+const tintColorLight = Lister.color.primary;
+const tintColorDark = Lister.color.primarySoft;
 
 export default {
   light: {
-    text: '#000',
-    background: '#fff',
+    text: Lister.color.ink,
+    background: Lister.color.bg,
     tint: tintColorLight,
-    tabIconDefault: '#ccc',
+    tabIconDefault: Lister.color.inkFaint,
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#fff',
-    background: '#000',
+    text: Lister.color.bg,
+    background: "#0A1612",
     tint: tintColorDark,
-    tabIconDefault: '#ccc',
+    tabIconDefault: Lister.color.inkMuted,
     tabIconSelected: tintColorDark,
   },
 };

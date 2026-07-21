@@ -1,28 +1,21 @@
-import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { router } from "expo-router";
+import { StyleSheet, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 
+/**
+ * OTP shell only — no provider sends codes yet.
+ * Verify skips ahead to role selection for local development.
+ */
 export default function OtpScreen() {
-  const { phone } = useLocalSearchParams<{ phone?: string }>();
-  const [otp, setOtp] = useState("");
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter verification code</Text>
-      <Text style={styles.sub}>Sent to {phone ?? "your phone"}</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="number-pad"
-        placeholder="••••••"
-        maxLength={6}
-        value={otp}
-        onChangeText={setOtp}
-      />
+      <Text style={styles.title}>Verify</Text>
+      <Text style={styles.sub}>
+        Code entry is disabled until OTP is wired. Tap Verify to continue.
+      </Text>
       <Button
         label="Verify"
-        disabled={otp.length < 4}
         onPress={() => router.push("/(auth)/role-select")}
       />
     </View>
@@ -35,6 +28,7 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 12,
     backgroundColor: "#fff",
+    justifyContent: "center",
   },
   title: {
     fontSize: 22,
@@ -42,15 +36,6 @@ const styles = StyleSheet.create({
   },
   sub: {
     color: "#666",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 22,
-    letterSpacing: 8,
     marginBottom: 8,
   },
 });

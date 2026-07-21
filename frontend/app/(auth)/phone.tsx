@@ -1,30 +1,22 @@
 import { router } from "expo-router";
-import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 
+/**
+ * Auth shell only — WhatsApp/SMS OTP not wired yet.
+ * Continue skips phone capture until the provider is integrated.
+ */
 export default function PhoneScreen() {
-  const [phone, setPhone] = useState("");
-
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Enter your mobile number</Text>
-      <Text style={styles.sub}>WhatsApp OTP preferred (Lebanon)</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="phone-pad"
-        placeholder="+961…"
-        value={phone}
-        onChangeText={setPhone}
-        autoFocus
-      />
+      <Text style={styles.title}>Sign in</Text>
+      <Text style={styles.sub}>
+        Phone verification is not connected yet. Continue to pick a role.
+      </Text>
       <Button
         label="Continue"
-        disabled={phone.trim().length < 8}
-        onPress={() =>
-          router.push({ pathname: "/(auth)/otp", params: { phone } })
-        }
+        onPress={() => router.push("/(auth)/otp")}
       />
     </View>
   );
@@ -36,6 +28,7 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 12,
     backgroundColor: "#fff",
+    justifyContent: "center",
   },
   title: {
     fontSize: 22,
@@ -43,14 +36,6 @@ const styles = StyleSheet.create({
   },
   sub: {
     color: "#666",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 18,
     marginBottom: 8,
   },
 });

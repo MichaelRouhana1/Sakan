@@ -9,6 +9,7 @@ import {
 import { geographyPoint } from "../types/geography.js";
 import {
   electricityStatusEnum,
+  genderRestrictionEnum,
   listingStatusEnum,
   listingTypeEnum,
   targetAudienceEnum,
@@ -26,6 +27,9 @@ export const listings = pgTable("listings", {
   targetAudience: targetAudienceEnum("target_audience")
     .notNull()
     .default("anyone"),
+  genderRestriction: genderRestrictionEnum("gender_restriction")
+    .notNull()
+    .default("anyone"),
   /** Whole Fresh USD dollars (no cents). */
   monthlyRentUsd: integer("monthly_rent_usd").notNull(),
   electricity: electricityStatusEnum("electricity").notNull(),
@@ -33,6 +37,7 @@ export const listings = pgTable("listings", {
   wifiIncluded: boolean("wifi_included").notNull().default(false),
   routerUps: boolean("router_ups").notNull().default(false),
   elevator24_7: boolean("elevator_24_7").notNull().default(false),
+  lookingForRoommate: boolean("looking_for_roommate").notNull().default(false),
   area: varchar("area", { length: 128 }).notNull(),
   landmark: varchar("landmark", { length: 256 }),
   /** Nullable while draft; required before publish (enforced in Service). */

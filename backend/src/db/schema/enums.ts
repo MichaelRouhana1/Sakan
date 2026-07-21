@@ -27,6 +27,46 @@ export const targetAudienceEnum = pgEnum("target_audience", [
   "students_only",
 ]);
 
+export const genderRestrictionEnum = pgEnum("gender_restriction", [
+  "anyone",
+  "boys_only",
+  "girls_only",
+]);
+
+export const userGenderEnum = pgEnum("user_gender", ["male", "female"]);
+
+export const roommateCardStatusEnum = pgEnum("roommate_card_status", [
+  "active",
+  "paused",
+  "withdrawn",
+]);
+
+export const roommateMoveInTimingEnum = pgEnum("roommate_move_in_timing", [
+  "asap",
+  "this_month",
+  "flexible",
+]);
+
+export const roommateInviteStatusEnum = pgEnum("roommate_invite_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "withdrawn",
+  "expired",
+]);
+
+export const roommateReportTargetTypeEnum = pgEnum(
+  "roommate_report_target_type",
+  ["card", "invite", "match", "user"],
+);
+
+export const roommateReportReasonEnum = pgEnum("roommate_report_reason", [
+  "spam",
+  "harassment",
+  "fake",
+  "other",
+]);
+
 export const electricityStatusEnum = pgEnum("electricity_status", [
   "solar",
   "generator_24_7",
@@ -53,3 +93,9 @@ export const creditBundleTypeEnum = pgEnum("credit_bundle_type", [
 ]);
 
 export const paymentChannelEnum = pgEnum("payment_channel", ["whish", "omt"]);
+
+export const listingReportReasonEnum = pgEnum("listing_report_reason", [
+  "fake",
+  "inaccurate_utilities",
+  "already_rented",
+]);

@@ -5,6 +5,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { Lister } from "@/constants/listerTheme";
 import { Text } from "./Text";
 
 type ButtonProps = PressableProps & {
@@ -52,21 +53,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primary: {
-    backgroundColor: "#0B6E4F",
+    backgroundColor: Lister.color.primary,
   },
   secondary: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "#0B6E4F",
+    borderColor: Lister.color.primary,
   },
   dimmed: {
     opacity: 0.6,
   },
   label: {
-    color: "#ffffff",
+    color: Lister.color.surface,
     fontWeight: "600",
   },
   secondaryLabel: {
-    color: "#0B6E4F",
+    color: Lister.color.primaryDeep,
   },
 });

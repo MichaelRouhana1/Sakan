@@ -1,4 +1,5 @@
 import { StyleSheet, View } from "react-native";
+import { Lister } from "@/constants/listerTheme";
 import { Text } from "./Text";
 
 type BadgeProps = {
@@ -17,13 +18,13 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: "#E8F5F0",
+    backgroundColor: Lister.color.primaryMist,
     borderRadius: 6,
     marginRight: 6,
     marginBottom: 6,
   },
   label: {
     fontSize: 12,
-    color: "#0B6E4F",
+    color: Lister.color.primaryDeep,
   },
 });

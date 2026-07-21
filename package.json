@@ -14,5 +14,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "expo": "^57.0.7"
   }
 }

@@ -32,6 +32,20 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
   next();
 }
 
+/** Attach user from stub headers when present; never fails. */
+export function optionalAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
+  const id = req.header("x-user-id");
+  const role = req.header("x-user-role");
+  if (id && (role === "renter" || role === "poster")) {
+    req.user = { id, role };
+  }
+  next();
+}
+
 export function requireAdmin(req: Request, _res: Response, next: NextFunction): void {
   const key = req.header("x-admin-key");
   const expected = process.env.ADMIN_API_KEY;
@@ -42,4 +56,37 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
   }
 
   next();
+}
+
+/**
+ * Roommate Finder gate: session user must have phoneVerifiedAt set.
+ * Loads user from DB; attach phone/gender for downstream handlers.
+ */
+export async function requirePhoneVerified(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.user) {
+      next(new ForbiddenError("Authentication required"));
+      return;
+    }
+    const { usersRepository } = await import(
+      "../modules/users/users.repository.js"
+    );
+    const user = await usersRepository.findById(req.user.id);
+    if (!user?.phoneVerifiedAt) {
+      next(
+        new ForbiddenError(
+          "Verified phone required for Roommate Finder",
+        ),
+      );
+      return;
+    }
+    (req as Request & { dbUser?: typeof user }).dbUser = user;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }

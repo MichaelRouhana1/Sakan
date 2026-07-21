@@ -1,52 +1,54 @@
-import { SymbolView } from "expo-symbols";
-import { Tabs } from "expo-router";
-import Colors from "@/constants/Colors";
-import { useColorScheme } from "@/components/useColorScheme";
-import { useClientOnlyValue } from "@/components/useClientOnlyValue";
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from "@expo-google-fonts/dm-sans";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { Skoun } from "@/constants/theme";
 
 export default function RenterLayout() {
-  const colorScheme = useColorScheme() ?? "light";
+  const [loaded] = useFonts({
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+  });
+
+  if (!loaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: Skoun.color.bg,
+        }}
+      >
+        <ActivityIndicator color={Skoun.color.primary} />
+      </View>
+    );
+  }
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        headerShown: useClientOnlyValue(false, true),
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Search",
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: "magnifyingglass", android: "search", web: "search" }}
-              tintColor={color}
-              size={26}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: "Saved",
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{ ios: "heart", android: "favorite", web: "favorite" }}
-              tintColor={color}
-              size={26}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen
         name="listing/[id]"
         options={{
-          href: null,
-          title: "Listing",
+          headerShown: false,
+          animation: "slide_from_right",
         }}
       />
-    </Tabs>
+      <Stack.Screen
+        name="roommates"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
+    </Stack>
   );
 }

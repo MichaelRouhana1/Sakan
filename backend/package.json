@@ -13,6 +13,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed:universities": "tsx src/db/seeds/run-universities.ts",
+    "db:seed:listings": "tsx src/db/seeds/run-listings.ts",
     "job:archive-expired": "tsx src/jobs/archive-expired-listings.ts"
   },
   "engines": {
@@ -23,12 +24,14 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "multer": "^2.2.0",
     "postgres": "^3.4.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.2.0",
     "@types/node": "^26.1.1",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.1",

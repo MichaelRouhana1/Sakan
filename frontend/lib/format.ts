@@ -1,6 +1,6 @@
-/** Display Fresh USD whole-dollar rent. */
+/** Display whole-dollar rent in USD. */
 export function formatFreshUsd(amount: number): string {
-  return `$${amount.toLocaleString("en-US")} Fresh USD`;
+  return `$${amount.toLocaleString("en-US")}`;
 }
 
 export function formatUsdFromCents(cents: number): string {
