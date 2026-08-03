@@ -39,23 +39,23 @@ export function ensureLeafletCss(): void {
   const style = document.createElement("style");
   style.id = "skoun-leaflet-overrides";
   style.textContent = `
-    .skoun-leaflet-map { width: 100%; height: 100%; z-index: 0; background: #DCEFE6; }
+    .skoun-leaflet-map { width: 100%; height: 100%; z-index: 0; background: #E2E8F0; }
     .skoun-leaflet-map .leaflet-control-attribution { font-size: 10px; }
     .skoun-div-icon { background: transparent !important; border: none !important; }
     .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .skoun-price-pill {
-      background: #fff; border: 1px solid #C9D6CF; border-radius: 8px;
-      padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #14241E;
-      box-shadow: 0 1px 3px rgba(20,36,30,0.12); white-space: nowrap;
+      background: #fff; border: 1px solid #C5CDD8; border-radius: 8px;
+      padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #121826;
+      box-shadow: 0 1px 3px rgba(18,24,38,0.12); white-space: nowrap;
     }
-    .skoun-price-pill.on { background: #fff; border-color: #C9D6CF; color: #14241E; }
+    .skoun-price-pill.on { background: #fff; border-color: #C5CDD8; color: #121826; }
     .skoun-teardrop {
-      width: 30px; height: 40px; position: relative; filter: drop-shadow(0 1px 2px rgba(20,36,30,0.28));
+      width: 30px; height: 40px; position: relative; filter: drop-shadow(0 1px 2px rgba(18,24,38,0.28));
     }
     .skoun-teardrop .head {
       width: 30px; height: 30px; border-radius: 50%; position: relative; overflow: hidden;
     }
-    .skoun-teardrop.listing .head { background: #4FB79F; }
+    .skoun-teardrop.listing .head { background: #2F6FED; }
     .skoun-teardrop.listing.selected .head { background: #C23B2E; }
     .skoun-teardrop .cutout {
       position: absolute; left: 50%; top: 50%; width: 10px; height: 10px;
@@ -64,31 +64,31 @@ export function ensureLeafletCss(): void {
     .skoun-teardrop .tip {
       width: 0; height: 0; margin: -5px auto 0;
       border-left: 9px solid transparent; border-right: 9px solid transparent;
-      border-top: 14px solid #02675C;
+      border-top: 14px solid #121826;
     }
     .skoun-teardrop.listing.selected .tip { border-top-color: #8E241A; }
     .skoun-campus-pin {
       width: 48px; height: 56px; display: flex; flex-direction: column;
-      align-items: center; filter: drop-shadow(0 1px 2px rgba(20,36,30,0.3));
+      align-items: center; filter: drop-shadow(0 1px 2px rgba(18,24,38,0.3));
     }
     .skoun-campus-pin .ring {
-      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #14241E;
-      background: #F3EBD6; display: flex; align-items: center; justify-content: center;
+      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #121826;
+      background: #E8EEF6; display: flex; align-items: center; justify-content: center;
     }
     .skoun-campus-pin .disc {
-      width: 38px; height: 38px; border-radius: 50%; background: #B8954A;
+      width: 38px; height: 38px; border-radius: 50%; background: #121826;
       display: flex; align-items: center; justify-content: center;
     }
     .skoun-campus-pin .stem {
-      width: 4px; height: 10px; background: #14241E; border-radius: 2px; margin-top: -1px;
+      width: 4px; height: 10px; background: #121826; border-radius: 2px; margin-top: -1px;
     }
     .skoun-campus-pin .base {
-      width: 14px; height: 4px; border-radius: 2px; background: #14241E; margin-top: -1px;
+      width: 14px; height: 4px; border-radius: 2px; background: #121826; margin-top: -1px;
     }
     .skoun-dist-badge {
       background: #fff; border: 1.5px solid #C23B2E; border-radius: 999px;
       padding: 3px 8px; font: 600 11px "DM Sans", system-ui, sans-serif; color: #8E241A;
-      box-shadow: 0 1px 3px rgba(20,36,30,0.16); white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(18,24,38,0.16); white-space: nowrap;
     }
   `;
   document.head.appendChild(style);
@@ -140,8 +140,8 @@ function teardropHtml(
     return `<div class="skoun-campus-pin" aria-hidden="true">
       <div class="ring"><div class="disc">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="#EAF6F0"/>
-          <path d="M5 13.18V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82" stroke="#EAF6F0" stroke-width="1.6" fill="none"/>
+          <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="#FFFFFF"/>
+          <path d="M5 13.18V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82" stroke="#FFFFFF" stroke-width="1.6" fill="none"/>
         </svg>
       </div></div>
       <div class="stem"></div>

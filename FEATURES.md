@@ -362,7 +362,7 @@
 
 - **Role-gated apps:** separate `(renter)` and `(poster)` tab trees after role select  
 - **Maps:** `react-native-maps` native; Leaflet on web  
-- **Design:** Mediterranean Skoun tokens (Jade Glaze `#4FB79F`, brass campus cues, DM Sans via Lister)  
+- **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
 - **Auth today:** not real OTP — headers + AsyncStorage only  
 - **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed  
 

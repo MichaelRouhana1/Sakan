@@ -17,10 +17,10 @@ type Props = {
 };
 
 const LISTING = {
-  fill: "#4FB79F",
-  deep: "#02675C",
+  fill: "#2F6FED",
+  deep: "#121826",
   highlight: "rgba(255,255,255,0.28)",
-  shade: "rgba(2,103,92,0.35)",
+  shade: "rgba(18,24,38,0.35)",
 };
 
 const DANGER = {
@@ -36,14 +36,14 @@ const PIN_H = 52;
 const HEAD = 30;
 const CUTOUT = 10;
 
-/** Campus badge — larger round brass mark, not a jade teardrop twin. */
+/** Campus badge — navy disc + school glyph (distinct from listing teardrop). */
 const CAMPUS_W = 48;
 const CAMPUS_H = 56;
 const CAMPUS_DISC = 38;
 
 /**
- * Listing = jade teardrop with cutout.
- * Campus = brass disc + school glyph + short stem (unmistakable vs $ pins).
+ * Listing = ocean-blue teardrop with cutout.
+ * Campus = navy disc + school glyph + short stem (unmistakable vs $ pins).
  */
 export function SkounMapPin({
   variant = "listing",
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
     zIndex: 2,
-    shadowColor: "#14241E",
+    shadowColor: "#121826",
     shadowOpacity: 0.28,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 4,
     borderRadius: 6,
-    backgroundColor: "rgba(20,36,30,0.22)",
+    backgroundColor: "rgba(18,24,38,0.22)",
     marginTop: 1,
   },
   campusSlot: {
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.brass,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#14241E",
+    shadowColor: "#121826",
     shadowOpacity: 0.3,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
@@ -327,6 +327,6 @@ const styles = StyleSheet.create({
 export const SKOUN_CAMPUS_PIN = {
   width: CAMPUS_W,
   height: CAMPUS_H,
-  /** Vertical center of the brass disc within the pin slot. */
+  /** Vertical center of the campus disc within the pin slot. */
   headCenterY: (CAMPUS_DISC + 6) / 2,
 } as const;

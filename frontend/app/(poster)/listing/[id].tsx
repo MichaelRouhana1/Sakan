@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.92)",
     borderWidth: 1,
-    borderColor: "rgba(201,214,207,0.8)",
+    borderColor: "rgba(197,205,216,0.8)",
   },
   panel: {
     padding: Lister.space.lg,

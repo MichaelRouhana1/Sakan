@@ -46,7 +46,7 @@ function near(a: number, b: number) {
 }
 
 /**
- * Shared segmented control — jade thumb slides with ease-out (no spring / jiggle).
+ * Shared segmented control — brand thumb slides with ease-out (no spring / jiggle).
  * Thumb uses native-driver translateX so heavy siblings (e.g. map) can’t jank the slide.
  */
 export function SegmentedPillTrack<T extends string>({
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   thumbGlass: {
     borderRadius: Skoun.radius.sm,
     backgroundColor: isAppleGlass
-      ? "rgba(79,183,159,0.92)"
+      ? "rgba(47,111,237,0.92)"
       : Skoun.color.primary,
   },
   thumbChip: {

@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.94)",
     borderWidth: 1,
     borderColor: Skoun.color.border,
-    shadowColor: "#14241E",
+    shadowColor: "#121826",
     shadowOpacity: 0.12,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },

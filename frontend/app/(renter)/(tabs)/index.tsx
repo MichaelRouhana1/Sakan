@@ -237,6 +237,76 @@ export default function RenterHomeScreen() {
     overflow: "hidden" as const,
   };
 
+  /** Hero + filters chrome scrolls with the feed (not a frozen half-screen header). */
+  const browseChrome = (
+    <View style={styles.chromePad}>
+      <Enter>
+        <View style={styles.header}>
+          <LText variant="label" tone="brass">
+            Find a place
+          </LText>
+          <LText variant="display">Skoun</LText>
+          <LText variant="body" tone="muted">
+            USD rentals with real Lebanese utilities.
+          </LText>
+        </View>
+
+        <View style={styles.chromeRow}>
+          <View style={styles.modeWrap}>
+            <SearchModeToggle
+              mode={mode}
+              onChange={(next) => {
+                setMode(next);
+              }}
+            />
+          </View>
+          {filtersButton}
+        </View>
+
+        <LText variant="caption" tone="muted" style={styles.hint}>
+          {mode === "standard"
+            ? "Open Filters to pick cities, then sort by newest or lowest rent."
+            : hubDistanceMode
+              ? "Sorted by nearest gate. Open Filters to change campus or cities."
+              : "All cities shown. Open Filters to pick a campus and order by distance."}
+        </LText>
+      </Enter>
+
+      <Animated.View
+        style={bodyMode === "map" ? feedMetaCollapseStyle : undefined}
+        pointerEvents={
+          bodyMode === "map" && mapExpanded ? "none" : "auto"
+        }
+      >
+        <View style={styles.feedHead}>
+          <View style={styles.feedTitleRow}>
+            <LText variant="subtitle" style={styles.feedTitle}>
+              {hubDistanceMode
+                ? "Nearest first"
+                : areas.length === 1
+                  ? `In ${areas[0]}`
+                  : areas.length > 1
+                    ? `In ${areas.length} cities`
+                    : sort === "price_asc"
+                      ? "Lowest rent first"
+                      : "Newest listings"}
+            </LText>
+            <View style={styles.feedTitleToggle}>
+              <BrowseViewToggle
+                value={viewMode}
+                onChange={selectViewMode}
+              />
+            </View>
+          </View>
+          {mode === "standard" ||
+          (mode === "university" && universitySlugs.length === 0) ? (
+            <ListingSortControl value={sort} onChange={setSort} />
+          ) : null}
+        </View>
+      </Animated.View>
+    </View>
+  );
+
   return (
     <ListerScreen>
       <BrowseFiltersPanel
@@ -253,74 +323,6 @@ export default function RenterHomeScreen() {
       />
 
       <View style={styles.body}>
-        {/* Chrome stays mounted across list/map — not inside FlatList header. */}
-        <View style={styles.chromePad}>
-          <Enter>
-            <View style={styles.header}>
-              <LText variant="label" tone="brass">
-                Find a place
-              </LText>
-              <LText variant="display">Skoun</LText>
-              <LText variant="body" tone="muted">
-                USD rentals with real Lebanese utilities.
-              </LText>
-            </View>
-
-            <View style={styles.chromeRow}>
-              <View style={styles.modeWrap}>
-                <SearchModeToggle
-                  mode={mode}
-                  onChange={(next) => {
-                    setMode(next);
-                  }}
-                />
-              </View>
-              {filtersButton}
-            </View>
-
-            <LText variant="caption" tone="muted" style={styles.hint}>
-              {mode === "standard"
-                ? "Open Filters to pick cities, then sort by newest or lowest rent."
-                : hubDistanceMode
-                  ? "Sorted by nearest gate. Open Filters to change campus or cities."
-                  : "All cities shown. Open Filters to pick a campus and order by distance."}
-            </LText>
-          </Enter>
-
-          <Animated.View
-            style={bodyMode === "map" ? feedMetaCollapseStyle : undefined}
-            pointerEvents={
-              bodyMode === "map" && mapExpanded ? "none" : "auto"
-            }
-          >
-            <View style={styles.feedHead}>
-              <View style={styles.feedTitleRow}>
-                <LText variant="subtitle" style={styles.feedTitle}>
-                  {hubDistanceMode
-                    ? "Nearest first"
-                    : areas.length === 1
-                      ? `In ${areas[0]}`
-                      : areas.length > 1
-                        ? `In ${areas.length} cities`
-                        : sort === "price_asc"
-                          ? "Lowest rent first"
-                          : "Newest listings"}
-                </LText>
-                <View style={styles.feedTitleToggle}>
-                  <BrowseViewToggle
-                    value={viewMode}
-                    onChange={selectViewMode}
-                  />
-                </View>
-              </View>
-              {mode === "standard" ||
-              (mode === "university" && universitySlugs.length === 0) ? (
-                <ListingSortControl value={sort} onChange={setSort} />
-              ) : null}
-            </View>
-          </Animated.View>
-        </View>
-
         <View
           style={[styles.list, bodyMode !== "list" && styles.paneHidden]}
           pointerEvents={bodyMode === "list" ? "auto" : "none"}
@@ -330,6 +332,7 @@ export default function RenterHomeScreen() {
             data={listingRows}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
+            ListHeaderComponent={bodyMode === "list" ? browseChrome : null}
             refreshControl={
               <RefreshControl
                 refreshing={
@@ -404,12 +407,13 @@ export default function RenterHomeScreen() {
               styles.mapScrollContent,
               mapExpanded && styles.mapScrollContentExpanded,
             ]}
-            scrollEnabled={!mapExpanded}
+            scrollEnabled
             pointerEvents={bodyMode === "map" ? "auto" : "none"}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
           >
+            {bodyMode === "map" ? browseChrome : null}
             <ListingBrowseMap
               listings={listingRows}
               campuses={campuses}
@@ -430,7 +434,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chromePad: {
-    paddingHorizontal: Skoun.space.lg,
+    // Horizontal inset comes from FlatList / map ScrollView contentContainerStyle.
   },
   list: {
     flex: 1,

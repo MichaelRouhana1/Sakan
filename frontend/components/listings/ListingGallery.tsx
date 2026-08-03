@@ -85,7 +85,7 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
         )}
       />
       <LinearGradient
-        colors={["rgba(20,36,30,0.35)", "transparent", "rgba(20,36,30,0.25)"]}
+        colors={["rgba(18,24,38,0.35)", "transparent", "rgba(18,24,38,0.25)"]}
         locations={[0, 0.35, 1]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 14,
     right: 14,
-    backgroundColor: "rgba(20,36,30,0.55)",
+    backgroundColor: "rgba(18,24,38,0.55)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Skoun.radius.pill,

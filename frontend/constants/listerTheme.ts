@@ -1,40 +1,45 @@
 /**
- * Skoun Lister design system — Mediterranean hospitality, cool jade / stone-mint.
- * Brand: Jade Glaze #4FB79F (not forest pine, not neon emerald).
- * Campus cues stay brass. Typography: DM Sans throughout.
+ * Skoun Lister design system — calm hospitality, cool bank-blue.
+ * Brand: Ocean / cerulean #2F6FED (from bank UI reference — not jade, not neon cyan).
+ * Campus / secondary accent uses deep navy (no brass/gold). Typography: DM Sans.
  */
 export const Lister = {
   color: {
-    /** Jade Glaze — primary brand */
-    primary: "#4FB79F",
-    /** Jade Dragon — text on soft fills, pressed, headers on mint */
-    primaryDeep: "#02675C",
-    /** Jade Frost — mid washes / soft chip fills */
-    primarySoft: "#95C4B8",
-    /** Misty Jade diluted — light accents, calm selected washes */
-    primaryMist: "#D8F0E9",
-    brass: "#B8954A",
-    brassSoft: "#F3EBD6",
-    ink: "#14241E",
-    inkMuted: "#5A6B64",
-    inkFaint: "#8A9A93",
-    /** Jade Mist diluted — calm screen ground (not a loud mint slab) */
-    bg: "#EAF6F0",
-    bgWash: "#DCEFE6",
+    /** Ocean / cerulean — primary brand (links, icons, interactive accents) */
+    primary: "#2F6FED",
+    /** Deep navy — headers, strong nav mark, high-contrast text-on-light */
+    primaryDeep: "#121826",
+    /** Soft blue frost — mid washes / soft chip fills */
+    primarySoft: "#A8C4F0",
+    /** Misty blue diluted — light accents, calm selected washes */
+    primaryMist: "#E8EEF6",
+    /**
+     * Secondary accent (campus marks, draft chips). Cool navy — not brass/gold.
+     * Kept as `brass` key for call-site compatibility.
+     */
+    brass: "#121826",
+    brassSoft: "#E8EEF6",
+    /** Charcoal-navy ink (tuned for contrast on cool wash) */
+    ink: "#121826",
+    inkMuted: "#5B6570",
+    inkFaint: "#8B95A1",
+    /** Pale cool blue-gray — calm screen ground */
+    bg: "#EEF1F6",
+    bgWash: "#E2E8F0",
     surface: "#FFFFFF",
-    surfaceMuted: "#F4FAF7",
-    border: "#C9D6CF",
-    borderStrong: "#A8BBB2",
-    active: "#4FB79F",
-    draft: "#8B7355",
+    surfaceMuted: "#F5F7FA",
+    border: "#C5CDD8",
+    borderStrong: "#9AA6B5",
+    active: "#2F6FED",
+    draft: "#5B6570",
     archived: "#6B7280",
     removed: "#9B2C2C",
     danger: "#B42318",
     dangerSoft: "#FEE4E2",
-    success: "#4FB79F",
+    success: "#2F6FED",
     warning: "#B45309",
     warningSoft: "#FEF3C7",
-    overlay: "rgba(20, 36, 30, 0.45)",
+    overlay: "rgba(18, 24, 38, 0.45)",
   },
   space: {
     xs: 4,

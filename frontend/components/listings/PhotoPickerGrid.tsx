@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   },
   tileWash: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(20,36,30,0.06)",
+    backgroundColor: "rgba(18,24,38,0.06)",
   },
   coverBadge: {
     position: "absolute",
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   statusOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(20,36,30,0.45)",
+    backgroundColor: "rgba(18,24,38,0.45)",
     alignItems: "center",
     justifyContent: "center",
     gap: 4,

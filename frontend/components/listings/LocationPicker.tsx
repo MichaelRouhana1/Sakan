@@ -17,6 +17,7 @@ import MapView, {
   type Region,
 } from "react-native-maps";
 import { LText } from "@/components/lister/Typography";
+import { PasteLocationLinkField } from "@/components/listings/PasteLocationLinkField";
 import { SkounMapPin } from "@/components/listings/SkounMapPin";
 import { AREA_COORDINATES } from "@/constants/areaCoordinates";
 import type { LebanonArea } from "@/constants/areas";
@@ -32,9 +33,9 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 export type ListingPin = {
   lng: number;
   lat: number;
-  /** False until user drops pin, picks landmark, or confirms GPS. */
+  /** False until user drops pin, picks landmark, confirms GPS, or confirms a pasted link. */
   confirmed: boolean;
-  source: "pin" | "landmark" | "gps" | null;
+  source: "pin" | "landmark" | "gps" | "link" | null;
   landmarkId: string | null;
   landmarkLabel: string;
 };
@@ -59,6 +60,8 @@ export function LocationPicker({ area, value, onChange }: Props) {
   const [mapReady, setMapReady] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [labelOverride, setLabelOverride] = useState(value.landmarkLabel);
   const landmarks = useMemo(() => landmarksForArea(area), [area]);
   const center = AREA_COORDINATES[area];
@@ -118,15 +121,32 @@ export function LocationPicker({ area, value, onChange }: Props) {
   }
 
   function confirmCurrentPin() {
+    const keepSource =
+      value.source === "landmark" ||
+      value.source === "gps" ||
+      value.source === "link"
+        ? value.source
+        : "pin";
     setCoord(
       { lng: value.lng, lat: value.lat },
       {
         confirmed: true,
-        source: value.source === "landmark" ? "landmark" : "pin",
+        source: keepSource,
         landmarkId: value.landmarkId,
         landmarkLabel: labelOverride.trim() || value.landmarkLabel,
       },
     );
+  }
+
+  function applyPastedLink(coord: LatLng) {
+    setLinkError(null);
+    setGpsError(null);
+    setCoord(coord, {
+      confirmed: false,
+      source: "link",
+      landmarkId: null,
+      landmarkLabel: labelOverride.trim(),
+    });
   }
 
   async function useMyLocation() {
@@ -182,10 +202,20 @@ export function LocationPicker({ area, value, onChange }: Props) {
       <View style={styles.copy}>
         <LText variant="subtitle">Set the exact pin</LText>
         <LText variant="body" tone="muted">
-          Pin sets distance to campus — area alone isn’t enough. Drop a pin or
-          choose a neighborhood landmark.
+          Fastest: paste a Maps or WhatsApp place link. Or drop a pin, use GPS,
+          or pick a landmark — then Confirm.
         </LText>
       </View>
+
+      <PasteLocationLinkField
+        onResolved={applyPastedLink}
+        onError={setLinkError}
+      />
+      {linkError ? (
+        <LText variant="caption" tone="danger" accessibilityRole="alert">
+          {linkError}
+        </LText>
+      ) : null}
 
       <View
         style={styles.mapShell}
@@ -308,14 +338,15 @@ export function LocationPicker({ area, value, onChange }: Props) {
             {value.confirmed ? "Pin set" : "Pin not confirmed yet"}
           </LText>
           <LText variant="caption" tone="muted">
-            {formatCoordLabel({ lng: value.lng, lat: value.lat })}
             {value.source === "landmark"
-              ? " · landmark"
+              ? "Landmark preset"
               : value.source === "gps"
-                ? " · GPS"
-                : value.confirmed
-                  ? " · map pin"
-                  : " · area center (default)"}
+                ? "GPS"
+                : value.source === "link"
+                  ? "From pasted link — nudge if needed, then Confirm"
+                  : value.confirmed
+                    ? "Map pin"
+                    : "Area center (default) — not published yet"}
           </LText>
         </View>
         {!value.confirmed ? (
@@ -405,9 +436,36 @@ export function LocationPicker({ area, value, onChange }: Props) {
         accessibilityLabel="Landmark label override"
       />
       <LText variant="caption" tone="faint">
-        Label text doesn’t move the pin. Use a preset or map drop for
+        Label text doesn’t move the pin. Use a link, preset, or map drop for
         coordinates.
       </LText>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: advancedOpen }}
+        onPress={() => setAdvancedOpen((v) => !v)}
+        style={styles.advancedToggle}
+      >
+        <LText variant="caption" tone="muted">
+          {advancedOpen ? "Hide advanced" : "Advanced — coordinates"}
+        </LText>
+        <Ionicons
+          name={advancedOpen ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={Lister.color.inkMuted}
+        />
+      </Pressable>
+      {advancedOpen ? (
+        <View style={styles.advancedBox}>
+          <LText variant="caption" tone="muted">
+            {formatCoordLabel({ lng: value.lng, lat: value.lat })}
+          </LText>
+          <LText variant="caption" tone="faint">
+            Manual lat/lng entry isn’t the main path — paste a link or use the
+            map.
+          </LText>
+        </View>
+      ) : null}
     </Animated.View>
   );
 }
@@ -554,6 +612,20 @@ const styles = StyleSheet.create({
     fontFamily: Lister.type.body,
     fontSize: 16,
     color: Lister.color.ink,
+  },
+  advancedToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  advancedBox: {
+    gap: 4,
+    padding: 12,
+    borderRadius: Lister.radius.md,
+    backgroundColor: Lister.color.surfaceMuted,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
   },
   staticMap: {
     borderRadius: Lister.radius.lg,

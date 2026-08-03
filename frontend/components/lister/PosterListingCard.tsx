@@ -52,7 +52,7 @@ export function PosterListingCard({ listing, onPress }: Props) {
             </View>
           )}
           <LinearGradient
-            colors={["transparent", "rgba(20,36,30,0.35)"]}
+            colors={["transparent", "rgba(18,24,38,0.35)"]}
             style={StyleSheet.absoluteFill}
           />
         </View>

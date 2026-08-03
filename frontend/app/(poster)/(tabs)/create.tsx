@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: isAppleGlass
-      ? "rgba(201,214,207,0.45)"
+      ? "rgba(197,205,216,0.45)"
       : Lister.color.border,
     borderRadius: 0,
   },

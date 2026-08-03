@@ -50,7 +50,7 @@ const toneColor = {
   faint: Lister.color.inkFaint,
   primary: Lister.color.primary,
   inverse: Lister.color.surface,
-  brass: Lister.color.brass,
+  brass: Lister.color.primary,
   danger: Lister.color.danger,
 };
 

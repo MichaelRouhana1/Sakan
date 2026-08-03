@@ -12,7 +12,7 @@ const tint =
   Platform.OS === "ios"
     ? DynamicColorIOS({
         light: Lister.color.primary,
-        dark: "#5FD4A8",
+        dark: "#6B9CF5",
       })
     : Lister.color.primary;
 

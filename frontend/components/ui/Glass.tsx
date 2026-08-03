@@ -76,7 +76,7 @@ export function GlassChrome({ intensity = "chrome" as Intensity }) {
         pointerEvents="none"
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: "rgba(242,245,243,0.28)" },
+          { backgroundColor: "rgba(238,241,246,0.28)" },
         ]}
       />
     </BlurView>
@@ -88,7 +88,7 @@ export const appleTabBarStyle = isAppleGlass
       position: "absolute" as const,
       backgroundColor: "transparent",
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: "rgba(201,214,207,0.45)",
+      borderTopColor: "rgba(197,205,216,0.45)",
       elevation: 0,
       height: 64,
       paddingTop: 6,

@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.92)",
     borderWidth: 1,
-    borderColor: "rgba(201,214,207,0.8)",
+    borderColor: "rgba(197,205,216,0.8)",
   },
   iconBtnPressed: {
     transform: [{ scale: 0.94 }],
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: isAppleGlass
-      ? "rgba(201,214,207,0.45)"
+      ? "rgba(197,205,216,0.45)"
       : Skoun.color.border,
     borderRadius: 0,
   },

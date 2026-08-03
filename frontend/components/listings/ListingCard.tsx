@@ -53,7 +53,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           </View>
         )}
         <LinearGradient
-          colors={["transparent", "rgba(20,36,30,0.78)"]}
+          colors={["transparent", "rgba(18,24,38,0.78)"]}
           locations={[0.35, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(243,235,214,0.92)",
+    backgroundColor: "rgba(232,238,246,0.92)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Skoun.radius.pill,

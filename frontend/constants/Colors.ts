@@ -14,7 +14,7 @@ export default {
   },
   dark: {
     text: Lister.color.bg,
-    background: "#0A1612",
+    background: "#0B1220",
     tint: tintColorDark,
     tabIconDefault: Lister.color.inkMuted,
     tabIconSelected: tintColorDark,
