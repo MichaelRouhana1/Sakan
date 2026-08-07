@@ -33,4 +33,5 @@ export const listingKeys = {
     [...listingKeys.lists(), filters] as const,
   details: () => [...listingKeys.all, "detail"] as const,
   detail: (id: string) => [...listingKeys.details(), id] as const,
+  nearby: (id: string) => [...listingKeys.detail(id), "nearby"] as const,
 };

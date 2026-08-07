@@ -1,4 +1,20 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  lte,
+  ne,
+  sql,
+  type SQL,
+} from "drizzle-orm";
+import {
+  COINCIDENT_METERS,
+  NEARBY_LISTINGS_LIMIT,
+} from "../../constants/mapCoincident.js";
 import { db } from "../../db/index.js";
 import { listingPhotos, listings } from "../../db/schema/index.js";
 import type {
@@ -201,6 +217,57 @@ export class ListingsRepository {
     };
     const [withPhotos] = await this.withPhotos([normalized]);
     return withPhotos ?? null;
+  }
+
+  /**
+   * Active listings within `meters` of the origin listing's pin (same-building UX).
+   * Returns [] when the origin has no location. Does not include the origin row.
+   */
+  async findNearbyActive(
+    listingId: string,
+    meters: number = COINCIDENT_METERS,
+    limit: number = NEARBY_LISTINGS_LIMIT,
+  ) {
+    const [origin] = await db
+      .select({
+        id: listings.id,
+        lng: sql<number | null>`ST_X(${listings.location}::geometry)`.as("lng"),
+        lat: sql<number | null>`ST_Y(${listings.location}::geometry)`.as("lat"),
+      })
+      .from(listings)
+      .where(eq(listings.id, listingId))
+      .limit(1);
+
+    if (!origin) return null;
+    if (parseCoord(origin.lng) == null || parseCoord(origin.lat) == null) {
+      return [];
+    }
+
+    const rows = await db
+      .select(listingPublicColumns)
+      .from(listings)
+      .where(
+        and(
+          eq(listings.status, "active"),
+          ne(listings.id, listingId),
+          isNotNull(listings.location),
+          sql`ST_DWithin(
+            ${listings.location},
+            (SELECT location FROM listings WHERE id = ${listingId}),
+            ${meters}
+          )`,
+        ),
+      )
+      .orderBy(asc(listings.monthlyRentUsd), desc(listings.createdAt))
+      .limit(limit);
+
+    const normalized = rows.map((row) => ({
+      ...row,
+      lng: parseCoord(row.lng),
+      lat: parseCoord(row.lat),
+    }));
+
+    return this.withPhotos(normalized);
   }
 
   async listActiveByArea(area?: string, sort: ListingSort = "newest") {

@@ -40,48 +40,13 @@ import {
 import { SEGMENTED_PILL_SLIDE_MS } from "@/components/listings/SegmentedPillTrack";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
-import type { ListingListFilters } from "@/features/listings/keys";
 import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { toListFilters } from "@/lib/browseFilters";
 
 const BADGE_POP_MS = SEGMENTED_PILL_SLIDE_MS;
 const BADGE_EASE = Easing.out(Easing.cubic);
-
-function toListFilters(
-  mode: SearchMode,
-  browse: BrowseFiltersValue,
-  sort: ListingSort,
-): ListingListFilters {
-  const property: ListingListFilters = {
-    electricity:
-      browse.electricity.length > 0 ? browse.electricity : undefined,
-    water: browse.water.length > 0 ? browse.water : undefined,
-    listingTypes:
-      browse.listingTypes.length > 0 ? browse.listingTypes : undefined,
-    wifiIncluded: browse.wifiIncluded ? true : undefined,
-    minRentUsd: browse.minRentUsd ?? undefined,
-    maxRentUsd: browse.maxRentUsd ?? undefined,
-    studentsOnly: browse.studentsOnly ? true : undefined,
-    genderRestrictions:
-      browse.genderRestrictions.length > 0
-        ? browse.genderRestrictions
-        : undefined,
-  };
-  const areas = browse.areas.length > 0 ? browse.areas : undefined;
-
-  if (mode === "standard") {
-    return { areas, sort, ...property };
-  }
-  if (browse.universitySlugs.length > 0) {
-    return {
-      universitySlugs: browse.universitySlugs,
-      areas,
-      ...property,
-    };
-  }
-  return { areas, sort, ...property };
-}
 
 export default function RenterHomeScreen() {
   const [mode, setMode] = useState<SearchMode>("standard");

@@ -90,6 +90,16 @@ export function ensureLeafletCss(): void {
       padding: 3px 8px; font: 600 11px "DM Sans", system-ui, sans-serif; color: #8E241A;
       box-shadow: 0 1px 3px rgba(18,24,38,0.16); white-space: nowrap;
     }
+    .skoun-cluster-bubble {
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: #C23B2E; color: #fff;
+      font: 700 13px "DM Sans", system-ui, sans-serif;
+      border: 2.5px solid #fff;
+      box-shadow: 0 2px 8px rgba(18,24,38,0.28);
+      cursor: pointer; user-select: none;
+      transition: transform 120ms ease;
+    }
+    .skoun-cluster-bubble:hover { transform: scale(1.06); }
   `;
   document.head.appendChild(style);
   cssReady = true;
@@ -170,6 +180,21 @@ export function pricePinIcon(
     html,
     iconSize: [88, 72],
     iconAnchor: [44, 72],
+  });
+}
+
+/** Amber-style count bubble — size scales with point density. */
+export function clusterBubbleIcon(
+  L: LeafletNS,
+  count: number,
+  size: number,
+): DivIcon {
+  const html = `<div class="skoun-cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size >= 46 ? 15 : 13}px">${escapeHtml(String(count))}</div>`;
+  return L.divIcon({
+    className: "skoun-div-icon",
+    html,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 

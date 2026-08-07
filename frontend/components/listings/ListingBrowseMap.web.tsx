@@ -20,6 +20,15 @@ import { ListingMapPicker } from "@/components/listings/ListingMapPicker";
 import { ListingMapPreview } from "@/components/listings/ListingMapPreview";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
+import {
+  buildPinClusterIndex,
+  clusterBubbleSize,
+  padBBox,
+  queryVisibleFeatures,
+  type MapBBox,
+  type PinClusterIndex,
+  type VisibleMapFeature,
+} from "@/lib/mapClusters";
 import { formatDistanceShort } from "@/lib/formatDistance";
 import {
   groupListingsByProximity,
@@ -27,6 +36,7 @@ import {
 } from "@/lib/mapPinGroups";
 import {
   campusPinIcon,
+  clusterBubbleIcon,
   createSkounMap,
   distanceBadgeIcon,
   loadLeaflet,
@@ -43,6 +53,8 @@ type Props = {
   loading?: boolean;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  /** Fill parent height (Amber map split) — skips collapsed/expanded fixed heights. */
+  fillContainer?: boolean;
 };
 
 function resolveNearestCampus(
@@ -89,19 +101,30 @@ export function ListingBrowseMap({
   loading,
   expanded = false,
   onExpandedChange,
+  fillContainer = false,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
   const leafletRef = useRef<LeafletNS | null>(null);
+  const clusterIndexRef = useRef<PinClusterIndex | null>(null);
   const ignoreNextMapClick = useRef(false);
+  const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
   const [mapReady, setMapReady] = useState(false);
+  const [visibleFeatures, setVisibleFeatures] = useState<VisibleMapFeature[]>(
+    [],
+  );
 
   useEffect(() => {
+    if (fillContainer) {
+      // Parent owns height — just remeasure Leaflet after layout.
+      const id = requestAnimationFrame(() => mapRef.current?.invalidateSize());
+      return () => cancelAnimationFrame(id);
+    }
     const to = expanded ? expandedMapHeight() : MAP_HEIGHT_COLLAPSED;
     Animated.timing(heightAnim, {
       toValue: to,
@@ -110,7 +133,7 @@ export function ListingBrowseMap({
     }).start(() => {
       mapRef.current?.invalidateSize();
     });
-  }, [expanded, reduceMotion, heightAnim]);
+  }, [expanded, fillContainer, reduceMotion, heightAnim]);
 
   const mappable = useMemo(
     () => listings.filter(hasCoords),
@@ -127,6 +150,32 @@ export function ListingBrowseMap({
     for (const g of groups) map.set(g.id, g);
     return map;
   }, [groups]);
+
+  const clusterIndex = useMemo(
+    () => (groups.length > 0 ? buildPinClusterIndex(groups) : null),
+    [groups],
+  );
+
+  useEffect(() => {
+    clusterIndexRef.current = clusterIndex;
+  }, [clusterIndex]);
+
+  function refreshVisibleFeatures() {
+    const map = mapRef.current;
+    const index = clusterIndexRef.current;
+    if (!map || !index) {
+      setVisibleFeatures([]);
+      return;
+    }
+    const b = map.getBounds();
+    const bbox = padBBox([
+      b.getWest(),
+      b.getSouth(),
+      b.getEast(),
+      b.getNorth(),
+    ] as MapBBox);
+    setVisibleFeatures(queryVisibleFeatures(index, bbox, map.getZoom()));
+  }
 
   const selectedListing = useMemo(() => {
     if (sheet.kind !== "preview") return null;
@@ -189,6 +238,30 @@ export function ListingBrowseMap({
           setSheet({ kind: "none" });
         });
 
+        const onViewport = () => {
+          if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
+          moveTimerRef.current = setTimeout(() => {
+            const m = mapRef.current;
+            const index = clusterIndexRef.current;
+            if (!m || !index) {
+              setVisibleFeatures([]);
+              return;
+            }
+            const b = m.getBounds();
+            const bbox = padBBox([
+              b.getWest(),
+              b.getSouth(),
+              b.getEast(),
+              b.getNorth(),
+            ] as MapBBox);
+            setVisibleFeatures(
+              queryVisibleFeatures(index, bbox, m.getZoom()),
+            );
+          }, 80);
+        };
+        map.on("moveend", onViewport);
+        map.on("zoomend", onViewport);
+
         if (!cancelled) setMapReady(true);
       } catch {
         // SSR / missing window — leave empty shell.
@@ -201,16 +274,28 @@ export function ListingBrowseMap({
     return () => {
       cancelled = true;
       window.removeEventListener("resize", onResize);
+      if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
       leafletRef.current = null;
       setMapReady(false);
+      setVisibleFeatures([]);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- client init once
   }, []);
 
-  // Sync markers / line when data or selection changes.
+  // Re-query clusters when the pin set / index changes.
+  useEffect(() => {
+    if (!mapReady || !clusterIndex) {
+      setVisibleFeatures([]);
+      return;
+    }
+    refreshVisibleFeatures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bound to index rebuild
+  }, [mapReady, clusterIndex]);
+
+  // Sync markers / line when viewport clusters or selection changes.
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
@@ -237,6 +322,16 @@ export function ListingBrowseMap({
       setSheet({ kind: "picker", groupId: group.id });
     }
 
+    function expandCluster(feature: Extract<VisibleMapFeature, { kind: "cluster" }>) {
+      ignoreNextMapClick.current = true;
+      setTimeout(() => {
+        ignoreNextMapClick.current = false;
+      }, 80);
+      mapRef.current?.flyTo([feature.lat, feature.lng], feature.expansionZoom, {
+        duration: reduceMotion ? 0 : 0.45,
+      });
+    }
+
     if (universityMode) {
       for (const campus of campuses) {
         L.marker([campus.lat, campus.lng], {
@@ -247,7 +342,24 @@ export function ListingBrowseMap({
       }
     }
 
-    for (const group of groups) {
+    for (const feature of visibleFeatures) {
+      if (feature.kind === "cluster") {
+        const size = clusterBubbleSize(feature.pointCount);
+        const marker: LeafletMarker = L.marker([feature.lat, feature.lng], {
+          icon: clusterBubbleIcon(L, feature.pointCount, size),
+          riseOnHover: true,
+          zIndexOffset: 200,
+        });
+        marker.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          expandCluster(feature);
+        });
+        marker.addTo(layer);
+        continue;
+      }
+
+      const group = groupsById.get(feature.groupId);
+      if (!group) continue;
       const selected = activeGroupId === group.id;
       const label =
         group.count > 1
@@ -294,11 +406,13 @@ export function ListingBrowseMap({
     }
   }, [
     mapReady,
-    groups,
+    visibleFeatures,
+    groupsById,
     campuses,
     universityMode,
     activeGroupId,
     selectedListing,
+    reduceMotion,
   ]);
 
   // Fit bounds when listing set / campus changes — not on sheet alone.
@@ -356,17 +470,28 @@ export function ListingBrowseMap({
   }
 
   const sheetOpen = sheet.kind !== "none";
-  const canToggleExpand = Boolean(onExpandedChange);
+  const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
 
   return (
-    <View style={[styles.root, expanded && styles.rootExpanded]}>
+    <View
+      style={[
+        styles.root,
+        expanded && styles.rootExpanded,
+        fillContainer && styles.rootFill,
+      ]}
+    >
       {universityMode && campuses.length === 0 ? (
         <LText variant="caption" tone="muted" style={styles.caption}>
           Campus pin unavailable — showing listings only.
         </LText>
       ) : null}
 
-      <Animated.View style={[styles.mapShell, { height: heightAnim }]}>
+      <Animated.View
+        style={[
+          styles.mapShell,
+          fillContainer ? styles.mapShellFill : { height: heightAnim },
+        ]}
+      >
         {!mapReady ? (
           <View style={styles.mapLoading}>
             <ActivityIndicator color={Skoun.color.primary} />
@@ -395,12 +520,19 @@ export function ListingBrowseMap({
             />
           </Pressable>
         ) : null}
+        {fillContainer && !sheetOpen ? (
+          <View style={styles.hintOverlay} accessibilityRole="text">
+            <LText variant="caption" tone="muted">
+              Tap a pin or cluster for details
+            </LText>
+          </View>
+        ) : null}
       </Animated.View>
 
-      {!sheetOpen ? (
+      {!fillContainer && !sheetOpen ? (
         <View style={styles.hintBar} accessibilityRole="text">
           <LText variant="caption" tone="muted">
-            Tap a price pin for details
+            Tap a pin or cluster for details
           </LText>
         </View>
       ) : null}
@@ -464,6 +596,13 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 0,
   },
+  rootFill: {
+    flex: 1,
+    minHeight: 0,
+    height: "100%" as unknown as number,
+    gap: 0,
+    marginBottom: 0,
+  },
   caption: { marginBottom: 2 },
   mapShell: {
     borderRadius: Skoun.radius.lg,
@@ -472,6 +611,13 @@ const styles = StyleSheet.create({
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.bgWash,
     position: "relative",
+  },
+  mapShellFill: {
+    flex: 1,
+    minHeight: 0,
+    height: "100%" as unknown as number,
+    borderRadius: 0,
+    borderWidth: 0,
   },
   mapLoading: {
     ...StyleSheet.absoluteFillObject,
@@ -517,6 +663,14 @@ const styles = StyleSheet.create({
   hintBar: {
     alignItems: "center",
     paddingVertical: 4,
+  },
+  hintOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 8,
+    alignItems: "center",
+    zIndex: 400,
   },
   emptyBox: {
     height: MAP_HEIGHT_COLLAPSED,

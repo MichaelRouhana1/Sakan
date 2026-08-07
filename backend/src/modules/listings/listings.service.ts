@@ -4,6 +4,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../lib/errors.js";
+import { COINCIDENT_METERS } from "../../constants/mapCoincident.js";
 import { FREE_SLOT_REPLACEMENTS_PER_MONTH } from "../../constants/roommate.js";
 import {
   universitiesRepository,
@@ -36,6 +37,18 @@ export class ListingsService {
       throw new NotFoundError("Listing not found");
     }
     return listing;
+  }
+
+  /** Coincident / same-building siblings for listing detail. */
+  async listNearby(id: string) {
+    const rows = await listingsRepository.findNearbyActive(
+      id,
+      COINCIDENT_METERS,
+    );
+    if (rows === null) {
+      throw new NotFoundError("Listing not found");
+    }
+    return rows;
   }
 
   async recordView(

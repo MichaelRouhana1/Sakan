@@ -1,0 +1,174 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, StyleSheet, View } from "react-native";
+import { LText } from "@/components/lister/Typography";
+import { ListingBrowseMap } from "@/components/listings/ListingBrowseMap";
+import { Skoun } from "@/constants/theme";
+import type { CampusMeta, Listing } from "@/types/listing";
+
+type Props = {
+  listings: Listing[];
+  campuses: CampusMeta[];
+  universityMode?: boolean;
+  loading?: boolean;
+  visible: boolean;
+  onClose: () => void;
+  /** Full-height split pane (map mode), not a fixed sidebar card. */
+  fullHeight?: boolean;
+};
+
+/** Amber-style map pane: map fills the column; Close Map floats top-right. */
+export function FindMapPane({
+  listings,
+  campuses,
+  universityMode,
+  loading,
+  visible,
+  onClose,
+  fullHeight = false,
+}: Props) {
+  if (!visible) return null;
+
+  return (
+    <View style={[styles.pane, fullHeight && styles.paneFull]}>
+      {!fullHeight ? (
+        <View style={styles.header}>
+          <LText variant="subtitle" style={styles.title}>
+            Map
+          </LText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close map"
+            onPress={onClose}
+            style={({ hovered }) => [
+              styles.close,
+              hovered && styles.closeHover,
+            ]}
+          >
+            <Ionicons name="close" size={16} color={Skoun.color.inkMuted} />
+            <LText variant="caption" style={styles.closeLabel}>
+              Close map
+            </LText>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close map"
+          onPress={onClose}
+          style={({ hovered }) => [
+            styles.closeFloat,
+            hovered && styles.closeFloatHover,
+          ]}
+        >
+          <LText variant="caption" style={styles.closeFloatLabel}>
+            Close Map
+          </LText>
+          <Ionicons name="close" size={14} color={Skoun.color.ink} />
+        </Pressable>
+      )}
+      <View style={[styles.mapWrap, fullHeight && styles.mapWrapFull]}>
+        <ListingBrowseMap
+          listings={listings}
+          campuses={campuses}
+          universityMode={universityMode}
+          loading={loading}
+          fillContainer={fullHeight}
+        />
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  pane: {
+    width: 360,
+    flexShrink: 0,
+    backgroundColor: Skoun.color.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Skoun.color.border,
+    overflow: "hidden",
+    maxHeight: "calc(100vh - 120px)" as unknown as number,
+  },
+  paneFull: {
+    width: "auto" as unknown as number,
+    flex: 1,
+    flexGrow: 1,
+    minWidth: 0,
+    minHeight: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    maxHeight: "none" as unknown as number,
+    height: "100%" as unknown as number,
+    position: "relative",
+    overflow: "hidden",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: Skoun.color.border,
+    backgroundColor: Skoun.color.surface,
+  },
+  title: {
+    fontSize: 15,
+    color: Skoun.color.ink,
+  },
+  close: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Skoun.color.border,
+  },
+  closeHover: {
+    backgroundColor: Skoun.color.surfaceMuted,
+  },
+  closeLabel: {
+    color: Skoun.color.inkMuted,
+    fontFamily: Skoun.type.bodyMedium,
+  },
+  closeFloat: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    zIndex: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: Skoun.color.surface,
+    borderWidth: 1,
+    borderColor: Skoun.color.border,
+    shadowColor: "#121826",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  closeFloatHover: {
+    backgroundColor: Skoun.color.surfaceMuted,
+  },
+  closeFloatLabel: {
+    color: Skoun.color.ink,
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 13,
+  },
+  mapWrap: {
+    height: 480,
+    minHeight: 360,
+  },
+  mapWrapFull: {
+    flex: 1,
+    height: "100%" as unknown as number,
+    minHeight: 0,
+  },
+});

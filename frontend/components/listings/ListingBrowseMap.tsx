@@ -19,6 +19,7 @@ import MapView, {
   type MapMarker,
   type MapPressEvent,
   type MarkerPressEvent,
+  type Region,
 } from "react-native-maps";
 import { captureRef } from "react-native-view-shot";
 import { LText } from "@/components/lister/Typography";
@@ -27,6 +28,16 @@ import { ListingMapPreview } from "@/components/listings/ListingMapPreview";
 import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
+import {
+  buildPinClusterIndex,
+  clusterBubbleSize,
+  padBBox,
+  queryVisibleFeatures,
+  regionForExpansion,
+  regionToBBox,
+  zoomFromLongitudeDelta,
+  type VisibleMapFeature,
+} from "@/lib/mapClusters";
 import { formatDistanceShort } from "@/lib/formatDistance";
 import {
   groupListingsByProximity,
@@ -45,6 +56,8 @@ type Props = {
   /** Immersive map-focus layout (filters collapsed by parent). */
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+  /** Web Amber split: fill parent; ignored on native. */
+  fillContainer?: boolean;
 };
 
 function resolveNearestCampus(
@@ -80,9 +93,38 @@ const DIST_BADGE_W = 72;
 const DIST_BADGE_H = 26;
 /** Selected pin + campus line (SkounMapPin danger accent). */
 const SELECTED_LINE = "#C23B2E";
+/** Amber-style cluster bubble fill (matches web / selected pin). */
+const CLUSTER_FILL = "#C23B2E";
 
 function shortPriceLabel(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
+}
+
+/** Count bubble for zoom-clustered pin groups. */
+function ClusterBubble({ count }: { count: number }) {
+  const size = clusterBubbleSize(count);
+  return (
+    <View
+      style={[
+        styles.clusterBubble,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+        },
+      ]}
+      accessibilityElementsHidden
+      collapsable={false}
+    >
+      <LText
+        variant="caption"
+        style={[styles.clusterText, size >= 46 && styles.clusterTextLg]}
+        numberOfLines={1}
+      >
+        {count}
+      </LText>
+    </View>
+  );
 }
 
 function hasCoords(
@@ -267,7 +309,7 @@ function PinSnapshot({
 }
 
 /**
- * Browse map: grouped coincident pins; picker for 2+ at one spot.
+ * Browse map: coincident pin groups + Supercluster zoom clusters.
  * Distance / polylines always use the selected listing’s real coords.
  */
 const MAP_HEIGHT_COLLAPSED = 320;
@@ -285,6 +327,7 @@ export function ListingBrowseMap({
   loading,
   expanded = false,
   onExpandedChange,
+  fillContainer: _fillContainer = false,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);
@@ -319,6 +362,51 @@ export function ListingBrowseMap({
     for (const g of groups) map.set(g.id, g);
     return map;
   }, [groups]);
+
+  const clusterIndex = useMemo(
+    () => (groups.length > 0 ? buildPinClusterIndex(groups) : null),
+    [groups],
+  );
+
+  const [mapRegion, setMapRegion] = useState<Region | null>(null);
+  const mapWidthPx = Dimensions.get("window").width;
+
+  const visibleFeatures = useMemo((): VisibleMapFeature[] => {
+    if (!clusterIndex || !mapRegion) {
+      // Before first region event, show all as leaves so pins appear immediately.
+      return groups.map((g) => ({
+        kind: "leaf" as const,
+        groupId: g.id,
+        lat: g.lat,
+        lng: g.lng,
+      }));
+    }
+    const bbox = padBBox(regionToBBox(mapRegion));
+    const zoom = zoomFromLongitudeDelta(
+      mapRegion.longitudeDelta,
+      mapWidthPx,
+    );
+    return queryVisibleFeatures(clusterIndex, bbox, zoom);
+  }, [clusterIndex, mapRegion, groups, mapWidthPx]);
+
+  const visibleLeaves = useMemo(() => {
+    const leaves: MapPinGroup[] = [];
+    for (const f of visibleFeatures) {
+      if (f.kind !== "leaf") continue;
+      const group = groupsById.get(f.groupId);
+      if (group) leaves.push(group);
+    }
+    return leaves;
+  }, [visibleFeatures, groupsById]);
+
+  const visibleClusters = useMemo(
+    () =>
+      visibleFeatures.filter(
+        (f): f is Extract<VisibleMapFeature, { kind: "cluster" }> =>
+          f.kind === "cluster",
+      ),
+    [visibleFeatures],
+  );
 
   const selectedListing = useMemo(() => {
     if (sheet.kind !== "preview") return null;
@@ -488,14 +576,23 @@ export function ListingBrowseMap({
     [pinVariants, pinImages],
   );
 
-  /** Show pins once every unselected (green) image exists; red may lag one frame. */
+  /** Show pins once every unselected (green) image for visible leaves exists. */
   const pinsReady = useMemo(
     () =>
-      groups.every(
+      visibleLeaves.every(
         (g) => pinImages[pinVariantKey(g.displayPriceUsd, g.count, false)],
       ),
-    [groups, pinImages],
+    [visibleLeaves, pinImages],
   );
+
+  // Thaw cluster bubble views briefly after region settles (MapKit paint).
+  const [clusterTracks, setClusterTracks] = useState(false);
+  useEffect(() => {
+    if (!mapReady || visibleClusters.length === 0) return;
+    setClusterTracks(true);
+    const t = setTimeout(() => setClusterTracks(false), 450);
+    return () => clearTimeout(t);
+  }, [mapReady, visibleClusters.length, mapRegion?.latitudeDelta]);
 
   // MapKit only reliably raises the NATIVELY SELECTED annotation (zPriority,
   // iOS 14+); the lib's zPosition/zIndex hack is ignored between annotation
@@ -576,6 +673,30 @@ export function ListingBrowseMap({
     setSheet({ kind: "picker", groupId: group.id });
   }
 
+  function onClusterPress(
+    feature: Extract<VisibleMapFeature, { kind: "cluster" }>,
+    e?: MarkerPressEvent,
+  ) {
+    e?.stopPropagation();
+    markMarkerPress();
+    const aspect =
+      mapRegion && mapRegion.longitudeDelta > 0
+        ? mapRegion.latitudeDelta / mapRegion.longitudeDelta
+        : 1;
+    const next = regionForExpansion(
+      feature.lat,
+      feature.lng,
+      feature.expansionZoom,
+      mapWidthPx,
+      aspect,
+    );
+    mapRef.current?.animateToRegion(next, reduceMotion ? 0 : 400);
+  }
+
+  function onRegionChangeComplete(region: Region) {
+    setMapRegion(region);
+  }
+
   function onMapPress(e: MapPressEvent) {
     const action = (e.nativeEvent as { action?: string }).action;
     if (action === "marker-press" || ignoreNextMapPress.current) {
@@ -634,6 +755,7 @@ export function ListingBrowseMap({
           provider={PROVIDER_DEFAULT}
           onMapReady={() => setMapReady(true)}
           onPress={onMapPress}
+          onRegionChangeComplete={onRegionChangeComplete}
           mapType={Platform.OS === "ios" ? "mutedStandard" : "standard"}
           toolbarEnabled={false}
           showsUserLocation={false}
@@ -664,8 +786,27 @@ export function ListingBrowseMap({
               ))
             : null}
 
+          {visibleClusters.map((cluster) => (
+            <Marker
+              key={`cluster:${cluster.clusterId}`}
+              identifier={`cluster:${cluster.clusterId}`}
+              coordinate={{
+                latitude: cluster.lat,
+                longitude: cluster.lng,
+              }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              centerOffset={{ x: 0, y: 0 }}
+              zIndex={300 + cluster.pointCount}
+              tracksViewChanges={clusterTracks}
+              onPress={(e) => onClusterPress(cluster, e)}
+              accessibilityLabel={`${cluster.pointCount} places — tap to zoom`}
+            >
+              <ClusterBubble count={cluster.pointCount} />
+            </Marker>
+          ))}
+
           {pinsReady
-            ? groups.flatMap((group) => {
+            ? visibleLeaves.flatMap((group) => {
                 const selected = activeGroupId === group.id;
                 const greenUri =
                   pinImages[
@@ -816,7 +957,7 @@ export function ListingBrowseMap({
       {!sheetOpen ? (
         <View style={styles.hintBar} accessibilityRole="text">
           <LText variant="caption" tone="muted">
-            Tap a price pin for details
+            Tap a pin or cluster for details
           </LText>
         </View>
       ) : null}
@@ -936,6 +1077,26 @@ const styles = StyleSheet.create({
   priceText: {
     ...rentPriceTypeCompact,
     color: Skoun.color.ink,
+  },
+  clusterBubble: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: CLUSTER_FILL,
+    borderWidth: 2.5,
+    borderColor: "#FFFFFF",
+    shadowColor: "#121826",
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  clusterText: {
+    color: "#FFFFFF",
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 13,
+  },
+  clusterTextLg: {
+    fontSize: 15,
   },
   sheetBelow: {
     gap: 6,

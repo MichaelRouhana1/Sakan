@@ -77,6 +77,15 @@ export class ListingsController {
     }
   }
 
+  async listNearby(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.listNearby(req.params.id as string);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async recordView(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.recordView(

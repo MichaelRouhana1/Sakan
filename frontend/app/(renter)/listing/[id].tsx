@@ -13,6 +13,7 @@ import { Enter } from "@/components/lister/Enter";
 import { LButton } from "@/components/lister/Button";
 import { ListerScreen } from "@/components/lister/Screen";
 import { LText } from "@/components/lister/Typography";
+import { CoincidentListingsSection } from "@/components/listings/CoincidentListingsSection";
 import { ListingGallery } from "@/components/listings/ListingGallery";
 import { NearLandmark } from "@/components/listings/NearLandmark";
 import { ReportListingSheet } from "@/components/listings/ReportListingSheet";
@@ -22,6 +23,7 @@ import { GlassSurface, isAppleGlass } from "@/components/ui/Glass";
 import { ROOMMATE_LAUNCH_AREA_SET } from "@/constants/roommateLaunch";
 import { Skoun } from "@/constants/theme";
 import { useListing } from "@/features/listings/useListing";
+import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
 import { useIsReported } from "@/features/reports/useReportListing";
 import {
@@ -68,6 +70,11 @@ export default function RenterListingDetailScreen() {
       ? listing.area
       : undefined,
   );
+  const coincident = useNearbyListings(id ?? "", {
+    enabled: Boolean(
+      listing && listing.lng != null && listing.lat != null,
+    ),
+  });
   const [reportOpen, setReportOpen] = useState(false);
   const [lookingPrompt, setLookingPrompt] = useState(false);
   useSafeHardwareBack("/(renter)");
@@ -244,6 +251,12 @@ export default function RenterListingDetailScreen() {
               </LText>
               <UtilityBadges listing={listing} />
             </Enter>
+
+            {coincident.data && coincident.data.length > 0 ? (
+              <Enter delay={120}>
+                <CoincidentListingsSection listings={coincident.data} />
+              </Enter>
+            ) : null}
 
             <Enter delay={150}>
               <View style={styles.trust}>

@@ -1,8 +1,10 @@
 import type { Listing } from "@/types/listing";
 
 /**
- * Listings within this distance share one visual map pin.
+ * Listings within this distance share one visual map pin (coincident collapse).
+ * Zoom-based density clustering is handled separately by `mapClusters.ts`.
  * Real GPS on each listing is unchanged (distance / polylines use selected row).
+ * Must match backend `COINCIDENT_METERS` in `backend/src/constants/mapCoincident.ts`.
  */
 export const MAP_PIN_GROUP_METERS = 10;
 

@@ -27,6 +27,10 @@ listingsRouter.post("/:id/view", optionalAuth, (req, res, next) =>
   listingsController.recordView(req, res, next),
 );
 
+listingsRouter.get("/:id/nearby", (req, res, next) =>
+  listingsController.listNearby(req, res, next),
+);
+
 listingsRouter.get("/:id", (req, res, next) =>
   listingsController.getById(req, res, next),
 );
