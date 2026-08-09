@@ -19,7 +19,6 @@ export type CreateListingBody = {
   locationWkt: string;
   photoUrls: string[];
   publishNow?: boolean;
-  lookingForRoommate?: boolean;
 };
 
 type CreateResponse = { data: Record<string, unknown> };

@@ -24,7 +24,7 @@ export default function PhoneWebScreen() {
           <LButton
             label="Browse listings"
             variant="secondary"
-            onPress={() => router.replace("/(renter)/(tabs)" as never)}
+            onPress={() => router.replace("/search" as never)}
           />
         </View>
       </View>

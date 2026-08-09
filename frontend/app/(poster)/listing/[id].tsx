@@ -18,10 +18,7 @@ import { ListingGallery } from "@/components/listings/ListingGallery";
 import { NearLandmark } from "@/components/listings/NearLandmark";
 import { Lister } from "@/constants/listerTheme";
 import { useListing } from "@/features/listings/useListing";
-import {
-  useArchiveListing,
-  useSetLookingForRoommate,
-} from "@/features/roommate/useRoommate";
+import { useArchiveListing } from "@/features/listings/useArchiveListing";
 import { formatFreshUsd } from "@/lib/format";
 import {
   daysUntil,
@@ -36,7 +33,6 @@ import { safeBack, useSafeHardwareBack } from "@/lib/safeBack";
 export default function PosterListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: listing, isLoading, isError, refetch } = useListing(id ?? "");
-  const setLooking = useSetLookingForRoommate();
   const archive = useArchiveListing();
   useSafeHardwareBack("/(poster)");
 
@@ -172,31 +168,6 @@ export default function PosterListingDetailScreen() {
                   });
                 }}
               />
-              {listing.status === "active" && listing.lookingForRoommate ? (
-                <LButton
-                  label="Find roommate"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(poster)/find-roommate/[listingId]",
-                      params: { listingId: listing.id },
-                    })
-                  }
-                />
-              ) : null}
-              {listing.status === "active" && !listing.lookingForRoommate ? (
-                <LButton
-                  label="Enable roommate search"
-                  variant="secondary"
-                  onPress={() => {
-                    void setLooking
-                      .mutateAsync({
-                        listingId: listing.id,
-                        lookingForRoommate: true,
-                      })
-                      .then(() => refetch());
-                  }}
-                />
-              ) : null}
               {listing.status === "active" ? (
                 <LButton
                   label="Archive listing"

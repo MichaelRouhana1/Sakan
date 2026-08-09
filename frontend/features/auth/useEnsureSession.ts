@@ -13,7 +13,7 @@ export async function ensureSessionForRole(role: UserRole): Promise<User> {
     role,
   });
   await setSession({ userId: data.data.id, role: data.data.role });
-  // Stub OTP complete → phone verified for Roommate Finder gate
+  // Stub OTP complete → mark phone verified
   try {
     await api.post("/api/users/me/verify-phone");
   } catch {

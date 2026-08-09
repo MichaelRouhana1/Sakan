@@ -68,7 +68,6 @@ export const createListingSchema = z.object({
   wifiIncluded: z.boolean().default(false),
   routerUps: z.boolean().default(false),
   elevator24_7: z.boolean().default(false),
-  lookingForRoommate: z.boolean().default(false),
   area: z.string().min(1).max(128),
   landmark: z.string().max(256).optional(),
   /** WKT POINT(lng lat) — required; must be a real pin inside Lebanon */

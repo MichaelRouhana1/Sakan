@@ -57,36 +57,3 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction): 
 
   next();
 }
-
-/**
- * Roommate Finder gate: session user must have phoneVerifiedAt set.
- * Loads user from DB; attach phone/gender for downstream handlers.
- */
-export async function requirePhoneVerified(
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      next(new ForbiddenError("Authentication required"));
-      return;
-    }
-    const { usersRepository } = await import(
-      "../modules/users/users.repository.js"
-    );
-    const user = await usersRepository.findById(req.user.id);
-    if (!user?.phoneVerifiedAt) {
-      next(
-        new ForbiddenError(
-          "Verified phone required for Roommate Finder",
-        ),
-      );
-      return;
-    }
-    (req as Request & { dbUser?: typeof user }).dbUser = user;
-    next();
-  } catch (err) {
-    next(err);
-  }
-}

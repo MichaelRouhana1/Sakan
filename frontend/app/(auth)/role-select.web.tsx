@@ -41,9 +41,7 @@ export default function RoleSelectWebScreen() {
     try {
       await switchToRole(selected);
       router.replace(
-        (selected === "renter"
-          ? "/(renter)/(tabs)"
-          : "/(poster)/(tabs)/create") as never,
+        (selected === "renter" ? "/search" : "/(poster)/(tabs)/create") as never,
       );
     } catch {
       setError("We couldn’t switch roles. Check your connection and try again.");
@@ -129,7 +127,7 @@ export default function RoleSelectWebScreen() {
           />
           <Pressable
             accessibilityRole="link"
-            onPress={() => router.replace("/(renter)/(tabs)" as never)}
+            onPress={() => router.replace("/search" as never)}
           >
             <LText variant="caption" tone="primary">
               Browse without signing in

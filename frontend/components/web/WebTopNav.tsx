@@ -25,16 +25,17 @@ export function WebTopNav({ showSearch = false }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const findActive =
-    pathname.includes("/(renter)") &&
-    !pathname.includes("/saved") &&
-    !pathname.includes("/roommates") &&
-    !pathname.includes("/listing/");
+    pathname === "/search" ||
+    pathname.startsWith("/search/") ||
+    (pathname.includes("/(renter)") &&
+      !pathname.includes("/saved") &&
+      !pathname.includes("/listing/"));
   const savedActive = pathname.includes("/saved");
 
   return (
     <View style={styles.bar}>
       <View style={[styles.inner, showSearch && styles.innerSearch]}>
-        <Link href="/(renter)/(tabs)" asChild>
+        <Link href="/" asChild>
           <Pressable accessibilityRole="link" style={styles.brandHit}>
             <Text style={styles.brand}>Skoun</Text>
           </Pressable>
@@ -47,7 +48,7 @@ export function WebTopNav({ showSearch = false }: Props) {
               placeholderTextColor={Skoun.color.inkMuted}
               style={styles.searchInput}
               editable={false}
-              onPressIn={() => router.push("/(renter)/(tabs)")}
+              onPressIn={() => router.push("/search")}
               accessibilityLabel="Search listings"
             />
             <View style={styles.searchBtn} accessibilityElementsHidden>
@@ -57,7 +58,7 @@ export function WebTopNav({ showSearch = false }: Props) {
         ) : null}
 
         <View style={styles.links}>
-          <Link href="/(renter)/(tabs)" asChild>
+          <Link href="/search" asChild>
             <Pressable
               style={flattenViewStyle([
                 styles.link,
@@ -72,7 +73,7 @@ export function WebTopNav({ showSearch = false }: Props) {
               </Text>
             </Pressable>
           </Link>
-          <Link href="/(renter)/(tabs)/saved" asChild>
+          <Link href="/saved" asChild>
             <Pressable
               style={flattenViewStyle([
                 styles.link,

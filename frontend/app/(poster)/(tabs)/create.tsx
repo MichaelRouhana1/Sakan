@@ -139,7 +139,6 @@ export default function CreateListingScreen() {
   const [wifiIncluded, setWifiIncluded] = useState(true);
   const [routerUps, setRouterUps] = useState(false);
   const [elevator24_7, setElevator24_7] = useState(false);
-  const [lookingForRoommate, setLookingForRoommate] = useState(false);
   const [photos, setPhotos] = useState<DraftPhoto[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -237,7 +236,6 @@ export default function CreateListingScreen() {
         locationWkt: toWkt({ lng: pin.lng, lat: pin.lat }),
         photoUrls: readyUrls,
         publishNow: true,
-        lookingForRoommate,
       });
       // Push (not replace) so listing detail has stack history for Back.
       router.push({
@@ -361,14 +359,6 @@ export default function CreateListingScreen() {
                 label={TARGET_AUDIENCE_LABELS.students_only}
                 value={studentsOnly}
                 onToggle={() => setStudentsOnly((v) => !v)}
-              />
-              <LText variant="label" tone="muted" style={styles.fieldLabel}>
-                Roommate
-              </LText>
-              <ToggleRow
-                label="Looking for a roommate / spare bed"
-                value={lookingForRoommate}
-                onToggle={() => setLookingForRoommate((v) => !v)}
               />
               <LText variant="label" tone="muted" style={styles.fieldLabel}>
                 Gender

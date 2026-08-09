@@ -42,13 +42,6 @@ export default function PosterLayout() {
           animation: "slide_from_right",
         }}
       />
-      <Stack.Screen
-        name="find-roommate/[listingId]"
-        options={{
-          headerShown: false,
-          animation: "slide_from_right",
-        }}
-      />
     </Stack>
   );
 }

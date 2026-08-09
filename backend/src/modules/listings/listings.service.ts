@@ -5,7 +5,7 @@ import {
   ValidationError,
 } from "../../lib/errors.js";
 import { COINCIDENT_METERS } from "../../constants/mapCoincident.js";
-import { FREE_SLOT_REPLACEMENTS_PER_MONTH } from "../../constants/roommate.js";
+import { FREE_SLOT_REPLACEMENTS_PER_MONTH } from "../../constants/listings.js";
 import {
   universitiesRepository,
   type CampusMeta,
@@ -179,30 +179,6 @@ export class ListingsService {
     const row = await listingsRepository.archiveById(listingId, posterId);
     if (!row) {
       throw new NotFoundError("Active listing not found");
-    }
-    const { roommateService } = await import(
-      "../roommate/roommate.service.js"
-    );
-    await roommateService.withdrawInvitesForListing(listingId);
-    return listingsRepository.findById(listingId);
-  }
-
-  async setLookingForRoommate(
-    posterId: string,
-    role: "renter" | "poster",
-    listingId: string,
-    lookingForRoommate: boolean,
-  ) {
-    if (role !== "poster") {
-      throw new ForbiddenError("Only posters can update listings");
-    }
-    const row = await listingsRepository.updateLookingForRoommate(
-      listingId,
-      posterId,
-      lookingForRoommate,
-    );
-    if (!row) {
-      throw new NotFoundError("Listing not found");
     }
     return listingsRepository.findById(listingId);
   }

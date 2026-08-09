@@ -363,14 +363,6 @@ export const PROMO_CARDS = [
     action: "list" as const,
   },
   {
-    id: "roommates",
-    title: "Find a roommate",
-    body: "Match with seekers in your corridor — same-gender, verified phone.",
-    cta: "Explore roommates",
-    tone: "mist" as const,
-    action: "roommates" as const,
-  },
-  {
     id: "browse",
     title: "Browse near campus",
     body: "Pick AUB, LAU, USJ and sort by distance to the gate.",

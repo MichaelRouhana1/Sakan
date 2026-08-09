@@ -1,5 +1,9 @@
-import { FindBrowse } from "@/components/web/FindBrowse";
+import { Redirect } from "expo-router";
 
-export default function RenterFindWebScreen() {
-  return <FindBrowse />;
+/**
+ * `(renter)/(tabs)` also maps to `/`, which collides with the marketing home.
+ * Send web browse traffic to the dedicated `/search` URL.
+ */
+export default function RenterTabsIndexWeb() {
+  return <Redirect href="/search" />;
 }

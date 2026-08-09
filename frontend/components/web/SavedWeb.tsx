@@ -45,7 +45,7 @@ export function SavedWeb() {
           title="Nothing saved yet"
           message="Save places you like while browsing — they’ll show up here for easy comparison."
           actionLabel="Browse listings"
-          onAction={() => router.push("/(renter)/(tabs)" as never)}
+          onAction={() => router.push("/search" as never)}
         />
       </View>
     );

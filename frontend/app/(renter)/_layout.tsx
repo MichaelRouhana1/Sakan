@@ -42,13 +42,6 @@ export default function RenterLayout() {
           animation: "slide_from_right",
         }}
       />
-      <Stack.Screen
-        name="roommates"
-        options={{
-          headerShown: false,
-          animation: "slide_from_right",
-        }}
-      />
     </Stack>
   );
 }

@@ -48,7 +48,6 @@ export const listingPublicColumns = {
   wifiIncluded: listings.wifiIncluded,
   routerUps: listings.routerUps,
   elevator24_7: listings.elevator24_7,
-  lookingForRoommate: listings.lookingForRoommate,
   area: listings.area,
   landmark: listings.landmark,
   viewCount: listings.viewCount,
@@ -370,7 +369,6 @@ export class ListingsRepository {
         l.wifi_included,
         l.router_ups,
         l.elevator_24_7,
-        l.looking_for_roommate,
         l.area,
         l.landmark,
         l.view_count,
@@ -405,7 +403,6 @@ export class ListingsRepository {
       wifiIncluded: Boolean(row.wifi_included),
       routerUps: Boolean(row.router_ups),
       elevator24_7: Boolean(row.elevator_24_7),
-      lookingForRoommate: Boolean(row.looking_for_roommate),
       area: String(row.area),
       landmark: (row.landmark as string | null) ?? null,
       viewCount: Number(row.view_count ?? 0),
@@ -461,7 +458,6 @@ export class ListingsRepository {
         wifiIncluded: input.wifiIncluded,
         routerUps: input.routerUps,
         elevator24_7: input.elevator24_7,
-        lookingForRoommate: input.lookingForRoommate ?? false,
         area: input.area,
         landmark: input.landmark,
         location: sql`ST_GeogFromText(${input.locationWkt})`,
@@ -523,19 +519,6 @@ export class ListingsRepository {
           eq(listings.status, "active"),
         ),
       )
-      .returning({ id: listings.id });
-    return row ?? null;
-  }
-
-  async updateLookingForRoommate(
-    id: string,
-    posterId: string,
-    lookingForRoommate: boolean,
-  ) {
-    const [row] = await db
-      .update(listings)
-      .set({ lookingForRoommate, updatedAt: new Date() })
-      .where(and(eq(listings.id, id), eq(listings.posterId, posterId)))
       .returning({ id: listings.id });
     return row ?? null;
   }

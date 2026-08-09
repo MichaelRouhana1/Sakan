@@ -34,7 +34,6 @@ export type Listing = {
   wifiIncluded: boolean;
   routerUps: boolean;
   elevator24_7: boolean;
-  lookingForRoommate: boolean;
   area: string;
   landmark: string | null;
   /** WGS84 longitude from ST_X; null when listing has no pin. */

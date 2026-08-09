@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -18,18 +18,12 @@ import { ListingGallery } from "@/components/listings/ListingGallery";
 import { NearLandmark } from "@/components/listings/NearLandmark";
 import { ReportListingSheet } from "@/components/listings/ReportListingSheet";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
-import { LookingPromptSheet } from "@/components/roommate/LookingPromptSheet";
 import { GlassSurface, isAppleGlass } from "@/components/ui/Glass";
-import { ROOMMATE_LAUNCH_AREA_SET } from "@/constants/roommateLaunch";
 import { Skoun } from "@/constants/theme";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
 import { useIsReported } from "@/features/reports/useReportListing";
-import {
-  useNearbyRoommateCount,
-  useMyLookingCard,
-} from "@/features/roommate/useRoommate";
 import {
   useIsSaved,
   useToggleSaved,
@@ -41,11 +35,6 @@ import {
   labelGenderRestriction,
   labelListingType,
 } from "@/lib/listingLabels";
-import {
-  dismissLookingPrompt,
-  recordBrowsedArea,
-  wasLookingPromptDismissed,
-} from "@/lib/roommateGrowth";
 import { rentPriceType } from "@/lib/rentPriceType";
 import { safeBack, useSafeHardwareBack } from "@/lib/safeBack";
 import {
@@ -64,42 +53,14 @@ export default function RenterListingDetailScreen() {
   const saved = useIsSaved(id ?? "");
   const toggleSaved = useToggleSaved();
   const reported = useIsReported(id ?? "");
-  const myCard = useMyLookingCard();
-  const nearby = useNearbyRoommateCount(
-    listing && ROOMMATE_LAUNCH_AREA_SET.has(listing.area)
-      ? listing.area
-      : undefined,
-  );
   const coincident = useNearbyListings(id ?? "", {
     enabled: Boolean(
       listing && listing.lng != null && listing.lat != null,
     ),
   });
   const [reportOpen, setReportOpen] = useState(false);
-  const [lookingPrompt, setLookingPrompt] = useState(false);
   useSafeHardwareBack("/(renter)");
   useRecordListingView(id ?? "", Boolean(id) && !isError);
-
-  useEffect(() => {
-    if (!listing?.area) return;
-    void recordBrowsedArea(listing.area);
-  }, [listing?.area]);
-
-  useEffect(() => {
-    if (!listing || !id) return;
-    if (!ROOMMATE_LAUNCH_AREA_SET.has(listing.area)) return;
-    if (myCard.data) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void wasLookingPromptDismissed(id).then((dismissed) => {
-        if (!cancelled && !dismissed) setLookingPrompt(true);
-      });
-    }, 1200);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [listing, id, myCard.data]);
 
   if (isLoading) {
     return (
@@ -361,15 +322,6 @@ export default function RenterListingDetailScreen() {
           listingId={listing.id}
           visible={reportOpen}
           onClose={() => setReportOpen(false)}
-        />
-        <LookingPromptSheet
-          visible={lookingPrompt}
-          area={listing.area}
-          nearbyCount={nearby.data?.count ?? null}
-          onDismiss={() => {
-            setLookingPrompt(false);
-            void dismissLookingPrompt(listing.id);
-          }}
         />
       </View>
     </ListerScreen>

@@ -112,16 +112,13 @@ function AreaCityCard({
 }
 
 function goBrowse() {
-  router.push("/(renter)/(tabs)" as never);
+  router.push("/search" as never);
 }
 function goList() {
   router.push("/(auth)/role-select" as never);
 }
 function goAuth() {
   router.push("/(auth)/phone" as never);
-}
-function goRoommates() {
-  router.push("/(renter)/(tabs)/roommates" as never);
 }
 
 function SectionHeader({
@@ -162,11 +159,6 @@ function HomeNav({ solid }: { solid: boolean }) {
         <View style={styles.navRight}>
           <Pressable onPress={goBrowse} accessibilityRole="link">
             <Text style={[styles.navLink, solid && styles.navLinkSolid]}>Find</Text>
-          </Pressable>
-          <Pressable onPress={goRoommates} accessibilityRole="link">
-            <Text style={[styles.navLink, solid && styles.navLinkSolid]}>
-              Roommates
-            </Text>
           </Pressable>
           <Pressable onPress={goAuth} accessibilityRole="link" hitSlop={8}>
             <Ionicons
@@ -628,7 +620,6 @@ export function SkounHomePage() {
                 ]}
                 onPress={() => {
                   if (p.action === "list") goList();
-                  else if (p.action === "roommates") goRoommates();
                   else goBrowse();
                 }}
               >
@@ -774,7 +765,7 @@ export function SkounHomePage() {
         <View style={[styles.section, { paddingHorizontal: padX }]}>
           <SectionHeader
             title="Need help? Let’s connect"
-            subtitle="Questions about browsing, listing, or roommates."
+            subtitle="Questions about browsing or listing."
           />
           <View style={[styles.helpGrid, isNarrow && styles.helpGridNarrow]}>
             <Pressable onPress={goAuth} style={styles.helpCard}>
@@ -840,9 +831,6 @@ export function SkounHomePage() {
                 </Pressable>
                 <Pressable onPress={goList}>
                   <Text style={styles.footerLink}>List a place</Text>
-                </Pressable>
-                <Pressable onPress={goRoommates}>
-                  <Text style={styles.footerLink}>Roommates</Text>
                 </Pressable>
               </View>
               <View>

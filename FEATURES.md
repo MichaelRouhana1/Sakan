@@ -65,25 +65,12 @@
 | Boost listing | Stub (“coming soon”) | poster listing detail |
 | Credit spend on publish | Done | 1 free live listing; 2nd+ needs post credit; free-slot replacements capped/mo |
 | Utility legal disclaimer (full PRD) | Missing / soft copy only | create utilities step |
-| Edit / renew / archive UX | Done (archive + roommate withdraw) | `POST /api/listings/:id/archive` |
-| Looking for roommate toggle | Done | create + `PATCH …/looking-for-roommate` |
+| Edit / renew / archive UX | Done | `POST /api/listings/:id/archive` |
 
-### Roommate Finder v1
+### Roommate Finder
 | Feature | Status | Where |
 |--------|--------|--------|
-| Verified phone gate (`phoneVerifiedAt`) | Done (stub OTP) | users + `requirePhoneVerified` |
-| User gender (private, same-gender filter) | Done | `PATCH /api/users/me/gender` |
-| Looking cards (seeker) | Done | `/api/roommate/cards*` |
-| Teaser DTO (no gender/phone/photos) | Done | `roommate.serializers.ts` |
-| Holder seeker browse + required invite note | Done | `/api/roommate/seekers`, `POST /invites` |
-| Accept / Decline only | Done | `/invites/:id/accept\|decline` |
-| Match unlock WhatsApp + end-match copy | Done | matches + FE |
-| Blocks / reports | Done | `/api/roommate/blocks`, `/reports` |
-| Nearby count + soft-launch areas | Done | `/stats/nearby`, `roommateLaunch.ts` |
-| Renter Roommates tab | Done | `(renter)/(tabs)/roommates` |
-| Poster Find roommate | Done | `(poster)/find-roommate/[listingId]` |
-| Post-view Looking prompt | Done | `LookingPromptSheet` |
-| In-app chat / opposite-gender / real OTP | Out of scope v1 | — |
+| Roommate Finder (cards, invites, matches, UI) | Removed | Soft-deleted from app; DB migration `0004_roommate_finder` retained |
 
 ### Credits & payments
 | Feature | Status | Where |
@@ -126,19 +113,13 @@
 ### Renter
 - `/(renter)/(tabs)/` — Search (list/map)
 - `/(renter)/(tabs)/saved` — Shortlist
-- `/(renter)/(tabs)/roommates` — Roommate Finder hub
-- `/(renter)/listing/[id]` — Detail (+ Looking prompt)
-- `/(renter)/roommates/looking-card` — Create/edit Looking card
-- `/(renter)/roommates/invite/[id]` — Accept / Decline
-- `/(renter)/roommates/match/[id]` — Unlock WhatsApp / end
-- `/(renter)/roommates/guidelines`
+- `/(renter)/listing/[id]` — Detail
 
 ### Poster
 - `/(poster)/(tabs)/` — Dashboard
-- `/(poster)/(tabs)/create` — New listing (+ roommate toggle)
+- `/(poster)/(tabs)/create` — New listing
 - `/(poster)/(tabs)/credits` — Buy credits
 - `/(poster)/listing/[id]` — Own listing detail
-- `/(poster)/find-roommate/[listingId]` — Browse seekers + invite
 
 ### Misc
 - `+not-found`
@@ -217,6 +198,7 @@
 - `useListing` — single listing
 - `useMyListings` — poster’s listings
 - `useCreateListing` — create mutation
+- `useArchiveListing` — archive mutation
 - `useRecordListingView` — increment views
 - `uploadListingPhotos` — multipart upload helper
 - `normalizeListing` / `normalizeListingsEnvelope` — API → UI types
@@ -370,7 +352,8 @@
 
 ## Explicitly not built (PRD out of scope or backlog)
 
-- In-app chat / roommate matching  
+- In-app chat  
+- Roommate Finder (removed from product; legacy DB tables may remain)  
 - Card payment gateways  
 - Real OTP/JWT  
 - Working WhatsApp contact (phone exposure)  

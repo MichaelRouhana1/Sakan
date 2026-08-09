@@ -77,7 +77,7 @@ export function ListingDetailWeb({ listingId }: Props) {
         <LButton
           label="Back to Find"
           variant="secondary"
-          onPress={() => router.replace("/(renter)/(tabs)" as never)}
+          onPress={() => router.replace("/search" as never)}
           style={{ marginTop: 16 }}
         />
       </View>
@@ -127,7 +127,7 @@ export function ListingDetailWeb({ listingId }: Props) {
       <View style={styles.breadcrumb}>
         <Pressable
           accessibilityRole="link"
-          onPress={() => router.push("/(renter)/(tabs)" as never)}
+          onPress={() => router.push("/search" as never)}
           style={({ hovered }) => [styles.crumb, hovered && styles.crumbHover]}
         >
           <LText variant="caption" tone="primary">

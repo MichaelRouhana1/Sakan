@@ -17,14 +17,14 @@ export function WebFooter() {
           </LText>
         </View>
         <View style={styles.links}>
-          <Link href="/(renter)/(tabs)" asChild>
+          <Link href="/search" asChild>
             <Pressable accessibilityRole="link">
               <LText variant="caption" style={styles.link}>
                 Find a room
               </LText>
             </Pressable>
           </Link>
-          <Link href="/(renter)/(tabs)/saved" asChild>
+          <Link href="/saved" asChild>
             <Pressable accessibilityRole="link">
               <LText variant="caption" style={styles.link}>
                 Saved

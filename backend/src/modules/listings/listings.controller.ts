@@ -124,21 +124,6 @@ export class ListingsController {
     }
   }
 
-  async setLookingForRoommate(req: Request, res: Response, next: NextFunction) {
-    try {
-      const lookingForRoommate = Boolean(req.body?.lookingForRoommate);
-      const data = await listingsService.setLookingForRoommate(
-        req.user!.id,
-        req.user!.role,
-        req.params.id as string,
-        lookingForRoommate,
-      );
-      res.json({ data });
-    } catch (err) {
-      next(err);
-    }
-  }
-
   async uploadPhotos(req: Request, res: Response, next: NextFunction) {
     try {
       if (req.user!.role !== "poster") {

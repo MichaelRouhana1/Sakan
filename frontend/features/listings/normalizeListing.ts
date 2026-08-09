@@ -61,9 +61,6 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     wifiIncluded: Boolean(row.wifiIncluded ?? row.wifi_included),
     routerUps: Boolean(row.routerUps ?? row.router_ups),
     elevator24_7: Boolean(row.elevator24_7 ?? row.elevator_24_7),
-    lookingForRoommate: Boolean(
-      row.lookingForRoommate ?? row.looking_for_roommate,
-    ),
     area: String(row.area ?? ""),
     landmark: (row.landmark as string | null) ?? null,
     lng: parseCoord(row.lng),
