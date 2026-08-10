@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   ListingFeatureBadge,
-  ListingRatingBadge,
+  ListingGridRatingBadge,
+  ListingListRatingDisplay,
   listingImageCornerBadge,
 } from "@/components/listings/ListingRatingBadge";
 import {
@@ -102,12 +103,18 @@ function PillRow({
   );
 }
 
-function ImageCornerBadge({ listing }: { listing: Listing }) {
-  const badge = listingImageCornerBadge(listing);
+function ImageCornerBadge({
+  listing,
+  variant = "grid",
+}: {
+  listing: Listing;
+  variant?: "grid" | "list";
+}) {
+  const badge = listingImageCornerBadge(listing, variant);
   if (!badge) return null;
   if (badge.kind === "rating") {
     return (
-      <ListingRatingBadge
+      <ListingGridRatingBadge
         rating={badge.rating!}
         reviewCount={badge.reviewCount!}
       />
@@ -134,6 +141,11 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
   const onOpen = () => router.push(`/(renter)/listing/${listing.id}`);
   const onToggleSave = () => toggleSaved.mutate(listing);
 
+  const hasRating =
+    (listing.reviewCount ?? 0) > 0 &&
+    listing.rating != null &&
+    Number.isFinite(listing.rating);
+
   if (isList) {
     return (
       <Pressable
@@ -148,7 +160,7 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
       >
         <View style={[styles.mediaShell, styles.mediaList]}>
           <ListingCardCarousel urls={urls} />
-          <ImageCornerBadge listing={listing} />
+          <ImageCornerBadge listing={listing} variant="list" />
         </View>
 
         <View style={[styles.middle, styles.middleList]}>
@@ -173,11 +185,21 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
         </View>
 
         <View style={[styles.rightCol, styles.rightColList]}>
-          <HeartButton
-            isSaved={isSaved}
-            onToggle={onToggleSave}
-            style={styles.heart}
-          />
+          <View style={styles.listHeaderRow}>
+            {hasRating ? (
+              <ListingListRatingDisplay
+                rating={listing.rating!}
+                reviewCount={listing.reviewCount!}
+              />
+            ) : (
+              <View />
+            )}
+            <HeartButton
+              isSaved={isSaved}
+              onToggle={onToggleSave}
+              style={styles.heart}
+            />
+          </View>
           <View style={styles.priceBlock}>
             <Text style={styles.priceFrom}>From</Text>
             <Text style={styles.price}>
@@ -217,7 +239,7 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
           style={styles.gridHeart}
         />
 
-        <ImageCornerBadge listing={listing} />
+        <ImageCornerBadge listing={listing} variant="grid" />
       </View>
 
       <View style={styles.gridBody}>
@@ -370,9 +392,16 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   rightColList: {
-    width: 160,
+    width: 185,
     paddingVertical: 14,
     paddingHorizontal: 14,
+  },
+  listHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+    width: "100%",
   },
   heart: {
     alignSelf: "flex-end",
