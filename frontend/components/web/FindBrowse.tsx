@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -268,6 +269,9 @@ export function FindBrowse() {
     </View>
   );
 
+  const { width: windowWidth } = useWindowDimensions();
+  const isXl = windowWidth >= 1280;
+
   const results = (
     <FindResultsGrid
       listings={listings}
@@ -279,9 +283,7 @@ export function FindBrowse() {
         cardVariant === "list"
           ? 1
           : isMap
-            ? isDesktop
-              ? 2
-              : 1
+            ? 1
             : isDesktop
               ? 3
               : bp === "tablet"
@@ -311,7 +313,7 @@ export function FindBrowse() {
 
       {isMap ? (
         <View style={styles.mapSplit}>
-          <View style={[styles.mapListCol, isDesktop && styles.mapListColLg]}>
+          <View style={[styles.mapListCol, isXl && styles.mapListColXl]}>
             <View style={styles.mapListContent}>
               {heading}
               {results}
@@ -684,8 +686,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   mapListCol: {
-    width: 450,
-    maxWidth: 450,
+    width: 380,
+    maxWidth: 380,
     flexGrow: 0,
     flexShrink: 0,
     minHeight: 0,
@@ -700,9 +702,9 @@ const styles = StyleSheet.create({
     padding: 16,
     boxSizing: "border-box",
   },
-  mapListColLg: {
-    width: 500,
-    maxWidth: 500,
+  mapListColXl: {
+    width: 420,
+    maxWidth: 420,
   },
   mapListContent: {
     gap: 16,

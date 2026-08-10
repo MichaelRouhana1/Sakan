@@ -37,6 +37,8 @@ import {
 import {
   campusPinIcon,
   clusterBubbleIcon,
+  createAmberGroupPopupHtml,
+  createAmberPopupHtml,
   createSkounMap,
   distanceBadgeIcon,
   loadLeaflet,
@@ -108,6 +110,7 @@ export function ListingBrowseMap({
   const layerRef = useRef<LayerGroup | null>(null);
   const leafletRef = useRef<LeafletNS | null>(null);
   const clusterIndexRef = useRef<PinClusterIndex | null>(null);
+  const activePopupRef = useRef<any>(null);
   const ignoreNextMapClick = useRef(false);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
@@ -120,10 +123,15 @@ export function ListingBrowseMap({
   );
 
   useEffect(() => {
-    if (fillContainer) {
-      // Parent owns height — just remeasure Leaflet after layout.
-      const id = requestAnimationFrame(() => mapRef.current?.invalidateSize());
-      return () => cancelAnimationFrame(id);
+    if (fillContainer || mapReady) {
+      const t1 = requestAnimationFrame(() => mapRef.current?.invalidateSize());
+      const t2 = setTimeout(() => mapRef.current?.invalidateSize(), 60);
+      const t3 = setTimeout(() => mapRef.current?.invalidateSize(), 200);
+      return () => {
+        cancelAnimationFrame(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
     }
     const to = expanded ? expandedMapHeight() : MAP_HEIGHT_COLLAPSED;
     Animated.timing(heightAnim, {
@@ -133,7 +141,7 @@ export function ListingBrowseMap({
     }).start(() => {
       mapRef.current?.invalidateSize();
     });
-  }, [expanded, fillContainer, reduceMotion, heightAnim]);
+  }, [expanded, fillContainer, mapReady, reduceMotion, heightAnim]);
 
   const mappable = useMemo(
     () => listings.filter(hasCoords),
@@ -231,6 +239,10 @@ export function ListingBrowseMap({
         layerRef.current = L.layerGroup().addTo(map);
 
         map.on("click", () => {
+          if (activePopupRef.current) {
+            activePopupRef.current.remove();
+            activePopupRef.current = null;
+          }
           if (ignoreNextMapClick.current) {
             ignoreNextMapClick.current = false;
             return;
@@ -309,6 +321,33 @@ export function ListingBrowseMap({
       setTimeout(() => {
         ignoreNextMapClick.current = false;
       }, 80);
+
+      if (fillContainer) {
+        if (!L || !map) return;
+        if (activePopupRef.current) {
+          activePopupRef.current.remove();
+          activePopupRef.current = null;
+        }
+        const html =
+          group.count === 1 && group.listings[0]
+            ? createAmberPopupHtml(group.listings[0])
+            : createAmberGroupPopupHtml(group);
+
+        const popup = L.popup({
+          offset: [0, -36],
+          closeButton: false,
+          className: "skoun-leaflet-amber-popup",
+        })
+          .setLatLng([group.lat, group.lng])
+          .setContent(html)
+          .openOn(map);
+
+        activePopupRef.current = popup;
+        // @ts-expect-error window active popup
+        window._skounActivePopup = popup;
+        return;
+      }
+
       if (group.count === 1) {
         const only = group.listings[0];
         if (!only) return;

@@ -12,6 +12,9 @@ import type {
   Polyline,
   TileLayer,
 } from "leaflet";
+import type { Listing } from "@/types/listing";
+import type { MapPinGroup } from "@/lib/mapPinGroups";
+import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 
 export type LeafletNS = typeof import("leaflet");
 
@@ -101,6 +104,160 @@ export function ensureLeafletCss(): void {
       transition: transform 120ms ease;
     }
     .skoun-cluster-bubble:hover { transform: scale(1.06); }
+
+    /* Amber Floating Map Popup */
+    .skoun-leaflet-amber-popup .leaflet-popup-content-wrapper {
+      padding: 0 !important;
+      border-radius: 16px !important;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04) !important;
+      border: 1px solid #E2E8F0 !important;
+      overflow: hidden !important;
+      background: #ffffff !important;
+    }
+    .skoun-leaflet-amber-popup .leaflet-popup-content {
+      margin: 0 !important;
+      width: 240px !important;
+      line-height: 1.4 !important;
+    }
+    .skoun-leaflet-amber-popup .leaflet-popup-tip-container {
+      margin-top: -1px;
+    }
+    .skoun-leaflet-amber-popup .leaflet-popup-close-button {
+      display: none !important;
+    }
+    .skoun-amber-popup-card {
+      width: 240px;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+      display: block;
+      text-decoration: none !important;
+      color: inherit !important;
+      cursor: pointer;
+    }
+    .skoun-popup-media {
+      width: 100%;
+      height: 130px;
+      position: relative;
+      overflow: hidden;
+      background: #F1F5F9;
+    }
+    .skoun-popup-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .skoun-popup-close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 10;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      border: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      padding: 0;
+      transition: background 150ms ease;
+    }
+    .skoun-popup-close-btn:hover {
+      background: #ffffff;
+    }
+    .skoun-popup-body {
+      display: block;
+      padding: 12px;
+      background: #ffffff;
+    }
+    .skoun-popup-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0F172A;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .skoun-popup-subtitle {
+      font-size: 12px;
+      color: #64748B;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .skoun-popup-price {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0F172A;
+      margin-top: 4px;
+    }
+    .skoun-popup-price .unit {
+      font-size: 12px;
+      font-weight: 400;
+      color: #64748B;
+    }
+
+    .skoun-amber-popup-group {
+      padding: 12px;
+      width: 240px;
+    }
+    .skoun-popup-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .skoun-popup-group-list {
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .skoun-popup-group-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      text-decoration: none !important;
+      color: inherit !important;
+      transition: background 150ms ease;
+    }
+    .skoun-popup-group-item:hover {
+      background: #F1F5F9;
+    }
+    .skoun-popup-group-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #0F172A;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 130px;
+    }
+    .skoun-popup-group-price {
+      font-size: 12px;
+      font-weight: 700;
+      color: #2F6FED;
+    }
   `;
   document.head.appendChild(style);
   cssReady = true;
@@ -137,6 +294,11 @@ export function createSkounMap(
   const map = L.map(el, {
     zoomControl: true,
     attributionControl: true,
+    scrollWheelZoom: true,
+    wheelPxPerZoomLevel: 140,
+    wheelDebounceTime: 60,
+    zoomSnap: 0.5,
+    zoomDelta: 0.5,
   }).setView(center, zoom);
   addOsmTiles(L, map);
   requestAnimationFrame(() => map.invalidateSize());
@@ -224,6 +386,50 @@ export function distanceBadgeIcon(L: LeafletNS, label: string): DivIcon {
     iconSize: [72, 24],
     iconAnchor: [36, 12],
   });
+}
+export function createAmberPopupHtml(listing: Listing): string {
+  const title = escapeHtml(listingCardTitle(listing));
+  const subtitle = escapeHtml(listingCardSubtitle(listing));
+  const price = `$${listing.monthlyRentUsd.toLocaleString("en-US")}`;
+  const coverUrl =
+    listing.coverUrl ||
+    listing.photos?.[0]?.url ||
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80";
+  const url = `/listing/${listing.id}`;
+
+  return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-amber-popup-card" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+    <div class="skoun-popup-media">
+      <img src="${escapeHtml(coverUrl)}" alt="${title}" class="skoun-popup-img" />
+      <button type="button" class="skoun-popup-close-btn" aria-label="Close" onclick="event.stopPropagation(); event.preventDefault(); if (window._skounActivePopup) { window._skounActivePopup.remove(); }">✕</button>
+    </div>
+    <div class="skoun-popup-body">
+      <div class="skoun-popup-title">${title}</div>
+      <div class="skoun-popup-subtitle">${subtitle}</div>
+      <div class="skoun-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
+    </div>
+  </a>`;
+}
+
+export function createAmberGroupPopupHtml(group: MapPinGroup): string {
+  const itemsHtml = group.listings
+    .map((listing) => {
+      const title = escapeHtml(listingCardTitle(listing));
+      const price = `$${listing.monthlyRentUsd.toLocaleString("en-US")}`;
+      const url = `/listing/${listing.id}`;
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-popup-group-item" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+        <span class="skoun-popup-group-title">${title}</span>
+        <span class="skoun-popup-group-price">${price}/mo</span>
+      </a>`;
+    })
+    .join("");
+
+  return `<div class="skoun-amber-popup-card skoun-amber-popup-group">
+    <div class="skoun-popup-group-header">
+      <span>${group.count} places at this pin</span>
+      <button type="button" class="skoun-popup-close-btn" aria-label="Close" onclick="event.stopPropagation(); event.preventDefault(); if (window._skounActivePopup) { window._skounActivePopup.remove(); }">✕</button>
+    </div>
+    <div class="skoun-popup-group-list">${itemsHtml}</div>
+  </div>`;
 }
 
 function escapeHtml(text: string): string {
