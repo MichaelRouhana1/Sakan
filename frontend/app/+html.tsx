@@ -189,6 +189,8 @@ export default function Root({ children }: { children: ReactNode }) {
 html {
   height: auto;
   min-height: 100%;
+  /* Reserve scrollbar space so sticky/centered chrome does not jump ~15px. */
+  scrollbar-gutter: stable;
 }
 body {
   margin: 0;
@@ -198,21 +200,27 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  /* Keep gutter reservation consistent with html. */
+  scrollbar-gutter: stable;
 }
 #root {
   min-height: 100%;
   height: auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 #root > div {
   min-height: 100%;
   height: auto;
+  width: 100%;
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
 a { text-decoration: none; color: inherit; }
 button, [role="button"], [role="link"] { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {

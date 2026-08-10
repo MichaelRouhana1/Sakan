@@ -231,17 +231,22 @@ const styles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
     top: WEB_FILTER_BAR_STICKY_TOP,
-    zIndex: 30,
+    left: 0,
+    right: 0,
+    width: "100%",
+    zIndex: 40,
     flexGrow: 0,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: "#E2E8F0",
     shadowColor: "#121826",
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   row: {
     flexDirection: "row",
@@ -249,9 +254,12 @@ const styles = StyleSheet.create({
     gap: 8,
     maxWidth: WEB_CONTENT_MAX,
     width: "100%",
+    marginHorizontal: "auto" as unknown as number,
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingVertical: 12,
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   pill: {
     flexDirection: "row",
@@ -263,6 +271,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
+    flexShrink: 0,
   },
   pillActive: {
     borderColor: Skoun.color.primary,
@@ -289,6 +298,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
+    flexShrink: 0,
   },
   modePillActive: {
     borderColor: Skoun.color.primary,
@@ -297,6 +307,7 @@ const styles = StyleSheet.create({
   clearBtn: {
     paddingHorizontal: 10,
     paddingVertical: 8,
+    flexShrink: 0,
   },
   clearHover: {
     opacity: 0.75,

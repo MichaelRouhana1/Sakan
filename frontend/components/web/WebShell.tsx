@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: "100vh" as unknown as number,
     backgroundColor: Skoun.color.bg,
-    // Let document/body own the scrollbar — do not lock to viewport height.
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   rootLocked: {
     height: "100vh" as unknown as number,
@@ -58,6 +59,8 @@ const styles = StyleSheet.create({
   body: {
     width: "100%",
     flexGrow: 1,
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   bodyLocked: {
     flex: 1,
@@ -71,6 +74,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 28,
     paddingBottom: 48,
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   mainBleed: {
     maxWidth: "100%" as unknown as number,

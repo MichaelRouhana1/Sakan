@@ -9,7 +9,11 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Skoun } from "@/constants/theme";
-import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+import {
+  WEB_CONTENT_MAX,
+  WEB_CONTENT_PAD_X,
+  WEB_NAV_HEIGHT,
+} from "@/constants/webLayout";
 
 type Props = {
   showSearch?: boolean;
@@ -102,23 +106,35 @@ export function WebTopNav({ showSearch = false }: Props) {
 
 const styles = StyleSheet.create({
   bar: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
-    backgroundColor: "#FFFFFF",
     position: "sticky" as unknown as "relative",
     top: 0,
-    zIndex: 40,
+    left: 0,
+    right: 0,
+    width: "100%",
+    minHeight: WEB_NAV_HEIGHT,
+    zIndex: 50,
+    flexShrink: 0,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    // Prevent padding/border from changing layout width when sticky activates.
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   inner: {
     maxWidth: WEB_CONTENT_MAX,
     width: "100%",
+    minHeight: WEB_NAV_HEIGHT,
+    marginHorizontal: "auto" as unknown as number,
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
-    paddingVertical: 14,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 20,
+    // @ts-expect-error RN web box model
+    boxSizing: "border-box",
   },
   innerSearch: {
     justifyContent: "flex-start",
@@ -171,6 +187,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginLeft: "auto",
+    flexShrink: 0,
   },
   link: {
     paddingVertical: 8,
