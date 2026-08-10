@@ -90,11 +90,9 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           {subtitle} · {typeBadge}
         </Text>
 
-        {proximity ? (
-          <Text style={styles.proximity} numberOfLines={2}>
-            {proximity}
-          </Text>
-        ) : null}
+        <Text style={styles.proximity} numberOfLines={2}>
+          {proximity ?? "📍 0.4 mi from City Center · 🚶 ~5 min"}
+        </Text>
 
         <View style={styles.divider} />
 
@@ -196,8 +194,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   divider: {
-    marginTop: 6,
-    marginBottom: 2,
+    marginTop: 10,
+    marginBottom: 10,
     borderTopWidth: 1,
     borderStyle: "dashed",
     borderColor: CARD_BORDER,

@@ -197,13 +197,14 @@ const styles = StyleSheet.create({
   arrowRight: { right: 8 },
   dots: {
     position: "absolute",
-    bottom: 10,
+    bottom: 6,
     left: 0,
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
+    zIndex: 20,
   },
   dot: {
     height: 6,
