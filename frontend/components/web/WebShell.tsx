@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: "100vh" as unknown as number,
     backgroundColor: Skoun.color.bg,
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   rootLocked: {
@@ -59,7 +58,6 @@ const styles = StyleSheet.create({
   body: {
     width: "100%",
     flexGrow: 1,
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   bodyLocked: {
@@ -74,7 +72,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 28,
     paddingBottom: 48,
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   mainBleed: {

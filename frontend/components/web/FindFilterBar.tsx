@@ -229,11 +229,13 @@ export function FindFilterBar({
 
 const styles = StyleSheet.create({
   bar: {
-    position: "sticky" as unknown as "relative",
-    top: WEB_FILTER_BAR_STICKY_TOP,
+    position: "relative",
+    top: 0,
     left: 0,
     right: 0,
     width: "100%",
+    height: 64,
+    minHeight: 64,
     zIndex: 40,
     flexGrow: 0,
     flexShrink: 0,
@@ -245,7 +247,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   row: {
@@ -258,7 +259,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingVertical: 12,
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   pill: {

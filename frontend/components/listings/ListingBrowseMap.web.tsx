@@ -599,9 +599,13 @@ const styles = StyleSheet.create({
   rootFill: {
     flex: 1,
     minHeight: 0,
+    minWidth: 0,
     height: "100%" as unknown as number,
+    width: "100%" as unknown as number,
     gap: 0,
     marginBottom: 0,
+    position: "relative",
+    overflow: "hidden",
   },
   caption: { marginBottom: 2 },
   mapShell: {
@@ -615,9 +619,14 @@ const styles = StyleSheet.create({
   mapShellFill: {
     flex: 1,
     minHeight: 0,
+    minWidth: 0,
     height: "100%" as unknown as number,
+    width: "100%" as unknown as number,
     borderRadius: 0,
     borderWidth: 0,
+    position: "relative",
+    overflow: "hidden",
+    zIndex: 10,
   },
   mapLoading: {
     ...StyleSheet.absoluteFillObject,

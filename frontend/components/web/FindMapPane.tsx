@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     maxHeight: "calc(100vh - 120px)" as unknown as number,
   },
   paneFull: {
-    width: "auto" as unknown as number,
+    width: "100%" as unknown as number,
     flex: 1,
     flexGrow: 1,
     minWidth: 0,
@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
     height: "100%" as unknown as number,
     position: "relative",
     overflow: "hidden",
+    zIndex: 10,
   },
   header: {
     flexDirection: "row",
@@ -169,6 +170,10 @@ const styles = StyleSheet.create({
   mapWrapFull: {
     flex: 1,
     height: "100%" as unknown as number,
+    width: "100%" as unknown as number,
     minHeight: 0,
+    minWidth: 0,
+    position: "relative",
+    overflow: "hidden",
   },
 });

@@ -311,7 +311,7 @@ export function FindBrowse() {
 
       {isMap ? (
         <View style={styles.mapSplit}>
-          <View style={styles.mapListCol}>
+          <View style={[styles.mapListCol, isDesktop && styles.mapListColLg]}>
             <View style={styles.mapListContent}>
               {heading}
               {results}
@@ -682,24 +682,33 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     minHeight: 0,
+    height: "calc(100vh - 128px)" as unknown as number,
+    maxHeight: "calc(100vh - 128px)" as unknown as number,
     overflow: "hidden",
+    position: "relative",
   },
   mapListCol: {
-    width: "28%" as unknown as number,
-    maxWidth: 420,
+    width: 450,
+    maxWidth: 450,
     flexGrow: 0,
     flexShrink: 0,
     minHeight: 0,
     height: "100%" as unknown as number,
+    zIndex: 20,
+    position: "relative",
     borderRightWidth: 1,
-    borderRightColor: Skoun.color.border,
-    backgroundColor: Skoun.color.bg,
-    overflow: "scroll",
-    overflowY: "auto",
+    borderRightColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    overflowY: "auto" as unknown as "scroll",
     overflowX: "hidden",
+    padding: 16,
+    boxSizing: "border-box",
+  },
+  mapListColLg: {
+    width: 500,
+    maxWidth: 500,
   },
   mapListContent: {
-    padding: 16,
     gap: 16,
     paddingBottom: 32,
   },

@@ -106,19 +106,19 @@ export function WebTopNav({ showSearch = false }: Props) {
 
 const styles = StyleSheet.create({
   bar: {
-    position: "sticky" as unknown as "relative",
+    position: "relative",
     top: 0,
     left: 0,
     right: 0,
     width: "100%",
     maxWidth: "100%",
+    height: WEB_NAV_HEIGHT,
     minHeight: WEB_NAV_HEIGHT,
     zIndex: 50,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   inner: {
@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 20,
-    // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },
   innerSearch: {

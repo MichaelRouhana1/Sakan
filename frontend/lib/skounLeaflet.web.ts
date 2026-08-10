@@ -39,7 +39,8 @@ export function ensureLeafletCss(): void {
   const style = document.createElement("style");
   style.id = "skoun-leaflet-overrides";
   style.textContent = `
-    .skoun-leaflet-map { width: 100%; height: 100%; z-index: 0; background: #E2E8F0; }
+    .skoun-leaflet-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
+    .skoun-leaflet-map .leaflet-container { width: 100%; height: 100%; max-width: 100%; max-height: 100%; position: relative; z-index: 0; overflow: hidden; }
     .skoun-leaflet-map .leaflet-control-attribution { font-size: 10px; }
     .skoun-div-icon { background: transparent !important; border: none !important; }
     .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; }

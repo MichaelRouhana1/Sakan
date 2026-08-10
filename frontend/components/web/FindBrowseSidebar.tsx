@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
+import { Platform, Pressable, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import type { Map as LeafletMap } from "leaflet";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
@@ -177,7 +177,7 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                         color={Skoun.color.primaryDeep}
                       />
                     </View>
-                    <LText variant="label" style={styles.uspTitle}>
+                    <LText variant="label" style={styles.uspTitle as StyleProp<TextStyle>}>
                       {item.title}
                     </LText>
                   </View>
@@ -188,7 +188,7 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                   />
                 </Pressable>
                 {open ? (
-                  <LText variant="caption" style={styles.uspBody}>
+                  <LText variant="caption" style={styles.uspBody as StyleProp<TextStyle>}>
                     {item.body}
                   </LText>
                 ) : null}
@@ -210,8 +210,7 @@ const styles = StyleSheet.create({
     position: "sticky" as unknown as "relative",
     top: WEB_SIDEBAR_STICKY_TOP,
     maxHeight: "calc(100vh - 160px)" as unknown as number,
-    overflow: "auto",
-    overflowY: "auto",
+    overflowY: "auto" as unknown as "scroll",
   },
   card: {
     width: "100%",
