@@ -199,10 +199,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 6,
     right: 16,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-end",
     gap: 4,
-    zIndex: 10,
   },
   dot: {
     height: 6,
