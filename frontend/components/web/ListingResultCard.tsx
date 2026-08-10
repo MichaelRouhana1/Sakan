@@ -60,11 +60,12 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
         (hovered || pressed) && styles.cardHover,
       ]}
     >
-      {/* Column 1 — image carousel */}
-      <ListingCardCarousel
-        urls={urls}
-        style={[styles.media, isList ? styles.mediaList : styles.mediaGrid]}
-      />
+      {/* Column 1 — full-height image shell owns carousel hover */}
+      <View
+        style={[styles.mediaShell, isList ? styles.mediaList : styles.mediaGrid]}
+      >
+        <ListingCardCarousel urls={urls} />
+      </View>
 
       {/* Column 2 — details */}
       <View style={[styles.middle, isList && styles.middleList]}>
@@ -162,18 +163,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 4,
   },
-  media: {
+  mediaShell: {
+    position: "relative",
     flexShrink: 0,
+    alignSelf: "stretch",
+    overflow: "hidden",
   },
   mediaList: {
     width: 248,
     minHeight: 220,
-    alignSelf: "stretch",
   },
   mediaGrid: {
     width: 168,
     minHeight: 200,
-    alignSelf: "stretch",
   },
   middle: {
     flex: 1,

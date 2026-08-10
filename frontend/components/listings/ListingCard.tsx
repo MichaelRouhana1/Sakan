@@ -57,8 +57,10 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      {/* Column 1 — image carousel */}
-      <ListingCardCarousel urls={urls} style={styles.media} alwaysShowArrows />
+      {/* Column 1 — full-height image shell */}
+      <View style={styles.mediaShell}>
+        <ListingCardCarousel urls={urls} alwaysShowArrows />
+      </View>
 
       {/* Column 2 — details */}
       <View style={styles.middle}>
@@ -142,10 +144,12 @@ const styles = StyleSheet.create({
     minHeight: 168,
   },
   pressed: { opacity: 0.94 },
-  media: {
+  mediaShell: {
+    position: "relative",
     width: 118,
     alignSelf: "stretch",
     flexShrink: 0,
+    overflow: "hidden",
   },
   middle: {
     flex: 1,

@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   View,
+  type GestureResponderEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -15,9 +16,14 @@ const MAX_PHOTOS = 5;
 type Props = {
   urls: string[];
   style?: StyleProp<ViewStyle>;
-  /** Always show chevrons (mobile). Web defaults to hover. */
+  /** Always show chevrons (mobile). Web defaults to hover fade-in. */
   alwaysShowArrows?: boolean;
 };
+
+function stopCardNav(e?: GestureResponderEvent) {
+  e?.preventDefault?.();
+  e?.stopPropagation?.();
+}
 
 export function ListingCardCarousel({
   urls,
@@ -30,86 +36,137 @@ export function ListingCardCarousel({
   const count = photos.length;
   const safeIndex = count > 0 ? index % count : 0;
   const current = photos[safeIndex] ?? null;
-  const showArrows = count > 1 && (alwaysShowArrows || hovered);
+  const arrowsVisible = count > 1 && (alwaysShowArrows || hovered);
 
   const go = (delta: number) => {
     if (count < 2) return;
     setIndex((i) => (i + delta + count) % count);
   };
 
+  const webHoverHandlers =
+    Platform.OS === "web"
+      ? ({
+          onMouseEnter: () => setHovered(true),
+          onMouseLeave: () => setHovered(false),
+          onPointerEnter: () => setHovered(true),
+          onPointerLeave: () => setHovered(false),
+        } as object)
+      : {};
+
   return (
-    <View
-      // Hover only used on web to reveal arrows; ignored on native.
-      {...(Platform.OS === "web"
-        ? {
-            onMouseEnter: () => setHovered(true),
-            onMouseLeave: () => setHovered(false),
-          }
-        : {})}
-      style={[styles.root, style]}
-    >
+    <View style={[styles.root, style]} {...webHoverHandlers}>
+      {/* Media — no pointer capture so the wrapper owns hover */}
       {current ? (
         <Image
+          pointerEvents="none"
           source={{ uri: current }}
           style={StyleSheet.absoluteFillObject}
           contentFit="cover"
           transition={180}
         />
       ) : (
-        <View style={[StyleSheet.absoluteFillObject, styles.fallback]} />
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFillObject, styles.fallback]}
+        />
       )}
 
-      {showArrows ? (
-        <>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Previous photo"
-            hitSlop={6}
-            onPress={(e) => {
-              e?.stopPropagation?.();
-              go(-1);
-            }}
-            style={[styles.arrow, styles.arrowLeft]}
-          >
-            <Ionicons name="chevron-back" size={18} color="#FFFFFF" />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Next photo"
-            hitSlop={6}
-            onPress={(e) => {
-              e?.stopPropagation?.();
-              go(1);
-            }}
-            style={[styles.arrow, styles.arrowRight]}
-          >
-            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-          </Pressable>
-        </>
-      ) : null}
+      {/* Full-bleed overlay: box-none so empty space passes card presses */}
+      <View style={styles.overlay} pointerEvents="box-none">
+        {count > 1 ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Previous photo"
+              hitSlop={8}
+              onPress={(e) => {
+                stopCardNav(e);
+                go(-1);
+              }}
+              onPressIn={stopCardNav}
+              style={({ hovered: arrowHover, pressed }) => [
+                styles.arrow,
+                styles.arrowLeft,
+                styles.arrowMotion,
+                {
+                  opacity: arrowsVisible ? 1 : 0,
+                  transform: [
+                    { scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 },
+                  ],
+                },
+              ]}
+              pointerEvents={arrowsVisible ? "auto" : "none"}
+            >
+              <Ionicons name="chevron-back" size={18} color="#121826" />
+            </Pressable>
 
-      {count > 1 ? (
-        <View style={styles.dots} pointerEvents="none">
-          {photos.map((_, i) => (
-            <View
-              key={i}
-              style={[styles.dot, i === safeIndex && styles.dotActive]}
-            />
-          ))}
-        </View>
-      ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Next photo"
+              hitSlop={8}
+              onPress={(e) => {
+                stopCardNav(e);
+                go(1);
+              }}
+              onPressIn={stopCardNav}
+              style={({ hovered: arrowHover, pressed }) => [
+                styles.arrow,
+                styles.arrowRight,
+                styles.arrowMotion,
+                {
+                  opacity: arrowsVisible ? 1 : 0,
+                  transform: [
+                    { scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 },
+                  ],
+                },
+              ]}
+              pointerEvents={arrowsVisible ? "auto" : "none"}
+            >
+              <Ionicons name="chevron-forward" size={18} color="#121826" />
+            </Pressable>
+          </>
+        ) : null}
+
+        {count > 1 ? (
+          <View style={styles.dots} pointerEvents="auto">
+            {photos.map((_, i) => (
+              <View
+                key={i}
+                style={[styles.dot, i === safeIndex && styles.dotActive]}
+              />
+            ))}
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
 
+const arrowMotionWeb =
+  Platform.OS === "web"
+    ? ({
+        transitionProperty: "opacity, transform",
+        transitionDuration: "200ms",
+      } as ViewStyle)
+    : null;
+
 const styles = StyleSheet.create({
   root: {
     position: "relative",
+    flex: 1,
+    alignSelf: "stretch",
+    width: "100%",
+    height: "100%",
+    minHeight: "100%",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
   },
   fallback: {
     backgroundColor: "#E2E8F0",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
   },
   arrow: {
     position: "absolute",
@@ -118,9 +175,17 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 999,
-    backgroundColor: "rgba(18,24,38,0.42)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#121826",
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  arrowMotion: {
+    ...(arrowMotionWeb ?? {}),
   },
   arrowLeft: { left: 8 },
   arrowRight: { right: 8 },
