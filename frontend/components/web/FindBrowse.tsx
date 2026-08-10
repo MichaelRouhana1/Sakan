@@ -34,6 +34,7 @@ import { FindResultsGrid } from "@/components/web/FindResultsGrid";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { LEBANON_AREAS, MAX_UNIVERSITY_SLUGS } from "@/constants/areas";
 import { Skoun } from "@/constants/theme";
+import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
@@ -274,7 +275,19 @@ export function FindBrowse() {
       error={isError}
       onRetry={() => void refetch()}
       variant={cardVariant}
-      columns={1}
+      columns={
+        cardVariant === "list"
+          ? 1
+          : isMap
+            ? isDesktop
+              ? 2
+              : 1
+            : isDesktop
+              ? 3
+              : bp === "tablet"
+                ? 2
+                : 1
+      }
     />
   );
 
@@ -552,11 +565,11 @@ const styles = StyleSheet.create({
     height: "100%" as unknown as number,
   },
   content: {
-    paddingHorizontal: 24,
+    paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 20,
     paddingBottom: 8,
-    gap: 28,
-    maxWidth: 1360,
+    gap: 24,
+    maxWidth: WEB_CONTENT_MAX,
     width: "100%",
     alignSelf: "center",
   },
@@ -639,7 +652,7 @@ const styles = StyleSheet.create({
   mainRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 28,
+    gap: 24,
   },
   resultsCol: {
     flex: 1,

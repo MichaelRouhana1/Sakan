@@ -11,6 +11,7 @@ type Props = {
   error?: boolean;
   onRetry?: () => void;
   variant?: "grid" | "list";
+  /** Desktop column count for grid mode (1–3). */
   columns?: 1 | 2 | 3;
 };
 
@@ -29,7 +30,7 @@ function SkeletonCard({ list }: { list?: boolean }) {
 function gridColumnStyle(columns: 1 | 2 | 3) {
   if (columns === 1) return styles.grid1;
   if (columns === 2) return styles.grid2;
-  return null;
+  return styles.grid3;
 }
 
 export function FindResultsGrid({
@@ -81,11 +82,12 @@ export function FindResultsGrid({
     <View style={styles.wrap}>
       <View style={layoutStyle}>
         {listings.map((listing) => (
-          <ListingResultCard
+          <View
             key={listing.id}
-            listing={listing}
-            variant={variant}
-          />
+            style={isList ? undefined : styles.gridCell}
+          >
+            <ListingResultCard listing={listing} variant={variant} />
+          </View>
         ))}
       </View>
       {loading ? (
@@ -105,10 +107,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  /** Responsive Amber grid: 1 / 2 / 3 cols via `columns` prop */
   grid: {
     display: "grid",
+    gap: 20,
+    alignItems: "start",
+  } as Record<string, unknown>,
+  grid3: {
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 16,
   } as Record<string, unknown>,
   grid2: {
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -116,15 +122,18 @@ const styles = StyleSheet.create({
   grid1: {
     gridTemplateColumns: "minmax(0, 1fr)",
   } as Record<string, unknown>,
+  gridCell: {
+    minWidth: 0,
+  },
   list: {
     flexDirection: "column",
     gap: 14,
   },
   skeleton: {
     backgroundColor: Skoun.color.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: "#E2E8F0",
     overflow: "hidden",
   },
   skeletonList: {

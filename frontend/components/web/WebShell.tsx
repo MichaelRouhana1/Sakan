@@ -3,6 +3,7 @@ import { WebFooter } from "@/components/web/WebFooter";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { WebTopNav } from "@/components/web/WebTopNav";
 import { Skoun } from "@/constants/theme";
+import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 type Props = {
   children: React.ReactNode;
@@ -60,9 +61,9 @@ const styles = StyleSheet.create({
   },
   main: {
     width: "100%",
-    maxWidth: 1360,
+    maxWidth: WEB_CONTENT_MAX,
     alignSelf: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 28,
     paddingBottom: 48,
     flexGrow: 1,

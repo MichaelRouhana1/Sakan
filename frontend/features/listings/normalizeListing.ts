@@ -45,6 +45,21 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
       ? undefined
       : String(nearestRaw);
 
+  const apiRating = parseOptionalNumber(row.rating);
+  const apiReviews = parseOptionalNumber(
+    row.reviewCount ?? row.review_count,
+  );
+  const demo =
+    apiRating == null && apiReviews == null
+      ? demoListingRating(String(row.id))
+      : null;
+
+  const rating = apiRating ?? demo?.rating ?? null;
+  const reviewCount =
+    apiReviews != null
+      ? Math.max(0, Math.floor(apiReviews))
+      : (demo?.reviewCount ?? 0);
+
   return {
     id: String(row.id),
     posterId: String(row.posterId ?? row.poster_id),
@@ -66,6 +81,8 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     lng: parseCoord(row.lng),
     lat: parseCoord(row.lat),
     viewCount: Number(row.viewCount ?? row.view_count ?? 0),
+    rating,
+    reviewCount,
     publishedAt: (row.publishedAt ?? row.published_at ?? null) as string | null,
     expiresAt: (row.expiresAt ?? row.expires_at ?? null) as string | null,
     boostedUntil: (row.boostedUntil ??
@@ -81,6 +98,29 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     photos,
     coverUrl,
   };
+}
+
+function parseOptionalNumber(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Temporary demo ratings until reviews exist in the API.
+ * ~⅔ of listings get a score so Amber pills are visible in browse.
+ */
+function demoListingRating(
+  id: string,
+): { rating: number; reviewCount: number } | null {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  if (h % 3 === 0) return null;
+  const rating = Math.round((3.6 + (h % 14) / 10) * 10) / 10;
+  const reviewCount = 1 + (h % 18);
+  return { rating, reviewCount };
 }
 
 export function normalizeListingsPayload(data: unknown): Listing[] {

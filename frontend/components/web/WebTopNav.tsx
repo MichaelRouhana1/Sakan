@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Skoun } from "@/constants/theme";
+import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 type Props = {
   showSearch?: boolean;
@@ -109,10 +110,10 @@ const styles = StyleSheet.create({
     zIndex: 40,
   },
   inner: {
-    maxWidth: 1360,
+    maxWidth: WEB_CONTENT_MAX,
     width: "100%",
     alignSelf: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",

@@ -2,6 +2,11 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
+  ListingFeatureBadge,
+  ListingRatingBadge,
+  listingImageCornerBadge,
+} from "@/components/listings/ListingRatingBadge";
+import {
   useIsSaved,
   useToggleSaved,
 } from "@/features/saved/useSavedListings";
@@ -12,6 +17,7 @@ import {
   listingAmberPillGroups,
   listingCardSubtitle,
   listingCardTitle,
+  type ListingAmberPill,
 } from "@/lib/listingCardMeta";
 import { labelListingType } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
@@ -22,6 +28,7 @@ type Props = {
 };
 
 const CARD_BORDER = "#E2E8F0";
+const GRID_TAG_LIMIT = 4;
 
 function photoUrls(listing: Listing): string[] {
   const fromPhotos = (listing.photos ?? [])
@@ -31,6 +38,82 @@ function photoUrls(listing: Listing): string[] {
     .filter(Boolean);
   if (fromPhotos.length > 0) return fromPhotos;
   return listing.coverUrl ? [listing.coverUrl] : [];
+}
+
+function HeartButton({
+  isSaved,
+  onToggle,
+  style,
+}: {
+  isSaved: boolean;
+  onToggle: () => void;
+  style?: object;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
+      hitSlop={8}
+      onPress={(e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        onToggle();
+      }}
+      onPressIn={(e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+      }}
+      style={style}
+    >
+      <Text style={[styles.heartGlyph, isSaved && styles.heartOn]}>
+        {isSaved ? "♥" : "♡"}
+      </Text>
+    </Pressable>
+  );
+}
+
+function PillRow({
+  pills,
+  highlight,
+  compact,
+}: {
+  pills: ListingAmberPill[];
+  highlight?: boolean;
+  compact?: boolean;
+}) {
+  if (pills.length === 0) return null;
+  return (
+    <View style={[styles.tags, compact && styles.tagsCompact]}>
+      {pills.map((pill) => (
+        <View
+          key={pill.key}
+          style={[
+            styles.tag,
+            compact && styles.tagCompact,
+            highlight && styles.tagHighlight,
+          ]}
+        >
+          <Text style={[styles.tagText, compact && styles.tagTextCompact]}>
+            {pill.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function ImageCornerBadge({ listing }: { listing: Listing }) {
+  const badge = listingImageCornerBadge(listing);
+  if (!badge) return null;
+  if (badge.kind === "rating") {
+    return (
+      <ListingRatingBadge
+        rating={badge.rating!}
+        reviewCount={badge.reviewCount!}
+      />
+    );
+  }
+  return <ListingFeatureBadge label={badge.label!} />;
 }
 
 export function ListingResultCard({ listing, variant = "grid" }: Props) {
@@ -48,91 +131,123 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
   const urls = photoUrls(listing);
+  const onOpen = () => router.push(`/(renter)/listing/${listing.id}`);
+  const onToggleSave = () => toggleSaved.mutate(listing);
+
+  if (isList) {
+    return (
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`${title}, ${rentLabel} per month`}
+        onPress={onOpen}
+        style={({ hovered, pressed }) => [
+          styles.card,
+          styles.cardList,
+          (hovered || pressed) && styles.cardHover,
+        ]}
+      >
+        <View style={[styles.mediaShell, styles.mediaList]}>
+          <ListingCardCarousel urls={urls} />
+          <ImageCornerBadge listing={listing} />
+        </View>
+
+        <View style={[styles.middle, styles.middleList]}>
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {subtitle}
+            {listing.landmark ? ` · ${typeBadge}` : ""}
+          </Text>
+
+          {proximity ? (
+            <Text style={styles.proximityText} numberOfLines={2}>
+              {proximity}
+            </Text>
+          ) : null}
+
+          <View style={styles.divider} />
+
+          <PillRow pills={highlights} highlight />
+          <PillRow pills={amenities} />
+        </View>
+
+        <View style={[styles.rightCol, styles.rightColList]}>
+          <HeartButton
+            isSaved={isSaved}
+            onToggle={onToggleSave}
+            style={styles.heart}
+          />
+          <View style={styles.priceBlock}>
+            <Text style={styles.priceFrom}>From</Text>
+            <Text style={styles.price}>
+              {rentLabel}
+              <Text style={styles.priceUnit}> / month</Text>
+            </Text>
+            <View style={styles.cta}>
+              <Text style={styles.ctaText}>View Listing</Text>
+            </View>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+
+  // ── Grid (vertical Amber card) ───────────────────────────────────
+  const gridPills = [...highlights, ...amenities].slice(0, GRID_TAG_LIMIT);
+  const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
   return (
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`${title}, ${rentLabel} per month`}
-      onPress={() => router.push(`/(renter)/listing/${listing.id}`)}
+      onPress={onOpen}
       style={({ hovered, pressed }) => [
         styles.card,
-        isList ? styles.cardRow : styles.cardGrid,
+        styles.cardGrid,
         (hovered || pressed) && styles.cardHover,
       ]}
     >
-      {/* Column 1 — full-height image shell owns carousel hover */}
-      <View
-        style={[styles.mediaShell, isList ? styles.mediaList : styles.mediaGrid]}
-      >
+      <View style={styles.gridMedia}>
         <ListingCardCarousel urls={urls} />
+
+        <HeartButton
+          isSaved={isSaved}
+          onToggle={onToggleSave}
+          style={styles.gridHeart}
+        />
+
+        <ImageCornerBadge listing={listing} />
       </View>
 
-      {/* Column 2 — details */}
-      <View style={[styles.middle, isList && styles.middleList]}>
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {subtitle}
-          {listing.landmark ? ` · ${typeBadge}` : ""}
-        </Text>
+      <View style={styles.gridBody}>
+        <View style={styles.gridHeader}>
+          <View style={styles.gridHeaderLeft}>
+            <Text style={styles.gridTitle} numberOfLines={1}>
+              {title}
+            </Text>
+            <Text style={styles.gridMeta} numberOfLines={1}>
+              {metaLine}
+            </Text>
+          </View>
+          <View style={styles.gridPriceCol}>
+            <Text style={styles.gridFrom}>From</Text>
+            <Text style={styles.gridPrice}>
+              {rentLabel}
+              <Text style={styles.gridPriceUnit}>/month</Text>
+            </Text>
+          </View>
+        </View>
 
         {proximity ? (
-          <Text style={styles.proximityText} numberOfLines={2}>
+          <Text style={styles.gridProximity} numberOfLines={1}>
             {proximity}
           </Text>
         ) : null}
 
-        <View style={styles.divider} />
+        <View style={styles.gridDivider} />
 
-        {highlights.length > 0 ? (
-          <View style={styles.tags}>
-            {highlights.map((pill) => (
-              <View key={pill.key} style={[styles.tag, styles.tagHighlight]}>
-                <Text style={styles.tagText}>{pill.label}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        {amenities.length > 0 ? (
-          <View style={styles.tags}>
-            {amenities.map((pill) => (
-              <View key={pill.key} style={styles.tag}>
-                <Text style={styles.tagText}>{pill.label}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </View>
-
-      {/* Column 3 — favorite + price + CTA */}
-      <View style={[styles.rightCol, isList && styles.rightColList]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
-          hitSlop={8}
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            toggleSaved.mutate(listing);
-          }}
-          style={styles.heart}
-        >
-          <Text style={[styles.heartGlyph, isSaved && styles.heartOn]}>
-            {isSaved ? "♥" : "♡"}
-          </Text>
-        </Pressable>
-
-        <View style={styles.priceBlock}>
-          <Text style={styles.priceFrom}>From</Text>
-          <Text style={styles.price}>
-            {rentLabel}
-            <Text style={styles.priceUnit}> / month</Text>
-          </Text>
-          <View style={styles.cta}>
-            <Text style={styles.ctaText}>View Listing</Text>
-          </View>
-        </View>
+        <PillRow pills={gridPills} compact />
       </View>
     </Pressable>
   );
@@ -146,22 +261,22 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
     overflow: "hidden",
   },
-  cardRow: {
+  cardList: {
     flexDirection: "row",
     alignItems: "stretch",
     minHeight: 220,
   },
   cardGrid: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    minHeight: 200,
+    flexDirection: "column",
+    // Content-sized height — do not stretch to match tallest grid sibling
+    alignSelf: "stretch",
   },
   cardHover: {
     shadowColor: "#121826",
     shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   mediaShell: {
     position: "relative",
@@ -170,12 +285,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   mediaList: {
-    width: 248,
+    width: 280,
     minHeight: 220,
-  },
-  mediaGrid: {
-    width: 168,
-    minHeight: 200,
   },
   middle: {
     flex: 1,
@@ -220,6 +331,10 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 4,
   },
+  tagsCompact: {
+    gap: 5,
+    marginTop: 0,
+  },
   tag: {
     paddingVertical: 5,
     paddingHorizontal: 10,
@@ -227,6 +342,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
     borderColor: CARD_BORDER,
+  },
+  tagCompact: {
+    paddingVertical: 3,
+    paddingHorizontal: 7,
   },
   tagHighlight: {
     backgroundColor: "rgba(47, 111, 237, 0.06)",
@@ -236,6 +355,9 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 12,
     color: Skoun.color.ink,
+  },
+  tagTextCompact: {
+    fontSize: 11,
   },
   rightCol: {
     width: 148,
@@ -264,7 +386,7 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
   },
   heartGlyph: {
-    fontSize: 16,
+    fontSize: 15,
     color: Skoun.color.inkMuted,
   },
   heartOn: {
@@ -302,5 +424,100 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodyBold,
     fontSize: 13,
     color: "#FFFFFF",
+  },
+
+  // Grid — Amber density (~40% image, tight body, compact pills)
+  gridMedia: {
+    position: "relative",
+    width: "100%",
+    aspectRatio: 16 / 10,
+    overflow: "hidden",
+    backgroundColor: Skoun.color.primaryMist,
+  },
+  gridHeart: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+    shadowColor: "#121826",
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  gridBody: {
+    paddingTop: 10,
+    paddingBottom: 12,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  gridHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  gridHeaderLeft: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+    paddingRight: 4,
+  },
+  gridTitle: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 16,
+    lineHeight: 21,
+    color: Skoun.color.ink,
+    letterSpacing: -0.15,
+  },
+  gridMeta: {
+    fontFamily: Skoun.type.body,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Skoun.color.inkMuted,
+  },
+  gridPriceCol: {
+    alignItems: "flex-end",
+    flexShrink: 0,
+    paddingTop: 1,
+  },
+  gridFrom: {
+    fontFamily: Skoun.type.body,
+    fontSize: 11,
+    lineHeight: 14,
+    color: Skoun.color.inkFaint,
+  },
+  gridPrice: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 17,
+    lineHeight: 21,
+    color: Skoun.color.ink,
+    letterSpacing: -0.2,
+  },
+  gridPriceUnit: {
+    fontSize: 11,
+    fontFamily: Skoun.type.body,
+    color: Skoun.color.inkMuted,
+  },
+  gridProximity: {
+    fontFamily: Skoun.type.body,
+    fontSize: 11,
+    lineHeight: 15,
+    color: Skoun.color.inkMuted,
+  },
+  gridDivider: {
+    marginTop: 2,
+    marginBottom: 2,
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    borderColor: CARD_BORDER,
   },
 });

@@ -2,6 +2,7 @@ import { Link } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
+import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 export function WebFooter() {
   return (
@@ -57,10 +58,10 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.surface,
   },
   inner: {
-    maxWidth: 1360,
+    maxWidth: WEB_CONTENT_MAX,
     width: "100%",
     alignSelf: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 36,
     paddingBottom: 24,
     flexDirection: "row",

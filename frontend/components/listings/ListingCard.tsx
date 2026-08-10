@@ -1,6 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
+  ListingFeatureBadge,
+  ListingRatingBadge,
+  listingImageCornerBadge,
+} from "@/components/listings/ListingRatingBadge";
+import {
   useIsSaved,
   useToggleSaved,
 } from "@/features/saved/useSavedListings";
@@ -34,6 +39,20 @@ function photoUrls(listing: Listing): string[] {
   return listing.coverUrl ? [listing.coverUrl] : [];
 }
 
+function ImageCornerBadge({ listing }: { listing: Listing }) {
+  const badge = listingImageCornerBadge(listing);
+  if (!badge) return null;
+  if (badge.kind === "rating") {
+    return (
+      <ListingRatingBadge
+        rating={badge.rating!}
+        reviewCount={badge.reviewCount!}
+      />
+    );
+  }
+  return <ListingFeatureBadge label={badge.label!} />;
+}
+
 export function ListingCard({ listing, onPress, showDistance }: Props) {
   const title = listingCardTitle(listing);
   const subtitle = listingCardSubtitle(listing);
@@ -57,9 +76,9 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      {/* Column 1 — full-height image shell */}
       <View style={styles.mediaShell}>
         <ListingCardCarousel urls={urls} alwaysShowArrows />
+        <ImageCornerBadge listing={listing} />
       </View>
 
       {/* Column 2 — details */}

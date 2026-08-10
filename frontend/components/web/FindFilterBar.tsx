@@ -4,6 +4,7 @@ import { LText } from "@/components/lister/Typography";
 import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
 import { Skoun } from "@/constants/theme";
+import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 export type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
 
@@ -238,7 +239,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 24,
+    maxWidth: WEB_CONTENT_MAX,
+    width: "100%",
+    alignSelf: "center",
+    paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingVertical: 12,
   },
   pill: {

@@ -41,6 +41,13 @@ export type Listing = {
   /** WGS84 latitude from ST_Y; null when listing has no pin. */
   lat: number | null;
   viewCount: number;
+  /**
+   * Average review score (1–5). Optional until reviews ship end-to-end;
+   * omit or leave null when `reviewCount` is 0.
+   */
+  rating?: number | null;
+  /** Total reviews. Badge only shows when this is >= 1. */
+  reviewCount?: number | null;
   publishedAt: string | null;
   expiresAt: string | null;
   boostedUntil: string | null;
