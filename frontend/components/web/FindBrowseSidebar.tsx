@@ -174,7 +174,7 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                       <Ionicons
                         name={item.icon}
                         size={15}
-                        color={Skoun.color.primaryDeep}
+                        color="#2F6FED"
                       />
                     </View>
                     <LText variant="label" style={styles.uspTitle as StyleProp<TextStyle>}>
@@ -184,7 +184,7 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                   <Ionicons
                     name={open ? "chevron-up" : "chevron-forward"}
                     size={14}
-                    color={Skoun.color.inkFaint}
+                    color="#9CA3AF"
                   />
                 </Pressable>
                 {open ? (
@@ -227,10 +227,12 @@ const styles = StyleSheet.create({
   },
   mapHeader: {
     width: "100%",
-    height: 126,
+    height: 130, // w-full h-[130px]
     position: "relative",
     overflow: "hidden",
     backgroundColor: Skoun.color.bgWash,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
@@ -246,31 +248,31 @@ const styles = StyleSheet.create({
   mapBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#FFFFFF",
+    gap: 6, // gap-1.5
+    paddingHorizontal: 16, // px-4
+    paddingVertical: 6, // py-1.5
+    borderRadius: 999, // rounded-full
+    backgroundColor: "#FFFFFF", // bg-white
     borderWidth: 2,
-    borderColor: SKOUN_BLUE,
+    borderColor: "#2F6FED", // border-[#2F6FED]
     shadowColor: "#121826",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.12, // shadow-md
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
     ...webTransition,
   },
   mapBtnHover: {
-    backgroundColor: Skoun.color.primaryMist,
-    transform: [{ scale: 1.03 }],
+    backgroundColor: "#EFF6FF", // hover:bg-blue-50
+    transform: [{ scale: 1.02 }],
   },
   mapBtnPressed: {
     transform: [{ scale: 0.98 }],
   },
   mapBtnLabel: {
-    color: SKOUN_BLUE,
-    fontWeight: "600",
-    fontSize: 12,
+    color: "#2F6FED", // text-[#2F6FED]
+    fontWeight: "700", // font-bold
+    fontSize: 12, // text-xs
   },
   uspStack: {
     backgroundColor: "#FFFFFF",
@@ -278,39 +280,41 @@ const styles = StyleSheet.create({
   uspItem: {},
   uspItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: ROW_BORDER,
+    borderBottomColor: "#F1F5F9", // border-b border-slate-100
   },
   uspHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 14, // px-3.5 (14px)
+    paddingVertical: 10, // py-2.5 (10px)
+    backgroundColor: "#FFFFFF", // bg-white
+    cursor: "pointer" as unknown as undefined,
   },
   uspHeaderHover: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "rgba(248, 250, 252, 0.8)", // hover:bg-slate-50/80
   },
   uspTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
     flex: 1,
     minWidth: 0,
   },
   uspIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: Skoun.color.primaryMist,
+    width: 28, // w-7 (28px)
+    height: 28, // h-7 (28px)
+    borderRadius: 999, // rounded-full
+    backgroundColor: "#EFF6FF", // bg-blue-50
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 10, // mr-2.5 (10px)
+    flexShrink: 0, // shrink-0
   },
   uspTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1E293B",
-    flex: 1,
+    fontSize: 12, // text-xs
+    fontWeight: "600", // font-semibold
+    color: "#1F2A37", // text-[#1F2A37]
+    flex: 1, // flex-1
   },
   uspBody: {
     paddingHorizontal: 14,

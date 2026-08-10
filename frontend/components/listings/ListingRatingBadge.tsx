@@ -7,10 +7,12 @@ type Props = {
 };
 
 /**
- * Five-star rating display for List Mode.
- * Score: font-bold text-sm text-slate-800
- * 5 Stars: Green (#10B981) filled, slate (#CBD5E1) remaining
- * Count: text-xs text-slate-500 font-medium ml-1 in parentheses
+ * Amber List Mode Rating Display:
+ * Positioned in top-right header area.
+ * Layout: flex items-center gap-1.5 font-sans
+ * Score: text-sm font-bold text-[#111928] (e.g. "4.3")
+ * Stars: 5 small emerald green stars (#0E9F6E fill)
+ * Count: text-xs text-[#6B7280] (e.g. "(7)")
  */
 export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
@@ -24,7 +26,7 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
         key={i}
         style={[
           styles.listStar,
-          { color: isFull || isHalf ? "#10B981" : "#CBD5E1", opacity: isHalf ? 0.7 : 1 },
+          { color: isFull || isHalf ? "#0E9F6E" : "#E5E7EB", opacity: isHalf ? 0.7 : 1 },
         ]}
       >
         ★
@@ -42,9 +44,12 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
 }
 
 /**
- * Amber Notch Tab Badge — bottom-left on Grid Mode listing card image.
- * Solid white, rounded top-right corner (rounded-tr-xl), flat against bottom/left.
- * Gold star + score in bold green (#059669) + review count in gray (#64748B).
+ * Amber Grid Mode Rating Badge (Bottom Curved Notch):
+ * Positioned at absolute bottom-0 left-0 z-10 over listing image.
+ * Outer Notch: bg-white rounded-tr-xl px-3 py-1 border-t border-r border-slate-100 flex items-center gap-1 shadow-sm
+ * Star: ⭐ / #F59500
+ * Score: text-xs font-bold text-[#111928]
+ * Count: text-xs text-[#6B7280]
  */
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
@@ -108,12 +113,12 @@ const styles = StyleSheet.create({
   listWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6, // gap-1.5
+    gap: 6, // gap-1.5 (6px)
   },
   listScore: {
     fontWeight: "700", // font-bold
     fontSize: 14,     // text-sm
-    color: "#1E293B", // text-slate-800
+    color: "#111928", // text-[#111928]
     lineHeight: 18,
   },
   listStarsRow: {
@@ -127,9 +132,8 @@ const styles = StyleSheet.create({
   },
   listCount: {
     fontSize: 12,     // text-xs
-    color: "#64748B", // text-slate-500
-    fontWeight: "500",// font-medium
-    marginLeft: 4,    // ml-1
+    color: "#6B7280", // text-[#6B7280]
+    fontWeight: "400",
     lineHeight: 18,
   },
 
@@ -141,7 +145,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     backgroundColor: "#FFFFFF", // bg-white
     paddingHorizontal: 12,      // px-3
-    paddingVertical: 6,         // py-1.5
+    paddingVertical: 4,         // py-1
     borderTopRightRadius: 12,   // rounded-tr-xl
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
@@ -159,19 +163,19 @@ const styles = StyleSheet.create({
     gap: 4,                     // gap-1
   },
   gridNotchStar: {
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 14,
   },
   gridNotchScore: {
     fontSize: 12,               // text-xs
     fontWeight: "700",          // font-bold
-    color: "#059669",           // text-emerald-600
+    color: "#111928",           // text-[#111928]
     lineHeight: 16,
   },
   gridNotchCount: {
     fontSize: 12,               // text-xs
-    fontWeight: "600",          // font-semibold
-    color: "#64748B",           // text-slate-500
+    fontWeight: "400",
+    color: "#6B7280",           // text-[#6B7280]
     lineHeight: 16,
   },
 
@@ -197,4 +201,5 @@ const styles = StyleSheet.create({
     color: "#121826",
   },
 });
+
 
