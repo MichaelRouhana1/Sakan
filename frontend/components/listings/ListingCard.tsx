@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
@@ -131,9 +132,11 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           }}
           style={styles.heart}
         >
-          <Text style={[styles.heartGlyph, isSaved && styles.heartOn]}>
-            {isSaved ? "♥" : "♡"}
-          </Text>
+          <Ionicons
+            name={isSaved ? "heart" : "heart-outline"}
+            size={20}
+            color={isSaved ? "#C23B2E" : "#475569"}
+          />
         </Pressable>
 
         <View style={styles.priceBlock}>
@@ -237,9 +240,9 @@ const styles = StyleSheet.create({
   },
   heart: {
     alignSelf: "flex-end",
-    width: 32,
-    height: 32,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",

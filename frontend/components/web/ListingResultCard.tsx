@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
@@ -66,9 +67,11 @@ function HeartButton({
       }}
       style={style}
     >
-      <Text style={[styles.heartGlyph, isSaved && styles.heartOn]}>
-        {isSaved ? "♥" : "♡"}
-      </Text>
+      <Ionicons
+        name={isSaved ? "heart" : "heart-outline"}
+        size={20}
+        color={isSaved ? "#C23B2E" : "#475569"}
+      />
     </Pressable>
   );
 }
@@ -405,9 +408,9 @@ const styles = StyleSheet.create({
   },
   heart: {
     alignSelf: "flex-end",
-    width: 36,
-    height: 36,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
@@ -415,7 +418,7 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
   },
   heartGlyph: {
-    fontSize: 15,
+    fontSize: 18,
     color: Skoun.color.inkMuted,
   },
   heartOn: {
@@ -465,12 +468,12 @@ const styles = StyleSheet.create({
   },
   gridHeart: {
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: 12,
+    right: 12,
     zIndex: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 999,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
