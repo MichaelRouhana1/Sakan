@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -44,41 +44,12 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
 }
 
 /**
- * Amber Grid Mode Rating Badge (Amber SVG Curved Notch Banner):
- * Positioned at absolute bottom-0 left-0 right-0 z-10 over listing image.
+ * Amber Grid Mode Rating Badge:
+ * Positioned at absolute bottom-0 left-0 z-10 over listing image.
+ * Clean, compact notched container (h-[24px], px-3, rounded-tr-2xl, bg-white, border-t border-r border-slate-100).
  */
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
-
-  if (Platform.OS === "web") {
-    return (
-      <View
-        style={styles.webNotchBanner}
-        pointerEvents="none"
-        accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
-      >
-        <svg
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            fill: "#FFFFFF",
-          }}
-          viewBox="0 0 341 26"
-          preserveAspectRatio="none"
-        >
-          <path d="M18.0139 15.6092L0 16.6792V26H341V16.6792H160C155.646 16.6792 151.479 14.9042 148.462 11.7639L145.173 8.33962L140.702 3.68654C138.44 1.33125 135.315 0 132.049 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z" />
-        </svg>
-        <View style={styles.webNotchContent}>
-          <Text style={styles.gridNotchStar}>★</Text>
-          <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-          <Text style={styles.gridNotchCount}>({reviewCount})</Text>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View
@@ -86,7 +57,7 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
       pointerEvents="none"
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
-      <Text style={styles.gridNotchStar}>★</Text>
+      <Text style={styles.gridNotchStar}>⭐</Text>
       <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
       <Text style={styles.gridNotchCount}>({reviewCount})</Text>
     </View>
@@ -167,36 +138,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  webNotchBanner: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 24,
-    zIndex: 10,
-  },
-  webNotchContent: {
-    position: "absolute",
-    bottom: 3,
-    left: 16,
-    height: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    zIndex: 20,
-  },
-
-  // Amber 22px Compact Notched Rating Badge
+  // Amber 24px Notched Rating Badge Container (rounded-tr-2xl)
   gridNotchWrap: {
     position: "absolute",
     bottom: 0,
     left: 0,
     zIndex: 10,
     backgroundColor: "#FFFFFF",
-    height: 22,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderTopRightRadius: 8,
+    height: 24,
+    paddingHorizontal: 12,
+    borderTopRightRadius: 16,
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
@@ -210,13 +161,12 @@ const styles = StyleSheet.create({
     elevation: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    justifyContent: "center",
+    gap: 6,
   },
   gridNotchStar: {
-    fontSize: 11,
-    lineHeight: 13,
-    color: "#F59E0B",
-    marginRight: 2,
+    fontSize: 10,
+    lineHeight: 12,
   },
   gridNotchScore: {
     fontSize: 11,
@@ -229,7 +179,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#0E9F6E",
     lineHeight: 14,
-    marginLeft: 1,
   },
 
   feature: {

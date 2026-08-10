@@ -261,9 +261,11 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
           </View>
         </View>
 
-        <Text style={styles.gridProximity} numberOfLines={1}>
-          {proximity ?? "📍 0.4 mi from City Center · 🚶 ~5 min"}
-        </Text>
+        {proximity ? (
+          <Text style={styles.gridProximity} numberOfLines={1}>
+            {proximity}
+          </Text>
+        ) : null}
 
         <View style={styles.gridDivider} />
 
@@ -541,8 +543,8 @@ const styles = StyleSheet.create({
     color: Skoun.color.inkMuted,
   },
   gridDivider: {
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 2,
+    marginBottom: 2,
     borderTopWidth: 1,
     borderStyle: "dashed",
     borderColor: CARD_BORDER,

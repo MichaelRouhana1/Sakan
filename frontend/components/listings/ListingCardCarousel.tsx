@@ -198,13 +198,11 @@ const styles = StyleSheet.create({
   dots: {
     position: "absolute",
     bottom: 6,
-    left: 0,
-    right: 0,
+    right: 16,
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
     gap: 4,
-    zIndex: 20,
+    zIndex: 10,
   },
   dot: {
     height: 6,
