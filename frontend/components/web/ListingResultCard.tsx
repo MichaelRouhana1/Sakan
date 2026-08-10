@@ -1,6 +1,6 @@
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   useIsSaved,
   useToggleSaved,
@@ -9,7 +9,7 @@ import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
   formatCampusWalkLine,
-  listingAmberPills,
+  listingAmberPillGroups,
   listingCardSubtitle,
   listingCardTitle,
 } from "@/lib/listingCardMeta";
@@ -23,10 +23,19 @@ type Props = {
 
 const CARD_BORDER = "#E2E8F0";
 
+function photoUrls(listing: Listing): string[] {
+  const fromPhotos = (listing.photos ?? [])
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((p) => p.url)
+    .filter(Boolean);
+  if (fromPhotos.length > 0) return fromPhotos;
+  return listing.coverUrl ? [listing.coverUrl] : [];
+}
+
 export function ListingResultCard({ listing, variant = "grid" }: Props) {
   const router = useRouter();
   const isList = variant === "list";
-  const cover = listing.coverUrl ?? listing.photos?.[0]?.url;
   const title = listingCardTitle(listing);
   const subtitle = listingCardSubtitle(listing);
   const rentLabel = formatFreshUsd(listing.monthlyRentUsd);
@@ -34,10 +43,11 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
     listing.distanceMeters,
     listing.nearestCampusName,
   );
-  const pills = listingAmberPills(listing);
+  const { highlights, amenities } = listingAmberPillGroups(listing);
   const typeBadge = labelListingType(listing.listingType);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
+  const urls = photoUrls(listing);
 
   return (
     <Pressable
@@ -46,22 +56,57 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
       onPress={() => router.push(`/(renter)/listing/${listing.id}`)}
       style={({ hovered, pressed }) => [
         styles.card,
-        isList && styles.cardList,
+        isList ? styles.cardRow : styles.cardGrid,
         (hovered || pressed) && styles.cardHover,
       ]}
     >
-      <View style={[styles.media, isList && styles.mediaList]}>
-        {cover ? (
-          <Image
-            source={{ uri: cover }}
-            style={StyleSheet.absoluteFillObject}
-            contentFit="cover"
-            transition={200}
-          />
-        ) : (
-          <View style={[StyleSheet.absoluteFillObject, styles.mediaFallback]} />
-        )}
+      {/* Column 1 — image carousel */}
+      <ListingCardCarousel
+        urls={urls}
+        style={[styles.media, isList ? styles.mediaList : styles.mediaGrid]}
+      />
 
+      {/* Column 2 — details */}
+      <View style={[styles.middle, isList && styles.middleList]}>
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {subtitle}
+          {listing.landmark ? ` · ${typeBadge}` : ""}
+        </Text>
+
+        {proximity ? (
+          <Text style={styles.proximityText} numberOfLines={2}>
+            {proximity}
+          </Text>
+        ) : null}
+
+        <View style={styles.divider} />
+
+        {highlights.length > 0 ? (
+          <View style={styles.tags}>
+            {highlights.map((pill) => (
+              <View key={pill.key} style={[styles.tag, styles.tagHighlight]}>
+                <Text style={styles.tagText}>{pill.label}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {amenities.length > 0 ? (
+          <View style={styles.tags}>
+            {amenities.map((pill) => (
+              <View key={pill.key} style={styles.tag}>
+                <Text style={styles.tagText}>{pill.label}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+
+      {/* Column 3 — favorite + price + CTA */}
+      <View style={[styles.rightCol, isList && styles.rightColList]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
@@ -77,45 +122,11 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
           </Text>
         </Pressable>
 
-        <View style={styles.mediaBadge}>
-          <Text style={styles.mediaBadgeText} numberOfLines={1}>
-            {isList ? typeBadge : rentLabel}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.body, isList && styles.bodyList]}>
-        <View style={styles.bodyMain}>
-          <Text style={styles.title} numberOfLines={2}>
-            {title}
-          </Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {subtitle}
-            {listing.landmark ? ` · ${typeBadge}` : ""}
-          </Text>
-
-          {proximity ? (
-            <Text style={styles.proximityText} numberOfLines={2}>
-              {proximity}
-            </Text>
-          ) : null}
-
-          {pills.length > 0 ? (
-            <View style={styles.tags}>
-              {pills.map((pill) => (
-                <View key={pill.key} style={styles.tag}>
-                  <Text style={styles.tagText}>{pill.label}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </View>
-
-        <View style={[styles.priceCol, isList && styles.priceColList]}>
-          <Text style={styles.priceFrom}>FROM</Text>
+        <View style={styles.priceBlock}>
+          <Text style={styles.priceFrom}>From</Text>
           <Text style={styles.price}>
             {rentLabel}
-            <Text style={styles.priceUnit}> / mo</Text>
+            <Text style={styles.priceUnit}> / month</Text>
           </Text>
           <View style={styles.cta}>
             <Text style={styles.ctaText}>View Listing</Text>
@@ -134,9 +145,15 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
     overflow: "hidden",
   },
-  cardList: {
+  cardRow: {
     flexDirection: "row",
     alignItems: "stretch",
+    minHeight: 220,
+  },
+  cardGrid: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    minHeight: 200,
   },
   cardHover: {
     shadowColor: "#121826",
@@ -146,75 +163,29 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   media: {
-    height: 188,
-    backgroundColor: Skoun.color.primaryMist,
-    position: "relative",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: "hidden",
+    flexShrink: 0,
   },
   mediaList: {
-    width: 260,
-    height: "100%",
+    width: 248,
     minHeight: 220,
-    flexShrink: 0,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 16,
+    alignSelf: "stretch",
   },
-  mediaFallback: {
-    backgroundColor: Skoun.color.bgWash,
+  mediaGrid: {
+    width: 168,
+    minHeight: 200,
+    alignSelf: "stretch",
   },
-  heart: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.94)",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-  },
-  heartGlyph: {
-    fontSize: 16,
-    color: Skoun.color.inkMuted,
-  },
-  heartOn: {
-    color: Skoun.color.primary,
-  },
-  mediaBadge: {
-    position: "absolute",
-    left: 10,
-    bottom: 10,
-    maxWidth: "70%",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: "rgba(18,24,38,0.72)",
-  },
-  mediaBadgeText: {
-    fontFamily: Skoun.type.bodySemi,
-    fontSize: 12,
-    color: "#FFFFFF",
-  },
-  body: {
-    padding: 16,
-    gap: 10,
-  },
-  bodyList: {
+  middle: {
     flex: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 20,
-    padding: 20,
-  },
-  bodyMain: {
-    flex: 1,
-    gap: 6,
     minWidth: 0,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 6,
+    justifyContent: "flex-start",
+  },
+  middleList: {
+    paddingVertical: 18,
+    paddingHorizontal: 18,
   },
   title: {
     fontFamily: Skoun.type.bodyBold,
@@ -234,11 +205,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 17,
   },
+  divider: {
+    marginTop: 8,
+    marginBottom: 2,
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    borderColor: CARD_BORDER,
+  },
   tags: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
-    marginTop: 6,
+    marginTop: 4,
   },
   tag: {
     paddingVertical: 5,
@@ -248,27 +226,56 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CARD_BORDER,
   },
+  tagHighlight: {
+    backgroundColor: "rgba(47, 111, 237, 0.06)",
+    borderColor: "rgba(47, 111, 237, 0.2)",
+  },
   tagText: {
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 12,
     color: Skoun.color.ink,
   },
-  priceCol: {
-    marginTop: 4,
-    gap: 4,
-  },
-  priceColList: {
-    marginTop: 0,
+  rightCol: {
+    width: 148,
+    flexShrink: 0,
+    borderLeftWidth: 1,
+    borderLeftColor: CARD_BORDER,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    justifyContent: "space-between",
     alignItems: "stretch",
-    justifyContent: "flex-start",
-    minWidth: 140,
+  },
+  rightColList: {
+    width: 160,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  heart: {
+    alignSelf: "flex-end",
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+  },
+  heartGlyph: {
+    fontSize: 16,
+    color: Skoun.color.inkMuted,
+  },
+  heartOn: {
+    color: Skoun.color.primary,
+  },
+  priceBlock: {
+    gap: 4,
+    alignItems: "stretch",
   },
   priceFrom: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 11,
-    color: Skoun.color.inkMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    fontFamily: Skoun.type.body,
+    fontSize: 12,
+    color: Skoun.color.inkFaint,
   },
   price: {
     fontFamily: Skoun.type.bodyBold,
@@ -285,7 +292,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     backgroundColor: Skoun.color.primary,
     paddingVertical: 11,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderRadius: 10,
     alignItems: "center",
   },

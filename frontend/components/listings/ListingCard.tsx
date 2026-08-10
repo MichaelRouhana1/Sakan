@@ -1,6 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   useIsSaved,
   useToggleSaved,
@@ -9,7 +8,7 @@ import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
   formatCampusWalkLine,
-  listingAmberPills,
+  listingAmberPillGroups,
   listingCardSubtitle,
   listingCardTitle,
 } from "@/lib/listingCardMeta";
@@ -25,8 +24,17 @@ type Props = {
 
 const CARD_BORDER = "#E2E8F0";
 
+function photoUrls(listing: Listing): string[] {
+  const fromPhotos = (listing.photos ?? [])
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((p) => p.url)
+    .filter(Boolean);
+  if (fromPhotos.length > 0) return fromPhotos;
+  return listing.coverUrl ? [listing.coverUrl] : [];
+}
+
 export function ListingCard({ listing, onPress, showDistance }: Props) {
-  const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
   const title = listingCardTitle(listing);
   const subtitle = listingCardSubtitle(listing);
   const rentLabel = formatFreshUsd(listing.monthlyRentUsd);
@@ -37,9 +45,10 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
         listing.nearestCampusName,
       )
     : null;
-  const pills = listingAmberPills(listing);
+  const { highlights, amenities } = listingAmberPillGroups(listing);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
+  const urls = photoUrls(listing);
 
   return (
     <Pressable
@@ -48,24 +57,49 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <View style={styles.media}>
-        {cover ? (
-          <Image
-            source={{ uri: cover }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={220}
-          />
-        ) : (
-          <View style={styles.mediaFallback}>
-            <Ionicons
-              name="home-outline"
-              size={28}
-              color={Skoun.color.inkFaint}
-            />
-          </View>
-        )}
+      {/* Column 1 — image carousel */}
+      <ListingCardCarousel urls={urls} style={styles.media} alwaysShowArrows />
 
+      {/* Column 2 — details */}
+      <View style={styles.middle}>
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {subtitle} · {typeBadge}
+        </Text>
+
+        {proximity ? (
+          <Text style={styles.proximity} numberOfLines={2}>
+            {proximity}
+          </Text>
+        ) : null}
+
+        <View style={styles.divider} />
+
+        {highlights.length > 0 ? (
+          <View style={styles.tags}>
+            {highlights.map((pill) => (
+              <View key={pill.key} style={[styles.tag, styles.tagHighlight]}>
+                <Text style={styles.tagText}>{pill.label}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {amenities.length > 0 ? (
+          <View style={styles.tags}>
+            {amenities.map((pill) => (
+              <View key={pill.key} style={styles.tag}>
+                <Text style={styles.tagText}>{pill.label}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+
+      {/* Column 3 — favorite + price + CTA */}
+      <View style={styles.rightCol}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
@@ -81,45 +115,12 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           </Text>
         </Pressable>
 
-        <View style={styles.mediaBadge}>
-          <Text style={styles.mediaBadgeText} numberOfLines={1}>
+        <View style={styles.priceBlock}>
+          <Text style={styles.priceFrom}>From</Text>
+          <Text style={styles.price}>
             {rentLabel}
+            <Text style={styles.priceUnit}> / month</Text>
           </Text>
-        </View>
-      </View>
-
-      <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {subtitle} · {typeBadge}
-        </Text>
-
-        {proximity ? (
-          <Text style={styles.proximity} numberOfLines={2}>
-            {proximity}
-          </Text>
-        ) : null}
-
-        {pills.length > 0 ? (
-          <View style={styles.tags}>
-            {pills.map((pill) => (
-              <View key={pill.key} style={styles.tag}>
-                <Text style={styles.tagText}>{pill.label}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
-        <View style={styles.priceRow}>
-          <View>
-            <Text style={styles.priceFrom}>FROM</Text>
-            <Text style={styles.price}>
-              {rentLabel}
-              <Text style={styles.priceUnit}> / mo</Text>
-            </Text>
-          </View>
           <View style={styles.cta}>
             <Text style={styles.ctaText}>View Listing</Text>
           </View>
@@ -136,128 +137,129 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.surface,
     borderWidth: 1,
     borderColor: CARD_BORDER,
+    flexDirection: "row",
+    alignItems: "stretch",
+    minHeight: 168,
   },
   pressed: { opacity: 0.94 },
   media: {
-    height: 188,
-    backgroundColor: Skoun.color.bgWash,
-    position: "relative",
+    width: 118,
+    alignSelf: "stretch",
+    flexShrink: 0,
   },
-  mediaFallback: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+  middle: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    gap: 4,
+  },
+  title: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 14,
+    color: Skoun.color.ink,
+    letterSpacing: -0.2,
+  },
+  meta: {
+    fontFamily: Skoun.type.body,
+    fontSize: 12,
+    color: Skoun.color.inkMuted,
+  },
+  proximity: {
+    fontFamily: Skoun.type.body,
+    fontSize: 11,
+    color: Skoun.color.inkMuted,
+    lineHeight: 15,
+    marginTop: 2,
+  },
+  divider: {
+    marginTop: 6,
+    marginBottom: 2,
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    borderColor: CARD_BORDER,
+  },
+  tags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 2,
+  },
+  tag: {
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 999,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+  },
+  tagHighlight: {
+    backgroundColor: "rgba(47, 111, 237, 0.06)",
+    borderColor: "rgba(47, 111, 237, 0.2)",
+  },
+  tagText: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 11,
+    color: Skoun.color.ink,
+  },
+  rightCol: {
+    width: 112,
+    flexShrink: 0,
+    borderLeftWidth: 1,
+    borderLeftColor: CARD_BORDER,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    justifyContent: "space-between",
+    alignItems: "stretch",
   },
   heart: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 36,
-    height: 36,
+    alignSelf: "flex-end",
+    width: 32,
+    height: 32,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    backgroundColor: "#F8FAFC",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     borderColor: CARD_BORDER,
   },
   heartGlyph: {
-    fontSize: 16,
+    fontSize: 14,
     color: Skoun.color.inkMuted,
   },
   heartOn: {
     color: Skoun.color.primary,
   },
-  mediaBadge: {
-    position: "absolute",
-    left: 10,
-    bottom: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: "rgba(18,24,38,0.72)",
-  },
-  mediaBadgeText: {
-    fontFamily: Skoun.type.bodySemi,
-    fontSize: 12,
-    color: "#FFFFFF",
-  },
-  body: {
-    padding: 14,
-    gap: 6,
-  },
-  title: {
-    fontFamily: Skoun.type.bodyBold,
-    fontSize: 16,
-    color: Skoun.color.ink,
-    letterSpacing: -0.2,
-  },
-  meta: {
-    fontFamily: Skoun.type.body,
-    fontSize: 13,
-    color: Skoun.color.inkMuted,
-  },
-  proximity: {
-    fontFamily: Skoun.type.body,
-    fontSize: 12,
-    color: Skoun.color.inkMuted,
-    lineHeight: 17,
-    marginTop: 2,
-  },
-  tags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginTop: 6,
-  },
-  tag: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-  },
-  tagText: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 12,
-    color: Skoun.color.ink,
-  },
-  priceRow: {
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    gap: 12,
+  priceBlock: {
+    gap: 2,
   },
   priceFrom: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Skoun.type.body,
     fontSize: 11,
-    color: Skoun.color.inkMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    color: Skoun.color.inkFaint,
   },
   price: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 20,
+    fontSize: 16,
     color: Skoun.color.ink,
     letterSpacing: -0.3,
   },
   priceUnit: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: Skoun.type.bodyMedium,
     color: Skoun.color.inkMuted,
   },
   cta: {
+    marginTop: 8,
     backgroundColor: Skoun.color.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: "center",
   },
   ctaText: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 13,
+    fontSize: 11,
     color: "#FFFFFF",
   },
 });

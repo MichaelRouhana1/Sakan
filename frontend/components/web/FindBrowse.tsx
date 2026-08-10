@@ -274,7 +274,7 @@ export function FindBrowse() {
       error={isError}
       onRetry={() => void refetch()}
       variant={cardVariant}
-      columns={isMap ? 1 : isDesktop ? 3 : 2}
+      columns={1}
     />
   );
 

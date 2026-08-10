@@ -63,6 +63,24 @@ export function listingAmberPills(listing: Listing): ListingAmberPill[] {
   return pills;
 }
 
+/** Offer/identity pills shown above the second Amber divider. */
+const HIGHLIGHT_PILL_KEYS = new Set([
+  "girls_foyer",
+  "boys_foyer",
+  "students",
+]);
+
+export function listingAmberPillGroups(listing: Listing): {
+  highlights: ListingAmberPill[];
+  amenities: ListingAmberPill[];
+} {
+  const pills = listingAmberPills(listing);
+  return {
+    highlights: pills.filter((p) => HIGHLIGHT_PILL_KEYS.has(p.key)),
+    amenities: pills.filter((p) => !HIGHLIGHT_PILL_KEYS.has(p.key)),
+  };
+}
+
 /**
  * PostGIS crow-flies meters → human line with walk estimate (~80 m/min).
  * e.g. "📍 350m from AUB • 🚶 ~4 min walk"
