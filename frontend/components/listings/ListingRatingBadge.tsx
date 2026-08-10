@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
 
   webNotchBanner: {
     position: "absolute",
-    bottom: 0,
+    bottom: -3,
     left: 0,
     width: 145,
     height: 26,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   webNotchContent: {
     position: "absolute",
-    bottom: 1,
+    bottom: 2,
     left: 28,
     width: 90,
     height: 22,
