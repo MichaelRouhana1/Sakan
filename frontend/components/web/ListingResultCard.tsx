@@ -8,10 +8,12 @@ import {
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
-  labelElectricity,
-  labelListingType,
-  labelWater,
-} from "@/lib/listingLabels";
+  formatCampusWalkLine,
+  listingAmberPills,
+  listingCardSubtitle,
+  listingCardTitle,
+} from "@/lib/listingCardMeta";
+import { labelListingType } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -19,34 +21,21 @@ type Props = {
   variant?: "grid" | "list";
 };
 
-function formatDistance(meters?: number | null): string | null {
-  if (meters == null || !Number.isFinite(meters)) return null;
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  return `${(meters / 1000).toFixed(1)} km`;
-}
-
-function listingTitle(listing: Listing): string {
-  return `${listing.area} · ${labelListingType(listing.listingType)}`;
-}
-
-function listingTags(listing: Listing): { label: string; accent?: boolean }[] {
-  const tags: { label: string; accent?: boolean }[] = [];
-  if (listing.wifiIncluded) tags.push({ label: "Wi‑Fi", accent: true });
-  if (listing.elevator24_7) tags.push({ label: "Elevator 24/7" });
-  tags.push({ label: labelElectricity(listing.electricity) });
-  tags.push({ label: labelWater(listing.water) });
-  return tags.slice(0, 5);
-}
+const CARD_BORDER = "#E2E8F0";
 
 export function ListingResultCard({ listing, variant = "grid" }: Props) {
   const router = useRouter();
   const isList = variant === "list";
   const cover = listing.coverUrl ?? listing.photos?.[0]?.url;
-  const title = listingTitle(listing);
+  const title = listingCardTitle(listing);
+  const subtitle = listingCardSubtitle(listing);
   const rentLabel = formatFreshUsd(listing.monthlyRentUsd);
-  const dist = formatDistance(listing.distanceMeters);
-  const campusLabel = listing.nearestCampusName;
-  const tags = listingTags(listing);
+  const proximity = formatCampusWalkLine(
+    listing.distanceMeters,
+    listing.nearestCampusName,
+  );
+  const pills = listingAmberPills(listing);
+  const typeBadge = labelListingType(listing.listingType);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
 
@@ -72,6 +61,7 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
         ) : (
           <View style={[StyleSheet.absoluteFillObject, styles.mediaFallback]} />
         )}
+
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
@@ -86,6 +76,12 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
             {isSaved ? "♥" : "♡"}
           </Text>
         </Pressable>
+
+        <View style={styles.mediaBadge}>
+          <Text style={styles.mediaBadgeText} numberOfLines={1}>
+            {isList ? typeBadge : rentLabel}
+          </Text>
+        </View>
       </View>
 
       <View style={[styles.body, isList && styles.bodyList]}>
@@ -94,40 +90,21 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
             {title}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {[listing.landmark, labelListingType(listing.listingType)]
-              .filter(Boolean)
-              .join(" · ")}
+            {subtitle}
+            {listing.landmark ? ` · ${typeBadge}` : ""}
           </Text>
 
-          {(dist || campusLabel) && (
-            <View style={styles.proximity}>
-              {dist ? (
-                <Text style={styles.proximityText}>
-                  {campusLabel ? `${dist} from ${campusLabel}` : dist}
-                </Text>
-              ) : campusLabel ? (
-                <Text style={styles.proximityText} numberOfLines={1}>
-                  Near {campusLabel}
-                </Text>
-              ) : null}
-            </View>
-          )}
+          {proximity ? (
+            <Text style={styles.proximityText} numberOfLines={2}>
+              {proximity}
+            </Text>
+          ) : null}
 
-          {isList && tags.length > 0 ? (
+          {pills.length > 0 ? (
             <View style={styles.tags}>
-              {tags.map((tag) => (
-                <View
-                  key={tag.label}
-                  style={[styles.tag, tag.accent && styles.tagAccent]}
-                >
-                  <Text
-                    style={[
-                      styles.tagText,
-                      tag.accent && styles.tagTextAccent,
-                    ]}
-                  >
-                    {tag.label}
-                  </Text>
+              {pills.map((pill) => (
+                <View key={pill.key} style={styles.tag}>
+                  <Text style={styles.tagText}>{pill.label}</Text>
                 </View>
               ))}
             </View>
@@ -135,16 +112,14 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
         </View>
 
         <View style={[styles.priceCol, isList && styles.priceColList]}>
-          <Text style={styles.priceFrom}>From</Text>
+          <Text style={styles.priceFrom}>FROM</Text>
           <Text style={styles.price}>
             {rentLabel}
             <Text style={styles.priceUnit}> / mo</Text>
           </Text>
-          {isList ? (
-            <View style={styles.cta}>
-              <Text style={styles.ctaText}>View listing</Text>
-            </View>
-          ) : null}
+          <View style={styles.cta}>
+            <Text style={styles.ctaText}>View Listing</Text>
+          </View>
         </View>
       </View>
     </Pressable>
@@ -154,9 +129,9 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.md,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: CARD_BORDER,
     overflow: "hidden",
   },
   cardList: {
@@ -165,20 +140,27 @@ const styles = StyleSheet.create({
   },
   cardHover: {
     shadowColor: "#121826",
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    elevation: 4,
   },
   media: {
-    height: 180,
+    height: 188,
     backgroundColor: Skoun.color.primaryMist,
     position: "relative",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: "hidden",
   },
   mediaList: {
-    width: 280,
-    height: 200,
+    width: 260,
+    height: "100%",
+    minHeight: 220,
     flexShrink: 0,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 16,
   },
   mediaFallback: {
     backgroundColor: Skoun.color.bgWash,
@@ -190,11 +172,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "rgba(255,255,255,0.94)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(18,24,38,0.08)",
+    borderColor: CARD_BORDER,
   },
   heartGlyph: {
     fontSize: 16,
@@ -203,16 +185,31 @@ const styles = StyleSheet.create({
   heartOn: {
     color: Skoun.color.primary,
   },
+  mediaBadge: {
+    position: "absolute",
+    left: 10,
+    bottom: 10,
+    maxWidth: "70%",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(18,24,38,0.72)",
+  },
+  mediaBadgeText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
   body: {
-    padding: 14,
-    gap: 6,
+    padding: 16,
+    gap: 10,
   },
   bodyList: {
     flex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 16,
-    padding: 18,
+    gap: 20,
+    padding: 20,
   },
   bodyMain: {
     flex: 1,
@@ -221,70 +218,63 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 16,
+    fontSize: 17,
     color: Skoun.color.ink,
-    letterSpacing: -0.2,
+    letterSpacing: -0.25,
   },
   meta: {
     fontFamily: Skoun.type.body,
     fontSize: 13,
     color: Skoun.color.inkMuted,
   },
-  proximity: {
-    gap: 2,
-    marginTop: 2,
-  },
   proximityText: {
     fontFamily: Skoun.type.body,
     fontSize: 12,
     color: Skoun.color.inkMuted,
+    marginTop: 2,
+    lineHeight: 17,
   },
   tags: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
-    marginTop: 8,
+    marginTop: 6,
   },
   tag: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.primaryMist,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-  },
-  tagAccent: {
-    backgroundColor: "rgba(47, 111, 237, 0.08)",
-    borderColor: "rgba(47, 111, 237, 0.22)",
+    borderColor: CARD_BORDER,
   },
   tagText: {
     fontFamily: Skoun.type.bodyMedium,
-    fontSize: 11,
-    color: Skoun.color.inkMuted,
-  },
-  tagTextAccent: {
-    color: Skoun.color.primaryDeep,
+    fontSize: 12,
+    color: Skoun.color.ink,
   },
   priceCol: {
     marginTop: 4,
+    gap: 4,
   },
   priceColList: {
     marginTop: 0,
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    minWidth: 120,
+    alignItems: "stretch",
+    justifyContent: "flex-start",
+    minWidth: 140,
   },
   priceFrom: {
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 11,
     color: Skoun.color.inkMuted,
     textTransform: "uppercase",
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
   },
   price: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 18,
+    fontSize: 22,
     color: Skoun.color.ink,
+    letterSpacing: -0.3,
   },
   priceUnit: {
     fontSize: 13,
@@ -292,11 +282,12 @@ const styles = StyleSheet.create({
     color: Skoun.color.inkMuted,
   },
   cta: {
-    marginTop: 12,
+    marginTop: 10,
     backgroundColor: Skoun.color.primary,
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: 14,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: 10,
+    alignItems: "center",
   },
   ctaText: {
     fontFamily: Skoun.type.bodyBold,

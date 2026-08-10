@@ -1,16 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleSheet, View } from "react-native";
-import { LText } from "@/components/lister/Typography";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  useIsSaved,
+  useToggleSaved,
+} from "@/features/saved/useSavedListings";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
-import { formatDistanceMeters } from "@/lib/formatDistance";
-import { labelGenderRestriction, labelListingType } from "@/lib/listingLabels";
-import { rentPriceType } from "@/lib/rentPriceType";
+import {
+  formatCampusWalkLine,
+  listingAmberPills,
+  listingCardSubtitle,
+  listingCardTitle,
+} from "@/lib/listingCardMeta";
+import { labelListingType } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
-import { NearLandmark } from "./NearLandmark";
-import { UtilityBadges } from "./UtilityBadges";
 
 type Props = {
   listing: Listing;
@@ -19,23 +23,32 @@ type Props = {
   showDistance?: boolean;
 };
 
+const CARD_BORDER = "#E2E8F0";
+
 export function ListingCard({ listing, onPress, showDistance }: Props) {
-  const distance = showDistance
-    ? formatDistanceMeters(
+  const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+  const title = listingCardTitle(listing);
+  const subtitle = listingCardSubtitle(listing);
+  const rentLabel = formatFreshUsd(listing.monthlyRentUsd);
+  const typeBadge = labelListingType(listing.listingType);
+  const proximity = showDistance
+    ? formatCampusWalkLine(
         listing.distanceMeters,
         listing.nearestCampusName,
       )
     : null;
-  const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+  const pills = listingAmberPills(listing);
+  const { data: isSaved = false } = useIsSaved(listing.id);
+  const toggleSaved = useToggleSaved();
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${listing.area}, ${formatFreshUsd(listing.monthlyRentUsd)}`}
+      accessibilityLabel={`${title}, ${rentLabel} per month`}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      <View style={styles.cover}>
+      <View style={styles.media}>
         {cover ? (
           <Image
             source={{ uri: cover }}
@@ -44,7 +57,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
             transition={220}
           />
         ) : (
-          <View style={styles.coverFallback}>
+          <View style={styles.mediaFallback}>
             <Ionicons
               name="home-outline"
               size={28}
@@ -52,64 +65,65 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
             />
           </View>
         )}
-        <LinearGradient
-          colors={["transparent", "rgba(18,24,38,0.78)"]}
-          locations={[0.35, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.coverMeta}>
-          <View style={styles.coverChips}>
-            {listing.targetAudience === "students_only" ? (
-              <View style={styles.studentChip}>
-                <Ionicons
-                  name="school-outline"
-                  size={12}
-                  color={Skoun.color.brass}
-                />
-                <LText variant="caption" style={styles.studentLabel}>
-                  Students
-                </LText>
-              </View>
-            ) : null}
-            {listing.genderRestriction !== "anyone" ? (
-              <View style={styles.genderChip}>
-                <LText variant="caption" style={styles.genderLabel}>
-                  {labelGenderRestriction(listing.genderRestriction)}
-                </LText>
-              </View>
-            ) : null}
-          </View>
-          <LText variant="body" style={[rentPriceType, styles.priceOnImage]}>
-            {formatFreshUsd(listing.monthlyRentUsd)}
-          </LText>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
+          hitSlop={8}
+          onPress={(e) => {
+            e?.stopPropagation?.();
+            toggleSaved.mutate(listing);
+          }}
+          style={styles.heart}
+        >
+          <Text style={[styles.heartGlyph, isSaved && styles.heartOn]}>
+            {isSaved ? "♥" : "♡"}
+          </Text>
+        </Pressable>
+
+        <View style={styles.mediaBadge}>
+          <Text style={styles.mediaBadgeText} numberOfLines={1}>
+            {rentLabel}
+          </Text>
         </View>
       </View>
 
       <View style={styles.body}>
-        <LText variant="subtitle" numberOfLines={1}>
-          {listing.area}
-        </LText>
-        <LText variant="caption" tone="muted" numberOfLines={1}>
-          {labelListingType(listing.listingType)}
-        </LText>
-        <NearLandmark landmark={listing.landmark} compact />
-        <UtilityBadges listing={listing} compact />
-        {distance ? (
-          <View style={styles.distance}>
-            <Ionicons
-              name="navigate-outline"
-              size={14}
-              color={Skoun.color.primary}
-            />
-            <LText
-              variant="caption"
-              tone="primary"
-              style={styles.distanceText}
-            >
-              {distance}
-            </LText>
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {subtitle} · {typeBadge}
+        </Text>
+
+        {proximity ? (
+          <Text style={styles.proximity} numberOfLines={2}>
+            {proximity}
+          </Text>
+        ) : null}
+
+        {pills.length > 0 ? (
+          <View style={styles.tags}>
+            {pills.map((pill) => (
+              <View key={pill.key} style={styles.tag}>
+                <Text style={styles.tagText}>{pill.label}</Text>
+              </View>
+            ))}
           </View>
         ) : null}
+
+        <View style={styles.priceRow}>
+          <View>
+            <Text style={styles.priceFrom}>FROM</Text>
+            <Text style={styles.price}>
+              {rentLabel}
+              <Text style={styles.priceUnit}> / mo</Text>
+            </Text>
+          </View>
+          <View style={styles.cta}>
+            <Text style={styles.ctaText}>View Listing</Text>
+          </View>
+        </View>
       </View>
     </Pressable>
   );
@@ -117,82 +131,133 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: Skoun.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: CARD_BORDER,
   },
-  pressed: { opacity: 0.92 },
-  cover: {
+  pressed: { opacity: 0.94 },
+  media: {
     height: 188,
     backgroundColor: Skoun.color.bgWash,
+    position: "relative",
   },
-  coverFallback: {
+  mediaFallback: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Skoun.color.primaryMist,
   },
-  coverMeta: {
+  heart: {
     position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    gap: 8,
+    top: 10,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
   },
-  coverChips: {
-    flex: 1,
+  heartGlyph: {
+    fontSize: 16,
+    color: Skoun.color.inkMuted,
+  },
+  heartOn: {
+    color: Skoun.color.primary,
+  },
+  mediaBadge: {
+    position: "absolute",
+    left: 10,
+    bottom: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "rgba(18,24,38,0.72)",
+  },
+  mediaBadgeText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
+  body: {
+    padding: 14,
+    gap: 6,
+  },
+  title: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 16,
+    color: Skoun.color.ink,
+    letterSpacing: -0.2,
+  },
+  meta: {
+    fontFamily: Skoun.type.body,
+    fontSize: 13,
+    color: Skoun.color.inkMuted,
+  },
+  proximity: {
+    fontFamily: Skoun.type.body,
+    fontSize: 12,
+    color: Skoun.color.inkMuted,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  tags: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
-    alignItems: "center",
+    marginTop: 6,
   },
-  priceOnImage: {
-    color: Skoun.color.surface,
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  studentChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(232,238,246,0.92)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Skoun.radius.pill,
+  tag: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: "#F8FAFC",
     borderWidth: 1,
-    borderColor: Skoun.color.brass,
+    borderColor: CARD_BORDER,
   },
-  studentLabel: {
-    color: Skoun.color.draft,
-    fontFamily: Skoun.type.bodySemi,
-  },
-  genderChip: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Skoun.radius.pill,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-  },
-  genderLabel: {
+  tagText: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 12,
     color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodySemi,
   },
-  body: {
-    padding: Skoun.space.md,
-    gap: 8,
-  },
-  distance: {
+  priceRow: {
+    marginTop: 10,
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  distanceText: {
-    fontFamily: Skoun.type.bodySemi,
+  priceFrom: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 11,
+    color: Skoun.color.inkMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  price: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 20,
+    color: Skoun.color.ink,
+    letterSpacing: -0.3,
+  },
+  priceUnit: {
+    fontSize: 13,
+    fontFamily: Skoun.type.bodyMedium,
+    color: Skoun.color.inkMuted,
+  },
+  cta: {
+    backgroundColor: Skoun.color.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  ctaText: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 13,
+    color: "#FFFFFF",
   },
 });
