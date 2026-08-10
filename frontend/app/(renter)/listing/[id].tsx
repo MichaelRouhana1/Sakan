@@ -231,13 +231,13 @@ export default function RenterListingDetailScreen() {
                   utilities before you visit.
                 </LText>
               </View>
-              {nearby.data?.inLaunch && nearby.data.count > 0 ? (
+              {coincident.data && coincident.data.length > 0 ? (
                 <LText
                   variant="caption"
                   tone="primary"
                   style={{ marginTop: 10 }}
                 >
-                  {nearby.data.count} people looking nearby
+                  {coincident.data.length} student listings nearby
                 </LText>
               ) : null}
             </Enter>

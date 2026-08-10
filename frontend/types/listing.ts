@@ -4,7 +4,8 @@ export type ListingType =
   | "entire_apartment"
   | "studio"
   | "private_room"
-  | "shared_dorm_bed";
+  | "shared_dorm_bed"
+  | "pbsa_building";
 
 export type TargetAudience = "anyone" | "students_only";
 
@@ -19,6 +20,55 @@ export type ListingPhoto = {
   url: string;
   sortOrder: number;
   listingId?: string;
+  caption?: string;
+};
+
+export type PbsaRoomType = {
+  id: string;
+  name: string;
+  category: "studio" | "ensuite" | "shared_room" | "apartment";
+  monthlyRentUsd: number;
+  availableFrom?: string;
+  sizeSqm?: number;
+  floor?: string;
+  description?: string;
+  features: string[];
+  photos: ListingPhoto[];
+  isAvailable?: boolean;
+};
+
+export type LebanonInfrastructure = {
+  electricity: {
+    status: ElectricityStatus;
+    ampLimit?: number;
+    solarBackup?: boolean;
+    generatorSpecs?: string;
+  };
+  water: {
+    status: WaterStatus;
+    hasPumpUps?: boolean;
+    tankCapacityLiters?: number;
+    notes?: string;
+  };
+  internet: {
+    wifiIncluded: boolean;
+    hasFiber?: boolean;
+    speedMbps?: number;
+    routerUps: boolean;
+    routerUpsHours?: number;
+  };
+};
+
+export type StandardUnitSpecs = {
+  floorLevel?: string | number;
+  roomCategory?: "private_room" | "entire_apartment" | "flatshare";
+  roommateDetails?: {
+    count: number;
+    genders?: string;
+    occupations?: string;
+  };
+  depositUsd?: number;
+  minContractMonths?: number;
 };
 
 export type Listing = {
@@ -60,6 +110,17 @@ export type Listing = {
   nearestCampusName?: string;
   photos: ListingPhoto[];
   coverUrl: string | null;
+
+  // New fields for Amberstudent / PBSA & Lebanon Infrastructure
+  isPbsa?: boolean;
+  pbsaBuildingName?: string;
+  pbsaRoomTypes?: PbsaRoomType[];
+  infrastructure?: LebanonInfrastructure;
+  unitSpecs?: StandardUnitSpecs;
+  description?: string;
+  amenities?: string[];
+  houseRules?: string[];
+  cancellationPolicy?: string;
 };
 
 export type CampusMeta = {

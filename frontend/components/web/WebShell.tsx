@@ -9,6 +9,8 @@ type Props = {
   children: React.ReactNode;
   /** Centered search pill in top nav (Find / browse). */
   showNavSearch?: boolean;
+  /** Explicitly show/hide footer if needed. */
+  showFooter?: boolean;
 };
 
 /**
@@ -16,8 +18,9 @@ type Props = {
  * scrollbar scrolls the page (Amber-style). Map mode sets `lockScroll`
  * to freeze the shell to the viewport and scroll only the list column.
  */
-export function WebShell({ children, showNavSearch = false }: Props) {
+export function WebShell({ children, showNavSearch = false, showFooter }: Props) {
   const { fullBleed, hideFooter } = useWebShellChrome();
+  const shouldHideFooter = showFooter === false || hideFooter;
 
   return (
     <View style={styles.root}>
@@ -26,7 +29,7 @@ export function WebShell({ children, showNavSearch = false }: Props) {
         <View style={[styles.main, fullBleed && styles.mainBleed]}>
           {children}
         </View>
-        {hideFooter ? null : <WebFooter />}
+        {shouldHideFooter ? null : <WebFooter />}
       </View>
     </View>
   );

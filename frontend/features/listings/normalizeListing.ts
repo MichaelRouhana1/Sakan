@@ -1,4 +1,10 @@
-import type { CampusMeta, Listing, ListingPhoto } from "@/types/listing";
+import type {
+  CampusMeta,
+  Listing,
+  ListingPhoto,
+  PbsaRoomType,
+  StandardUnitSpecs,
+} from "@/types/listing";
 
 function normalizePhotos(row: Record<string, unknown>): ListingPhoto[] {
   const raw = row.photos;
@@ -60,21 +66,82 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
       ? Math.max(0, Math.floor(apiReviews))
       : (demo?.reviewCount ?? 0);
 
+  const listingType = (row.listingType ??
+    row.listing_type) as Listing["listingType"];
+  const isPbsa = Boolean(
+    row.isPbsa ?? row.is_pbsa ?? listingType === "pbsa_building"
+  );
+
+  const electricity = (row.electricity as Listing["electricity"]) || "solar";
+  const water = (row.water as Listing["water"]) || "state_well_24_7";
+  const wifiIncluded = Boolean(row.wifiIncluded ?? row.wifi_included ?? true);
+  const routerUps = Boolean(row.routerUps ?? row.router_ups ?? true);
+
+  const infrastructure = {
+    electricity: {
+      status: electricity,
+      ampLimit: Number(row.ampLimit ?? row.amp_limit ?? (electricity === "solar" ? 15 : 10)),
+      solarBackup: electricity === "solar" || Boolean(row.solarBackup ?? row.solar_backup),
+      generatorSpecs: String(
+        row.generatorSpecs ?? row.generator_specs ?? (electricity === "solar" ? "24/7 Solar + Automatic Generator Switch" : "24/7 Dedicated Building Generator (10 Amp Max)")
+      ),
+    },
+    water: {
+      status: water,
+      hasPumpUps: Boolean(row.hasPumpUps ?? row.has_pump_ups ?? true),
+      tankCapacityLiters: Number(row.tankCapacityLiters ?? row.tank_capacity_liters ?? 2000),
+      notes: String(row.waterNotes ?? row.water_notes ?? "24/7 Water Supply via Artesian Well + Roof Tank UPS Pump"),
+    },
+    internet: {
+      wifiIncluded,
+      hasFiber: Boolean(row.hasFiber ?? row.has_fiber ?? true),
+      speedMbps: Number(row.speedMbps ?? row.speed_mbps ?? 100),
+      routerUps,
+      routerUpsHours: Number(row.routerUpsHours ?? row.router_ups_hours ?? 8),
+    },
+  };
+
+  const pbsaBuildingName = (row.pbsaBuildingName ?? row.pbsa_building_name)
+    ? String(row.pbsaBuildingName ?? row.pbsa_building_name)
+    : isPbsa
+    ? `${String(row.area ?? "Beirut")} Student Residence`
+    : undefined;
+
+  const rawRoomTypes = row.pbsaRoomTypes ?? row.pbsa_room_types;
+  const pbsaRoomTypes = Array.isArray(rawRoomTypes)
+    ? (rawRoomTypes as PbsaRoomType[])
+    : isPbsa
+    ? generateDemoPbsaRooms(photos, Number(row.monthlyRentUsd ?? row.monthly_rent_usd ?? 350))
+    : undefined;
+
+  const unitSpecs = isPbsa
+    ? undefined
+    : {
+        floorLevel: (row.floorLevel ?? row.floor_level) ? String(row.floorLevel ?? row.floor_level) : "3rd Floor (With 24/7 Elevator)",
+        roomCategory: (row.roomCategory ?? row.room_category ?? (listingType === "private_room" ? "private_room" : "entire_apartment")) as StandardUnitSpecs["roomCategory"],
+        roommateDetails: {
+          count: Number(row.roommateCount ?? row.roommate_count ?? (listingType === "private_room" ? 2 : 0)),
+          genders: String(row.roommateGenders ?? row.roommate_genders ?? "Mix of University Students"),
+          occupations: String(row.roommateOccupations ?? row.roommate_occupations ?? "AUB & LAU Students"),
+        },
+        depositUsd: Number(row.depositUsd ?? row.deposit_usd ?? Number(row.monthlyRentUsd ?? row.monthly_rent_usd ?? 400)),
+        minContractMonths: Number(row.minContractMonths ?? row.min_contract_months ?? 6),
+      };
+
   return {
     id: String(row.id),
     posterId: String(row.posterId ?? row.poster_id),
     status: (row.status as Listing["status"]) ?? "active",
-    listingType: (row.listingType ??
-      row.listing_type) as Listing["listingType"],
+    listingType,
     targetAudience: (row.targetAudience ??
       row.target_audience) as Listing["targetAudience"],
     genderRestriction: ((row.genderRestriction ??
       row.gender_restriction) as Listing["genderRestriction"]) ?? "anyone",
     monthlyRentUsd: Number(row.monthlyRentUsd ?? row.monthly_rent_usd),
-    electricity: row.electricity as Listing["electricity"],
-    water: row.water as Listing["water"],
-    wifiIncluded: Boolean(row.wifiIncluded ?? row.wifi_included),
-    routerUps: Boolean(row.routerUps ?? row.router_ups),
+    electricity,
+    water,
+    wifiIncluded,
+    routerUps,
     elevator24_7: Boolean(row.elevator24_7 ?? row.elevator_24_7),
     area: String(row.area ?? ""),
     landmark: (row.landmark as string | null) ?? null,
@@ -97,7 +164,64 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     nearestCampusSlug,
     photos,
     coverUrl,
+    isPbsa,
+    pbsaBuildingName,
+    pbsaRoomTypes,
+    infrastructure,
+    unitSpecs,
+    description: (row.description as string) || undefined,
+    amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : undefined,
+    houseRules: Array.isArray(row.houseRules) ? (row.houseRules as string[]) : undefined,
+    cancellationPolicy: (row.cancellationPolicy as string) || undefined,
   };
+}
+
+function generateDemoPbsaRooms(basePhotos: ListingPhoto[], basePrice: number): PbsaRoomType[] {
+  const p1 = basePhotos.slice(0, 3);
+  const p2 = basePhotos.slice(1, 4);
+  const p3 = basePhotos.length > 2 ? basePhotos.slice(2) : basePhotos;
+
+  return [
+    {
+      id: "room-studio-plus",
+      name: "Deluxe Studio (Private Kitchen & Bath)",
+      category: "studio",
+      monthlyRentUsd: basePrice,
+      availableFrom: "Available Sep 1, 2026",
+      sizeSqm: 26,
+      floor: "2nd - 5th Floor",
+      description: "Fully furnished private studio with dedicated study desk, kitchenette, AC, and en-suite bathroom.",
+      features: ["Private Kitchen", "En-suite Bathroom", "Study Desk", "Balcony", "AC 24/7"],
+      photos: p1.length > 0 ? p1 : basePhotos,
+      isAvailable: true,
+    },
+    {
+      id: "room-ensuite-single",
+      name: "Single En-Suite Room",
+      category: "ensuite",
+      monthlyRentUsd: Math.max(150, Math.round(basePrice * 0.8)),
+      availableFrom: "Available Immediately",
+      sizeSqm: 18,
+      floor: "1st - 4th Floor",
+      description: "Private bedroom with personal attached bathroom. Shared gourmet kitchen and lounge per floor.",
+      features: ["En-suite Bathroom", "Shared Kitchen", "Study Desk", "UPS WiFi"],
+      photos: p2.length > 0 ? p2 : basePhotos,
+      isAvailable: true,
+    },
+    {
+      id: "room-twin-shared",
+      name: "Shared Twin Student Room",
+      category: "shared_room",
+      monthlyRentUsd: Math.max(120, Math.round(basePrice * 0.6)),
+      availableFrom: "Available Sep 1, 2026",
+      sizeSqm: 22,
+      floor: "1st - 3rd Floor",
+      description: "Shared room for two students. Includes twin single beds, two wardrobes, two study desks, and private bathroom.",
+      features: ["2x Study Desks", "En-suite Bathroom", "Shared Lounge", "Weekly Housekeeping"],
+      photos: p3.length > 0 ? p3 : basePhotos,
+      isAvailable: true,
+    },
+  ];
 }
 
 function parseOptionalNumber(value: unknown): number | null {

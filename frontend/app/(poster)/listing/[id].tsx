@@ -30,8 +30,21 @@ import {
 import { rentPriceType } from "@/lib/rentPriceType";
 import { safeBack, useSafeHardwareBack } from "@/lib/safeBack";
 
+import { Platform } from "react-native";
+import { ListingDetailWeb } from "@/components/web/ListingDetailWeb";
+import { WebShell } from "@/components/web/WebShell";
+
 export default function PosterListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+
+  if (Platform.OS === "web") {
+    return (
+      <WebShell showFooter={false}>
+        <ListingDetailWeb listingId={id ?? ""} />
+      </WebShell>
+    );
+  }
+
   const { data: listing, isLoading, isError, refetch } = useListing(id ?? "");
   const archive = useArchiveListing();
   useSafeHardwareBack("/(poster)");

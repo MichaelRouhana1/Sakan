@@ -20,6 +20,7 @@ export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
   studio: "Studio",
   private_room: "Private room",
   shared_dorm_bed: "Shared dorm bed",
+  pbsa_building: "Student Building (PBSA)",
 };
 
 export const TARGET_AUDIENCE_LABELS: Record<TargetAudience, string> = {
