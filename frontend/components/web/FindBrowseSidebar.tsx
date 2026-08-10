@@ -12,7 +12,7 @@ import {
 } from "@/lib/skounLeaflet.web";
 
 const BEIRUT: [number, number] = [33.8938, 35.5018];
-const AMBER_RED = "#EF4444";
+const SKOUN_BLUE = "#2F6FED";
 const CARD_BORDER = "#E2E8F0";
 const ROW_BORDER = "#F1F5F9";
 
@@ -143,7 +143,7 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                 pressed && styles.mapBtnPressed,
               ]}
             >
-              <Ionicons name="compass-outline" size={18} color={AMBER_RED} />
+              <Ionicons name="map-outline" size={15} color={SKOUN_BLUE} />
               <LText variant="label" style={styles.mapBtnLabel}>
                 Explore on map
               </LText>
@@ -173,8 +173,8 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                     <View style={styles.uspIcon}>
                       <Ionicons
                         name={item.icon}
-                        size={17}
-                        color={Skoun.color.primary}
+                        size={15}
+                        color={Skoun.color.primaryDeep}
                       />
                     </View>
                     <LText variant="label" style={styles.uspTitle}>
@@ -183,8 +183,8 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
                   </View>
                   <Ionicons
                     name={open ? "chevron-up" : "chevron-forward"}
-                    size={16}
-                    color="#94A3B8"
+                    size={14}
+                    color={Skoun.color.inkFaint}
                   />
                 </Pressable>
                 {open ? (
@@ -228,14 +228,14 @@ const styles = StyleSheet.create({
   },
   mapHeader: {
     width: "100%",
-    height: 180,
+    height: 126,
     position: "relative",
     overflow: "hidden",
     backgroundColor: Skoun.color.bgWash,
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(18, 24, 38, 0.14)",
+    backgroundColor: "rgba(18, 24, 38, 0.12)",
     zIndex: 1,
   },
   mapCtaWrap: {
@@ -247,31 +247,31 @@ const styles = StyleSheet.create({
   mapBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
     borderWidth: 2,
-    borderColor: AMBER_RED,
+    borderColor: SKOUN_BLUE,
     shadowColor: "#121826",
-    shadowOpacity: 0.14,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
     ...webTransition,
   },
   mapBtnHover: {
-    backgroundColor: "#FEF2F2",
-    transform: [{ scale: 1.05 }],
+    backgroundColor: Skoun.color.primaryMist,
+    transform: [{ scale: 1.03 }],
   },
   mapBtnPressed: {
     transform: [{ scale: 0.98 }],
   },
   mapBtnLabel: {
-    color: AMBER_RED,
-    fontWeight: "700",
-    fontSize: 14,
+    color: SKOUN_BLUE,
+    fontWeight: "600",
+    fontSize: 12,
   },
   uspStack: {
     backgroundColor: "#FFFFFF",
@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   uspHeaderHover: {
     backgroundColor: "#F8FAFC",
@@ -295,30 +295,30 @@ const styles = StyleSheet.create({
   uspTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     flex: 1,
     minWidth: 0,
   },
   uspIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#FCE7F3",
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: Skoun.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
   },
   uspTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: "#1E293B",
     flex: 1,
   },
   uspBody: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingLeft: 62,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingLeft: 52,
     color: Skoun.color.inkMuted,
-    lineHeight: 20,
-    fontSize: 13,
+    lineHeight: 18,
+    fontSize: 12,
   },
 });

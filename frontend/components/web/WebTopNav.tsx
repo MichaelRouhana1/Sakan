@@ -111,13 +111,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: "100%",
+    maxWidth: "100%",
     minHeight: WEB_NAV_HEIGHT,
     zIndex: 50,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
-    // Prevent padding/border from changing layout width when sticky activates.
     // @ts-expect-error RN web box model
     boxSizing: "border-box",
   },

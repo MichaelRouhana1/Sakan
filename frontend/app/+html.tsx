@@ -189,7 +189,7 @@ export default function Root({ children }: { children: ReactNode }) {
 html {
   height: auto;
   min-height: 100%;
-  /* Reserve scrollbar space so sticky/centered chrome does not jump ~15px. */
+  /* Reserve scrollbar lane so sticky headers don't jump horizontally. */
   scrollbar-gutter: stable;
 }
 body {
@@ -197,14 +197,14 @@ body {
   min-height: 100%;
   height: auto;
   background-color: ${BG};
-  overflow-y: auto;
+  /* Body (not html) must own scroll — html-only scroll collapsed #root to 0 height. */
+  overflow-y: scroll;
   overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  /* Keep gutter reservation consistent with html. */
   scrollbar-gutter: stable;
+  -webkit-font-smoothing: antialiased;
 }
 #root {
-  min-height: 100%;
+  min-height: 100vh;
   height: auto;
   width: 100%;
   display: flex;
