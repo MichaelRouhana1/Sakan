@@ -17,27 +17,16 @@ type Props = {
  * to freeze the shell to the viewport and scroll only the list column.
  */
 export function WebShell({ children, showNavSearch = false }: Props) {
-  const { fullBleed, hideFooter, lockScroll } = useWebShellChrome();
+  const { fullBleed, hideFooter } = useWebShellChrome();
 
   return (
-    <View style={[styles.root, lockScroll && styles.rootLocked]}>
+    <View style={styles.root}>
       <WebTopNav showSearch={showNavSearch} />
-      <View
-        style={[
-          styles.body,
-          lockScroll && styles.bodyLocked,
-        ]}
-      >
-        <View
-          style={[
-            styles.main,
-            fullBleed && styles.mainBleed,
-            lockScroll && styles.mainLocked,
-          ]}
-        >
+      <View style={styles.body}>
+        <View style={[styles.main, fullBleed && styles.mainBleed]}>
           {children}
         </View>
-        {hideFooter || lockScroll ? null : <WebFooter />}
+        {hideFooter ? null : <WebFooter />}
       </View>
     </View>
   );
@@ -50,20 +39,10 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.bg,
     boxSizing: "border-box",
   },
-  rootLocked: {
-    height: "100vh" as unknown as number,
-    maxHeight: "100vh" as unknown as number,
-    overflow: "hidden",
-  },
   body: {
     width: "100%",
     flexGrow: 1,
     boxSizing: "border-box",
-  },
-  bodyLocked: {
-    flex: 1,
-    minHeight: 0,
-    overflow: "hidden",
   },
   main: {
     width: "100%",
@@ -79,12 +58,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 0,
-  },
-  mainLocked: {
-    flex: 1,
-    minHeight: 0,
-    height: "100%" as unknown as number,
-    display: "flex",
-    flexDirection: "column",
   },
 });

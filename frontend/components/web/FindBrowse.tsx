@@ -561,11 +561,7 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.bg,
   },
   pageMap: {
-    flex: 1,
-    flexDirection: "column",
-    minHeight: 0,
-    height: "100%" as unknown as number,
-    overflow: "hidden",
+    width: "100%",
   },
   content: {
     paddingHorizontal: WEB_CONTENT_PAD_X,

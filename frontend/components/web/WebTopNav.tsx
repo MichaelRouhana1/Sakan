@@ -106,7 +106,7 @@ export function WebTopNav({ showSearch = false }: Props) {
 
 const styles = StyleSheet.create({
   bar: {
-    position: "relative",
+    position: "sticky" as unknown as "relative",
     top: 0,
     left: 0,
     right: 0,

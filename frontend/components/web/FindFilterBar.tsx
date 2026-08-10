@@ -229,14 +229,14 @@ export function FindFilterBar({
 
 const styles = StyleSheet.create({
   bar: {
-    position: "relative",
-    top: 0,
+    position: "sticky" as unknown as "relative",
+    top: 64,
     left: 0,
     right: 0,
     width: "100%",
     height: 64,
     minHeight: 64,
-    zIndex: 40,
+    zIndex: 45,
     flexGrow: 0,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
