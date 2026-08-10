@@ -55,8 +55,12 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
   return (
-    <View style={styles.gridNotchWrap} pointerEvents="none" accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}>
-      <Text style={styles.gridNotchStar}>⭐</Text>
+    <View
+      style={styles.gridNotchWrap}
+      pointerEvents="none"
+      accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
+    >
+      <Text style={styles.gridNotchStar}>★</Text>
       <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
       <Text style={styles.gridNotchCount}>({reviewCount})</Text>
     </View>
@@ -113,12 +117,12 @@ const styles = StyleSheet.create({
   listWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6, // gap-1.5 (6px)
+    gap: 6,
   },
   listScore: {
-    fontWeight: "700", // font-bold
-    fontSize: 14,     // text-sm
-    color: "#111928", // text-[#111928]
+    fontWeight: "700",
+    fontSize: 14,
+    color: "#111928",
     lineHeight: 18,
   },
   listStarsRow: {
@@ -131,52 +135,56 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   listCount: {
-    fontSize: 12,     // text-xs
-    color: "#6B7280", // text-[#6B7280]
+    fontSize: 12,
+    color: "#6B7280",
     fontWeight: "400",
     lineHeight: 18,
   },
 
-  // Grid Mode Amber Notch Badge Styles
+  // Amber 22px Compact Notched Rating Badge
   gridNotchWrap: {
     position: "absolute",
     bottom: 0,
     left: 0,
     zIndex: 10,
-    backgroundColor: "#FFFFFF", // bg-white
-    paddingHorizontal: 12,      // px-3
-    paddingVertical: 4,         // py-1
-    borderTopRightRadius: 12,   // rounded-tr-xl
+    backgroundColor: "#FFFFFF",
+    height: 22,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderTopRightRadius: 8,
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     borderTopWidth: 1,
     borderRightWidth: 1,
-    borderColor: "#F1F5F9",     // border-slate-100
+    borderColor: "#F1F5F9",
     shadowColor: "#121826",
-    shadowOpacity: 0.05,        // shadow-sm
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,                     // gap-1
+    gap: 2,
   },
   gridNotchStar: {
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 13,
+    color: "#F59E0B",
+    marginRight: 2,
   },
   gridNotchScore: {
-    fontSize: 12,               // text-xs
-    fontWeight: "700",          // font-bold
-    color: "#111928",           // text-[#111928]
-    lineHeight: 16,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0E9F6E",
+    lineHeight: 14,
   },
   gridNotchCount: {
-    fontSize: 12,               // text-xs
-    fontWeight: "400",
-    color: "#6B7280",           // text-[#6B7280]
-    lineHeight: 16,
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#0E9F6E",
+    lineHeight: 14,
+    marginLeft: 1,
   },
 
   feature: {
