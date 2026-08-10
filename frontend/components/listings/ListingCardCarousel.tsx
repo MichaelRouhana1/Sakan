@@ -129,12 +129,19 @@ export function ListingCardCarousel({
 
         {count > 1 ? (
           <View style={styles.dots} pointerEvents="auto">
-            {photos.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.dot, i === safeIndex && styles.dotActive]}
-              />
-            ))}
+            {photos.map((_, i) => {
+              const active = i === safeIndex;
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    styles.dotMotion,
+                    active ? styles.dotActive : styles.dotIdle,
+                  ]}
+                />
+              );
+            })}
           </View>
         ) : null}
       </View>
@@ -142,13 +149,14 @@ export function ListingCardCarousel({
   );
 }
 
-const arrowMotionWeb =
+const webTransition = (property: string): ViewStyle =>
   Platform.OS === "web"
     ? ({
-        transitionProperty: "opacity, transform",
+        transitionProperty: property,
         transitionDuration: "200ms",
+        transitionTimingFunction: "ease",
       } as ViewStyle)
-    : null;
+    : {};
 
 const styles = StyleSheet.create({
   root: {
@@ -184,9 +192,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  arrowMotion: {
-    ...(arrowMotionWeb ?? {}),
-  },
+  arrowMotion: webTransition("opacity, transform"),
   arrowLeft: { left: 8 },
   arrowRight: { right: 8 },
   dots: {
@@ -196,17 +202,26 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
     gap: 5,
   },
   dot: {
-    width: 6,
     height: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.45)",
-  },
-  dotActive: {
     backgroundColor: "#FFFFFF",
-    width: 7,
-    height: 7,
+    shadowColor: "#000000",
+    shadowOpacity: 0.35,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  dotMotion: webTransition("width"),
+  /** Inactive — small circle */
+  dotIdle: {
+    width: 6,
+  },
+  /** Active — Amber-style horizontal pill */
+  dotActive: {
+    width: 18,
   },
 });
