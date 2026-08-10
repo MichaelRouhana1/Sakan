@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   listStar: {
-    fontSize: 12,
-    lineHeight: 14,
+    fontSize: 15,
+    lineHeight: 17,
   },
   listCount: {
     fontSize: 12,
