@@ -230,7 +230,7 @@ export function FindFilterBar({
 const styles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
-    top: 64,
+    top: WEB_FILTER_BAR_STICKY_TOP,
     left: 0,
     right: 0,
     width: "100%",

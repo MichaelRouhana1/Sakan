@@ -10,7 +10,7 @@ export const WEB_CONTENT_PAD_X = 24;
  * Nav uses minHeight = WEB_NAV_HEIGHT so sticky offset stays stable.
  */
 export const WEB_NAV_STICKY_TOP = 0;
-export const WEB_NAV_HEIGHT = 64;
+export const WEB_NAV_HEIGHT = 72;
 export const WEB_FILTER_BAR_STICKY_TOP = WEB_NAV_HEIGHT;
-/** Nav (~64) + filter bar (~56) + breathing room under chrome. */
-export const WEB_SIDEBAR_STICKY_TOP = 140;
+/** Nav (~72) + filter bar (~64) + breathing room under chrome. */
+export const WEB_SIDEBAR_STICKY_TOP = 148;
