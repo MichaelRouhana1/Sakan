@@ -12,20 +12,22 @@ type Props = {
 };
 
 /**
- * Web site chrome. Uses a native overflow scroller (not RN ScrollView) so
- * `position: sticky` children (filter bar) can pin under the top nav —
- * RN ScrollView applies a transform that breaks sticky.
- *
- * Map mode sets `lockScroll` so the browse split owns the remaining viewport
- * (list scrolls inside; map stays put) like Amber SearchDesktopV2.
+ * Web site chrome. Default: natural document height so the *window*
+ * scrollbar scrolls the page (Amber-style). Map mode sets `lockScroll`
+ * to freeze the shell to the viewport and scroll only the list column.
  */
 export function WebShell({ children, showNavSearch = false }: Props) {
   const { fullBleed, hideFooter, lockScroll } = useWebShellChrome();
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, lockScroll && styles.rootLocked]}>
       <WebTopNav showSearch={showNavSearch} />
-      <View style={[styles.scroll, lockScroll && styles.scrollLocked]}>
+      <View
+        style={[
+          styles.body,
+          lockScroll && styles.bodyLocked,
+        ]}
+      >
         <View
           style={[
             styles.main,
@@ -43,21 +45,24 @@ export function WebShell({ children, showNavSearch = false }: Props) {
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
+    width: "100%",
+    minHeight: "100vh" as unknown as number,
     backgroundColor: Skoun.color.bg,
+    // Let document/body own the scrollbar — do not lock to viewport height.
+  },
+  rootLocked: {
     height: "100vh" as unknown as number,
     maxHeight: "100vh" as unknown as number,
+    overflow: "hidden",
   },
-  scroll: {
+  body: {
+    width: "100%",
+    flexGrow: 1,
+  },
+  bodyLocked: {
     flex: 1,
     minHeight: 0,
-    overflow: "scroll",
-    overflowY: "auto",
-    overflowX: "hidden",
-  },
-  scrollLocked: {
     overflow: "hidden",
-    overflowY: "hidden",
   },
   main: {
     width: "100%",
@@ -66,7 +71,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 28,
     paddingBottom: 48,
-    flexGrow: 1,
   },
   mainBleed: {
     maxWidth: "100%" as unknown as number,
@@ -78,5 +82,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     height: "100%" as unknown as number,
+    display: "flex",
+    flexDirection: "column",
   },
 });

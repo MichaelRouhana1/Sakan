@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import type { Map as LeafletMap } from "leaflet";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
+import { WEB_SIDEBAR_STICKY_TOP } from "@/constants/webLayout";
 import {
   createSkounMap,
   loadLeaflet,
@@ -11,6 +12,17 @@ import {
 } from "@/lib/skounLeaflet.web";
 
 const BEIRUT: [number, number] = [33.8938, 35.5018];
+const AMBER_RED = "#EF4444";
+const CARD_BORDER = "#E2E8F0";
+const ROW_BORDER = "#F1F5F9";
+
+const webTransition =
+  Platform.OS === "web"
+    ? ({
+        transitionProperty: "transform, background-color",
+        transitionDuration: "150ms",
+      } as ViewStyle)
+    : {};
 
 const USP_ITEMS = [
   {
@@ -72,7 +84,6 @@ function MapPreviewBackdrop() {
 
         mapRef.current = map;
         leafletRef.current = L;
-        // Remeasure after layout — preview tile is small.
         requestAnimationFrame(() => {
           map.invalidateSize();
           map.setView(BEIRUT, 13, { animate: false });
@@ -107,171 +118,205 @@ function MapPreviewBackdrop() {
   );
 }
 
+/**
+ * Amber-style sticky sidebar: one card with edge-to-edge map header
+ * + trust accordion flush underneath.
+ */
 export function FindBrowseSidebar({ onExploreMap }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <View style={styles.wrap}>
-      <View
-        style={styles.mapTile}
-        accessibilityLabel="Map of Beirut"
-      >
-        <MapPreviewBackdrop />
-        <View style={styles.mapScrim} pointerEvents="none" />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Explore on map"
-          onPress={onExploreMap}
-          style={({ hovered, pressed }) => [
-            styles.mapBtn,
-            (hovered || pressed) && styles.mapBtnHover,
-          ]}
-        >
-          <Ionicons name="map-outline" size={18} color={Skoun.color.primary} />
-          <LText variant="label" style={styles.mapBtnLabel}>
-            Explore on map
-          </LText>
-        </Pressable>
-      </View>
+    <View style={styles.sticky}>
+      <View style={styles.card}>
+        {/* Edge-to-edge map header */}
+        <View style={styles.mapHeader} accessibilityLabel="Map of Beirut">
+          <MapPreviewBackdrop />
+          <View style={styles.mapScrim} pointerEvents="none" />
+          <View style={styles.mapCtaWrap} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Explore on map"
+              onPress={onExploreMap}
+              style={({ hovered, pressed }) => [
+                styles.mapBtn,
+                (hovered || pressed) && styles.mapBtnHover,
+                pressed && styles.mapBtnPressed,
+              ]}
+            >
+              <Ionicons name="compass-outline" size={18} color={AMBER_RED} />
+              <LText variant="label" style={styles.mapBtnLabel}>
+                Explore on map
+              </LText>
+            </Pressable>
+          </View>
+        </View>
 
-      <View style={styles.uspStack}>
-        {USP_ITEMS.map((item) => {
-          const open = openId === item.id;
-          return (
-            <View key={item.id} style={styles.uspItem}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setOpenId(open ? null : item.id)}
-                style={({ hovered }) => [
-                  styles.uspHeader,
-                  hovered && styles.uspHeaderHover,
-                ]}
+        {/* Trust accordion — same card, no gap */}
+        <View style={styles.uspStack}>
+          {USP_ITEMS.map((item, index) => {
+            const open = openId === item.id;
+            const isLast = index === USP_ITEMS.length - 1;
+            return (
+              <View
+                key={item.id}
+                style={[styles.uspItem, !isLast && styles.uspItemBorder]}
               >
-                <View style={styles.uspTitleRow}>
-                  <View style={styles.uspIcon}>
-                    <Ionicons
-                      name={item.icon}
-                      size={18}
-                      color={Skoun.color.primaryDeep}
-                    />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setOpenId(open ? null : item.id)}
+                  style={({ hovered }) => [
+                    styles.uspHeader,
+                    hovered && styles.uspHeaderHover,
+                  ]}
+                >
+                  <View style={styles.uspTitleRow}>
+                    <View style={styles.uspIcon}>
+                      <Ionicons
+                        name={item.icon}
+                        size={17}
+                        color={Skoun.color.primary}
+                      />
+                    </View>
+                    <LText variant="label" style={styles.uspTitle}>
+                      {item.title}
+                    </LText>
                   </View>
-                  <LText variant="label" style={styles.uspTitle}>
-                    {item.title}
+                  <Ionicons
+                    name={open ? "chevron-up" : "chevron-forward"}
+                    size={16}
+                    color="#94A3B8"
+                  />
+                </Pressable>
+                {open ? (
+                  <LText variant="caption" style={styles.uspBody}>
+                    {item.body}
                   </LText>
-                </View>
-                <Ionicons
-                  name={open ? "chevron-up" : "chevron-down"}
-                  size={14}
-                  color={Skoun.color.inkFaint}
-                />
-              </Pressable>
-              {open ? (
-                <LText variant="caption" style={styles.uspBody}>
-                  {item.body}
-                </LText>
-              ) : null}
-            </View>
-          );
-        })}
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  sticky: {
     width: 300,
     flexGrow: 0,
     flexShrink: 0,
     alignSelf: "flex-start",
-    gap: 16,
+    position: "sticky" as unknown as "relative",
+    top: WEB_SIDEBAR_STICKY_TOP,
+    maxHeight: "calc(100vh - 160px)" as unknown as number,
+    overflow: "auto",
+    overflowY: "auto",
   },
-  mapTile: {
-    height: 168,
-    borderRadius: Skoun.radius.lg,
-    overflow: "hidden",
+  card: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Skoun.color.bgWash,
+    borderColor: CARD_BORDER,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#121826",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  mapHeader: {
+    width: "100%",
+    height: 180,
     position: "relative",
+    overflow: "hidden",
+    backgroundColor: Skoun.color.bgWash,
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(18, 24, 38, 0.16)",
+    backgroundColor: "rgba(18, 24, 38, 0.14)",
     zIndex: 1,
+  },
+  mapCtaWrap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2,
+    alignItems: "center",
+    justifyContent: "center",
   },
   mapBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surface,
-    borderWidth: 1.5,
-    borderColor: Skoun.color.primary,
-    zIndex: 2,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: AMBER_RED,
     shadowColor: "#121826",
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+    ...webTransition,
   },
   mapBtnHover: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: "#FEF2F2",
+    transform: [{ scale: 1.05 }],
+  },
+  mapBtnPressed: {
+    transform: [{ scale: 0.98 }],
   },
   mapBtnLabel: {
-    color: Skoun.color.primary,
+    color: AMBER_RED,
     fontWeight: "700",
     fontSize: 14,
   },
   uspStack: {
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-    borderRadius: Skoun.radius.lg,
-    backgroundColor: Skoun.color.surface,
-    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
   },
-  uspItem: {
+  uspItem: {},
+  uspItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: ROW_BORDER,
   },
   uspHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   uspHeaderHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: "#F8FAFC",
   },
   uspTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     flex: 1,
+    minWidth: 0,
   },
   uspIcon: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 10,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: "#FCE7F3",
     alignItems: "center",
     justifyContent: "center",
   },
   uspTitle: {
     fontSize: 13,
-    fontWeight: "700",
-    color: Skoun.color.ink,
+    fontWeight: "600",
+    color: "#1E293B",
     flex: 1,
   },
   uspBody: {
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    paddingLeft: 56,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingLeft: 62,
     color: Skoun.color.inkMuted,
     lineHeight: 20,
     fontSize: 13,

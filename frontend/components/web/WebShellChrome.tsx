@@ -14,7 +14,7 @@ type WebShellChromeValue = {
   /** Hide page footer (map mode). */
   hideFooter: boolean;
   setHideFooter: (value: boolean) => void;
-  /** Lock outer scroll so map split can own the viewport (Amber map mode). */
+  /** Freeze shell to the viewport for map split (list column scrolls). */
   lockScroll: boolean;
   setLockScroll: (value: boolean) => void;
 };

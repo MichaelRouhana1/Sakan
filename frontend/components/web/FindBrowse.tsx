@@ -556,18 +556,21 @@ function isStale(
 
 const styles = StyleSheet.create({
   page: {
-    flex: 1,
+    width: "100%",
+    minHeight: "100%" as unknown as number,
+    backgroundColor: Skoun.color.bg,
   },
   pageMap: {
     flex: 1,
     flexDirection: "column",
     minHeight: 0,
     height: "100%" as unknown as number,
+    overflow: "hidden",
   },
   content: {
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 20,
-    paddingBottom: 8,
+    paddingBottom: 48,
     gap: 24,
     maxWidth: WEB_CONTENT_MAX,
     width: "100%",

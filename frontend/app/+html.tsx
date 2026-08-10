@@ -186,13 +186,31 @@ export default function Root({ children }: { children: ReactNode }) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-html, body, #root { height: 100%; min-height: 100%; }
-#root, #root > div { min-height: 100%; display: flex; flex-direction: column; }
+html {
+  height: auto;
+  min-height: 100%;
+}
 body {
   margin: 0;
+  min-height: 100%;
+  height: auto;
   background-color: ${BG};
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+#root {
+  min-height: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+#root > div {
+  min-height: 100%;
+  height: auto;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 * { box-sizing: border-box; }
 a { text-decoration: none; color: inherit; }

@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   bar: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Skoun.color.border,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "#FFFFFF",
     position: "sticky" as unknown as "relative",
     top: 0,
     zIndex: 40,

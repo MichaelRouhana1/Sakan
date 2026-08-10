@@ -4,7 +4,11 @@ import { LText } from "@/components/lister/Typography";
 import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
 import { Skoun } from "@/constants/theme";
-import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+import {
+  WEB_CONTENT_MAX,
+  WEB_CONTENT_PAD_X,
+  WEB_FILTER_BAR_STICKY_TOP,
+} from "@/constants/webLayout";
 
 export type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
 
@@ -226,14 +230,18 @@ export function FindFilterBar({
 const styles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
-    // Nav is outside the scrollport — pin flush under it.
-    top: 0,
-    zIndex: 90,
+    top: WEB_FILTER_BAR_STICKY_TOP,
+    zIndex: 30,
     flexGrow: 0,
     flexShrink: 0,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: Skoun.color.border,
+    shadowColor: "#121826",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   row: {
     flexDirection: "row",
