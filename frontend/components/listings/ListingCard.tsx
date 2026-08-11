@@ -174,6 +174,7 @@ const styles = StyleSheet.create({
     overflow: Platform.OS === "web" ? "hidden" : "visible",
   },
   middle: {
+    backgroundColor: "#FFFFFF",
     flex: 1,
     minWidth: 0,
     paddingVertical: 12,
@@ -229,6 +230,7 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
   },
   rightCol: {
+    backgroundColor: "#FFFFFF",
     width: 112,
     flexShrink: 0,
     borderLeftWidth: 1,

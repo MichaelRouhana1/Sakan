@@ -314,6 +314,7 @@ const styles = StyleSheet.create({
     minHeight: 220,
   },
   middle: {
+    backgroundColor: "#FFFFFF",
     flex: 1,
     minWidth: 0,
     paddingVertical: 16,
@@ -385,6 +386,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   rightCol: {
+    backgroundColor: "#FFFFFF",
     width: 148,
     flexShrink: 0,
     borderLeftWidth: 1,
@@ -486,6 +488,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   gridBody: {
+    backgroundColor: "#FFFFFF",
     paddingTop: 10,
     paddingBottom: 12,
     paddingHorizontal: 12,
