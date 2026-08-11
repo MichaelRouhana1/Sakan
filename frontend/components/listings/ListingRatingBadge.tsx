@@ -84,13 +84,17 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
 
   return (
     <View
-      style={styles.gridNotchWrap}
+      style={styles.nativeNotchBanner}
       pointerEvents="none"
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
-      <Text style={styles.gridNotchStar}>★</Text>
-      <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-      <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      <View style={styles.leftWing} />
+      <View style={styles.middleBlock}>
+        <Text style={styles.gridNotchStar}>★</Text>
+        <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
+        <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      </View>
+      <View style={styles.rightWing} />
     </View>
   );
 }
@@ -190,28 +194,42 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  // Amber Compact Rounded Rating Badge for Native
-  gridNotchWrap: {
+  // Amber Compact Curved Notched Rating Badge for Native using CSS Concave Curves
+  nativeNotchBanner: {
     position: "absolute",
-    bottom: 0,
+    bottom: -9,
     left: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
     zIndex: 10,
+    height: 24,
+  },
+  leftWing: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 12,
+    borderColor: "transparent",
+    borderBottomColor: "#FFFFFF",
+    borderLeftColor: "#FFFFFF",
+  },
+  middleBlock: {
     backgroundColor: "#FFFFFF",
-    height: 28,
-    paddingHorizontal: 12,
-    borderTopRightRadius: 16,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    height: 24,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 2,
     gap: 3,
+  },
+  rightWing: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 12,
+    borderColor: "transparent",
+    borderBottomColor: "#FFFFFF",
+    borderRightColor: "#FFFFFF",
   },
   gridNotchStar: {
     fontSize: 12,
