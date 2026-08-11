@@ -10,6 +10,8 @@
     "db:generate": "npm --prefix backend run db:generate",
     "db:push": "npm --prefix backend run db:push",
     "db:studio": "npm --prefix backend run db:studio",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
     "install:all": "npm --prefix frontend install && npm --prefix backend install"
   },
   "engines": {

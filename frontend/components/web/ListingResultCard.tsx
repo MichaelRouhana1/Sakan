@@ -31,6 +31,11 @@ type Props = {
 
 const CARD_BORDER = "#E2E8F0";
 const GRID_TAG_LIMIT = 4;
+/** Fixed grid body — header + proximity + divider + 2-row pill slot + padding/gaps */
+const GRID_BODY_HEIGHT = 143;
+const GRID_HEADER_MIN_HEIGHT = 38;
+const GRID_PROXIMITY_HEIGHT = 15;
+const GRID_PILL_SLOT_MIN_HEIGHT = 49;
 
 function photoUrls(listing: Listing): string[] {
   const fromPhotos = (listing.photos ?? [])
@@ -264,15 +269,25 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
           </View>
         </View>
 
-        {proximity ? (
-          <Text style={styles.gridProximity} numberOfLines={1}>
-            {proximity}
+        <View style={styles.gridProximitySlot}>
+          <Text
+            style={[
+              styles.gridProximity,
+              !proximity && styles.gridProximityHidden,
+            ]}
+            numberOfLines={1}
+            accessibilityElementsHidden={!proximity}
+            importantForAccessibility={proximity ? "yes" : "no-hide-descendants"}
+          >
+            {proximity ?? "\u00A0"}
           </Text>
-        ) : null}
+        </View>
 
         <View style={styles.gridDivider} />
 
-        <PillRow pills={gridPills} compact />
+        <View style={styles.gridPillSlot}>
+          <PillRow pills={gridPills} compact />
+        </View>
       </View>
     </Pressable>
   );
@@ -293,7 +308,6 @@ const styles = StyleSheet.create({
   },
   cardGrid: {
     flexDirection: "column",
-    // Content-sized height — do not stretch to match tallest grid sibling
     alignSelf: "stretch",
   },
   cardHover: {
@@ -489,6 +503,9 @@ const styles = StyleSheet.create({
   },
   gridBody: {
     backgroundColor: "#FFFFFF",
+    height: GRID_BODY_HEIGHT,
+    minHeight: GRID_BODY_HEIGHT,
+    flexShrink: 0,
     paddingTop: 10,
     paddingBottom: 12,
     paddingHorizontal: 12,
@@ -499,6 +516,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 8,
+    minHeight: GRID_HEADER_MIN_HEIGHT,
   },
   gridHeaderLeft: {
     flex: 1,
@@ -548,11 +566,21 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     color: Skoun.color.inkMuted,
   },
+  gridProximitySlot: {
+    height: GRID_PROXIMITY_HEIGHT,
+    justifyContent: "center",
+  },
+  gridProximityHidden: {
+    opacity: 0,
+  },
   gridDivider: {
-    marginTop: 2,
-    marginBottom: 2,
     borderTopWidth: 1,
     borderStyle: "dashed",
     borderColor: CARD_BORDER,
+    alignSelf: "stretch",
+  },
+  gridPillSlot: {
+    minHeight: GRID_PILL_SLOT_MIN_HEIGHT,
+    justifyContent: "flex-start",
   },
 });
