@@ -1,4 +1,5 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -50,45 +51,33 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
-  if (Platform.OS === "web") {
-    return (
-      <View
-        style={styles.webNotchBanner}
-        pointerEvents="none"
-        accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
-      >
-        <svg
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            fill: "#FFFFFF",
-          }}
-          viewBox="0 0 160 26"
-          preserveAspectRatio="none"
-        >
-          <path d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z" />
-        </svg>
-        <View style={styles.webNotchContent}>
-          <Text style={styles.gridNotchStar}>★</Text>
-          <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-          <Text style={styles.gridNotchCount}>({reviewCount})</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View
-      style={styles.gridNotchWrap}
+      style={styles.webNotchBanner}
       pointerEvents="none"
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
-      <Text style={styles.gridNotchStar}>★</Text>
-      <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-      <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      <Svg
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+        }}
+        viewBox="0 0 160 26"
+        preserveAspectRatio="none"
+      >
+        <Path
+          d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z"
+          fill="#FFFFFF"
+        />
+      </Svg>
+      <View style={styles.webNotchContent}>
+        <Text style={styles.gridNotchStar}>★</Text>
+        <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
+        <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      </View>
     </View>
   );
 }
