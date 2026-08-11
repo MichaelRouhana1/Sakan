@@ -1,21 +1,6 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import type { Listing } from "@/types/listing";
 
-// Conditionally import react-native-svg only on native platforms.
-// On web we render raw HTML <svg>/<path> elements instead.
-let Svg: any = null;
-let SvgPath: any = null;
-
-if (Platform.OS !== "web") {
-  try {
-    const rnsvg = require("react-native-svg");
-    Svg = rnsvg.Svg ?? rnsvg.default;
-    SvgPath = rnsvg.Path;
-  } catch {
-    // Fallback — will use the simple View approach
-  }
-}
-
 type Props = {
   rating: number;
   reviewCount: number;
@@ -58,58 +43,19 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// SVG path for the curved notch tab.
-// ViewBox: 0 0 160 26
-//
-// Shape anatomy (bottom-to-top):
-// 1. Flat baseline fill from y≈16.68 to y=26 across full width (0–160).
-//    This white strip sits flush against the card body below.
-// 2. A raised tab from ~x44 to ~x115 peaking at y=0.
-// 3. Smooth inverted-curve transitions where the tab meets the baseline.
-// ────────────────────────────────────────────────────────────────────────────
-const NOTCH_PATH =
-  "M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092" +
-  "C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468" +
-  "L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566" +
-  "C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665" +
-  "C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z";
-
 /**
- * The shared inner notch content — star + score + count
- */
-function NotchText({ rating, reviewCount }: Props) {
-  return (
-    <>
-      <Text style={styles.notchStar}>★</Text>
-      <Text style={styles.notchScore}>{rating.toFixed(1)}</Text>
-      <Text style={styles.notchCount}>({reviewCount})</Text>
-    </>
-  );
-}
-
-/**
- * Grid Mode Rating Badge — curved SVG notch banner.
- *
- * This badge spans the FULL WIDTH of its parent image container.
- * The SVG draws a white shape with:
- *   - A flat baseline across the entire width (merging with the card body)
- *   - A raised curved tab in the center containing the rating text
- *   - Smooth inverted curves where the tab meets the baseline
- *
- * On web: uses raw HTML <svg>/<path>
- * On native: uses react-native-svg <Svg>/<Path>
+ * Amber Grid Mode Rating Badge (Amber SVG Curved Notch Banner):
+ * Positioned at absolute bottom-0 left-0 right-0 z-10 over listing image.
  */
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
-  // ── Web: raw HTML svg/path ─────────────────────────────────────
   if (Platform.OS === "web") {
     const SVGElement = "svg" as any;
     const PathElement = "path" as any;
     return (
       <View
-        style={styles.notchBanner}
+        style={styles.webNotchBanner}
         pointerEvents="none"
         accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
       >
@@ -125,47 +71,26 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
           viewBox="0 0 160 26"
           preserveAspectRatio="none"
         >
-          <PathElement d={NOTCH_PATH} />
+          <PathElement d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z" />
         </SVGElement>
-        <View style={styles.notchContent}>
-          <NotchText rating={rating} reviewCount={reviewCount} />
+        <View style={styles.webNotchContent}>
+          <Text style={styles.gridNotchStar}>★</Text>
+          <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
+          <Text style={styles.gridNotchCount}>({reviewCount})</Text>
         </View>
       </View>
     );
   }
 
-  // ── Native: react-native-svg ───────────────────────────────────
-  if (Svg && SvgPath) {
-    return (
-      <View
-        style={styles.notchBannerNative}
-        pointerEvents="none"
-        accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
-      >
-        <Svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 160 26"
-          preserveAspectRatio="none"
-          style={StyleSheet.absoluteFill}
-        >
-          <SvgPath d={NOTCH_PATH} fill="#FFFFFF" />
-        </Svg>
-        <View style={styles.notchContentNative}>
-          <NotchText rating={rating} reviewCount={reviewCount} />
-        </View>
-      </View>
-    );
-  }
-
-  // ── Fallback (if SVG fails to load): rounded tab ───────────────
   return (
     <View
-      style={styles.fallbackNotch}
+      style={styles.gridNotchWrap}
       pointerEvents="none"
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
-      <NotchText rating={rating} reviewCount={reviewCount} />
+      <Text style={styles.gridNotchStar}>★</Text>
+      <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
+      <Text style={styles.gridNotchCount}>({reviewCount})</Text>
     </View>
   );
 }
@@ -216,7 +141,7 @@ export function listingImageCornerBadge(
 }
 
 const styles = StyleSheet.create({
-  // ── List Mode Rating Display ──────────────────────────────────
+  // List Mode Rating Display Styles
   listWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -244,24 +169,20 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // ── Curved Notch Banner — Web ─────────────────────────────────
-  // Spans full width of parent. bottom: -9 lets the white baseline
-  // bleed below the image into the card body (CSS overflow:hidden
-  // doesn't clip z-indexed abs children on web).
-  notchBanner: {
+  webNotchBanner: {
     position: "absolute",
     bottom: -9,
     left: 0,
-    right: 0,
-    height: 26,
+    width: 126,
+    height: 24,
     zIndex: 10,
   },
-  notchContent: {
+  webNotchContent: {
     position: "absolute",
-    bottom: 4,
-    left: 0,
-    right: 0,
-    height: 18,
+    bottom: 4.5,
+    left: 21,
+    width: 84,
+    height: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -269,64 +190,45 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  // ── Curved Notch Banner — Native ──────────────────────────────
-  // On native, overflow:hidden clips strictly, so bottom: 0.
-  // The SVG baseline white fill sits at the image bottom edge;
-  // the white card body below creates visual continuity.
-  notchBannerNative: {
+  // Amber Compact Rounded Rating Badge for Native
+  gridNotchWrap: {
     position: "absolute",
     bottom: 0,
     left: 0,
-    right: 0,
-    height: 26,
     zIndex: 10,
-  },
-  notchContentNative: {
-    position: "absolute",
-    bottom: 2,
-    left: 0,
-    right: 0,
-    height: 18,
+    backgroundColor: "#FFFFFF",
+    height: 28,
+    paddingHorizontal: 12,
+    borderTopRightRadius: 16,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-    zIndex: 20,
   },
-
-  // ── Notch text styles ─────────────────────────────────────────
-  notchStar: {
+  gridNotchStar: {
     fontSize: 12,
     color: "#F59E0B",
   },
-  notchScore: {
+  gridNotchScore: {
     fontSize: 12,
     fontWeight: "700",
     color: "#0E9F6E",
   },
-  notchCount: {
+  gridNotchCount: {
     fontSize: 12,
     fontWeight: "600",
     color: "#0E9F6E",
     marginLeft: 1,
   },
 
-  // ── Fallback: rounded tab (no SVG available) ──────────────────
-  fallbackNotch: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    backgroundColor: "#FFFFFF",
-    height: 26,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-  },
-
-  // ── Feature chip ──────────────────────────────────────────────
   feature: {
     position: "absolute",
     left: 8,
@@ -349,3 +251,5 @@ const styles = StyleSheet.create({
     color: "#121826",
   },
 });
+
+
