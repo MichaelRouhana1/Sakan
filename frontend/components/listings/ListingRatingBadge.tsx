@@ -50,6 +50,38 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
+  if (Platform.OS === "web") {
+    const SVGElement = "svg" as any;
+    const PathElement = "path" as any;
+    return (
+      <View
+        style={styles.webNotchBanner}
+        pointerEvents="none"
+        accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
+      >
+        <SVGElement
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            fill: "#FFFFFF",
+          }}
+          viewBox="0 0 160 26"
+          preserveAspectRatio="none"
+        >
+          <PathElement d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z" />
+        </SVGElement>
+        <View style={styles.webNotchContent}>
+          <Text style={styles.gridNotchStar}>★</Text>
+          <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
+          <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View
       style={styles.gridNotchWrap}
@@ -137,27 +169,49 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Clean Overlay Rating Badge Pill
+  webNotchBanner: {
+    position: "absolute",
+    bottom: -9,
+    left: 0,
+    width: 126,
+    height: 24,
+    zIndex: 10,
+  },
+  webNotchContent: {
+    position: "absolute",
+    bottom: 4.5,
+    left: 21,
+    width: 84,
+    height: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+    zIndex: 20,
+  },
+
+  // Amber Compact Rounded Rating Badge for Native
   gridNotchWrap: {
     position: "absolute",
-    left: 8,
-    bottom: 8,
+    bottom: 0,
+    left: 0,
     zIndex: 10,
     backgroundColor: "#FFFFFF",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#121826",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    height: 28,
+    paddingHorizontal: 12,
+    borderTopRightRadius: 16,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 3,
   },
   gridNotchStar: {
     fontSize: 12,
@@ -166,12 +220,12 @@ const styles = StyleSheet.create({
   gridNotchScore: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#111928",
+    color: "#0E9F6E",
   },
   gridNotchCount: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#6B7280",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#0E9F6E",
     marginLeft: 1,
   },
 
