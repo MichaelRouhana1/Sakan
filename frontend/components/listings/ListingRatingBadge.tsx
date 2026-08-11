@@ -95,27 +95,31 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
     );
   }
 
-  // ── Native: same SVG notch as web ──────────────────────────────
+  // ── Native: same SVG notch & styles as web ─────────────────────
   if (RNSvg && RNPath) {
     return (
       <View
-        style={styles.nativeNotchBanner}
+        style={styles.webNotchBanner}
         pointerEvents="none"
         accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
       >
         <RNSvg
-          width="100%"
-          height="100%"
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+          }}
           viewBox="0 0 160 26"
           preserveAspectRatio="none"
-          style={StyleSheet.absoluteFill}
         >
           <RNPath
             d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z"
             fill="#FFFFFF"
           />
         </RNSvg>
-        <View style={styles.nativeNotchContent}>
+        <View style={styles.webNotchContent}>
           <Text style={styles.gridNotchStar}>★</Text>
           <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
           <Text style={styles.gridNotchCount}>({reviewCount})</Text>
@@ -233,21 +237,21 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  // Native SVG notch — 100% pixel-identical to web notch
+  // Native SVG notch — same shape as web, positioned at image bottom
   nativeNotchBanner: {
     position: "absolute",
-    bottom: -9,
+    bottom: 0,
     left: 0,
     width: 126,
-    height: 24,
+    height: 26,
     zIndex: 10,
   },
   nativeNotchContent: {
     position: "absolute",
-    bottom: 4.5,
+    bottom: 4,
     left: 21,
     width: 84,
-    height: 20,
+    height: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

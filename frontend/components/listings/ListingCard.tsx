@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   ListingFeatureBadge,
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
     width: 118,
     alignSelf: "stretch",
     flexShrink: 0,
+    overflow: Platform.OS === "web" ? "hidden" : "visible",
   },
   middle: {
     flex: 1,
