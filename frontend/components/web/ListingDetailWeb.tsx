@@ -814,114 +814,84 @@ export function ListingDetailWeb({ listingId }: Props) {
       {/* Vertical Separator Line */}
       <View style={styles.verticalSeparator} />
 
-      {/* RIGHT COLUMN (~32% width): Amber Top Sticky Booking Card */}
+      {/* RIGHT COLUMN (~32% width): Amber Top Sticky Booking Sidebar */}
       <View style={styles.rightStickySidebar}>
-          <View style={styles.stickyBookingCard}>
-            {/* Header Title with Save & Share Icons */}
-            <View style={styles.stickyCardHeaderRow}>
-              <LText variant="title" style={styles.stickyBuildingTitle}>
-                {isPbsa && listing.pbsaBuildingName ? listing.pbsaBuildingName : `${listing.area} Housing`}
-              </LText>
-              <View style={styles.topIconActions}>
-                <Pressable onPress={() => toggleSaved.mutate(listing)} style={styles.topCircleBtn}>
-                  <Ionicons
-                    name={saved.data ? "heart" : "heart-outline"}
-                    size={18}
-                    color={saved.data ? Skoun.color.danger : "#374151"}
-                  />
-                </Pressable>
-                <Pressable onPress={() => void copyLink()} style={styles.topCircleBtn}>
-                  <Ionicons name="share-outline" size={18} color="#374151" />
-                </Pressable>
-              </View>
-            </View>
-
-            {/* Primary Action Button: See Availability (Solid Vibrant Red/Primary) */}
-            <Pressable
-              style={styles.seeAvailabilityBtn}
-              onPress={() => setInquiryModalOpen(true)}
-            >
-              <LText variant="subtitle" style={styles.seeAvailabilityText}>
-                See Availability
-              </LText>
-            </Pressable>
-
-            {/* Secondary Action Button: Enquire Now (Outlined) */}
-            <Pressable
-              style={styles.enquireNowBtn}
-              onPress={() => {
-                const url = buildWhatsAppListingUrl({
-                  phone: posterPhone,
-                  propertyType: selectedRoom ? selectedRoom.name : labelListingType(listing.listingType),
-                  area: listing.area,
-                });
-                void Linking.openURL(url);
-              }}
-            >
-              <LText variant="subtitle" style={styles.enquireNowText}>
-                Enquire Now
-              </LText>
-            </Pressable>
-
-            {/* Social Proof Banner */}
-            <View style={styles.socialProofPill}>
-              <Ionicons name="document-text" size={14} color={Skoun.color.primary} />
-              <LText variant="caption" style={styles.socialProofText}>
-                Sakina +1 booked this property recently
-              </LText>
-            </View>
-
-            {/* Amber Trust Accordion Items */}
-            <View style={styles.trustAccordionContainer}>
-              {[
-                { icon: "pricetag-outline", title: "Lowest Price Guaranteed" },
-                { icon: "shield-checkmark-outline", title: "Verified Properties" },
-                { icon: "headset-outline", title: "24x7 Personal Assistance" },
-                { icon: "star-outline", title: "10.4K+ Reviews" },
-              ].map((item, idx) => (
-                <View key={idx} style={styles.trustItemRow}>
-                  <Ionicons name={item.icon as any} size={18} color={Skoun.color.primaryDeep} />
-                  <LText variant="caption" style={styles.trustItemTitle}>{item.title}</LText>
-                  <Ionicons name="chevron-down" size={14} color="#9CA3AF" style={{ marginLeft: "auto" }} />
-                </View>
-              ))}
-            </View>
-
-            {/* Price Summary inside card */}
-            <View style={styles.stickySpecsList}>
-              <View style={styles.stickySpecRow}>
-                <LText variant="caption" tone="muted">Monthly Rent</LText>
-                <LText variant="subtitle" style={{ fontWeight: "700", color: Skoun.color.primaryDeep }}>
-                  {formatFreshUsd(displayPrice)}/mo
-                </LText>
-              </View>
-
-              <View style={styles.stickySpecRow}>
-                <LText variant="caption" tone="muted">Availability</LText>
-                <LText variant="caption" style={{ fontWeight: "700" }}>
-                  {selectedRoom?.availableFrom || "Immediate Move-in"}
-                </LText>
-              </View>
-            </View>
-
-            <View style={styles.skounVerifiedBadge}>
-              <Ionicons name="shield-checkmark" size={16} color={Skoun.color.primary} />
-              <LText variant="caption" tone="muted" style={{ flex: 1, lineHeight: 16 }}>
-                Skoun Guarantee: Landlord identity & 24/7 power status verified by team.
-              </LText>
-            </View>
-
-            {reported.data ? (
-              <LText variant="caption" tone="faint" style={{ textAlign: "center", marginTop: 4 }}>
-                Reported
-              </LText>
-            ) : (
-              <Pressable onPress={() => setReportOpen(true)} style={{ marginTop: 4, alignSelf: "center" }}>
-                <LText variant="caption" tone="muted">Report this listing</LText>
+        {/* Card 1: Main CTA & Social Proof Card */}
+        <View style={styles.stickyTopCard}>
+          {/* Header Title with Save & Share Icons */}
+          <View style={styles.stickyCardHeaderRow}>
+            <LText variant="title" style={styles.stickyBuildingTitle}>
+              {isPbsa && listing.pbsaBuildingName ? listing.pbsaBuildingName : `${listing.area} Housing`}
+            </LText>
+            <View style={styles.topIconActions}>
+              <Pressable onPress={() => toggleSaved.mutate(listing)} style={styles.topCircleBtn}>
+                <Ionicons
+                  name={saved.data ? "heart" : "heart-outline"}
+                  size={16}
+                  color={saved.data ? Skoun.color.danger : "#6B7280"}
+                />
               </Pressable>
-            )}
+              <Pressable onPress={() => void copyLink()} style={styles.topCircleBtn}>
+                <Ionicons name="share-outline" size={16} color="#111928" />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Primary Action Button: See Availability */}
+          <Pressable
+            style={styles.seeAvailabilityBtn}
+            onPress={() => setInquiryModalOpen(true)}
+          >
+            <LText variant="subtitle" style={styles.seeAvailabilityText}>
+              See Availability
+            </LText>
+          </Pressable>
+
+          {/* Secondary Action Button: Enquire Now */}
+          <Pressable
+            style={styles.enquireNowBtn}
+            onPress={() => {
+              const url = buildWhatsAppListingUrl({
+                phone: posterPhone,
+                propertyType: selectedRoom ? selectedRoom.name : labelListingType(listing.listingType),
+                area: listing.area,
+              });
+              void Linking.openURL(url);
+            }}
+          >
+            <LText variant="subtitle" style={styles.enquireNowText}>
+              Enquire Now
+            </LText>
+          </Pressable>
+
+          {/* Social Proof Banner Pill */}
+          <View style={styles.socialProofPill}>
+            <Ionicons name="document-text" size={14} color="#3F83F8" />
+            <LText variant="caption" style={styles.socialProofText}>
+              Sakina +1 booked this property recently
+            </LText>
           </View>
         </View>
+
+        {/* Card 2: Amber Trust Accordion Card */}
+        <View style={styles.stickyTrustCard}>
+          {[
+            { icon: "thumbs-up-outline", title: "Lowest Price Guaranteed" },
+            { icon: "shield-checkmark-outline", title: "Verified Properties" },
+            { icon: "headset-outline", title: "24x7 Personal Assistance" },
+            { icon: "person-outline", title: "Move-In Buddy" },
+            { icon: "star-outline", title: "10.4K+ Reviews" },
+          ].map((item, idx) => (
+            <View key={idx} style={styles.trustAccordionRow}>
+              <View style={styles.trustIconCircle}>
+                <Ionicons name={item.icon as any} size={15} color="#E53863" />
+              </View>
+              <LText variant="caption" style={styles.trustItemTitle}>{item.title}</LText>
+              <Ionicons name="chevron-down" size={14} color="#1F2A37" style={{ marginLeft: "auto" }} />
+            </View>
+          ))}
+        </View>
+      </View>
 
       </View>
 
@@ -1040,10 +1010,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   rightStickySidebar: {
-    width: 380,
+    width: 440,
     position: "sticky" as unknown as "relative",
-    top: 96,
+    top: 80,
     alignSelf: "flex-start",
+    gap: 16,
   },
   breadcrumbList: {
     flexDirection: "row",
@@ -1595,35 +1566,39 @@ const styles = StyleSheet.create({
   policyItemTitle: {
     fontWeight: "700",
   },
-  stickyBookingCard: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: 16,
+  stickyTopCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    padding: 24,
-    gap: 16,
-    boxShadow: "0 8px 24px rgba(18, 24, 38, 0.08)",
-  } as Record<string, unknown>,
+    borderColor: "#E5E7EB",
+    padding: 16,
+    gap: 12,
+  },
   stickyCardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   stickyBuildingTitle: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: 16,
+    fontWeight: "700",
     color: "#111928",
     flex: 1,
+    lineHeight: 20,
   },
   topIconActions: {
     flexDirection: "row",
     gap: 8,
   },
   topCircleBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: Skoun.color.surfaceMuted,
-    borderWidth: 1, borderColor: Skoun.color.border,
-    alignItems: "center", justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
   },
   seeAvailabilityBtn: {
     width: "100%",
@@ -1632,66 +1607,76 @@ const styles = StyleSheet.create({
     backgroundColor: "#E53863",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 4px 14px rgba(229, 56, 99, 0.28)",
-  } as Record<string, unknown>,
+  },
   seeAvailabilityText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
+    color: "#ffffff",
+    fontWeight: "500",
+    fontSize: 14,
   },
   enquireNowBtn: {
     width: "100%",
     height: 48,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#E53863",
-    backgroundColor: "#fff",
+    borderColor: "#ED3A56",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
   },
   enquireNowText: {
-    color: "#E53863",
-    fontWeight: "700",
-    fontSize: 15,
+    color: "#ED3A56",
+    fontWeight: "500",
+    fontSize: 14,
   },
   socialProofPill: {
+    height: 30,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#FFF3F9",
-    borderWidth: 1,
-    borderColor: "#FCE7F3",
+    gap: 6,
+    paddingHorizontal: 10,
+    borderRadius: 100,
+    backgroundColor: "#EBF5FF",
   },
   socialProofText: {
-    color: "#E53863",
-    fontWeight: "600",
+    color: "#1F2A37",
+    fontWeight: "400",
     fontSize: 12,
   },
-  trustAccordionContainer: {
-    borderTopWidth: 1,
-    borderColor: Skoun.color.border,
-    paddingTop: 10,
-    gap: 12,
+  stickyTrustCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingVertical: 6,
+    paddingHorizontal: 0,
   },
-  trustItemRow: {
+  trustAccordionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  trustIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FDE8EF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   trustItemTitle: {
-    color: "#374151",
-    fontWeight: "600",
-    fontSize: 13,
+    color: "#1F2A37",
+    fontWeight: "400",
+    fontSize: 14,
+    marginLeft: 12,
   },
-  stickySpecsList: {
-    gap: 8,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Skoun.color.border,
+  stickySpecsCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 16,
+    gap: 12,
   },
   stickySpecRow: {
     flexDirection: "row",
