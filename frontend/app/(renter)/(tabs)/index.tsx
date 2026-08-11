@@ -62,14 +62,14 @@ export default function RenterNewHomeScreen() {
 
   const handleSearchSubmit = () => {
     router.push({
-      pathname: "/(renter)/(tabs)/search",
+      pathname: "/(renter)/search",
       params: { q: searchQuery },
     });
   };
 
   const handleSearchQuick = (query: string) => {
     router.push({
-      pathname: "/(renter)/(tabs)/search",
+      pathname: "/(renter)/search",
       params: { q: query },
     });
   };
@@ -140,7 +140,7 @@ export default function RenterNewHomeScreen() {
 
             {/* Amber Style Mock Search Input Container */}
             <Pressable
-              onPress={() => router.push("/(renter)/(tabs)/search" as never)}
+              onPress={() => router.push("/(renter)/search" as never)}
               style={styles.searchContainer}
             >
               <View style={styles.searchFieldMock}>
@@ -416,7 +416,7 @@ export default function RenterNewHomeScreen() {
                     if (p.action === "list") {
                       router.push("/(auth)/role-select" as never);
                     } else {
-                      router.push("/(renter)/(tabs)/search" as never);
+                      router.push("/(renter)/search" as never);
                     }
                   }}
                 >
