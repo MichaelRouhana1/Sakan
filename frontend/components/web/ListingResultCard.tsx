@@ -463,7 +463,6 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
     aspectRatio: 16 / 10,
-    overflow: "hidden",
     backgroundColor: Skoun.color.primaryMist,
   },
   gridHeart: {

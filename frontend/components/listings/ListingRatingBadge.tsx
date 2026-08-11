@@ -233,21 +233,21 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  // Native SVG notch — same shape as web, positioned at image bottom
+  // Native SVG notch — 100% pixel-identical to web notch
   nativeNotchBanner: {
     position: "absolute",
-    bottom: 0,
+    bottom: -9,
     left: 0,
     width: 126,
-    height: 26,
+    height: 24,
     zIndex: 10,
   },
   nativeNotchContent: {
     position: "absolute",
-    bottom: 4,
+    bottom: 4.5,
     left: 21,
     width: 84,
-    height: 18,
+    height: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

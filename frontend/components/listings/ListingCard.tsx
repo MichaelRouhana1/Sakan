@@ -171,7 +171,6 @@ const styles = StyleSheet.create({
     width: 118,
     alignSelf: "stretch",
     flexShrink: 0,
-    overflow: "hidden",
   },
   middle: {
     flex: 1,
