@@ -1,6 +1,21 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import type { Listing } from "@/types/listing";
 
+// Conditionally import react-native-svg only on native platforms.
+// On web we render raw HTML <svg>/<path> elements instead.
+let Svg: any = null;
+let Path: any = null;
+
+if (Platform.OS !== "web") {
+  try {
+    const rnsvg = require("react-native-svg");
+    Svg = rnsvg.Svg ?? rnsvg.default;
+    Path = rnsvg.Path;
+  } catch {
+    // Fallback — will use the simple View approach
+  }
+}
+
 type Props = {
   rating: number;
   reviewCount: number;
@@ -43,19 +58,41 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
   );
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// The SVG path that draws the curved notch tab.
+// ViewBox: 0 0 160 26
+//
+// Shape anatomy:
+//   ┌────────────────────── flat top (y = 0) ──────────────────────┐
+//   │  The tab rises from the baseline with inverted-curve edges  │
+//   │  that taper smoothly into the straight baseline on each     │
+//   │  side, creating a seamless "emerging tab" effect.           │
+//   └── baseline (y ≈ 16.68 → 26, solid fill) ───────────────────┘
+// ────────────────────────────────────────────────────────────────────────────
+const NOTCH_PATH =
+  "M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092" +
+  "C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468" +
+  "L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566" +
+  "C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665" +
+  "C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z";
+
 /**
- * Amber Grid Mode Rating Badge (Amber SVG Curved Notch Banner):
- * Positioned at absolute bottom-0 left-0 right-0 z-10 over listing image.
+ * Grid Mode Rating Badge — curved SVG notch banner.
+ *
+ * Positioned absolute bottom-0 left-0, overlapping the image bottom edge.
+ * Uses the exact same SVG path on both web and native to produce identical
+ * inverted-curve transitions at the base of the tab.
  */
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
+  // ── Web: render raw HTML <svg>/<path> ──────────────────────────
   if (Platform.OS === "web") {
     const SVGElement = "svg" as any;
     const PathElement = "path" as any;
     return (
       <View
-        style={styles.webNotchBanner}
+        style={styles.notchBanner}
         pointerEvents="none"
         accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
       >
@@ -71,26 +108,51 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
           viewBox="0 0 160 26"
           preserveAspectRatio="none"
         >
-          <PathElement d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z" />
+          <PathElement d={NOTCH_PATH} />
         </SVGElement>
-        <View style={styles.webNotchContent}>
-          <Text style={styles.gridNotchStar}>★</Text>
-          <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-          <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+        <View style={styles.notchContent}>
+          <Text style={styles.notchStar}>★</Text>
+          <Text style={styles.notchScore}>{rating.toFixed(1)}</Text>
+          <Text style={styles.notchCount}>({reviewCount})</Text>
         </View>
       </View>
     );
   }
 
+  // ── Native: render via react-native-svg ────────────────────────
+  if (Svg && Path) {
+    return (
+      <View
+        style={styles.notchBanner}
+        pointerEvents="none"
+        accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
+      >
+        <Svg
+          style={StyleSheet.absoluteFill}
+          viewBox="0 0 160 26"
+          preserveAspectRatio="none"
+        >
+          <Path d={NOTCH_PATH} fill="#FFFFFF" />
+        </Svg>
+        <View style={styles.notchContent}>
+          <Text style={styles.notchStar}>★</Text>
+          <Text style={styles.notchScore}>{rating.toFixed(1)}</Text>
+          <Text style={styles.notchCount}>({reviewCount})</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Fallback (if SVG fails to load): clean rounded tab ─────────
   return (
     <View
-      style={styles.gridNotchWrap}
+      style={styles.fallbackNotch}
       pointerEvents="none"
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
-      <Text style={styles.gridNotchStar}>★</Text>
-      <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-      <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      <Text style={styles.notchStar}>★</Text>
+      <Text style={styles.notchScore}>{rating.toFixed(1)}</Text>
+      <Text style={styles.notchCount}>({reviewCount})</Text>
     </View>
   );
 }
@@ -169,15 +231,23 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  webNotchBanner: {
+  // ── Curved Notch Banner (shared web + native) ─────────────────
+  // On web: bottom -9 bleeds below the image edge so the white
+  //   SVG baseline merges with the card body. CSS overflow:hidden
+  //   doesn't clip z-indexed absolute children.
+  // On native: bottom 0 keeps it inside the clipped parent. The
+  //   SVG baseline fill (white) sits at the very bottom of the
+  //   image container; the white card body below creates seamless
+  //   visual continuity.
+  notchBanner: {
     position: "absolute",
-    bottom: -9,
+    bottom: Platform.OS === "web" ? -9 : 0,
     left: 0,
     width: 126,
-    height: 24,
+    height: Platform.OS === "web" ? 24 : 26,
     zIndex: 10,
   },
-  webNotchContent: {
+  notchContent: {
     position: "absolute",
     bottom: 4.5,
     left: 21,
@@ -190,43 +260,42 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  // Amber Compact Rounded Rating Badge for Native
-  gridNotchWrap: {
+  // Text styles inside the notch
+  notchStar: {
+    fontSize: 12,
+    color: "#F59E0B",
+  },
+  notchScore: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0E9F6E",
+  },
+  notchCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#0E9F6E",
+    marginLeft: 1,
+  },
+
+  // ── Fallback: simple rounded tab (no SVG) ─────────────────────
+  fallbackNotch: {
     position: "absolute",
     bottom: 0,
     left: 0,
     zIndex: 10,
     backgroundColor: "#FFFFFF",
-    height: 28,
+    height: 26,
     paddingHorizontal: 12,
-    borderTopRightRadius: 16,
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    borderTopRightRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-  },
-  gridNotchStar: {
-    fontSize: 12,
-    color: "#F59E0B",
-  },
-  gridNotchScore: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0E9F6E",
-  },
-  gridNotchCount: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#0E9F6E",
-    marginLeft: 1,
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: -1 },
+    elevation: 2,
   },
 
   feature: {
@@ -251,5 +320,3 @@ const styles = StyleSheet.create({
     color: "#121826",
   },
 });
-
-
