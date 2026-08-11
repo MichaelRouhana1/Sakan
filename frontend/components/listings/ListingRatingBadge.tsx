@@ -1,16 +1,16 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
 import type { Listing } from "@/types/listing";
 
-// Lazy-load react-native-svg on native only (never runs on web).
-let RNSvg: any = null;
-let RNPath: any = null;
+let SvgComponent: any = null;
+let PathComponent: any = null;
+
 if (Platform.OS !== "web") {
   try {
-    const _svg = require("react-native-svg");
-    RNSvg = _svg.Svg ?? _svg.default;
-    RNPath = _svg.Path;
-  } catch {
-    /* SVG unavailable — will use fallback */
+    const rnsvg = require("react-native-svg/lib/commonjs/index.js");
+    SvgComponent = rnsvg.Svg || rnsvg.default;
+    PathComponent = rnsvg.Path;
+  } catch (e) {
+    console.warn("SVG load error:", e);
   }
 }
 
@@ -95,31 +95,27 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
     );
   }
 
-  // ── Native: same SVG notch & styles as web ─────────────────────
-  if (RNSvg && RNPath) {
+  // ── Native: exact SVG notch as web ──────────────────────────────
+  if (SvgComponent && PathComponent) {
     return (
       <View
-        style={styles.webNotchBanner}
+        style={styles.nativeNotchBanner}
         pointerEvents="none"
         accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
       >
-        <RNSvg
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-          }}
+        <SvgComponent
+          width="100%"
+          height="100%"
           viewBox="0 0 160 26"
           preserveAspectRatio="none"
+          style={StyleSheet.absoluteFill}
         >
-          <RNPath
+          <PathComponent
             d="M18.0139 15.6092L0 16.6792V26H160V16.6792L141.9861 15.6092C138.134 15.3803 134.4944 13.767 131.7378 11.0665L127.5 6.91468L123.9412 3.42813C121.6982 1.23073 118.6834 0 115.5434 0H44.4566C41.3166 0 38.3018 1.23073 36.0588 3.42813L32.5 6.91468L28.2622 11.0665C25.5056 13.767 21.866 15.3803 18.0139 15.6092Z"
             fill="#FFFFFF"
           />
-        </RNSvg>
-        <View style={styles.webNotchContent}>
+        </SvgComponent>
+        <View style={styles.nativeNotchContent}>
           <Text style={styles.gridNotchStar}>★</Text>
           <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
           <Text style={styles.gridNotchCount}>({reviewCount})</Text>
@@ -128,16 +124,19 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
     );
   }
 
-  // ── Fallback if SVG failed to load ─────────────────────────────
   return (
     <View
-      style={styles.gridNotchWrap}
+      style={styles.nativeNotchBanner}
       pointerEvents="none"
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
-      <Text style={styles.gridNotchStar}>★</Text>
-      <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
-      <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      <View style={styles.nativeNotchLeftCurve} />
+      <View style={styles.nativeNotchTab}>
+        <Text style={styles.gridNotchStar}>★</Text>
+        <Text style={styles.gridNotchScore}>{rating.toFixed(1)}</Text>
+        <Text style={styles.gridNotchCount}>({reviewCount})</Text>
+      </View>
+      <View style={styles.nativeNotchRightCurve} />
     </View>
   );
 }
@@ -237,10 +236,10 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
 
-  // Native SVG notch — same shape as web, positioned at image bottom
+  // Native SVG notch — exact curved shape as web, positioned at image bottom
   nativeNotchBanner: {
     position: "absolute",
-    bottom: 0,
+    bottom: -10,
     left: 0,
     width: 126,
     height: 26,
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
   },
   nativeNotchContent: {
     position: "absolute",
-    bottom: 4,
+    bottom: 6,
     left: 21,
     width: 84,
     height: 18,
@@ -257,6 +256,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
     zIndex: 20,
+  },
+  nativeNotchTab: {
+    backgroundColor: "#FFFFFF",
+    height: 24,
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3,
+  },
+  nativeNotchLeftCurve: {
+    width: 8,
+    height: 8,
+    backgroundColor: "#FFFFFF",
+    borderBottomRightRadius: 8,
+  },
+  nativeNotchRightCurve: {
+    width: 8,
+    height: 8,
+    backgroundColor: "#FFFFFF",
+    borderBottomLeftRadius: 8,
   },
 
   // Fallback: simple rounded tab if SVG unavailable
