@@ -154,29 +154,17 @@ export default function RenterNewHomeScreen() {
               </View>
             </Pressable>
 
-            {/* Two Column Layout: Text Details + Floating Student Graphic */}
-            <View style={styles.heroLowerGrid}>
-              <View style={styles.heroTextColumn}>
-                <Text style={styles.heroTitleText}>
-                  Save Big on Student Accommodation
-                </Text>
-                <Text style={styles.heroSubtitleText}>
-                  Best student accommodations near top Lebanese universities & neighborhoods
-                </Text>
-                <View style={styles.lowestPriceBadge}>
-                  <Ionicons name="pricetag" size={14} color="#ffffff" />
-                  <Text style={styles.lowestPriceText}>Lowest Price</Text>
-                </View>
-              </View>
-              
-              {/* Overlapping student image frame just like Amber's banner illustration */}
-              <View style={styles.studentFrame}>
-                <Image
-                  source={{
-                    uri: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-                  }}
-                  style={styles.studentImg}
-                />
+            {/* Hero Main Copy Block */}
+            <View style={styles.heroTextColumn}>
+              <Text style={styles.heroTitleText}>
+                Save Big on Student Accommodation
+              </Text>
+              <Text style={styles.heroSubtitleText}>
+                Best student accommodations near top Lebanese universities & neighborhoods
+              </Text>
+              <View style={styles.lowestPriceBadge}>
+                <Ionicons name="pricetag" size={14} color="#ffffff" />
+                <Text style={styles.lowestPriceText}>Lowest Price</Text>
               </View>
             </View>
           </View>
