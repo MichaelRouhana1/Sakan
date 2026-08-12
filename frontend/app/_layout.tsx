@@ -23,6 +23,10 @@ export const unstable_settings = {
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
 
+if (!publishableKey) {
+  console.error("Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in frontend/.env");
+}
+
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
