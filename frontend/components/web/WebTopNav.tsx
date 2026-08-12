@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: Skoun.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.ink,
+    color: Skoun.color.primary,
     letterSpacing: -0.6,
   },
   searchWrap: {
