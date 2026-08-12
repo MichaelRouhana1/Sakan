@@ -10,15 +10,21 @@ import {
 import { Skoun } from "@/constants/theme";
 
 /**
- * Continuous SVG Icon with CSS keyframe stroke animations simulating
- * an arrow dropping inside a phone frame continuously.
+ * Native single-element line-art morph loop replicating Amber Student's exact
+ * 4-phase icon animation using SVG stroke keyframes:
+ *
+ * Phase 1 (Phone): Display phone frame outline with top camera dot centered at (12, 5).
+ * Phase 2 (Morph): Camera dot stretches & dissolves downward into download arrow group.
+ * Phase 3 (Tray Receive): Arrow lands above base tray line while frame softly dims.
+ * Phase 4 (Loop Reset): Arrow dissolves into tray line as camera dot scales back in at (12, 5).
  */
-function AnimatedDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
+function AmberMorphIcon({ color = Skoun.color.ink }: { color?: string }) {
   if (Platform.OS === "web") {
     const SVG = "svg" as any;
     const Path = "path" as any;
     const Rect = "rect" as any;
     const Line = "line" as any;
+    const Circle = "circle" as any;
     const Style = "style" as any;
     const G = "g" as any;
 
@@ -31,67 +37,105 @@ function AnimatedDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
         style={{ display: "block" }}
       >
         <Style>{`
-          @keyframes skounDropArrow {
-            0% {
-              transform: translateY(-5px);
-              opacity: 0;
-            }
-            22% {
+          @keyframes cameraMorph {
+            0%, 22% {
               opacity: 1;
+              transform: scale(1) translateY(0);
             }
-            58% {
-              transform: translateY(1.5px);
+            38% {
+              opacity: 0;
+              transform: translateY(4px) scaleY(2.2) scaleX(0.5);
+            }
+            75% {
+              opacity: 0;
+              transform: translateY(0) scale(0.3);
+            }
+            90%, 100% {
               opacity: 1;
-            }
-            80% {
-              transform: translateY(4.5px);
-              opacity: 0;
-            }
-            100% {
-              transform: translateY(-5px);
-              opacity: 0;
+              transform: translateY(0) scale(1);
             }
           }
 
-          @keyframes skounPulseTray {
-            0%, 20% {
-              opacity: 0.35;
-              transform: scaleX(0.85);
+          @keyframes arrowMorph {
+            0%, 22% {
+              opacity: 0;
+              transform: translateY(-4px);
             }
-            55%, 75% {
+            38% {
+              opacity: 1;
+              transform: translateY(-1px);
+            }
+            58%, 74% {
+              opacity: 1;
+              transform: translateY(2.5px);
+            }
+            88%, 100% {
+              opacity: 0;
+              transform: translateY(6px);
+            }
+          }
+
+          @keyframes frameMorph {
+            0%, 25% {
+              opacity: 1;
+            }
+            50%, 75% {
+              opacity: 0.65;
+            }
+            90%, 100% {
+              opacity: 1;
+            }
+          }
+
+          @keyframes trayMorph {
+            0%, 22% {
+              opacity: 0.25;
+              transform: scaleX(0.7);
+            }
+            50%, 75% {
               opacity: 1;
               transform: scaleX(1);
             }
-            100% {
-              opacity: 0.35;
-              transform: scaleX(0.85);
+            90%, 100% {
+              opacity: 0.25;
+              transform: scaleX(0.7);
             }
           }
 
-          .skoun-arrow-group {
-            animation: skounDropArrow 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            transform-origin: center;
+          .amber-camera-dot {
+            animation: cameraMorph 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            transform-origin: 12px 5px;
           }
 
-          .skoun-tray-line {
-            animation: skounPulseTray 2.2s ease-in-out infinite;
+          .amber-arrow-group {
+            animation: arrowMorph 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            transform-origin: 12px 9px;
+          }
+
+          .amber-phone-frame {
+            animation: frameMorph 3s ease-in-out infinite;
+          }
+
+          .amber-tray-line {
+            animation: trayMorph 3s ease-in-out infinite;
             transform-origin: 12px 15.5px;
           }
         `}</Style>
 
-        {/* Stationary Phone Chassis */}
+        {/* Phase 1-3: Phone Frame Chassis */}
         <Rect
           x="4.5"
           y="2.5"
           width="15"
           height="19"
-          rx="3"
+          rx="3.5"
           stroke={color}
           strokeWidth="1.8"
           fill="none"
+          className="amber-phone-frame"
         />
 
-        {/* Home Notch Line */}
+        {/* Bottom Speaker Notch */}
         <Line
           x1="10"
           y1="18.5"
@@ -102,7 +146,16 @@ function AnimatedDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
           strokeLinecap="round"
         />
 
-        {/* Base Download Receiver Tray inside Phone screen */}
+        {/* Phase 1: Camera Dot centered at (12, 5) */}
+        <Circle
+          cx="12"
+          cy="5"
+          r="1.2"
+          fill={color}
+          className="amber-camera-dot"
+        />
+
+        {/* Phase 3: Base Receiving Tray Line */}
         <Line
           x1="8.5"
           y1="15.5"
@@ -111,14 +164,14 @@ function AnimatedDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
           stroke={color}
           strokeWidth="1.8"
           strokeLinecap="round"
-          className="skoun-tray-line"
+          className="amber-tray-line"
         />
 
-        {/* Arrow dropping continuously inside phone screen */}
-        <G className="skoun-arrow-group">
+        {/* Phase 2-4: Download Arrow Line + Arrowhead */}
+        <G className="amber-arrow-group">
           <Line
             x1="12"
-            y1="5.5"
+            y1="5"
             x2="12"
             y2="12"
             stroke={color}
@@ -126,7 +179,7 @@ function AnimatedDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
             strokeLinecap="round"
           />
           <Path
-            d="M9 10L12 13L15 10"
+            d="M8.5 9.5L12 13L15.5 9.5"
             stroke={color}
             strokeWidth="1.8"
             strokeLinecap="round"
@@ -159,7 +212,7 @@ export function DownloadAppButton() {
         accessibilityLabel="Download Skoun Mobile App"
       >
         <View style={styles.iconSlot}>
-          <AnimatedDownloadIcon
+          <AmberMorphIcon
             color={isHovered ? Skoun.color.primary : Skoun.color.ink}
           />
         </View>
@@ -199,7 +252,7 @@ export function DownloadAppButton() {
 
             <View style={styles.qrContainer}>
               <View style={styles.qrPlaceholder}>
-                <AnimatedDownloadIcon color={Skoun.color.primary} />
+                <AmberMorphIcon color={Skoun.color.primary} />
                 <Text style={styles.qrText}>Scan QR Code</Text>
               </View>
             </View>
