@@ -83,8 +83,8 @@ export default function RenterNewHomeScreen() {
       shortLabel: "BEY",
       label: "Beirut",
       icon: "location",
-      bgColor: "#FDE8EF",
-      color: "#E53863",
+      bgColor: Skoun.color.primaryMist,
+      color: Skoun.color.primary,
     },
     {
       id: "coast",

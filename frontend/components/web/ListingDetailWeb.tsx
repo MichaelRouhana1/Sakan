@@ -866,7 +866,7 @@ export function ListingDetailWeb({ listingId }: Props) {
 
           {/* Social Proof Banner Pill */}
           <View style={styles.socialProofPill}>
-            <Ionicons name="document-text" size={14} color="#3F83F8" />
+            <Ionicons name="document-text" size={14} color={Skoun.color.primary} />
             <LText variant="caption" style={styles.socialProofText}>
               Sakina +1 booked this property recently
             </LText>
@@ -884,7 +884,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           ].map((item, idx) => (
             <View key={idx} style={styles.trustAccordionRow}>
               <View style={styles.trustIconCircle}>
-                <Ionicons name={item.icon as any} size={15} color="#E53863" />
+                <Ionicons name={item.icon as any} size={15} color={Skoun.color.primary} />
               </View>
               <LText variant="caption" style={styles.trustItemTitle}>{item.title}</LText>
               <Ionicons name="chevron-down" size={14} color="#1F2A37" style={{ marginLeft: "auto" }} />
@@ -1604,7 +1604,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 48,
     borderRadius: 8,
-    backgroundColor: "#E53863",
+    backgroundColor: Skoun.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1618,13 +1618,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 8,
     borderWidth: 1.5,
-    borderColor: "#ED3A56",
+    borderColor: Skoun.color.primary,
     backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
   },
   enquireNowText: {
-    color: "#ED3A56",
+    color: Skoun.color.primary,
     fontWeight: "500",
     fontSize: 14,
   },
@@ -1635,7 +1635,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     borderRadius: 100,
-    backgroundColor: "#EBF5FF",
+    backgroundColor: Skoun.color.primaryMist,
   },
   socialProofText: {
     color: "#1F2A37",
@@ -1660,7 +1660,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#FDE8EF",
+    backgroundColor: Skoun.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
   },
