@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
+import { SkounLogo } from "@/components/common/SkounLogo";
 import { Skoun } from "@/constants/theme";
 import {
   AREA_REGIONS,
@@ -152,6 +153,7 @@ function HomeNav({ solid }: { solid: boolean }) {
           accessibilityRole="link"
           accessibilityLabel="Skoun home"
         >
+          <SkounLogo size={32} />
           <Text style={[styles.navBrandText, solid && styles.navBrandTextSolid]}>
             skoun
           </Text>
@@ -911,7 +913,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  navBrand: { flexDirection: "row", alignItems: "center" },
+  navBrand: { flexDirection: "row", alignItems: "center", gap: 10 },
   navBrandText: {
     fontFamily: Skoun.type.display,
     fontSize: 26,

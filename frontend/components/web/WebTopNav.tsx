@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
+import { SkounLogo } from "@/components/common/SkounLogo";
 import { Skoun } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
@@ -47,6 +48,7 @@ export function WebTopNav({ showSearch = false }: Props) {
             accessibilityRole="link"
             style={styles.brandHit}
           >
+            <SkounLogo size={32} />
             <Text style={styles.brand}>Skoun</Text>
           </Pressable>
         </Link>
@@ -145,6 +147,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   brandHit: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     paddingVertical: 4,
     paddingRight: 8,
   },
