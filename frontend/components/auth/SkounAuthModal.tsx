@@ -155,64 +155,34 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   };
 
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple" | "oauth_facebook") => {
-    if (loading) return;
     setLoading(true);
     setError(null);
 
     try {
-      if (Platform.OS === "web") {
-        if (!isSignInLoaded || !signIn) {
-          console.warn("Clerk is still initializing, please try again in a moment.");
-          setLoading(false);
-          return;
+      const oauth =
+        strategy === "oauth_google"
+          ? googleOAuth
+          : strategy === "oauth_apple"
+          ? appleOAuth
+          : facebookOAuth;
+
+      const redirectUrl = AuthSession.makeRedirectUri();
+      const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
+        redirectUrl,
+      });
+
+      if (createdSessionId) {
+        if (setOAuthActive) {
+          await setOAuthActive({ session: createdSessionId });
+        } else if (setActive) {
+          await setActive({ session: createdSessionId });
         }
-
-        // Main window direct redirect to Google (bypasses popups and COOP blocks)
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
-        });
-      } else {
-        const oauth =
-          strategy === "oauth_google"
-            ? googleOAuth
-            : strategy === "oauth_apple"
-            ? appleOAuth
-            : facebookOAuth;
-
-        const redirectUrl = AuthSession.makeRedirectUri({
-          scheme: "skoun",
-          path: "sso-callback",
-        });
-
-        const { createdSessionId, setActive: setOAuthActive, signUp: oauthSignUp } =
-          await oauth.startOAuthFlow({ redirectUrl });
-
-        if (createdSessionId) {
-          if (setOAuthActive) {
-            await setOAuthActive({ session: createdSessionId });
-          } else if (setActive) {
-            await setActive({ session: createdSessionId });
-          }
-          handleClose();
-        } else if (oauthSignUp && (oauthSignUp as any).status === "missing_requirements") {
-          // Handle new user account creation on native
-          const res = await (oauthSignUp as any).create({ transfer: true });
-          if (res.status === "complete" && res.createdSessionId) {
-            if (setOAuthActive) {
-              await setOAuthActive({ session: res.createdSessionId });
-            } else if (setActive) {
-              await setActive({ session: res.createdSessionId });
-            }
-            handleClose();
-          }
-        }
-        setLoading(false);
+        handleClose();
       }
     } catch (err: any) {
-      console.error("Google OAuth Error:", err);
+      console.error("Google OAuth error:", err);
       setError(err?.errors?.[0]?.message || "OAuth sign in could not be completed.");
+    } finally {
       setLoading(false);
     }
   };
