@@ -159,30 +159,45 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     setError(null);
 
     try {
-      const oauth =
-        strategy === "oauth_google"
-          ? googleOAuth
-          : strategy === "oauth_apple"
-          ? appleOAuth
-          : facebookOAuth;
-
-      const redirectUrl = AuthSession.makeRedirectUri();
-      const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
-        redirectUrl,
-      });
-
-      if (createdSessionId) {
-        if (setOAuthActive) {
-          await setOAuthActive({ session: createdSessionId });
-        } else if (setActive) {
-          await setActive({ session: createdSessionId });
+      if (Platform.OS === "web") {
+        if (!isSignInLoaded || !signIn) {
+          console.warn("Clerk is still initializing, please try again.");
+          setLoading(false);
+          return;
         }
-        handleClose();
+
+        // Direct main window redirection to Google (bypasses popups and COOP blocks)
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: "/sso-callback",
+          redirectUrlComplete: "/",
+        });
+      } else {
+        const oauth =
+          strategy === "oauth_google"
+            ? googleOAuth
+            : strategy === "oauth_apple"
+            ? appleOAuth
+            : facebookOAuth;
+
+        const redirectUrl = AuthSession.makeRedirectUri();
+        const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
+          redirectUrl,
+        });
+
+        if (createdSessionId) {
+          if (setOAuthActive) {
+            await setOAuthActive({ session: createdSessionId });
+          } else if (setActive) {
+            await setActive({ session: createdSessionId });
+          }
+          handleClose();
+        }
+        setLoading(false);
       }
     } catch (err: any) {
       console.error("Google OAuth error:", err);
       setError(err?.errors?.[0]?.message || "OAuth sign in could not be completed.");
-    } finally {
       setLoading(false);
     }
   };
