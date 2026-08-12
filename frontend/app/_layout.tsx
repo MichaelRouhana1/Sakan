@@ -44,10 +44,8 @@ export default function RootLayout() {
     return null;
   }
 
-  const cache = Platform.OS === "web" ? undefined : tokenCache;
-
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={cache}>
+    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <RootLayoutNav />
       </ClerkLoaded>

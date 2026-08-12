@@ -1,52 +1,41 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-export interface TokenCache {
-  getToken: (key: string) => Promise<string | null>;
-  saveToken: (key: string, value: string) => Promise<void>;
-  clearToken?: (key: string) => Promise<void>;
-}
-
-const createTokenCache = (): TokenCache => {
-  return {
-    async getToken(key: string) {
-      try {
-        if (Platform.OS === "web") {
-          return typeof localStorage !== "undefined" ? localStorage.getItem(key) : null;
-        }
-        return await SecureStore.getItemAsync(key);
-      } catch (err) {
-        console.error("SecureStore get item error: ", err);
-        return null;
+export const tokenCache = {
+  async getToken(key: string) {
+    if (Platform.OS === "web") {
+      return typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    }
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(key, value);
       }
-    },
-    async saveToken(key: string, value: string) {
-      try {
-        if (Platform.OS === "web") {
-          if (typeof localStorage !== "undefined") {
-            localStorage.setItem(key, value);
-          }
-          return;
-        }
-        await SecureStore.setItemAsync(key, value);
-      } catch (err) {
-        console.error("SecureStore save item error: ", err);
+      return;
+    }
+    try {
+      return await SecureStore.setItemAsync(key, value);
+    } catch {
+      return;
+    }
+  },
+  async clearToken(key: string) {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(key);
       }
-    },
-    async clearToken(key: string) {
-      try {
-        if (Platform.OS === "web") {
-          if (typeof localStorage !== "undefined") {
-            localStorage.removeItem(key);
-          }
-          return;
-        }
-        await SecureStore.deleteItemAsync(key);
-      } catch (err) {
-        console.error("SecureStore clear item error: ", err);
-      }
-    },
-  };
+      return;
+    }
+    try {
+      return await SecureStore.deleteItemAsync(key);
+    } catch {
+      return;
+    }
+  },
 };
-
-export const tokenCache = createTokenCache();

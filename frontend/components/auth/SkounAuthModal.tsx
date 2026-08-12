@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as AuthSession from "expo-auth-session";
 import { Ionicons } from "@expo/vector-icons";
 import { useSignIn, useSignUp, useClerk, useOAuth } from "@clerk/clerk-expo";
 import { Skoun } from "@/constants/theme";
@@ -141,33 +142,23 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     try {
       setLoading(true);
       setError(null);
+      const oauth =
+        strategy === "oauth_google"
+          ? googleOAuth
+          : strategy === "oauth_apple"
+          ? appleOAuth
+          : facebookOAuth;
 
-      if (Platform.OS === "web") {
-        if (signIn) {
-          await signIn.authenticateWithRedirect({
-            strategy,
-            redirectUrl: window.location.origin,
-            redirectUrlComplete: window.location.origin,
-          });
+      const redirectUrl = AuthSession.makeRedirectUri();
+      const res = await oauth.startOAuthFlow({ redirectUrl });
+
+      if (res.createdSessionId) {
+        if (res.setActive) {
+          await res.setActive({ session: res.createdSessionId });
+        } else if (setActive) {
+          await setActive({ session: res.createdSessionId });
         }
-      } else {
-        const oauth =
-          strategy === "oauth_google"
-            ? googleOAuth
-            : strategy === "oauth_apple"
-            ? appleOAuth
-            : facebookOAuth;
-
-        const res = await oauth.startOAuthFlow({ redirectUrl: "skoun://" });
-
-        if (res.createdSessionId) {
-          if (res.setActive) {
-            await res.setActive({ session: res.createdSessionId });
-          } else if (setActive) {
-            await setActive({ session: res.createdSessionId });
-          }
-          handleClose();
-        }
+        handleClose();
       }
     } catch (err: any) {
       console.error("OAuth flow error:", err);
