@@ -163,10 +163,13 @@ export function SkounAuthModal({ visible, onClose }: Props) {
           ? appleOAuth
           : facebookOAuth;
 
-      const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: "skoun",
-        path: "oauth-native-callback",
-      });
+      const redirectUrl =
+        Platform.OS === "web" && typeof window !== "undefined"
+          ? `${window.location.origin}/oauth-native-callback`
+          : AuthSession.makeRedirectUri({
+              scheme: "skoun",
+              path: "oauth-native-callback",
+            });
 
       const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
         redirectUrl,
