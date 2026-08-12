@@ -156,49 +156,34 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     setError(null);
 
     try {
-      const oauth =
-        strategy === "oauth_google"
-          ? googleOAuth
-          : strategy === "oauth_apple"
-          ? appleOAuth
-          : facebookOAuth;
-
       if (Platform.OS === "web") {
-        if (isSignInLoaded && signIn && typeof (signIn as any).authenticateWithRedirect === "function") {
-          await signIn.authenticateWithRedirect({
-            strategy,
-            redirectUrl: "/sso-callback",
-            redirectUrlComplete: "/",
-          });
-        } else {
-          // Fallback if signIn object is still initializing on Web
-          const webRedirectUrl =
-            typeof window !== "undefined"
-              ? `${window.location.origin}/sso-callback`
-              : "/sso-callback";
-
-          const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
-            redirectUrl: webRedirectUrl,
-          });
-
-          if (createdSessionId) {
-            if (setOAuthActive) {
-              await setOAuthActive({ session: createdSessionId });
-            } else if (setActive) {
-              await setActive({ session: createdSessionId });
-            }
-            handleClose();
-          }
+        if (!isSignInLoaded || !signIn) {
+          console.error("Clerk SignIn not loaded");
+          setLoading(false);
+          return;
         }
+
+        // Main window direct redirect to Google (bypasses popups and COOP blocks)
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: "/sso-callback",
+          redirectUrlComplete: "/",
+        });
       } else {
+        const oauth =
+          strategy === "oauth_google"
+            ? googleOAuth
+            : strategy === "oauth_apple"
+            ? appleOAuth
+            : facebookOAuth;
+
         const redirectUrl = AuthSession.makeRedirectUri({
           scheme: "skoun",
-          path: "oauth-native-callback",
+          path: "sso-callback",
         });
 
-        const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
-          redirectUrl,
-        });
+        const { createdSessionId, setActive: setOAuthActive, signUp: oauthSignUp } =
+          await oauth.startOAuthFlow({ redirectUrl });
 
         if (createdSessionId) {
           if (setOAuthActive) {
@@ -207,11 +192,22 @@ export function SkounAuthModal({ visible, onClose }: Props) {
             await setActive({ session: createdSessionId });
           }
           handleClose();
+        } else if (oauthSignUp && (oauthSignUp as any).status === "missing_requirements") {
+          // Handle new user account creation on native
+          const res = await (oauthSignUp as any).create({ transfer: true });
+          if (res.status === "complete" && res.createdSessionId) {
+            if (setOAuthActive) {
+              await setOAuthActive({ session: res.createdSessionId });
+            } else if (setActive) {
+              await setActive({ session: res.createdSessionId });
+            }
+            handleClose();
+          }
         }
         setLoading(false);
       }
     } catch (err: any) {
-      console.error("OAuth error:", err);
+      console.error("Google OAuth Error:", err);
       setError(err?.errors?.[0]?.message || "OAuth sign in could not be completed.");
       setLoading(false);
     }
