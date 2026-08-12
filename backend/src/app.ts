@@ -1,8 +1,8 @@
 import cors from "cors";
 import express from "express";
+import { clerkMiddleware } from "@clerk/express";
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { errorHandler } from "./middleware/error-handler.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { creditsRouter } from "./modules/credits/credits.routes.js";
@@ -13,10 +13,7 @@ import { savedRouter } from "./modules/saved/saved.routes.js";
 import { universitiesRouter } from "./modules/universities/universities.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 
-const REPO_ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
+const REPO_ROOT = process.cwd();
 const DEBUG_LOG = path.join(REPO_ROOT, ".cursor", "debug-b50488.log");
 
 export function createApp() {
@@ -24,6 +21,7 @@ export function createApp() {
 
   app.use(cors());
   app.use(express.json({ limit: "2mb" }));
+  app.use(clerkMiddleware());
 
   app.use("/uploads", express.static(UPLOADS_ROOT, {
     maxAge: "7d",

@@ -14,8 +14,10 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { useUser, useClerk } from "@clerk/clerk-expo";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
+import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { Skoun } from "@/constants/theme";
 import {
   AREA_REGIONS,
@@ -144,6 +146,25 @@ function SectionHeader({
 }
 
 function HomeNav({ solid }: { solid: boolean }) {
+  const { isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const handleLoginClick = () => {
+    setMenuOpen(false);
+    setAuthModalOpen(true);
+  };
+
+  const handleProfileClick = () => {
+    setMenuOpen((prev) => !prev);
+  };
+
+  const handleLogoutClick = async () => {
+    setMenuOpen(false);
+    await signOut();
+  };
+
   return (
     <View style={[styles.nav, solid && styles.navSolid]} accessibilityRole="header">
       <View style={styles.navInner}>
@@ -161,36 +182,140 @@ function HomeNav({ solid }: { solid: boolean }) {
 
         <View style={styles.navRight}>
           <DownloadAppButton isDarkNav={!solid} />
-          <Pressable onPress={goBrowse} accessibilityRole="link">
-            <Text style={[styles.navLink, solid && styles.navLinkSolid]}>Find</Text>
-          </Pressable>
-          <Pressable onPress={goAuth} accessibilityRole="link" hitSlop={8}>
-            <Ionicons
-              name="heart-outline"
-              size={22}
-              color={solid ? Skoun.color.ink : "#fff"}
-            />
-          </Pressable>
-          <Pressable
-            onPress={goAuth}
-            style={[styles.navLogin, solid && styles.navLoginSolid]}
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="person-outline"
-              size={18}
-              color={solid ? Skoun.color.ink : "#fff"}
-            />
-          </Pressable>
-          <Pressable
-            onPress={goList}
-            style={[styles.navCta, solid && styles.navCtaSolid]}
-            accessibilityRole="button"
-          >
-            <Text style={styles.navCtaText}>List your place</Text>
-          </Pressable>
+
+          {!isSignedIn ? (
+            <Pressable onPress={handleLoginClick} accessibilityRole="button" style={styles.homeLoginTextBtn}>
+              <Text style={[styles.navLink, solid && styles.navLinkSolid, { fontFamily: Skoun.type.bodyBold }]}>
+                Login
+              </Text>
+            </Pressable>
+          ) : null}
+
+          <View style={{ position: "relative" }}>
+            <Pressable
+              onPress={handleProfileClick}
+              style={[styles.navLogin, solid && styles.navLoginSolid]}
+              accessibilityRole="button"
+            >
+              {user?.imageUrl ? (
+                <Image source={{ uri: user.imageUrl }} style={{ width: 32, height: 32, borderRadius: 16 }} />
+              ) : (
+                <Ionicons
+                  name="person-outline"
+                  size={18}
+                  color={solid ? Skoun.color.ink : "#fff"}
+                />
+              )}
+            </Pressable>
+
+            {menuOpen ? (
+              <>
+                <Pressable
+                  style={styles.homeBackdrop}
+                  onPress={() => setMenuOpen(false)}
+                />
+                <View style={styles.homeDropdownMenu}>
+                  {!isSignedIn ? (
+                    <Pressable
+                      style={styles.homeLoginBanner}
+                      onPress={() => {
+                        setMenuOpen(false);
+                        setAuthModalOpen(true);
+                      }}
+                    >
+                      <Text style={styles.homeLoginBannerText}>
+                        Login to Continue
+                      </Text>
+                    </Pressable>
+                  ) : null}
+
+                  <Pressable
+                    style={styles.homeMenuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      if (isSignedIn) {
+                        router.push("/profile" as never);
+                      } else {
+                        setAuthModalOpen(true);
+                      }
+                    }}
+                  >
+                    <Ionicons name="person-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>Profile</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.homeMenuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      if (isSignedIn) {
+                        router.push("/saved" as never);
+                      } else {
+                        setAuthModalOpen(true);
+                      }
+                    }}
+                  >
+                    <Ionicons name="calendar-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>Bookings</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.homeMenuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      if (isSignedIn) {
+                        router.push("/saved" as never);
+                      } else {
+                        setAuthModalOpen(true);
+                      }
+                    }}
+                  >
+                    <Ionicons name="heart-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>Shortlist</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.homeMenuItem}
+                    onPress={() => setMenuOpen(false)}
+                  >
+                    <Ionicons name="download-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>Download App</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.homeMenuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      goList();
+                    }}
+                  >
+                    <Ionicons name="list-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>List with Us</Text>
+                  </Pressable>
+
+                  {isSignedIn ? (
+                    <>
+                      <View style={styles.homeMenuDivider} />
+                      <Pressable
+                        style={styles.homeMenuItem}
+                        onPress={handleLogoutClick}
+                      >
+                        <Ionicons name="log-out-outline" size={18} color="#334155" />
+                        <Text style={styles.homeMenuText}>Logout</Text>
+                      </Pressable>
+                    </>
+                  ) : null}
+                </View>
+              </>
+            ) : null}
+          </View>
         </View>
       </View>
+
+      <SkounAuthModal
+        visible={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
     </View>
   );
 }
@@ -1640,5 +1765,70 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.body,
     fontSize: 12,
     color: Skoun.color.inkFaint,
+  },
+
+  homeLoginTextBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    justifyContent: "center",
+  },
+  homeBackdrop: {
+    position: "fixed" as unknown as "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100vw" as unknown as number,
+    height: "100vh" as unknown as number,
+    zIndex: 99,
+  },
+  homeDropdownMenu: {
+    position: "absolute",
+    top: 44,
+    right: 0,
+    width: 220,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    zIndex: 100,
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  homeLoginBanner: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 6,
+  },
+  homeLoginBannerText: {
+    fontFamily: Skoun.type.bodyBold,
+    fontStyle: "italic",
+    fontSize: 15,
+    color: "#2C3E50",
+  },
+  homeMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 12,
+  },
+  homeMenuText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 14,
+    color: "#334155",
+  },
+  homeMenuDivider: {
+    height: 1,
+    backgroundColor: "#F1F5F9",
+    marginVertical: 4,
   },
 });

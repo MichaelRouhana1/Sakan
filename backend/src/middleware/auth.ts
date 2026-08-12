@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
+import { getAuth } from "@clerk/express";
 import { ForbiddenError } from "../lib/errors.js";
 
-/** Placeholder auth context until OTP/JWT is wired. */
+/** Auth context for authenticated users. */
 export type AuthUser = {
   id: string;
   role: "renter" | "poster";
@@ -16,32 +17,41 @@ declare global {
 }
 
 /**
- * Stub middleware — attach a user from `x-user-id` / `x-user-role` headers in development.
- * Replace with WhatsApp OTP + JWT verification.
+ * Require authenticated user via Clerk session JWT or x-user-id header fallback.
  */
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
-  const id = req.header("x-user-id");
-  const role = req.header("x-user-role");
+  const auth = getAuth(req);
+  const clerkUserId = auth.userId;
+  const headerUserId = req.header("x-user-id");
+  const roleHeader = req.header("x-user-role");
 
-  if (!id || (role !== "renter" && role !== "poster")) {
+  const userId = clerkUserId || headerUserId;
+  const role: "renter" | "poster" = roleHeader === "poster" ? "poster" : "renter";
+
+  if (!userId) {
     next(new ForbiddenError("Authentication required"));
     return;
   }
 
-  req.user = { id, role };
+  req.user = { id: userId, role };
   next();
 }
 
-/** Attach user from stub headers when present; never fails. */
+/** Attach user from Clerk session or headers when present; never fails. */
 export function optionalAuth(
   req: Request,
   _res: Response,
   next: NextFunction,
 ): void {
-  const id = req.header("x-user-id");
-  const role = req.header("x-user-role");
-  if (id && (role === "renter" || role === "poster")) {
-    req.user = { id, role };
+  const auth = getAuth(req);
+  const clerkUserId = auth.userId;
+  const headerUserId = req.header("x-user-id");
+  const roleHeader = req.header("x-user-role");
+
+  const userId = clerkUserId || headerUserId;
+  if (userId) {
+    const role: "renter" | "poster" = roleHeader === "poster" ? "poster" : "renter";
+    req.user = { id: userId, role };
   }
   next();
 }

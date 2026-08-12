@@ -29,7 +29,24 @@ export const api = axios.create({
   },
 });
 
+let getClerkToken: (() => Promise<string | null>) | null = null;
+
+export function setClerkTokenGetter(getter: (() => Promise<string | null>) | null) {
+  getClerkToken = getter;
+}
+
 api.interceptors.request.use(async (config) => {
+  if (getClerkToken) {
+    try {
+      const token = await getClerkToken();
+      if (token) {
+        config.headers.set("Authorization", `Bearer ${token}`);
+      }
+    } catch {
+      // Fall through to session fallback
+    }
+  }
+
   const session = await getSession();
   if (session) {
     config.headers.set("x-user-id", session.userId);

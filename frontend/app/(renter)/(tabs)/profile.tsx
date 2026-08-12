@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import {
   Animated,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,10 +15,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useUser, useClerk } from "@clerk/clerk-expo";
 import { Skoun } from "@/constants/theme";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { isSignedIn, user } = useUser();
+  const { signOut, openSignIn } = useClerk();
+
   const [loginSheetOpen, setLoginSheetOpen] = useState(false);
   const [email, setEmail] = useState("");
 
@@ -25,6 +30,10 @@ export default function ProfileScreen() {
   const slideAnim = useRef(new Animated.Value(350)).current;
 
   const handleOpenLogin = () => {
+    if (openSignIn) {
+      openSignIn();
+      return;
+    }
     setLoginSheetOpen(true);
     fadeAnim.setValue(0);
     slideAnim.setValue(350);
@@ -63,7 +72,9 @@ export default function ProfileScreen() {
 
   const handleContinue = () => {
     if (!email.trim()) return;
-    // Handled by Clerk API integration in future
+    if (openSignIn) {
+      openSignIn();
+    }
     setLoginSheetOpen(false);
   };
 
@@ -76,17 +87,36 @@ export default function ProfileScreen() {
         {/* HEADER SECTION */}
         <View style={styles.headerCard}>
           <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={28} color="#94A3B8" />
+            {isSignedIn && user?.imageUrl ? (
+              <Image source={{ uri: user.imageUrl }} style={styles.avatarImg} />
+            ) : (
+              <Ionicons name="person" size={28} color="#94A3B8" />
+            )}
           </View>
           <View style={styles.headerTextCol}>
-            <Text style={styles.guestTitle}>Guest</Text>
-            <Text style={styles.guestSubtitle}>
-              Kindly{" "}
-              <Text style={styles.loginLink} onPress={handleOpenLogin}>
-                login
-              </Text>{" "}
-              to see full details
-            </Text>
+            {isSignedIn ? (
+              <>
+                <Text style={styles.guestTitle}>
+                  {user?.fullName || user?.firstName || "Signed in User"}
+                </Text>
+                <Text style={styles.guestSubtitle}>
+                  {user?.primaryEmailAddress?.emailAddress ||
+                    user?.primaryPhoneNumber?.phoneNumber ||
+                    "Signed in with Clerk"}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.guestTitle}>Guest</Text>
+                <Text style={styles.guestSubtitle}>
+                  Kindly{" "}
+                  <Text style={styles.loginLink} onPress={handleOpenLogin}>
+                    login
+                  </Text>{" "}
+                  to see full details
+                </Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -95,7 +125,13 @@ export default function ProfileScreen() {
           {/* Bookings */}
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={handleOpenLogin}
+            onPress={() => {
+              if (isSignedIn) {
+                router.push("/saved");
+              } else {
+                handleOpenLogin();
+              }
+            }}
             accessibilityRole="button"
             accessibilityLabel="Bookings"
           >
@@ -149,6 +185,26 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
             </View>
           </Pressable>
+
+          {/* Logout Option (when signed in) */}
+          {isSignedIn ? (
+            <Pressable
+              style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
+              onPress={() => signOut()}
+              accessibilityRole="button"
+              accessibilityLabel="Logout"
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconBg, { backgroundColor: "#FEF2F2" }]}>
+                  <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                </View>
+                <Text style={[styles.menuLabel, { color: "#EF4444" }]}>Logout</Text>
+              </View>
+              <View style={styles.chevronCircle}>
+                <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+              </View>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -241,7 +297,7 @@ export default function ProfileScreen() {
               <Pressable
                 style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
                 onPress={() => {
-                  // Wire to Clerk phone auth later
+                  if (openSignIn) openSignIn();
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Login with Mobile"
@@ -254,7 +310,7 @@ export default function ProfileScreen() {
               <Pressable
                 style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
                 onPress={() => {
-                  // Wire to Clerk Google OAuth later
+                  if (openSignIn) openSignIn();
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Login with Google"
@@ -267,7 +323,7 @@ export default function ProfileScreen() {
               <Pressable
                 style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
                 onPress={() => {
-                  // Wire to Clerk Apple OAuth later
+                  if (openSignIn) openSignIn();
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Login with Apple"
@@ -314,6 +370,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   headerTextCol: {
     flex: 1,
