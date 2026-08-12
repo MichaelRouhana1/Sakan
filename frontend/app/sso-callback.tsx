@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { AuthenticateWithRedirectCallback, useClerk } from "@clerk/expo";
+import { useClerk } from "@clerk/expo";
 import { useRouter } from "expo-router";
 
 export default function SSOCallbackScreen() {
@@ -8,30 +8,28 @@ export default function SSOCallbackScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    // Fallback if AuthenticateWithRedirectCallback is not an exported React component in @clerk/expo
-    if (!AuthenticateWithRedirectCallback && clerk && typeof clerk.handleRedirectCallback === "function") {
-      clerk
-        .handleRedirectCallback({
-          afterSignInUrl: "/",
-          afterSignUpUrl: "/",
-        })
-        .then(() => {
-          router.replace("/");
-        })
-        .catch((err) => {
-          console.error("SSO Callback error:", err);
-          router.replace("/");
-        });
+    async function handleCallback() {
+      try {
+        if (clerk && typeof clerk.handleRedirectCallback === "function") {
+          await clerk.handleRedirectCallback({
+            afterSignInUrl: "/",
+            afterSignUpUrl: "/",
+          });
+        }
+      } catch (err) {
+        console.error("SSO Callback error:", err);
+      } finally {
+        router.replace("/");
+      }
     }
+
+    handleCallback();
   }, [clerk, router]);
 
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#2563EB" />
       <Text style={styles.text}>Completing sign in...</Text>
-      {AuthenticateWithRedirectCallback ? (
-        <AuthenticateWithRedirectCallback signInForceRedirectUrl="/" signUpForceRedirectUrl="/" />
-      ) : null}
     </View>
   );
 }

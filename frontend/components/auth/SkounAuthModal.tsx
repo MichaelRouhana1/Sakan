@@ -161,17 +161,49 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     try {
       if (Platform.OS === "web") {
         if (!isSignInLoaded || !signIn) {
-          console.warn("Clerk is still initializing, please try again.");
+          setError("Clerk is initializing. Please try again.");
           setLoading(false);
           return;
         }
 
-        // Direct main window redirection to Google (bypasses popups and COOP blocks)
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
-        });
+        const redirectUrl =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/sso-callback`
+            : "/sso-callback";
+
+        // Direct main window navigation to Google (bypasses popups and COOP blocks completely)
+        try {
+          const res = await signIn.create({
+            strategy,
+            redirectUrl,
+          });
+
+          const externalUrl =
+            res?.firstFactorVerification?.externalVerificationRedirectURL ||
+            (res as any)?.verifications?.externalVerificationRedirectURL;
+
+          if (externalUrl && typeof window !== "undefined") {
+            window.location.href = externalUrl;
+            return;
+          }
+        } catch (err: any) {
+          if (isSignUpLoaded && signUp) {
+            const signUpRes = await signUp.create({
+              strategy,
+              redirectUrl,
+            });
+
+            const externalUrl =
+              signUpRes?.verifications?.externalVerificationRedirectURL ||
+              (signUpRes as any)?.firstFactorVerification?.externalVerificationRedirectURL;
+
+            if (externalUrl && typeof window !== "undefined") {
+              window.location.href = externalUrl;
+              return;
+            }
+          }
+          throw err;
+        }
       } else {
         const oauth =
           strategy === "oauth_google"
