@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Modal,
   Platform,
@@ -9,56 +9,131 @@ import {
 } from "react-native";
 import { Skoun } from "@/constants/theme";
 
-type IconState = "phone" | "download";
-
 /**
- * Animated SVG Phone Icon
+ * Continuous SVG Icon with CSS keyframe stroke animations simulating
+ * an arrow dropping inside a phone frame continuously.
  */
-function PhoneSvg({ color = Skoun.color.ink }: { color?: string }) {
+function AnimatedDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
   if (Platform.OS === "web") {
     const SVG = "svg" as any;
     const Path = "path" as any;
     const Rect = "rect" as any;
-    return (
-      <SVG
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <Rect x="5" y="2" width="14" height="20" rx="3" ry="3" />
-        <Path d="M12 18h.01" />
-      </SVG>
-    );
-  }
-  return null;
-}
+    const Line = "line" as any;
+    const Style = "style" as any;
+    const G = "g" as any;
 
-/**
- * Animated SVG Download Arrow Icon
- */
-function DownloadSvg({ color = Skoun.color.ink }: { color?: string }) {
-  if (Platform.OS === "web") {
-    const SVG = "svg" as any;
-    const Path = "path" as any;
     return (
       <SVG
-        width="18"
-        height="18"
+        width="20"
+        height="20"
         viewBox="0 0 24 24"
         fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        style={{ display: "block" }}
       >
-        <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <Path d="M7 10l5 5 5-5" />
-        <Path d="M12 15V3" />
+        <Style>{`
+          @keyframes skounDropArrow {
+            0% {
+              transform: translateY(-5px);
+              opacity: 0;
+            }
+            22% {
+              opacity: 1;
+            }
+            58% {
+              transform: translateY(1.5px);
+              opacity: 1;
+            }
+            80% {
+              transform: translateY(4.5px);
+              opacity: 0;
+            }
+            100% {
+              transform: translateY(-5px);
+              opacity: 0;
+            }
+          }
+
+          @keyframes skounPulseTray {
+            0%, 20% {
+              opacity: 0.35;
+              transform: scaleX(0.85);
+            }
+            55%, 75% {
+              opacity: 1;
+              transform: scaleX(1);
+            }
+            100% {
+              opacity: 0.35;
+              transform: scaleX(0.85);
+            }
+          }
+
+          .skoun-arrow-group {
+            animation: skounDropArrow 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            transform-origin: center;
+          }
+
+          .skoun-tray-line {
+            animation: skounPulseTray 2.2s ease-in-out infinite;
+            transform-origin: 12px 15.5px;
+          }
+        `}</Style>
+
+        {/* Stationary Phone Chassis */}
+        <Rect
+          x="4.5"
+          y="2.5"
+          width="15"
+          height="19"
+          rx="3"
+          stroke={color}
+          strokeWidth="1.8"
+          fill="none"
+        />
+
+        {/* Home Notch Line */}
+        <Line
+          x1="10"
+          y1="18.5"
+          x2="14"
+          y2="18.5"
+          stroke={color}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+
+        {/* Base Download Receiver Tray inside Phone screen */}
+        <Line
+          x1="8.5"
+          y1="15.5"
+          x2="15.5"
+          y2="15.5"
+          stroke={color}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          className="skoun-tray-line"
+        />
+
+        {/* Arrow dropping continuously inside phone screen */}
+        <G className="skoun-arrow-group">
+          <Line
+            x1="12"
+            y1="5.5"
+            x2="12"
+            y2="12"
+            stroke={color}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <Path
+            d="M9 10L12 13L15 10"
+            stroke={color}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </G>
       </SVG>
     );
   }
@@ -66,16 +141,8 @@ function DownloadSvg({ color = Skoun.color.ink }: { color?: string }) {
 }
 
 export function DownloadAppButton() {
-  const [activeIcon, setActiveIcon] = useState<IconState>("phone");
   const [isHovered, setIsHovered] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveIcon((prev) => (prev === "phone" ? "download" : "phone"));
-    }, 2800);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <>
@@ -92,22 +159,9 @@ export function DownloadAppButton() {
         accessibilityLabel="Download Skoun Mobile App"
       >
         <View style={styles.iconSlot}>
-          <View
-            style={[
-              styles.iconWrapper,
-              activeIcon === "phone" ? styles.iconVisible : styles.iconHiddenPhone,
-            ]}
-          >
-            <PhoneSvg color={isHovered ? Skoun.color.primary : Skoun.color.ink} />
-          </View>
-          <View
-            style={[
-              styles.iconWrapper,
-              activeIcon === "download" ? styles.iconVisible : styles.iconHiddenDownload,
-            ]}
-          >
-            <DownloadSvg color={isHovered ? Skoun.color.primary : Skoun.color.ink} />
-          </View>
+          <AnimatedDownloadIcon
+            color={isHovered ? Skoun.color.primary : Skoun.color.ink}
+          />
         </View>
         <Text style={[styles.text, isHovered && styles.textHover]}>
           Download App
@@ -145,7 +199,7 @@ export function DownloadAppButton() {
 
             <View style={styles.qrContainer}>
               <View style={styles.qrPlaceholder}>
-                <PhoneSvg color={Skoun.color.primary} />
+                <AnimatedDownloadIcon color={Skoun.color.primary} />
                 <Text style={styles.qrText}>Scan QR Code</Text>
               </View>
             </View>
@@ -190,32 +244,8 @@ const styles = StyleSheet.create({
   iconSlot: {
     width: 20,
     height: 20,
-    position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
-  },
-  iconWrapper: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 20,
-    height: 20,
-    transitionProperty: "opacity, transform",
-    transitionDuration: "0.4s",
-    transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
-  },
-  iconVisible: {
-    opacity: 1,
-    transform: [{ translateY: 0 }, { scale: 1 }],
-  },
-  iconHiddenPhone: {
-    opacity: 0,
-    transform: [{ translateY: -12 }, { scale: 0.8 }],
-  },
-  iconHiddenDownload: {
-    opacity: 0,
-    transform: [{ translateY: 12 }, { scale: 0.8 }],
   },
   text: {
     fontFamily: Skoun.type.bodyMedium,
