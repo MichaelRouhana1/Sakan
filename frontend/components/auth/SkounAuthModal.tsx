@@ -38,6 +38,9 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Combined readiness check
+  const isReady = isSignInLoaded && isSignUpLoaded && !loading;
+
   // Auto-close modal if user becomes signed in
   useEffect(() => {
     if (isSignedIn && visible) {
@@ -56,7 +59,7 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   };
 
   const handleContinueEmail = async () => {
-    if (!email.trim() || loading) return;
+    if (!email.trim() || !isReady) return;
     setLoading(true);
     setError(null);
 
@@ -152,6 +155,7 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   };
 
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple" | "oauth_facebook") => {
+    if (!isReady) return;
     setLoading(true);
     setError(null);
 
@@ -259,10 +263,10 @@ export function SkounAuthModal({ visible, onClose }: Props) {
 
               <Pressable
                 onPress={handleContinueEmail}
-                disabled={!email.trim() || loading}
+                disabled={!email.trim() || !isReady}
                 style={({ pressed }) => [
                   styles.primaryBtn,
-                  (!email.trim() || loading) && styles.btnDisabled,
+                  (!email.trim() || !isReady) && styles.btnDisabled,
                   pressed && styles.pressed,
                 ]}
               >
@@ -282,7 +286,12 @@ export function SkounAuthModal({ visible, onClose }: Props) {
               {/* Alt Login options */}
               <View style={styles.socialCol}>
                 <Pressable
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+                  disabled={!isReady}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    (!isReady || pressed) && styles.pressed,
+                    !isReady && styles.btnDisabled,
+                  ]}
                   onPress={() => setError("Phone authentication: please enter your email above.")}
                 >
                   <Ionicons name="call" size={18} color="#0F172A" />
@@ -290,27 +299,48 @@ export function SkounAuthModal({ visible, onClose }: Props) {
                 </Pressable>
 
                 <Pressable
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+                  disabled={!isReady}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    (!isReady || pressed) && styles.pressed,
+                    !isReady && styles.btnDisabled,
+                  ]}
                   onPress={() => handleOAuth("oauth_google")}
                 >
                   <Ionicons name="logo-google" size={18} color="#EA4335" />
-                  <Text style={styles.socialBtnText}>Continue with Google</Text>
+                  <Text style={styles.socialBtnText}>
+                    {!isSignInLoaded ? "Initializing..." : "Continue with Google"}
+                  </Text>
                 </Pressable>
 
                 <Pressable
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+                  disabled={!isReady}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    (!isReady || pressed) && styles.pressed,
+                    !isReady && styles.btnDisabled,
+                  ]}
                   onPress={() => handleOAuth("oauth_facebook")}
                 >
                   <Ionicons name="logo-facebook" size={18} color="#1877F2" />
-                  <Text style={styles.socialBtnText}>Continue with Facebook</Text>
+                  <Text style={styles.socialBtnText}>
+                    {!isSignInLoaded ? "Initializing..." : "Continue with Facebook"}
+                  </Text>
                 </Pressable>
 
                 <Pressable
-                  style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
+                  disabled={!isReady}
+                  style={({ pressed }) => [
+                    styles.socialBtn,
+                    (!isReady || pressed) && styles.pressed,
+                    !isReady && styles.btnDisabled,
+                  ]}
                   onPress={() => handleOAuth("oauth_apple")}
                 >
                   <Ionicons name="logo-apple" size={18} color="#000000" />
-                  <Text style={styles.socialBtnText}>Continue with Apple</Text>
+                  <Text style={styles.socialBtnText}>
+                    {!isSignInLoaded ? "Initializing..." : "Continue with Apple"}
+                  </Text>
                 </Pressable>
               </View>
 
