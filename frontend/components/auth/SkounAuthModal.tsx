@@ -155,13 +155,13 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   };
 
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple" | "oauth_facebook") => {
+    if (!isSignInLoaded || loading) return;
     setLoading(true);
     setError(null);
 
     try {
       if (Platform.OS === "web") {
-        if (!isSignInLoaded || !signIn) {
-          setError("Clerk is initializing. Please try again.");
+        if (!signIn) {
           setLoading(false);
           return;
         }
