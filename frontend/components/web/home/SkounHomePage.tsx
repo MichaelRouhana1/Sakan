@@ -14,7 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useUser, useClerk } from "@clerk/clerk-expo";
+import { useUser, useClerk } from "@clerk/expo";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";

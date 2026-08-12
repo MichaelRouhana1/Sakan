@@ -6,7 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
+import { ClerkProvider, ClerkLoaded } from "@clerk/expo";
 
 WebBrowser.maybeCompleteAuthSession();
 

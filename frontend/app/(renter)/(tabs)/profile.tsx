@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useUser, useClerk } from "@clerk/clerk-expo";
+import { useUser, useClerk } from "@clerk/expo";
 import { Skoun } from "@/constants/theme";
 
 export default function ProfileScreen() {

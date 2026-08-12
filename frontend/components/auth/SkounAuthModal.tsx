@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import * as AuthSession from "expo-auth-session";
 import { Ionicons } from "@expo/vector-icons";
-import { useSignIn, useSignUp, useClerk, useOAuth } from "@clerk/clerk-expo";
+import { useSignIn, useSignUp, useUser, useOAuth } from "@clerk/expo";
 import { Skoun } from "@/constants/theme";
 
 type Props = {
@@ -20,6 +20,7 @@ type Props = {
 };
 
 export function SkounAuthModal({ visible, onClose }: Props) {
+  const { isSignedIn } = useUser();
   const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
   const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
 
@@ -32,6 +33,13 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   const [step, setStep] = useState<"input" | "otp">("input");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-close modal if user becomes signed in
+  useEffect(() => {
+    if (isSignedIn && visible) {
+      onClose();
+    }
+  }, [isSignedIn, visible, onClose]);
 
   if (!visible) return null;
 
@@ -142,26 +150,36 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     try {
       setLoading(true);
       setError(null);
-      const oauth =
-        strategy === "oauth_google"
-          ? googleOAuth
-          : strategy === "oauth_apple"
-          ? appleOAuth
-          : facebookOAuth;
 
-      const redirectUrl = AuthSession.makeRedirectUri();
-      const res = await oauth.startOAuthFlow({ redirectUrl });
+      if (Platform.OS === "web") {
+        if (!signIn) return;
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: window.location.origin,
+          redirectUrlComplete: window.location.origin,
+        });
+      } else {
+        const oauth =
+          strategy === "oauth_google"
+            ? googleOAuth
+            : strategy === "oauth_apple"
+            ? appleOAuth
+            : facebookOAuth;
 
-      if (res.createdSessionId) {
-        if (res.setActive) {
-          await res.setActive({ session: res.createdSessionId });
-        } else if (setActive) {
-          await setActive({ session: res.createdSessionId });
+        const redirectUrl = AuthSession.makeRedirectUri();
+        const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({ redirectUrl });
+
+        if (createdSessionId) {
+          if (setOAuthActive) {
+            await setOAuthActive({ session: createdSessionId });
+          } else if (setActive) {
+            await setActive({ session: createdSessionId });
+          }
+          handleClose();
         }
-        handleClose();
       }
     } catch (err: any) {
-      console.error("OAuth flow error:", err);
+      console.error("OAuth error:", err);
       setError(err?.errors?.[0]?.message || "OAuth sign in could not be completed.");
     } finally {
       setLoading(false);
