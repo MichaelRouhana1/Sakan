@@ -1,9 +1,6 @@
-import { Redirect } from "expo-router";
+import { SkounHomePage } from "@/components/web/home/SkounHomePage";
 
-/**
- * `(renter)/(tabs)` also maps to `/`, which collides with the marketing home.
- * Send web browse traffic to the dedicated `/search` URL.
- */
+/** Web homepage for renter index route `/`. */
 export default function RenterTabsIndexWeb() {
-  return <Redirect href="/search" />;
+  return <SkounHomePage />;
 }

@@ -42,7 +42,11 @@ export function WebTopNav({ showSearch = false }: Props) {
     <View style={styles.bar}>
       <View style={[styles.inner, showSearch && styles.innerSearch]}>
         <Link href="/" asChild>
-          <Pressable accessibilityRole="link" style={styles.brandHit}>
+          <Pressable
+            onPress={() => router.push("/")}
+            accessibilityRole="link"
+            style={styles.brandHit}
+          >
             <Text style={styles.brand}>Skoun</Text>
           </Pressable>
         </Link>

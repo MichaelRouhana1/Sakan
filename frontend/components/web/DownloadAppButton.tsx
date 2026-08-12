@@ -9,92 +9,21 @@ import {
 } from "react-native";
 import { Skoun } from "@/constants/theme";
 
-/**
- * SMIL Path Morphing Icon:
- * Replicates Amber Student's exact single-element line-art morph loop natively using SVG
- * SMIL `<animate attributeName="d">` path morphing. The single path element's control points
- * morph smoothly between the Phone frame outline path and the Tray container path.
- */
-function SmilMorphDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
-  if (Platform.OS === "web") {
-    const SVG = "svg" as any;
-    const Path = "path" as any;
-    const Animate = "animate" as any;
-    const AnimateTransform = "animateTransform" as any;
-    const G = "g" as any;
+const DARK_ICON_GIF =
+  "https://prod-static-assets.amberstudent.com/images/App_Download_Black_Nav_bar.gif?w=80";
+const LIGHT_ICON_GIF =
+  "https://prod-static-assets.amberstudent.com/images/App_Download_White_Nav_bar_2.gif?w=80";
 
-    // Phone frame path topology (standing phone outline)
-    const dPhone =
-      "M 7,3 L 17,3 C 19,3 20,4 20,6 L 20,18 C 20,20 19,21 17,21 L 7,21 C 5,21 4,20 4,18 L 4,6 C 4,4 5,3 7,3 Z";
+type Props = {
+  /** Switch to white GIF icon when rendered inside dark/transparent navigation bars. Default: false */
+  isDarkNav?: boolean;
+};
 
-    // Tray frame path topology (open top receiving tray container)
-    const dTray =
-      "M 4,11 L 4,11 C 4,11 4,11 4,11 L 4,15 C 4,18 5,19.5 8,19.5 L 16,19.5 C 19,19.5 20,18 20,15 L 20,11 C 20,11 20,11 20,11 Z";
-
-    const animValues = `${dPhone}; ${dTray}; ${dTray}; ${dPhone}`;
-    const animKeyTimes = "0; 0.35; 0.75; 1";
-
-    return (
-      <SVG
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        style={{ display: "block" }}
-      >
-        {/* Single path morphing continuously between Phone and Tray outline */}
-        <Path
-          d={dPhone}
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        >
-          <Animate
-            attributeName="d"
-            values={animValues}
-            keyTimes={animKeyTimes}
-            dur="2.8s"
-            repeatCount="indefinite"
-          />
-        </Path>
-
-        {/* Download arrow dropping into the morphing frame */}
-        <G>
-          <Path
-            d="M 12,4 L 12,12 M 8.5,8.5 L 12,12 L 15.5,8.5"
-            stroke={color}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-          <AnimateTransform
-            attributeName="transform"
-            type="translate"
-            values="0,-5; 0,-1; 0,2.5; 0,7; 0,-5"
-            keyTimes="0; 0.35; 0.7; 0.85; 1"
-            dur="2.8s"
-            repeatCount="indefinite"
-          />
-          <Animate
-            attributeName="opacity"
-            values="0; 1; 1; 0; 0"
-            keyTimes="0; 0.25; 0.7; 0.85; 1"
-            dur="2.8s"
-            repeatCount="indefinite"
-          />
-        </G>
-      </SVG>
-    );
-  }
-  return null;
-}
-
-export function DownloadAppButton() {
+export function DownloadAppButton({ isDarkNav = false }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const gifSrc = isDarkNav ? LIGHT_ICON_GIF : DARK_ICON_GIF;
 
   return (
     <>
@@ -111,11 +40,32 @@ export function DownloadAppButton() {
         accessibilityLabel="Download Skoun Mobile App"
       >
         <View style={styles.iconSlot}>
-          <SmilMorphDownloadIcon
-            color={isHovered ? Skoun.color.primary : Skoun.color.ink}
-          />
+          {Platform.OS === "web" ? (
+            // Standard <img> element with CSS hue filter to shift pink accent to Skoun brand blue
+            // line-art monochrome remains unaffected
+            <img
+              src={gifSrc}
+              width={20}
+              height={20}
+              alt="Download App"
+              style={{
+                width: 20,
+                height: 20,
+                display: "block",
+                filter: "hue-rotate(200deg) saturate(1.3)",
+                objectFit: "contain",
+              }}
+            />
+          ) : null}
         </View>
-        <Text style={[styles.text, isHovered && styles.textHover]}>
+
+        <Text
+          style={[
+            styles.text,
+            isDarkNav && styles.textDarkNav,
+            isHovered && styles.textHover,
+          ]}
+        >
           Download App
         </Text>
       </Pressable>
@@ -151,7 +101,19 @@ export function DownloadAppButton() {
 
             <View style={styles.qrContainer}>
               <View style={styles.qrPlaceholder}>
-                <SmilMorphDownloadIcon color={Skoun.color.primary} />
+                {Platform.OS === "web" ? (
+                  <img
+                    src={DARK_ICON_GIF}
+                    width={32}
+                    height={32}
+                    alt=""
+                    style={{
+                      width: 32,
+                      height: 32,
+                      filter: "hue-rotate(200deg) saturate(1.3)",
+                    }}
+                  />
+                ) : null}
                 <Text style={styles.qrText}>Scan QR Code</Text>
               </View>
             </View>
@@ -204,6 +166,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Skoun.color.ink,
     letterSpacing: -0.1,
+  },
+  textDarkNav: {
+    color: "#FFFFFF",
   },
   textHover: {
     color: Skoun.color.primary,
