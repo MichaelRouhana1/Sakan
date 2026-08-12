@@ -7,5 +7,7 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
+# Local verification emails (may contain OTP codes) — never commit
+backend/.email-outbox/
 # Vendor dumps scraped for research — may contain third-party tokens.
 research/_amber-*

@@ -1,9 +1,14 @@
 import type { Request, Response, NextFunction } from "express";
+import { registrationService } from "./registration.service.js";
 import { usersService } from "./users.service.js";
 import type {
+  CompleteRegistrationInput,
+  LoginWithPasswordInput,
   RegisterUserInput,
+  RequestRegistrationCodeInput,
   SetGenderInput,
   UpdateRoleInput,
+  VerifyRegistrationCodeInput,
 } from "./users.schemas.js";
 
 export class UsersController {
@@ -11,6 +16,50 @@ export class UsersController {
     try {
       const user = await usersService.register(req.body as RegisterUserInput);
       res.status(201).json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async requestRegistrationCode(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await registrationService.requestCode(
+        req.body as RequestRegistrationCodeInput,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async verifyRegistrationCode(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await registrationService.verifyCode(
+        req.body as VerifyRegistrationCodeInput,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async completeRegistration(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = await registrationService.complete(
+        req.body as CompleteRegistrationInput,
+      );
+      res.status(201).json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async login(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = await registrationService.login(
+        req.body as LoginWithPasswordInput,
+      );
+      res.json({ data: user });
     } catch (err) {
       next(err);
     }

@@ -13,6 +13,7 @@ import "react-native-reanimated";
 WebBrowser.maybeCompleteAuthSession();
 
 import { useColorScheme } from "@/components/useColorScheme";
+import { AuthSessionProvider } from "@/features/auth/AuthSessionProvider";
 import { queryClient } from "@/lib/queryClient";
 
 export { ErrorBoundary } from "expo-router";
@@ -72,7 +73,9 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
-      <RootLayoutNav />
+      <AuthSessionProvider>
+        <RootLayoutNav />
+      </AuthSessionProvider>
     </ClerkProvider>
   );
 }

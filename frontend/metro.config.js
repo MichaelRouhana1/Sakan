@@ -28,6 +28,23 @@ const rnsvgCommonJS = path.resolve(
   'index.js',
 );
 
+const zxcvbnCoreCjs = path.resolve(
+  __dirname,
+  'node_modules',
+  '@zxcvbn-ts',
+  'core',
+  'dist',
+  'index.cjs',
+);
+const zxcvbnCommonCjs = path.resolve(
+  __dirname,
+  'node_modules',
+  '@zxcvbn-ts',
+  'language-common',
+  'dist',
+  'index.cjs',
+);
+
 const originalResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -35,6 +52,13 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // the pre-compiled CommonJS bundle so Metro never enters the src/ tree.
   if (moduleName === 'react-native-svg') {
     return { filePath: rnsvgCommonJS, type: 'sourceFile' };
+  }
+
+  if (moduleName === '@zxcvbn-ts/core') {
+    return { filePath: zxcvbnCoreCjs, type: 'sourceFile' };
+  }
+  if (moduleName === '@zxcvbn-ts/language-common') {
+    return { filePath: zxcvbnCommonCjs, type: 'sourceFile' };
   }
 
   // Default resolver

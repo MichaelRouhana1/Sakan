@@ -14,11 +14,11 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { clearSession, getSession, type Session } from "@/lib/session";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   AREA_REGIONS,
   DEMO_LISTINGS,
@@ -146,15 +146,14 @@ function SectionHeader({
 }
 
 function HomeNav({ solid }: { solid: boolean }) {
-  const [session, setSessionState] = useState<Session | null>(null);
-
-  useEffect(() => {
-    getSession().then(setSessionState);
-  }, []);
-
-  const isSignedIn = !!session;
+  const { isSignedIn, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      user.email ||
+      "Account"
+    : "Account";
 
   const handleLoginClick = () => {
     setMenuOpen(false);
@@ -167,8 +166,7 @@ function HomeNav({ solid }: { solid: boolean }) {
 
   const handleLogoutClick = async () => {
     setMenuOpen(false);
-    await clearSession();
-    setSessionState(null);
+    await logout();
   };
 
   return (
@@ -229,7 +227,13 @@ function HomeNav({ solid }: { solid: boolean }) {
                         Login to Continue
                       </Text>
                     </Pressable>
-                  ) : null}
+                  ) : (
+                    <View style={styles.homeLoginBanner}>
+                      <Text style={styles.homeLoginBannerText} numberOfLines={1}>
+                        {displayName}
+                      </Text>
+                    </View>
+                  )}
 
                   <Pressable
                     style={styles.homeMenuItem}
@@ -317,6 +321,7 @@ function HomeNav({ solid }: { solid: boolean }) {
       <SkounAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
       />
     </View>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useRouter } from "expo-router";
 import {
   Image,
@@ -9,8 +9,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { clearSession, getSession, setSession, type Session } from "@/lib/session";
-
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -20,8 +18,7 @@ import {
   WEB_CONTENT_PAD_X,
   WEB_NAV_HEIGHT,
 } from "@/constants/webLayout";
-
-import { useClerk, useUser } from "@clerk/expo";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 
 type Props = {
   showSearch?: boolean;
@@ -29,23 +26,12 @@ type Props = {
 
 export function WebTopNav({ showSearch = false }: Props) {
   const router = useRouter();
-  const { user } = useUser();
-  const clerk = useClerk();
-  const [session, setSessionState] = useState<Session | null>(null);
-
-  useEffect(() => {
-    if (user?.id) {
-      setSession({ userId: user.id, role: "renter" }).then(() => {
-        setSessionState({ userId: user.id, role: "renter" });
-      });
-    } else {
-      clearSession().then(() => {
-        setSessionState(null);
-      });
-    }
-  }, [user?.id]);
-
-  const isSignedIn = !!user || !!session;
+  const { isSignedIn, user, logout } = useAuthSession();
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      user.email ||
+      "Account"
+    : "Account";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -61,15 +47,7 @@ export function WebTopNav({ showSearch = false }: Props) {
 
   const handleLogoutClick = async () => {
     setMenuOpen(false);
-    try {
-      if (clerk?.signOut) {
-        await clerk.signOut();
-      }
-    } catch {
-      // fallback
-    }
-    await clearSession();
-    setSessionState(null);
+    await logout();
   };
 
 
@@ -147,7 +125,6 @@ export function WebTopNav({ showSearch = false }: Props) {
 
                 <View style={styles.dropdownMenu}>
                   {!isSignedIn ? (
-                    /* LOGGED OUT STATE: "Login to Continue" BANNER */
                     <Pressable
                       style={({ pressed }) => [
                         styles.loginToContinueBanner,
@@ -162,7 +139,13 @@ export function WebTopNav({ showSearch = false }: Props) {
                         Login to Continue
                       </Text>
                     </Pressable>
-                  ) : null}
+                  ) : (
+                    <View style={styles.loginToContinueBanner}>
+                      <Text style={styles.loginToContinueText} numberOfLines={1}>
+                        {displayName}
+                      </Text>
+                    </View>
+                  )}
 
                   {/* Menu Items */}
                   <Pressable
@@ -302,14 +285,8 @@ export function WebTopNav({ showSearch = false }: Props) {
       {/* SKOUN CUSTOM AMBER-STYLE AUTH MODAL */}
       <SkounAuthModal
         visible={authModalOpen}
-        onClose={() => {
-          setAuthModalOpen(false);
-          getSession().then(setSessionState);
-        }}
-        onSuccess={(userId) => {
-          setSessionState({ userId, role: "renter" });
-          setAuthModalOpen(false);
-        }}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
       />
     </View>
   );

@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   integer,
   pgTable,
   timestamp,
@@ -10,7 +11,14 @@ import { userAccountStatusEnum, userGenderEnum, userRoleEnum } from "./enums.js"
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
-  phone: varchar("phone", { length: 32 }).notNull().unique(),
+  /** Legacy phone accounts; nullable for email/password registrations. */
+  phone: varchar("phone", { length: 32 }).unique(),
+  email: varchar("email", { length: 320 }).unique(),
+  passwordHash: varchar("password_hash", { length: 255 }),
+  firstName: varchar("first_name", { length: 80 }),
+  lastName: varchar("last_name", { length: 80 }),
+  dateOfBirth: date("date_of_birth"),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   role: userRoleEnum("role").notNull(),
   postCredits: integer("post_credits").notNull().default(0),
   boostCredits: integer("boost_credits").notNull().default(0),

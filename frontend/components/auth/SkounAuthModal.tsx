@@ -13,8 +13,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useClerk, useOAuth } from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";
 
+import { SkounRegisterFlow } from "@/components/auth/SkounRegisterFlow";
 import { Skoun } from "@/constants/theme";
-import { setSession } from "@/lib/session";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import {
+  loginWithPassword,
+  RegistrationApiError,
+} from "@/features/auth/registrationApi";
+import {
+  getLastAuthProvider,
+  setLastAuthProvider,
+  setPendingAuthProvider,
+  type AuthProvider,
+} from "@/lib/session";
 
 if (Platform.OS !== "web") {
   WebBrowser.maybeCompleteAuthSession();
@@ -27,36 +38,96 @@ type Props = {
   title?: string;
 };
 
-export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in to Skoun" }: Props) {
+type AuthMode = "signIn" | "signUp";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function clerkErrorMessage(err: unknown, fallback: string): string {
+  const anyErr = err as {
+    errors?: { message?: string; code?: string }[];
+    message?: string;
+  };
+  return anyErr?.errors?.[0]?.message || anyErr?.message || fallback;
+}
+
+function isAlreadySignedInError(err: unknown): boolean {
+  const anyErr = err as {
+    errors?: { message?: string; code?: string }[];
+    message?: string;
+  };
+  const code = anyErr?.errors?.[0]?.code;
+  const msg = (
+    anyErr?.errors?.[0]?.message ||
+    anyErr?.message ||
+    ""
+  ).toLowerCase();
+  return (
+    code === "session_exists" ||
+    msg.includes("already signed in") ||
+    msg.includes("session already exists")
+  );
+}
+
+export function SkounAuthModal({
+  visible,
+  onClose,
+  onSuccess,
+  title = "Sign in to Skoun",
+}: Props) {
   const clerk = useClerk();
+  const { establishSession } = useAuthSession();
 
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({ strategy: "oauth_google" });
-  const { startOAuthFlow: startFacebookOAuth } = useOAuth({ strategy: "oauth_facebook" });
+  const { startOAuthFlow: startFacebookOAuth } = useOAuth({
+    strategy: "oauth_facebook",
+  });
   const { startOAuthFlow: startAppleOAuth } = useOAuth({ strategy: "oauth_apple" });
 
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [step, setStep] = useState<"input" | "otp">("input");
-  const [authMode, setAuthMode] = useState<"signIn" | "signUp">("signIn");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("signIn");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+  const [lastUsedProvider, setLastUsedProvider] = useState<AuthProvider | null>(
+    null,
+  );
 
-  const finishSuccess = async (userId: string) => {
-    await setSession({ userId, role: "renter" });
-    if (onSuccess) {
-      onSuccess(userId);
-    }
-    handleClose();
-  };
-
-  if (!visible) return null;
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    getLastAuthProvider().then((provider) => {
+      if (!cancelled) setLastUsedProvider(provider);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
 
   const handleClose = () => {
     setError(null);
+    setFieldErrors({});
     setLoading(false);
-    setStep("input");
-    setCode("");
+    setPassword("");
+    setShowPassword(false);
+    setAuthMode("signIn");
+    setEmail("");
     onClose();
+  };
+
+  const finishSuccess = async (
+    provider: AuthProvider,
+    userId: string,
+  ) => {
+    await setLastAuthProvider(provider);
+    setLastUsedProvider(provider);
+    await establishSession({ userId, role: "renter" });
+    onSuccess?.(userId);
+    handleClose();
   };
 
   const handleClearStaleSession = async (): Promise<void> => {
@@ -64,140 +135,34 @@ export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in t
       if (clerk?.signOut) {
         await clerk.signOut();
       }
-    } catch {}
-  };
-
-  const handleContinueEmail = async () => {
-    if (!email.trim() || loading) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (clerk?.client?.signIn) {
-        try {
-          const signInAttempt = await clerk.client.signIn.create({
-            identifier: email.trim(),
-          });
-
-          const firstFactor = signInAttempt.supportedFirstFactors?.find(
-            (factor: any) => factor.strategy === "email_code"
-          );
-          if (firstFactor) {
-            await clerk.client.signIn.prepareFirstFactor({
-              strategy: "email_code",
-              emailAddressId: (firstFactor as any).emailAddressId,
-            });
-          }
-          setAuthMode("signIn");
-          setStep("otp");
-          setLoading(false);
-          return;
-        } catch (signInErr: any) {
-          const isAlreadySignedIn =
-            signInErr?.errors?.[0]?.code === "session_exists" ||
-            signInErr?.message?.toLowerCase().includes("already signed in") ||
-            signInErr?.message?.toLowerCase().includes("session already exists") ||
-            signInErr?.errors?.[0]?.message?.toLowerCase().includes("already signed in");
-
-          if (isAlreadySignedIn) {
-            if (clerk?.user?.id || clerk?.session?.id) {
-              await finishSuccess(clerk?.user?.id || clerk?.session?.id || "clerk_user");
-              return;
-            }
-            await handleClearStaleSession();
-            const retryAttempt = await clerk.client.signIn.create({
-              identifier: email.trim(),
-            });
-            const firstFactor = retryAttempt.supportedFirstFactors?.find(
-              (factor: any) => factor.strategy === "email_code"
-            );
-            if (firstFactor) {
-              await clerk.client.signIn.prepareFirstFactor({
-                strategy: "email_code",
-                emailAddressId: (firstFactor as any).emailAddressId,
-              });
-            }
-            setAuthMode("signIn");
-            setStep("otp");
-            setLoading(false);
-            return;
-          }
-
-          if (signInErr?.errors?.[0]?.code === "form_identifier_not_found" || signInErr?.status === 422) {
-            if (clerk?.client?.signUp) {
-              await clerk.client.signUp.create({
-                emailAddress: email.trim(),
-              });
-              await clerk.client.signUp.prepareEmailAddressVerification({
-                strategy: "email_code",
-              });
-              setAuthMode("signUp");
-              setStep("otp");
-              setLoading(false);
-              return;
-            }
-          } else {
-            throw signInErr;
-          }
-        }
-      }
-
-      setStep("otp");
-    } catch (err: any) {
-      const isAlreadySignedIn =
-        err?.errors?.[0]?.code === "session_exists" ||
-        err?.message?.toLowerCase().includes("already signed in") ||
-        err?.message?.toLowerCase().includes("session already exists");
-
-      if (isAlreadySignedIn && (clerk?.user?.id || clerk?.session?.id)) {
-        await finishSuccess(clerk?.user?.id || clerk?.session?.id || "clerk_user");
-        return;
-      }
-
-      const msg =
-        err?.errors?.[0]?.message || err?.message || "Could not continue with email.";
-      setError(msg);
-    } finally {
-      setLoading(false);
+    } catch {
+      // ignore
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!code.trim() || loading) return;
+  const handleEmailPasswordSignIn = async () => {
+    if (loading) return;
+    const next: typeof fieldErrors = {};
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) next.email = "Email is required.";
+    else if (!EMAIL_RE.test(trimmedEmail)) {
+      next.email = "Enter a valid email address.";
+    }
+    if (!password) next.password = "Password is required.";
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+
     setLoading(true);
     setError(null);
-
     try {
-      let createdSessionId: string | null = null;
-
-      if (authMode === "signIn" && clerk?.client?.signIn) {
-        const res = await clerk.client.signIn.attemptFirstFactor({
-          strategy: "email_code",
-          code: code.trim(),
-        });
-        if (res.status === "complete" && res.createdSessionId) {
-          createdSessionId = res.createdSessionId;
-          await clerk.setActive({ session: res.createdSessionId });
-        }
-      } else if (authMode === "signUp" && clerk?.client?.signUp) {
-        const res = await clerk.client.signUp.attemptEmailAddressVerification({
-          code: code.trim(),
-        });
-        if (res.status === "complete" && res.createdSessionId) {
-          createdSessionId = res.createdSessionId;
-          await clerk.setActive({ session: res.createdSessionId });
-        }
-      }
-
-      if (createdSessionId) {
-        await finishSuccess(createdSessionId);
+      const user = await loginWithPassword(trimmedEmail, password);
+      await finishSuccess("email", user.id);
+    } catch (err) {
+      if (err instanceof RegistrationApiError) {
+        setError(err.message);
       } else {
-        setError("Verification code could not be completed.");
+        setError("Could not sign in.");
       }
-    } catch (err: any) {
-      const msg =
-        err?.errors?.[0]?.message || err?.message || "Invalid verification code.";
-      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -208,28 +173,26 @@ export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in t
     setError(null);
 
     try {
-      const strategy = `oauth_${provider}` as const;
+      const strategy = `oauth_${provider}` as
+        | "oauth_google"
+        | "oauth_facebook"
+        | "oauth_apple";
 
-      // On Web: redirect in the SAME TAB instead of opening a popup window
+      await setPendingAuthProvider(provider);
+
       if (Platform.OS === "web" && clerk?.client?.signIn) {
+        const redirectUrl =
+          typeof window !== "undefined" ? window.location.origin : "/";
         try {
-          const redirectUrl = typeof window !== "undefined" ? window.location.origin : "/";
           await clerk.client.signIn.authenticateWithRedirect({
             strategy,
             redirectUrl,
             redirectUrlComplete: redirectUrl,
           });
           return;
-        } catch (redirectErr: any) {
-          const isAlreadySignedIn =
-            redirectErr?.errors?.[0]?.code === "session_exists" ||
-            redirectErr?.message?.toLowerCase().includes("already signed in") ||
-            redirectErr?.message?.toLowerCase().includes("session already exists") ||
-            redirectErr?.errors?.[0]?.message?.toLowerCase().includes("already signed in");
-
-          if (isAlreadySignedIn) {
+        } catch (redirectErr: unknown) {
+          if (isAlreadySignedInError(redirectErr)) {
             await handleClearStaleSession();
-            const redirectUrl = typeof window !== "undefined" ? window.location.origin : "/";
             await clerk.client.signIn.authenticateWithRedirect({
               strategy,
               redirectUrl,
@@ -241,7 +204,6 @@ export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in t
         }
       }
 
-      // Native platform flow (iOS / Android)
       let startFlow = startGoogleOAuth;
       if (provider === "facebook") startFlow = startFacebookOAuth;
       if (provider === "apple") startFlow = startAppleOAuth;
@@ -249,35 +211,42 @@ export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in t
       const res = await startFlow();
       if (res?.createdSessionId && res?.setActive) {
         await res.setActive({ session: res.createdSessionId });
-        await finishSuccess(res.createdSessionId);
-        return;
+        const userId = clerk?.user?.id;
+        if (userId) {
+          await finishSuccess(provider, userId);
+          return;
+        }
       }
 
       if (clerk?.user?.id) {
-        await finishSuccess(clerk.user.id);
-        return;
+        await finishSuccess(provider, clerk.user.id);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("OAuth error:", err);
-      const isAlreadySignedIn =
-        err?.errors?.[0]?.code === "session_exists" ||
-        err?.message?.toLowerCase().includes("already signed in") ||
-        err?.message?.toLowerCase().includes("session already exists") ||
-        err?.errors?.[0]?.message?.toLowerCase().includes("already signed in");
-
-      if (isAlreadySignedIn && (clerk?.user?.id || clerk?.session?.id)) {
-        await finishSuccess(clerk?.user?.id || clerk?.session?.id || "clerk_user");
+      if (isAlreadySignedInError(err) && clerk?.user?.id) {
+        await finishSuccess(provider, clerk.user.id);
         return;
       }
-
-      const msg =
-        err?.errors?.[0]?.message ||
-        err?.message ||
-        `${provider} authentication failed. Please try again.`;
-      setError(msg);
+      setError(
+        clerkErrorMessage(
+          err,
+          `${provider} authentication failed. Please try again.`,
+        ),
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  if (!visible) return null;
+
+  const renderLastUsedBadge = (provider: AuthProvider) => {
+    if (lastUsedProvider !== provider) return null;
+    return (
+      <View style={styles.lastUsedBadge}>
+        <Text style={styles.lastUsedText}>Last used</Text>
+      </View>
+    );
   };
 
   return (
@@ -291,7 +260,6 @@ export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in t
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
 
         <View style={styles.modalCard}>
-          {/* Close button at top right */}
           <Pressable
             onPress={handleClose}
             hitSlop={10}
@@ -302,173 +270,197 @@ export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in t
             <Ionicons name="close" size={20} color="#64748B" />
           </Pressable>
 
-          <View style={styles.contentPadding}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>
-                Welcome back! Please sign in to continue
-              </Text>
+          {authMode === "signUp" ? (
+            <View style={styles.registerPad}>
+              <SkounRegisterFlow
+                onBackToSignIn={() => {
+                  setAuthMode("signIn");
+                  setError(null);
+                  setPassword("");
+                }}
+                onSuccess={onSuccess}
+                onClose={handleClose}
+              />
             </View>
+          ) : (
+            <>
+              <View style={styles.contentPadding}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.title}>{title}</Text>
+                  <Text style={styles.subtitle}>
+                    Welcome back! Please sign in to continue
+                  </Text>
+                </View>
 
-            {/* Body Step 1: Input form */}
-            {step === "input" ? (
-              <View style={styles.body}>
-                {/* Social Buttons */}
-                <View style={styles.socialCol}>
-                  {/* Google Button with 'Last used' badge */}
-                  <View style={styles.socialBtnWrapper}>
-                    <Pressable
-                      disabled={loading}
-                      style={({ pressed }) => [
-                        styles.socialBtn,
-                        pressed && styles.pressed,
-                        loading && styles.btnDisabled,
-                      ]}
-                      onPress={() => handleOAuth("google")}
-                    >
-                      <Ionicons name="logo-google" size={18} color="#EA4335" />
-                      <Text style={styles.socialBtnText}>Continue with Google</Text>
-                    </Pressable>
-                    <View style={styles.lastUsedBadge}>
-                      <Text style={styles.lastUsedText}>Last used</Text>
+                <View style={styles.body}>
+                  <View style={styles.socialCol}>
+                    <View style={styles.socialBtnWrapper}>
+                      <Pressable
+                        disabled={loading}
+                        style={({ pressed }) => [
+                          styles.socialBtn,
+                          pressed && styles.pressed,
+                          loading && styles.btnDisabled,
+                        ]}
+                        onPress={() => handleOAuth("google")}
+                      >
+                        <Ionicons name="logo-google" size={18} color="#EA4335" />
+                        <Text style={styles.socialBtnText}>
+                          Continue with Google
+                        </Text>
+                      </Pressable>
+                      {renderLastUsedBadge("google")}
+                    </View>
+
+                    <View style={styles.socialBtnWrapper}>
+                      <Pressable
+                        disabled={loading}
+                        style={({ pressed }) => [
+                          styles.socialBtn,
+                          pressed && styles.pressed,
+                          loading && styles.btnDisabled,
+                        ]}
+                        onPress={() => handleOAuth("apple")}
+                      >
+                        <Ionicons name="logo-apple" size={18} color="#000000" />
+                        <Text style={styles.socialBtnText}>
+                          Continue with Apple
+                        </Text>
+                      </Pressable>
+                      {renderLastUsedBadge("apple")}
+                    </View>
+
+                    <View style={styles.socialBtnWrapper}>
+                      <Pressable
+                        disabled={loading}
+                        style={({ pressed }) => [
+                          styles.socialBtn,
+                          pressed && styles.pressed,
+                          loading && styles.btnDisabled,
+                        ]}
+                        onPress={() => handleOAuth("facebook")}
+                      >
+                        <Ionicons
+                          name="logo-facebook"
+                          size={18}
+                          color="#1877F2"
+                        />
+                        <Text style={styles.socialBtnText}>
+                          Continue with Facebook
+                        </Text>
+                      </Pressable>
+                      {renderLastUsedBadge("facebook")}
                     </View>
                   </View>
 
-                  {/* Apple Button */}
-                  <Pressable
-                    disabled={loading}
-                    style={({ pressed }) => [
-                      styles.socialBtn,
-                      pressed && styles.pressed,
-                      loading && styles.btnDisabled,
-                    ]}
-                    onPress={() => handleOAuth("apple")}
-                  >
-                    <Ionicons name="logo-apple" size={18} color="#000000" />
-                    <Text style={styles.socialBtnText}>Continue with Apple</Text>
-                  </Pressable>
+                  <View style={styles.dividerRow}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
 
-                  {/* Facebook Button */}
-                  <Pressable
-                    disabled={loading}
-                    style={({ pressed }) => [
-                      styles.socialBtn,
-                      pressed && styles.pressed,
-                      loading && styles.btnDisabled,
-                    ]}
-                    onPress={() => handleOAuth("facebook")}
-                  >
-                    <Ionicons name="logo-facebook" size={18} color="#1877F2" />
-                    <Text style={styles.socialBtnText}>Continue with Facebook</Text>
-                  </Pressable>
-                </View>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Email address</Text>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="Enter your email address"
+                      placeholderTextColor="#A1A1AA"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={[
+                        styles.input,
+                        fieldErrors.email ? styles.inputError : null,
+                      ]}
+                    />
+                    {fieldErrors.email ? (
+                      <Text style={styles.fieldErrorText}>
+                        {fieldErrors.email}
+                      </Text>
+                    ) : null}
+                  </View>
 
-                {/* Divider */}
-                <View style={styles.dividerRow}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>or</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                {/* Email Section */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Email address</Text>
-                  <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Enter your email address"
-                    placeholderTextColor="#A1A1AA"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={styles.input}
-                  />
-                </View>
-
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                {/* Primary Continue Button (Dark Black with chevron) */}
-                <Pressable
-                  onPress={handleContinueEmail}
-                  disabled={!email.trim() || loading}
-                  style={({ pressed }) => [
-                    styles.primaryBtn,
-                    (!email.trim() || loading) && styles.btnDisabled,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <View style={styles.btnRow}>
-                      <Text style={styles.primaryBtnText}>Continue</Text>
-                      <Text style={styles.btnChevron}>▸</Text>
+                  <View style={styles.inputGroup}>
+                    <View style={styles.passwordLabelRow}>
+                      <Text style={styles.inputLabel}>Password</Text>
+                      <Pressable
+                        onPress={() => setShowPassword((v) => !v)}
+                        hitSlop={8}
+                      >
+                        <Text style={styles.showHideText}>
+                          {showPassword ? "HIDE" : "SHOW"}
+                        </Text>
+                      </Pressable>
                     </View>
-                  )}
-                </Pressable>
-              </View>
-            ) : (
-              /* Step 2: Verification Code Entry */
-              <View style={styles.body}>
-                <Text style={styles.otpSub}>
-                  We sent a verification code to{" "}
-                  <Text style={styles.otpEmail}>{email}</Text>
-                </Text>
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Enter your password"
+                      placeholderTextColor="#A1A1AA"
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="oneTimeCode"
+                      style={[
+                        styles.input,
+                        fieldErrors.password ? styles.inputError : null,
+                      ]}
+                    />
+                    {fieldErrors.password ? (
+                      <Text style={styles.fieldErrorText}>
+                        {fieldErrors.password}
+                      </Text>
+                    ) : null}
+                  </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Verification code</Text>
-                  <TextInput
-                    value={code}
-                    onChangeText={setCode}
-                    placeholder="Enter 6-digit code"
-                    placeholderTextColor="#A1A1AA"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    style={styles.input}
-                  />
+                  {lastUsedProvider === "email" ? (
+                    <Text style={styles.lastUsedHint}>
+                      Email was last used on this device
+                    </Text>
+                  ) : null}
+
+                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                  <Pressable
+                    onPress={handleEmailPasswordSignIn}
+                    disabled={!email.trim() || !password || loading}
+                    style={({ pressed }) => [
+                      styles.primaryBtn,
+                      (!email.trim() || !password || loading) &&
+                        styles.btnDisabled,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <View style={styles.btnRow}>
+                        <Text style={styles.primaryBtnText}>Sign in</Text>
+                        <Text style={styles.btnChevron}>▸</Text>
+                      </View>
+                    )}
+                  </Pressable>
                 </View>
-
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                <Pressable
-                  onPress={handleVerifyOtp}
-                  disabled={!code.trim() || loading}
-                  style={({ pressed }) => [
-                    styles.primaryBtn,
-                    (!code.trim() || loading) && styles.btnDisabled,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>Verify Code</Text>
-                  )}
-                </Pressable>
-
-                <Pressable onPress={() => setStep("input")} style={styles.backBtn}>
-                  <Text style={styles.backBtnText}>Change email address</Text>
-                </Pressable>
               </View>
-            )}
-          </View>
 
-          {/* Footer Card Section */}
-          <View style={styles.footerCard}>
-            <Text style={styles.footerText}>
-              Don’t have an account?{" "}
-              <Text
-                style={styles.signUpLink}
-                onPress={() => {
-                  setAuthMode("signUp");
-                  setStep("input");
-                }}
-              >
-                Sign up
-              </Text>
-            </Text>
-          </View>
+              <View style={styles.footerCard}>
+                <Text style={styles.footerText}>
+                  Don’t have an account?{" "}
+                  <Text
+                    style={styles.signUpLink}
+                    onPress={() => {
+                      setAuthMode("signUp");
+                      setError(null);
+                      setPassword("");
+                    }}
+                  >
+                    Sign up
+                  </Text>
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -495,6 +487,7 @@ const styles = StyleSheet.create({
     elevation: 14,
     overflow: "hidden",
     position: "relative",
+    maxHeight: "92%",
   },
   closeBtn: {
     position: "absolute",
@@ -502,6 +495,9 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
     padding: 4,
+  },
+  registerPad: {
+    paddingTop: 32,
   },
   contentPadding: {
     paddingHorizontal: 28,
@@ -567,6 +563,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#71717A",
   },
+  lastUsedHint: {
+    fontFamily: Skoun.type.body,
+    fontSize: 12,
+    color: "#A1A1AA",
+    marginTop: -6,
+  },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -591,6 +593,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#09090B",
   },
+  passwordLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  showHideText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 12,
+    color: "#18181B",
+    letterSpacing: 0.6,
+  },
   input: {
     fontFamily: Skoun.type.body,
     fontSize: 14,
@@ -601,6 +614,14 @@ const styles = StyleSheet.create({
     borderColor: "#E4E4E7",
     paddingHorizontal: 14,
     backgroundColor: "#FFFFFF",
+  },
+  inputError: {
+    borderColor: Skoun.color.danger,
+  },
+  fieldErrorText: {
+    fontFamily: Skoun.type.body,
+    fontSize: 12,
+    color: Skoun.color.danger,
   },
   errorText: {
     fontFamily: Skoun.type.body,
@@ -636,27 +657,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.88,
-  },
-  otpSub: {
-    fontFamily: Skoun.type.body,
-    fontSize: 14,
-    color: "#71717A",
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  otpEmail: {
-    fontFamily: Skoun.type.bodyBold,
-    color: "#09090B",
-  },
-  backBtn: {
-    alignSelf: "center",
-    paddingVertical: 4,
-  },
-  backBtnText: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 13,
-    color: "#18181B",
-    textDecorationLine: "underline",
   },
   footerCard: {
     backgroundColor: "#FAFAFA",

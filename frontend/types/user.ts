@@ -6,7 +6,12 @@ export type UserGender = "male" | "female";
 
 export type User = {
   id: string;
-  phone: string;
+  phone: string | null;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  dateOfBirth?: string | null;
+  emailVerifiedAt?: string | null;
   role: UserRole;
   postCredits: number;
   boostCredits: number;

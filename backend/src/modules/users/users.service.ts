@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errors.js";
+import { toPublicUser } from "./users.public.js";
 import { usersRepository } from "./users.repository.js";
 import type {
   RegisterUserInput,
@@ -12,7 +13,7 @@ export class UsersService {
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }
-    return user;
+    return toPublicUser(user);
   }
 
   async register(input: RegisterUserInput) {
@@ -20,7 +21,8 @@ export class UsersService {
     if (existing) {
       throw new AppError(409, "Phone already registered", "PHONE_EXISTS");
     }
-    return usersRepository.create(input);
+    const user = await usersRepository.create(input);
+    return toPublicUser(user);
   }
 
   async updateRole(userId: string, input: UpdateRoleInput) {
@@ -28,7 +30,7 @@ export class UsersService {
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }
-    return user;
+    return toPublicUser(user);
   }
 
   async verifyPhone(userId: string) {
@@ -36,7 +38,7 @@ export class UsersService {
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }
-    return user;
+    return toPublicUser(user);
   }
 
   async setGender(userId: string, input: SetGenderInput) {
@@ -55,7 +57,7 @@ export class UsersService {
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }
-    return user;
+    return toPublicUser(user);
   }
 }
 

@@ -1,108 +1,35 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useClerk, useUser } from "@clerk/expo";
 import { Skoun } from "@/constants/theme";
-import { clearSession, getSession, setSession, type Session } from "@/lib/session";
-import { ensureSessionForRole } from "@/features/auth/useEnsureSession";
+import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 
 export default function ProfileScreen() {
-  const clerk = useClerk();
-  const { user } = useUser();
   const insets = useSafeAreaInsets();
-  const [session, setSessionState] = useState<Session | null>(null);
+  const { isSignedIn, user, logout, refreshUser } = useAuthSession();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    if (user?.id) {
-      setSession({ userId: user.id, role: "renter" }).then(() => {
-        setSessionState({ userId: user.id, role: "renter" });
-      });
-    } else {
-      clearSession().then(() => {
-        setSessionState(null);
-      });
+    if (isSignedIn) {
+      void refreshUser();
     }
-  }, [user?.id]);
+  }, [isSignedIn, refreshUser]);
 
-  const isSignedIn = !!user || !!session;
-
-  const [loginSheetOpen, setLoginSheetOpen] = useState(false);
-  const [email, setEmail] = useState("");
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(350)).current;
+  const displayName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      user.email ||
+      "Signed in"
+    : "Guest";
 
   const handleOpenLogin = () => {
-    setLoginSheetOpen(true);
-    fadeAnim.setValue(0);
-    slideAnim.setValue(350);
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 65,
-        friction: 11,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const handleCloseLogin = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 350,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setLoginSheetOpen(false);
-    });
-  };
-
-  const handleContinue = async () => {
-    if (!email.trim()) return;
-    try {
-      await ensureSessionForRole("renter");
-      const activeSession = await getSession();
-      setSessionState(activeSession);
-    } catch {
-      // Session fallback
-    }
-    handleCloseLogin();
+    setAuthModalOpen(true);
   };
 
   const handleLogout = async () => {
-    try {
-      if (clerk?.signOut) {
-        await clerk.signOut();
-      }
-    } catch {}
-    await clearSession();
-    setSessionState(null);
+    await logout();
   };
 
   return (
@@ -119,9 +46,9 @@ export default function ProfileScreen() {
           <View style={styles.headerTextCol}>
             {isSignedIn ? (
               <>
-                <Text style={styles.guestTitle}>Signed in User</Text>
+                <Text style={styles.guestTitle}>{displayName}</Text>
                 <Text style={styles.guestSubtitle}>
-                  User ID: {session?.userId}
+                  {user?.email || user?.phone || "Skoun member"}
                 </Text>
               </>
             ) : (
@@ -269,127 +196,11 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* SLIDING LOGIN BOTTOM SHEET */}
-      <Modal
-        visible={loginSheetOpen}
-        animationType="none"
-        transparent
-        onRequestClose={handleCloseLogin}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalOverlay}
-        >
-          <Animated.View style={[styles.modalBackdrop, { opacity: fadeAnim }]}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={handleCloseLogin} />
-          </Animated.View>
-          
-          <Animated.View
-            style={[
-              styles.sheetContainer,
-              {
-                transform: [{ translateY: slideAnim }],
-                paddingBottom: Math.max(insets.bottom, 24),
-              },
-            ]}
-          >
-            {/* Drag Handle */}
-            <View style={styles.dragHandle} />
-
-            {/* Header Row */}
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>Login to Skoun</Text>
-              <Pressable
-                onPress={handleCloseLogin}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Close login sheet"
-              >
-                <Ionicons name="close" size={24} color={Skoun.color.ink} />
-              </Pressable>
-            </View>
-
-            {/* Email Input */}
-            <View style={styles.inputGroup}>
-              <TextInput
-                style={styles.emailInput}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email Address"
-                placeholderTextColor={Skoun.color.inkFaint}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Continue Button */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.continueBtn,
-                !email.trim() && styles.continueBtnDisabled,
-                pressed && email.trim() && styles.pressed,
-              ]}
-              onPress={handleContinue}
-              disabled={!email.trim()}
-              accessibilityRole="button"
-              accessibilityLabel="Continue"
-            >
-              <Text
-                style={[
-                  styles.continueText,
-                  !email.trim() && styles.continueTextDisabled,
-                ]}
-              >
-                Continue
-              </Text>
-            </Pressable>
-
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or login with</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Alt Login Outlined Buttons */}
-            <View style={styles.socialButtonsGroup}>
-              {/* Mobile */}
-              <Pressable
-                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-                onPress={handleContinue}
-                accessibilityRole="button"
-                accessibilityLabel="Login with Mobile"
-              >
-                <Ionicons name="call" size={20} color={Skoun.color.ink} style={styles.socialIcon} />
-                <Text style={styles.socialBtnText}>Mobile</Text>
-              </Pressable>
-
-              {/* Google */}
-              <Pressable
-                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-                onPress={handleContinue}
-                accessibilityRole="button"
-                accessibilityLabel="Login with Google"
-              >
-                <Ionicons name="logo-google" size={20} color="#EA4335" style={styles.socialIcon} />
-                <Text style={styles.socialBtnText}>Google</Text>
-              </Pressable>
-
-              {/* Apple */}
-              <Pressable
-                style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-                onPress={handleContinue}
-                accessibilityRole="button"
-                accessibilityLabel="Login with Apple"
-              >
-                <Ionicons name="logo-apple" size={20} color="#000000" style={styles.socialIcon} />
-                <Text style={styles.socialBtnText}>Apple</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <SkounAuthModal
+        visible={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
+      />
     </View>
   );
 }
