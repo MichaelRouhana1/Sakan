@@ -156,27 +156,41 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     setError(null);
 
     try {
+      const oauth =
+        strategy === "oauth_google"
+          ? googleOAuth
+          : strategy === "oauth_apple"
+          ? appleOAuth
+          : facebookOAuth;
+
       if (Platform.OS === "web") {
-        if (!isSignInLoaded || !signIn) {
-          console.error("Clerk SignIn not loaded");
-          setLoading(false);
-          return;
+        if (isSignInLoaded && signIn && typeof (signIn as any).authenticateWithRedirect === "function") {
+          await signIn.authenticateWithRedirect({
+            strategy,
+            redirectUrl: "/sso-callback",
+            redirectUrlComplete: "/",
+          });
+        } else {
+          // Fallback if signIn object is still initializing on Web
+          const webRedirectUrl =
+            typeof window !== "undefined"
+              ? `${window.location.origin}/sso-callback`
+              : "/sso-callback";
+
+          const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
+            redirectUrl: webRedirectUrl,
+          });
+
+          if (createdSessionId) {
+            if (setOAuthActive) {
+              await setOAuthActive({ session: createdSessionId });
+            } else if (setActive) {
+              await setActive({ session: createdSessionId });
+            }
+            handleClose();
+          }
         }
-
-        // Web: Full-page redirect flow (no popups, no COOP errors)
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: "/sso-callback",
-          redirectUrlComplete: "/",
-        });
       } else {
-        const oauth =
-          strategy === "oauth_google"
-            ? googleOAuth
-            : strategy === "oauth_apple"
-            ? appleOAuth
-            : facebookOAuth;
-
         const redirectUrl = AuthSession.makeRedirectUri({
           scheme: "skoun",
           path: "oauth-native-callback",
