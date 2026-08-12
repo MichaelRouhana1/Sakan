@@ -155,7 +155,7 @@ function HomeNav({ solid }: { solid: boolean }) {
         >
           <SkounLogo size={32} />
           <Text style={[styles.navBrandText, solid && styles.navBrandTextSolid]}>
-            skoun
+            Skoun
           </Text>
         </Pressable>
 
@@ -822,7 +822,7 @@ export function SkounHomePage() {
           <View style={[styles.footerInner, { paddingHorizontal: padX }]}>
             <View style={[styles.footerGrid, isNarrow && styles.footerGridNarrow]}>
               <View style={styles.footerBrandCol}>
-                <Text style={styles.footerBrand}>skoun</Text>
+                <Text style={styles.footerBrand}>Skoun</Text>
                 <Text style={styles.footerTag}>
                   Lebanon rental classifieds — find, save, connect on WhatsApp.
                 </Text>
@@ -919,7 +919,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     letterSpacing: -0.8,
     color: "#fff",
-    textTransform: "lowercase",
   },
   navBrandTextSolid: { color: Skoun.color.primary },
   navRight: { flexDirection: "row", alignItems: "center", gap: 18 },
@@ -1616,7 +1615,6 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.display,
     fontSize: 24,
     color: Skoun.color.primary,
-    textTransform: "lowercase",
   },
   footerTag: {
     fontFamily: Skoun.type.body,
