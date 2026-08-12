@@ -68,6 +68,7 @@ export function WebTopNav({ showSearch = false }: Props) {
         ) : null}
 
         <View style={styles.links}>
+          <DownloadAppButton />
           <Link href="/search" asChild>
             <Pressable
               style={flattenViewStyle([
@@ -98,7 +99,6 @@ export function WebTopNav({ showSearch = false }: Props) {
               </Text>
             </Pressable>
           </Link>
-          <DownloadAppButton />
           <Link href="/(poster)/(tabs)/create" asChild>
             <Pressable style={styles.cta} accessibilityRole="link">
               <Text style={styles.ctaText}>List a room</Text>

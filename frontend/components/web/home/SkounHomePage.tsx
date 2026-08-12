@@ -14,6 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { Skoun } from "@/constants/theme";
 import {
   AREA_REGIONS,
@@ -157,6 +158,7 @@ function HomeNav({ solid }: { solid: boolean }) {
         </Pressable>
 
         <View style={styles.navRight}>
+          <DownloadAppButton isDarkNav={!solid} />
           <Pressable onPress={goBrowse} accessibilityRole="link">
             <Text style={[styles.navLink, solid && styles.navLinkSolid]}>Find</Text>
           </Pressable>

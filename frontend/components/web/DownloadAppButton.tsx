@@ -33,7 +33,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
         onHoverOut={() => setIsHovered(false)}
         style={({ pressed }) => [
           styles.btn,
-          isHovered && styles.btnHover,
+          isHovered && (isDarkNav ? styles.btnHoverDarkNav : styles.btnHover),
           pressed && styles.btnPressed,
         ]}
         accessibilityRole="button"
@@ -63,7 +63,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
           style={[
             styles.text,
             isDarkNav && styles.textDarkNav,
-            isHovered && styles.textHover,
+            isHovered && (isDarkNav ? styles.textHoverDarkNav : styles.textHover),
           ]}
         >
           Download App
@@ -151,6 +151,9 @@ const styles = StyleSheet.create({
   btnHover: {
     backgroundColor: Skoun.color.primaryMist,
   },
+  btnHoverDarkNav: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
   btnPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
@@ -172,6 +175,9 @@ const styles = StyleSheet.create({
   },
   textHover: {
     color: Skoun.color.primary,
+  },
+  textHoverDarkNav: {
+    color: "#FFFFFF",
   },
 
   // Modal styles
