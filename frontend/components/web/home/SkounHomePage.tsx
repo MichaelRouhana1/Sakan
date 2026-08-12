@@ -14,7 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-import { useUser, useClerk } from "@clerk/expo";
+import { clearSession, getSession, type Session } from "@/lib/session";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -146,8 +146,13 @@ function SectionHeader({
 }
 
 function HomeNav({ solid }: { solid: boolean }) {
-  const { isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const [session, setSessionState] = useState<Session | null>(null);
+
+  useEffect(() => {
+    getSession().then(setSessionState);
+  }, []);
+
+  const isSignedIn = !!session;
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
@@ -162,7 +167,8 @@ function HomeNav({ solid }: { solid: boolean }) {
 
   const handleLogoutClick = async () => {
     setMenuOpen(false);
-    await signOut();
+    await clearSession();
+    setSessionState(null);
   };
 
   return (
@@ -197,15 +203,11 @@ function HomeNav({ solid }: { solid: boolean }) {
               style={[styles.navLogin, solid && styles.navLoginSolid]}
               accessibilityRole="button"
             >
-              {user?.imageUrl ? (
-                <Image source={{ uri: user.imageUrl }} style={{ width: 32, height: 32, borderRadius: 16 }} />
-              ) : (
-                <Ionicons
-                  name="person-outline"
-                  size={18}
-                  color={solid ? Skoun.color.ink : "#fff"}
-                />
-              )}
+              <Ionicons
+                name="person-outline"
+                size={18}
+                color={solid ? Skoun.color.ink : "#fff"}
+              />
             </Pressable>
 
             {menuOpen ? (

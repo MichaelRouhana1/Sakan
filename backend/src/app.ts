@@ -1,6 +1,5 @@
 import cors from "cors";
 import express from "express";
-import { clerkMiddleware } from "@clerk/express";
 import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { errorHandler } from "./middleware/error-handler.js";
@@ -21,7 +20,6 @@ export function createApp() {
 
   app.use(cors());
   app.use(express.json({ limit: "2mb" }));
-  app.use(clerkMiddleware());
 
   app.use("/uploads", express.static(UPLOADS_ROOT, {
     maxAge: "7d",

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
@@ -15,13 +15,19 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useUser, useClerk } from "@clerk/expo";
 import { Skoun } from "@/constants/theme";
+import { clearSession, getSession, type Session } from "@/lib/session";
+import { ensureSessionForRole } from "@/features/auth/useEnsureSession";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { isSignedIn, user } = useUser();
-  const { signOut, openSignIn } = useClerk();
+  const [session, setSessionState] = useState<Session | null>(null);
+
+  useEffect(() => {
+    getSession().then(setSessionState);
+  }, []);
+
+  const isSignedIn = !!session;
 
   const [loginSheetOpen, setLoginSheetOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -30,10 +36,6 @@ export default function ProfileScreen() {
   const slideAnim = useRef(new Animated.Value(350)).current;
 
   const handleOpenLogin = () => {
-    if (openSignIn) {
-      openSignIn();
-      return;
-    }
     setLoginSheetOpen(true);
     fadeAnim.setValue(0);
     slideAnim.setValue(350);
@@ -70,12 +72,21 @@ export default function ProfileScreen() {
     });
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!email.trim()) return;
-    if (openSignIn) {
-      openSignIn();
+    try {
+      await ensureSessionForRole("renter");
+      const activeSession = await getSession();
+      setSessionState(activeSession);
+    } catch {
+      // Session fallback
     }
-    setLoginSheetOpen(false);
+    handleCloseLogin();
+  };
+
+  const handleLogout = async () => {
+    await clearSession();
+    setSessionState(null);
   };
 
   return (
@@ -87,22 +98,14 @@ export default function ProfileScreen() {
         {/* HEADER SECTION */}
         <View style={styles.headerCard}>
           <View style={styles.avatarCircle}>
-            {isSignedIn && user?.imageUrl ? (
-              <Image source={{ uri: user.imageUrl }} style={styles.avatarImg} />
-            ) : (
-              <Ionicons name="person" size={28} color="#94A3B8" />
-            )}
+            <Ionicons name="person" size={28} color="#94A3B8" />
           </View>
           <View style={styles.headerTextCol}>
             {isSignedIn ? (
               <>
-                <Text style={styles.guestTitle}>
-                  {user?.fullName || user?.firstName || "Signed in User"}
-                </Text>
+                <Text style={styles.guestTitle}>Signed in User</Text>
                 <Text style={styles.guestSubtitle}>
-                  {user?.primaryEmailAddress?.emailAddress ||
-                    user?.primaryPhoneNumber?.phoneNumber ||
-                    "Signed in with Clerk"}
+                  User ID: {session?.userId}
                 </Text>
               </>
             ) : (
@@ -122,58 +125,100 @@ export default function ProfileScreen() {
 
         {/* MENU OPTIONS */}
         <View style={styles.menuList}>
-          {/* Bookings */}
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
             onPress={() => {
               if (isSignedIn) {
-                router.push("/saved");
+                router.push("/profile" as never);
               } else {
                 handleOpenLogin();
               }
             }}
-            accessibilityRole="button"
-            accessibilityLabel="Bookings"
+          >
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconBg}>
+                <Ionicons name="person-outline" size={20} color={Skoun.color.ink} />
+              </View>
+              <Text style={styles.menuLabel}>Personal Information</Text>
+            </View>
+            <View style={styles.chevronCircle}>
+              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
+            onPress={() => {
+              if (isSignedIn) {
+                router.push("/saved" as never);
+              } else {
+                handleOpenLogin();
+              }
+            }}
+          >
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconBg}>
+                <Ionicons name="heart-outline" size={20} color={Skoun.color.ink} />
+              </View>
+              <Text style={styles.menuLabel}>Shortlist & Saved</Text>
+            </View>
+            <View style={styles.chevronCircle}>
+              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
+            onPress={() => {
+              if (isSignedIn) {
+                router.push("/saved" as never);
+              } else {
+                handleOpenLogin();
+              }
+            }}
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
                 <Ionicons name="calendar-outline" size={20} color={Skoun.color.ink} />
               </View>
-              <Text style={styles.menuLabel}>Bookings</Text>
+              <Text style={styles.menuLabel}>My Bookings</Text>
             </View>
             <View style={styles.chevronCircle}>
               <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
             </View>
           </Pressable>
 
-          {/* Terms & Conditions */}
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => {
-              // Navigation or modal for T&C
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Terms and Conditions"
+            onPress={() => router.push("/(poster)/(tabs)/create" as never)}
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Ionicons name="document-text-outline" size={20} color={Skoun.color.ink} />
+                <Ionicons name="add-circle-outline" size={20} color={Skoun.color.ink} />
               </View>
-              <Text style={styles.menuLabel}>Terms & Conditions</Text>
+              <Text style={styles.menuLabel}>List Property</Text>
             </View>
             <View style={styles.chevronCircle}>
               <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
             </View>
           </Pressable>
 
-          {/* Privacy Policy */}
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => {
-              // Navigation or modal for Privacy Policy
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Privacy Policy"
+          >
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconBg}>
+                <Ionicons name="help-circle-outline" size={20} color={Skoun.color.ink} />
+              </View>
+              <Text style={styles.menuLabel}>Help & Support</Text>
+            </View>
+            <View style={styles.chevronCircle}>
+              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
@@ -190,7 +235,7 @@ export default function ProfileScreen() {
           {isSignedIn ? (
             <Pressable
               style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-              onPress={() => signOut()}
+              onPress={handleLogout}
               accessibilityRole="button"
               accessibilityLabel="Logout"
             >
@@ -296,9 +341,7 @@ export default function ProfileScreen() {
               {/* Mobile */}
               <Pressable
                 style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-                onPress={() => {
-                  if (openSignIn) openSignIn();
-                }}
+                onPress={handleContinue}
                 accessibilityRole="button"
                 accessibilityLabel="Login with Mobile"
               >
@@ -309,9 +352,7 @@ export default function ProfileScreen() {
               {/* Google */}
               <Pressable
                 style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-                onPress={() => {
-                  if (openSignIn) openSignIn();
-                }}
+                onPress={handleContinue}
                 accessibilityRole="button"
                 accessibilityLabel="Login with Google"
               >
@@ -322,9 +363,7 @@ export default function ProfileScreen() {
               {/* Apple */}
               <Pressable
                 style={({ pressed }) => [styles.socialBtn, pressed && styles.pressed]}
-                onPress={() => {
-                  if (openSignIn) openSignIn();
-                }}
+                onPress={handleContinue}
                 accessibilityRole="button"
                 accessibilityLabel="Login with Apple"
               >

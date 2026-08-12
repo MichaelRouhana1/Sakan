@@ -5,15 +5,15 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
+import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { ClerkProvider } from "@clerk/expo";
 import "react-native-reanimated";
-import { ClerkProvider, ClerkLoaded, useClerk } from "@clerk/expo";
 
 WebBrowser.maybeCompleteAuthSession();
 
-import { Platform, View } from "react-native";
 import { useColorScheme } from "@/components/useColorScheme";
 import { queryClient } from "@/lib/queryClient";
-import { tokenCache } from "@/lib/tokenCache";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -21,11 +21,33 @@ export const unstable_settings = {
   initialRouteName: "index",
 };
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
+const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
 
-if (!publishableKey) {
-  throw new Error("EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY is missing in frontend/.env");
-}
+const tokenCache = {
+  async getToken(key: string) {
+    try {
+      if (Platform.OS === "web") {
+        return typeof window !== "undefined" ? localStorage.getItem(key) : null;
+      }
+      return SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
+  },
+  async saveToken(key: string, value: string) {
+    try {
+      if (Platform.OS === "web") {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(key, value);
+        }
+        return;
+      }
+      return SecureStore.setItemAsync(key, value);
+    } catch {
+      return;
+    }
+  },
+};
 
 SplashScreen.preventAutoHideAsync();
 
@@ -49,39 +71,20 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ClerkLoaded>
-        <RootLayoutNav />
-      </ClerkLoaded>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+      <RootLayoutNav />
     </ClerkProvider>
   );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const clerk = useClerk();
-
-  useEffect(() => {
-    // Process OAuth redirect params on Web if present in URL
-    if (
-      Platform.OS === "web" &&
-      typeof window !== "undefined" &&
-      window.location.search.includes("__clerk")
-    ) {
-      clerk.handleRedirectCallback({
-        afterSignInUrl: "/",
-        afterSignUpUrl: "/",
-      });
-    }
-  }, [clerk]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <View id="clerk-captcha" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="sso-callback" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(renter)" />
           <Stack.Screen name="(poster)" />
@@ -90,3 +93,4 @@ function RootLayoutNav() {
     </QueryClientProvider>
   );
 }
+

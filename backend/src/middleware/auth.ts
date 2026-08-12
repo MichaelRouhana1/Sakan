@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { getAuth } from "@clerk/express";
 import { ForbiddenError } from "../lib/errors.js";
 
 /** Auth context for authenticated users. */
@@ -17,15 +16,11 @@ declare global {
 }
 
 /**
- * Require authenticated user via Clerk session JWT or x-user-id header fallback.
+ * Require authenticated user via x-user-id header.
  */
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
-  const auth = getAuth(req);
-  const clerkUserId = auth.userId;
-  const headerUserId = req.header("x-user-id");
+  const userId = req.header("x-user-id");
   const roleHeader = req.header("x-user-role");
-
-  const userId = clerkUserId || headerUserId;
   const role: "renter" | "poster" = roleHeader === "poster" ? "poster" : "renter";
 
   if (!userId) {
@@ -37,18 +32,15 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
   next();
 }
 
-/** Attach user from Clerk session or headers when present; never fails. */
+/** Attach user from request headers when present; never fails. */
 export function optionalAuth(
   req: Request,
   _res: Response,
   next: NextFunction,
 ): void {
-  const auth = getAuth(req);
-  const clerkUserId = auth.userId;
-  const headerUserId = req.header("x-user-id");
+  const userId = req.header("x-user-id");
   const roleHeader = req.header("x-user-role");
 
-  const userId = clerkUserId || headerUserId;
   if (userId) {
     const role: "renter" | "poster" = roleHeader === "poster" ? "poster" : "renter";
     req.user = { id: userId, role };

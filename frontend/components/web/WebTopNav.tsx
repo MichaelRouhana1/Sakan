@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouter } from "expo-router";
 import {
   Image,
@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useUser, useClerk } from "@clerk/expo";
+import { clearSession, getSession, type Session } from "@/lib/session";
 
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
@@ -21,14 +21,23 @@ import {
   WEB_NAV_HEIGHT,
 } from "@/constants/webLayout";
 
+import { useClerk, useUser } from "@clerk/expo";
+
 type Props = {
   showSearch?: boolean;
 };
 
 export function WebTopNav({ showSearch = false }: Props) {
   const router = useRouter();
-  const { isSignedIn, user } = useUser();
-  const { signOut } = useClerk();
+  const { user } = useUser();
+  const clerk = useClerk();
+  const [session, setSessionState] = useState<Session | null>(null);
+
+  useEffect(() => {
+    getSession().then(setSessionState);
+  }, [user]);
+
+  const isSignedIn = !!session || !!user;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -44,8 +53,17 @@ export function WebTopNav({ showSearch = false }: Props) {
 
   const handleLogoutClick = async () => {
     setMenuOpen(false);
-    await signOut();
+    try {
+      if (clerk?.signOut) {
+        await clerk.signOut();
+      }
+    } catch {
+      // fallback
+    }
+    await clearSession();
+    setSessionState(null);
   };
+
 
   return (
     <View style={styles.bar}>
@@ -102,17 +120,13 @@ export function WebTopNav({ showSearch = false }: Props) {
               accessibilityRole="button"
               accessibilityLabel="User profile menu"
             >
-              {user?.imageUrl ? (
-                <Image source={{ uri: user.imageUrl }} style={styles.avatarImg} />
-              ) : (
-                <View style={styles.avatarFallback}>
-                  <Ionicons
-                    name="person-outline"
-                    size={18}
-                    color={Skoun.color.ink}
-                  />
-                </View>
-              )}
+              <View style={styles.avatarFallback}>
+                <Ionicons
+                  name="person-outline"
+                  size={18}
+                  color={Skoun.color.ink}
+                />
+              </View>
             </Pressable>
 
             {/* DESKTOP PROFILE DROPDOWN MENU */}
@@ -280,7 +294,10 @@ export function WebTopNav({ showSearch = false }: Props) {
       {/* SKOUN CUSTOM AMBER-STYLE AUTH MODAL */}
       <SkounAuthModal
         visible={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={() => {
+          setAuthModalOpen(false);
+          getSession().then(setSessionState);
+        }}
       />
     </View>
   );
