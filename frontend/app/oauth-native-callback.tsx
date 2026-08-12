@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 
 export default function OAuthCallbackScreen() {
   useEffect(() => {
-    // Complete the web browser auth session when redirected here
-    WebBrowser.maybeCompleteAuthSession();
+    if (Platform.OS !== "web") {
+      WebBrowser.maybeCompleteAuthSession();
+    }
   }, []);
 
   return (

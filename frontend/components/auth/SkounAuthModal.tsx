@@ -156,37 +156,49 @@ export function SkounAuthModal({ visible, onClose }: Props) {
     setError(null);
 
     try {
-      const oauth =
-        strategy === "oauth_google"
-          ? googleOAuth
-          : strategy === "oauth_apple"
-          ? appleOAuth
-          : facebookOAuth;
-
-      const redirectUrl =
-        Platform.OS === "web" && typeof window !== "undefined"
-          ? `${window.location.origin}/oauth-native-callback`
-          : AuthSession.makeRedirectUri({
-              scheme: "skoun",
-              path: "oauth-native-callback",
-            });
-
-      const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
-        redirectUrl,
-      });
-
-      if (createdSessionId) {
-        if (setOAuthActive) {
-          await setOAuthActive({ session: createdSessionId });
-        } else if (setActive) {
-          await setActive({ session: createdSessionId });
+      if (Platform.OS === "web") {
+        if (!isSignInLoaded || !signIn) {
+          console.error("Clerk SignIn not loaded");
+          setLoading(false);
+          return;
         }
-        handleClose();
+
+        // Web: Full-page redirect flow (no popups, no COOP errors)
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: "/sso-callback",
+          redirectUrlComplete: "/",
+        });
+      } else {
+        const oauth =
+          strategy === "oauth_google"
+            ? googleOAuth
+            : strategy === "oauth_apple"
+            ? appleOAuth
+            : facebookOAuth;
+
+        const redirectUrl = AuthSession.makeRedirectUri({
+          scheme: "skoun",
+          path: "oauth-native-callback",
+        });
+
+        const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
+          redirectUrl,
+        });
+
+        if (createdSessionId) {
+          if (setOAuthActive) {
+            await setOAuthActive({ session: createdSessionId });
+          } else if (setActive) {
+            await setActive({ session: createdSessionId });
+          }
+          handleClose();
+        }
+        setLoading(false);
       }
     } catch (err: any) {
       console.error("OAuth error:", err);
       setError(err?.errors?.[0]?.message || "OAuth sign in could not be completed.");
-    } finally {
       setLoading(false);
     }
   };
