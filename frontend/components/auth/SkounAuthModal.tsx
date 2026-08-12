@@ -14,8 +14,7 @@ import { useClerk, useOAuth } from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";
 
 import { Skoun } from "@/constants/theme";
-import { ensureSessionForRole } from "@/features/auth/useEnsureSession";
-import { getSession, setSession } from "@/lib/session";
+import { setSession } from "@/lib/session";
 
 if (Platform.OS !== "web") {
   WebBrowser.maybeCompleteAuthSession();
@@ -24,10 +23,11 @@ if (Platform.OS !== "web") {
 type Props = {
   visible: boolean;
   onClose: () => void;
+  onSuccess?: (userId: string) => void;
   title?: string;
 };
 
-export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: Props) {
+export function SkounAuthModal({ visible, onClose, onSuccess, title = "Sign in to Skoun" }: Props) {
   const clerk = useClerk();
 
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({ strategy: "oauth_google" });
@@ -35,22 +35,19 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
   const { startOAuthFlow: startAppleOAuth } = useOAuth({ strategy: "oauth_apple" });
 
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"input" | "phone" | "otp">("input");
+  const [step, setStep] = useState<"input" | "otp">("input");
   const [authMode, setAuthMode] = useState<"signIn" | "signUp">("signIn");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (visible) {
-      getSession().then((session) => {
-        if (session) {
-          onClose();
-        }
-      });
+  const finishSuccess = async (userId: string) => {
+    await setSession({ userId, role: "renter" });
+    if (onSuccess) {
+      onSuccess(userId);
     }
-  }, [visible, onClose]);
+    handleClose();
+  };
 
   if (!visible) return null;
 
@@ -60,6 +57,14 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
     setStep("input");
     setCode("");
     onClose();
+  };
+
+  const handleClearStaleSession = async (): Promise<void> => {
+    try {
+      if (clerk?.signOut) {
+        await clerk.signOut();
+      }
+    } catch {}
   };
 
   const handleContinueEmail = async () => {
@@ -88,8 +93,37 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
           setLoading(false);
           return;
         } catch (signInErr: any) {
-          const errCode = signInErr?.errors?.[0]?.code;
-          if (errCode === "form_identifier_not_found" || signInErr?.status === 422) {
+          const isAlreadySignedIn =
+            signInErr?.errors?.[0]?.code === "session_exists" ||
+            signInErr?.message?.toLowerCase().includes("already signed in") ||
+            signInErr?.message?.toLowerCase().includes("session already exists") ||
+            signInErr?.errors?.[0]?.message?.toLowerCase().includes("already signed in");
+
+          if (isAlreadySignedIn) {
+            if (clerk?.user?.id || clerk?.session?.id) {
+              await finishSuccess(clerk?.user?.id || clerk?.session?.id || "clerk_user");
+              return;
+            }
+            await handleClearStaleSession();
+            const retryAttempt = await clerk.client.signIn.create({
+              identifier: email.trim(),
+            });
+            const firstFactor = retryAttempt.supportedFirstFactors?.find(
+              (factor: any) => factor.strategy === "email_code"
+            );
+            if (firstFactor) {
+              await clerk.client.signIn.prepareFirstFactor({
+                strategy: "email_code",
+                emailAddressId: (firstFactor as any).emailAddressId,
+              });
+            }
+            setAuthMode("signIn");
+            setStep("otp");
+            setLoading(false);
+            return;
+          }
+
+          if (signInErr?.errors?.[0]?.code === "form_identifier_not_found" || signInErr?.status === 422) {
             if (clerk?.client?.signUp) {
               await clerk.client.signUp.create({
                 emailAddress: email.trim(),
@@ -110,6 +144,16 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
 
       setStep("otp");
     } catch (err: any) {
+      const isAlreadySignedIn =
+        err?.errors?.[0]?.code === "session_exists" ||
+        err?.message?.toLowerCase().includes("already signed in") ||
+        err?.message?.toLowerCase().includes("session already exists");
+
+      if (isAlreadySignedIn && (clerk?.user?.id || clerk?.session?.id)) {
+        await finishSuccess(clerk?.user?.id || clerk?.session?.id || "clerk_user");
+        return;
+      }
+
       const msg =
         err?.errors?.[0]?.message || err?.message || "Could not continue with email.";
       setError(msg);
@@ -145,61 +189,15 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
         }
       }
 
-      if (!createdSessionId) {
-        const mockUser = await ensureSessionForRole("renter");
-        createdSessionId = mockUser.id;
+      if (createdSessionId) {
+        await finishSuccess(createdSessionId);
       } else {
-        await setSession({ userId: createdSessionId, role: "renter" });
+        setError("Verification code could not be completed.");
       }
-
-      handleClose();
     } catch (err: any) {
       const msg =
         err?.errors?.[0]?.message || err?.message || "Invalid verification code.";
       setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleContinuePhone = async () => {
-    if (!phone.trim() || loading) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (clerk?.client?.signIn) {
-        try {
-          const res = await clerk.client.signIn.create({
-            identifier: phone.trim(),
-          });
-          const phoneFactor = res.supportedFirstFactors?.find(
-            (f: any) => f.strategy === "phone_code"
-          );
-          if (phoneFactor) {
-            await clerk.client.signIn.prepareFirstFactor({
-              strategy: "phone_code",
-              phoneNumberId: (phoneFactor as any).phoneNumberId,
-            });
-          }
-          setAuthMode("signIn");
-          setStep("otp");
-          setLoading(false);
-          return;
-        } catch {
-          if (clerk?.client?.signUp) {
-            await clerk.client.signUp.create({ phoneNumber: phone.trim() });
-            await clerk.client.signUp.preparePhoneNumberVerification();
-            setAuthMode("signUp");
-            setStep("otp");
-            setLoading(false);
-            return;
-          }
-        }
-      }
-      setStep("otp");
-    } catch (err: any) {
-      setError(err?.errors?.[0]?.message || "Phone verification failed.");
     } finally {
       setLoading(false);
     }
@@ -210,40 +208,77 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
     setError(null);
 
     try {
-      let flow;
-      if (provider === "google") flow = startGoogleOAuth;
-      else if (provider === "facebook") flow = startFacebookOAuth;
-      else if (provider === "apple") flow = startAppleOAuth;
+      const strategy = `oauth_${provider}` as const;
 
-      if (flow) {
-        const { createdSessionId, setActive } = await flow();
-        if (createdSessionId && setActive) {
-          await setActive({ session: createdSessionId });
-          await setSession({ userId: createdSessionId, role: "renter" });
-          handleClose();
+      // On Web: redirect in the SAME TAB instead of opening a popup window
+      if (Platform.OS === "web" && clerk?.client?.signIn) {
+        try {
+          const redirectUrl = typeof window !== "undefined" ? window.location.origin : "/";
+          await clerk.client.signIn.authenticateWithRedirect({
+            strategy,
+            redirectUrl,
+            redirectUrlComplete: redirectUrl,
+          });
           return;
+        } catch (redirectErr: any) {
+          const isAlreadySignedIn =
+            redirectErr?.errors?.[0]?.code === "session_exists" ||
+            redirectErr?.message?.toLowerCase().includes("already signed in") ||
+            redirectErr?.message?.toLowerCase().includes("session already exists") ||
+            redirectErr?.errors?.[0]?.message?.toLowerCase().includes("already signed in");
+
+          if (isAlreadySignedIn) {
+            await handleClearStaleSession();
+            const redirectUrl = typeof window !== "undefined" ? window.location.origin : "/";
+            await clerk.client.signIn.authenticateWithRedirect({
+              strategy,
+              redirectUrl,
+              redirectUrlComplete: redirectUrl,
+            });
+            return;
+          }
+          throw redirectErr;
         }
       }
 
-      const localUser = await ensureSessionForRole("renter");
-      await setSession({ userId: localUser.id, role: "renter" });
-      handleClose();
+      // Native platform flow (iOS / Android)
+      let startFlow = startGoogleOAuth;
+      if (provider === "facebook") startFlow = startFacebookOAuth;
+      if (provider === "apple") startFlow = startAppleOAuth;
+
+      const res = await startFlow();
+      if (res?.createdSessionId && res?.setActive) {
+        await res.setActive({ session: res.createdSessionId });
+        await finishSuccess(res.createdSessionId);
+        return;
+      }
+
+      if (clerk?.user?.id) {
+        await finishSuccess(clerk.user.id);
+        return;
+      }
     } catch (err: any) {
+      console.error("OAuth error:", err);
+      const isAlreadySignedIn =
+        err?.errors?.[0]?.code === "session_exists" ||
+        err?.message?.toLowerCase().includes("already signed in") ||
+        err?.message?.toLowerCase().includes("session already exists") ||
+        err?.errors?.[0]?.message?.toLowerCase().includes("already signed in");
+
+      if (isAlreadySignedIn && (clerk?.user?.id || clerk?.session?.id)) {
+        await finishSuccess(clerk?.user?.id || clerk?.session?.id || "clerk_user");
+        return;
+      }
+
       const msg =
         err?.errors?.[0]?.message ||
         err?.message ||
-        `${provider} authentication failed.`;
+        `${provider} authentication failed. Please try again.`;
       setError(msg);
     } finally {
       setLoading(false);
     }
   };
-
-  const googleUserEmail =
-    clerk?.user?.primaryEmailAddress?.emailAddress || "rouhana_michael@live.com";
-
-  const googleUserName =
-    clerk?.user?.fullName || clerk?.user?.firstName || "Michael";
 
   return (
     <Modal
@@ -256,221 +291,184 @@ export function SkounAuthModal({ visible, onClose, title = "Login to Amber" }: P
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
 
         <View style={styles.modalCard}>
-          {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.title}>{title}</Text>
-            <Pressable
-              onPress={handleClose}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              style={styles.closeBtn}
-            >
-              <Ionicons name="close" size={20} color="#475569" />
-            </Pressable>
+          {/* Close button at top right */}
+          <Pressable
+            onPress={handleClose}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            style={styles.closeBtn}
+          >
+            <Ionicons name="close" size={20} color="#64748B" />
+          </Pressable>
+
+          <View style={styles.contentPadding}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.subtitle}>
+                Welcome back! Please sign in to continue
+              </Text>
+            </View>
+
+            {/* Body Step 1: Input form */}
+            {step === "input" ? (
+              <View style={styles.body}>
+                {/* Social Buttons */}
+                <View style={styles.socialCol}>
+                  {/* Google Button with 'Last used' badge */}
+                  <View style={styles.socialBtnWrapper}>
+                    <Pressable
+                      disabled={loading}
+                      style={({ pressed }) => [
+                        styles.socialBtn,
+                        pressed && styles.pressed,
+                        loading && styles.btnDisabled,
+                      ]}
+                      onPress={() => handleOAuth("google")}
+                    >
+                      <Ionicons name="logo-google" size={18} color="#EA4335" />
+                      <Text style={styles.socialBtnText}>Continue with Google</Text>
+                    </Pressable>
+                    <View style={styles.lastUsedBadge}>
+                      <Text style={styles.lastUsedText}>Last used</Text>
+                    </View>
+                  </View>
+
+                  {/* Apple Button */}
+                  <Pressable
+                    disabled={loading}
+                    style={({ pressed }) => [
+                      styles.socialBtn,
+                      pressed && styles.pressed,
+                      loading && styles.btnDisabled,
+                    ]}
+                    onPress={() => handleOAuth("apple")}
+                  >
+                    <Ionicons name="logo-apple" size={18} color="#000000" />
+                    <Text style={styles.socialBtnText}>Continue with Apple</Text>
+                  </Pressable>
+
+                  {/* Facebook Button */}
+                  <Pressable
+                    disabled={loading}
+                    style={({ pressed }) => [
+                      styles.socialBtn,
+                      pressed && styles.pressed,
+                      loading && styles.btnDisabled,
+                    ]}
+                    onPress={() => handleOAuth("facebook")}
+                  >
+                    <Ionicons name="logo-facebook" size={18} color="#1877F2" />
+                    <Text style={styles.socialBtnText}>Continue with Facebook</Text>
+                  </Pressable>
+                </View>
+
+                {/* Divider */}
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                {/* Email Section */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Email address</Text>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email address"
+                    placeholderTextColor="#A1A1AA"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.input}
+                  />
+                </View>
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                {/* Primary Continue Button (Dark Black with chevron) */}
+                <Pressable
+                  onPress={handleContinueEmail}
+                  disabled={!email.trim() || loading}
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    (!email.trim() || loading) && styles.btnDisabled,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <View style={styles.btnRow}>
+                      <Text style={styles.primaryBtnText}>Continue</Text>
+                      <Text style={styles.btnChevron}>▸</Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
+            ) : (
+              /* Step 2: Verification Code Entry */
+              <View style={styles.body}>
+                <Text style={styles.otpSub}>
+                  We sent a verification code to{" "}
+                  <Text style={styles.otpEmail}>{email}</Text>
+                </Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Verification code</Text>
+                  <TextInput
+                    value={code}
+                    onChangeText={setCode}
+                    placeholder="Enter 6-digit code"
+                    placeholderTextColor="#A1A1AA"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    style={styles.input}
+                  />
+                </View>
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                <Pressable
+                  onPress={handleVerifyOtp}
+                  disabled={!code.trim() || loading}
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    (!code.trim() || loading) && styles.btnDisabled,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Verify Code</Text>
+                  )}
+                </Pressable>
+
+                <Pressable onPress={() => setStep("input")} style={styles.backBtn}>
+                  <Text style={styles.backBtnText}>Change email address</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
-          {/* Body Step 1: Input form (Email or Phone) */}
-          {step === "input" ? (
-            <View style={styles.body}>
-              <View style={styles.inputWrap}>
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email Address"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={styles.input}
-                />
-              </View>
-
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-              {/* Continue Button (Pink Accent matching user screenshot) */}
-              <Pressable
-                onPress={handleContinueEmail}
-                disabled={!email.trim() || loading}
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  (!email.trim() || loading) && styles.btnDisabled,
-                  pressed && styles.pressed,
-                ]}
+          {/* Footer Card Section */}
+          <View style={styles.footerCard}>
+            <Text style={styles.footerText}>
+              Don’t have an account?{" "}
+              <Text
+                style={styles.signUpLink}
+                onPress={() => {
+                  setAuthMode("signUp");
+                  setStep("input");
+                }}
               >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Continue</Text>
-                )}
-              </Pressable>
-
-              {/* Divider */}
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or log in using</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* Alt Login options */}
-              <View style={styles.socialCol}>
-                {/* Phone Option */}
-                <Pressable
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.socialBtn,
-                    pressed && styles.pressed,
-                    loading && styles.btnDisabled,
-                  ]}
-                  onPress={() => setStep("phone")}
-                >
-                  <Ionicons name="call" size={18} color="#0F172A" style={styles.iconOffset} />
-                  <Text style={styles.socialBtnText}>Continue with Phone</Text>
-                </Pressable>
-
-                {/* Google Option - Styled like user screenshot with quick sign-in card */}
-                <Pressable
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.googleCardBtn,
-                    pressed && styles.pressed,
-                    loading && styles.btnDisabled,
-                  ]}
-                  onPress={() => handleOAuth("google")}
-                >
-                  <View style={styles.googleAvatarCircle}>
-                    <Text style={styles.googleAvatarLetter}>
-                      {googleUserName.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.googleAccountCol}>
-                    <Text style={styles.googleSignTitle}>Sign in as {googleUserName}</Text>
-                    <Text style={styles.googleEmailText} numberOfLines={1}>
-                      {googleUserEmail}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-down" size={14} color="#64748B" style={{ marginRight: 6 }} />
-                  {/* Google Icon */}
-                  <View style={styles.googleGLogo}>
-                    <Ionicons name="logo-google" size={16} color="#EA4335" />
-                  </View>
-                </Pressable>
-
-                {/* Facebook Option */}
-                <Pressable
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.socialBtn,
-                    pressed && styles.pressed,
-                    loading && styles.btnDisabled,
-                  ]}
-                  onPress={() => handleOAuth("facebook")}
-                >
-                  <Ionicons name="logo-facebook" size={18} color="#1877F2" style={styles.iconOffset} />
-                  <Text style={styles.socialBtnText}>Continue with Facebook</Text>
-                </Pressable>
-
-                {/* Apple Option */}
-                <Pressable
-                  disabled={loading}
-                  style={({ pressed }) => [
-                    styles.socialBtn,
-                    pressed && styles.pressed,
-                    loading && styles.btnDisabled,
-                  ]}
-                  onPress={() => handleOAuth("apple")}
-                >
-                  <Ionicons name="logo-apple" size={18} color="#000000" style={styles.iconOffset} />
-                  <Text style={styles.socialBtnText}>Continue with Apple</Text>
-                </Pressable>
-              </View>
-
-              {/* Disclaimer */}
-              <Text style={styles.disclaimerText}>
-                By signing in you agree to our{" "}
-                <Text style={styles.disclaimerLink}>Privacy Policy</Text> and{" "}
-                <Text style={styles.disclaimerLink}>Terms & Conditions</Text>
+                Sign up
               </Text>
-            </View>
-          ) : step === "phone" ? (
-            /* Step: Phone Number Entry */
-            <View style={styles.body}>
-              <View style={styles.inputWrap}>
-                <TextInput
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="Phone Number (e.g. +96170123456)"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                />
-              </View>
-
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-              <Pressable
-                onPress={handleContinuePhone}
-                disabled={!phone.trim() || loading}
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  (!phone.trim() || loading) && styles.btnDisabled,
-                  pressed && styles.pressed,
-                ]}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Send Code</Text>
-                )}
-              </Pressable>
-
-              <Pressable onPress={() => setStep("input")} style={styles.backBtn}>
-                <Text style={styles.backBtnText}>Back to Email Sign In</Text>
-              </Pressable>
-            </View>
-          ) : (
-            /* Step 2: Verification OTP Code Entry */
-            <View style={styles.body}>
-              <Text style={styles.otpSub}>
-                We sent a verification code to{" "}
-                <Text style={styles.otpEmail}>{email || phone}</Text>
-              </Text>
-
-              <View style={styles.inputWrap}>
-                <TextInput
-                  value={code}
-                  onChangeText={setCode}
-                  placeholder="Verification Code"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  style={styles.input}
-                />
-              </View>
-
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-              <Pressable
-                onPress={handleVerifyOtp}
-                disabled={!code.trim() || loading}
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  (!code.trim() || loading) && styles.btnDisabled,
-                  pressed && styles.pressed,
-                ]}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Verify Code</Text>
-                )}
-              </Pressable>
-
-              <Pressable onPress={() => setStep("input")} style={styles.backBtn}>
-                <Text style={styles.backBtnText}>Change Email / Phone</Text>
-              </Pressable>
-            </View>
-          )}
+            </Text>
+          </View>
         </View>
       </View>
     </Modal>
@@ -487,71 +485,87 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: "100%",
-    maxWidth: 410,
+    maxWidth: 420,
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
     shadowColor: "#000000",
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 14,
+    overflow: "hidden",
+    position: "relative",
+  },
+  closeBtn: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 10,
+    padding: 4,
+  },
+  contentPadding: {
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 24,
   },
   modalHeader: {
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 24,
   },
   title: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 19,
-    color: "#0F172A",
-    letterSpacing: -0.3,
+    fontSize: 24,
+    color: "#09090B",
+    letterSpacing: -0.5,
+    textAlign: "center",
   },
-  closeBtn: {
-    padding: 4,
-  },
-  body: {
-    gap: 14,
-  },
-  inputWrap: {
-    width: "100%",
-  },
-  input: {
+  subtitle: {
     fontFamily: Skoun.type.body,
     fontSize: 14,
-    color: "#0F172A",
-    height: 48,
-    borderRadius: 12,
+    color: "#71717A",
+    textAlign: "center",
+    marginTop: 6,
+  },
+  body: {
+    gap: 16,
+  },
+  socialCol: {
+    gap: 12,
+  },
+  socialBtnWrapper: {
+    position: "relative",
+  },
+  socialBtn: {
+    height: 44,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    paddingHorizontal: 16,
+    borderColor: "#E4E4E7",
     backgroundColor: "#FFFFFF",
-  },
-  errorText: {
-    fontFamily: Skoun.type.body,
-    fontSize: 13,
-    color: Skoun.color.danger,
-    marginTop: -4,
-  },
-  primaryBtn: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#FF7E93", // Soft pink matching Amber screenshot
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 10,
   },
-  btnDisabled: {
-    opacity: 0.65,
+  socialBtnText: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 14,
+    color: "#18181B",
   },
-  primaryBtnText: {
-    fontFamily: Skoun.type.bodyBold,
-    fontSize: 15,
-    color: "#FFFFFF",
+  lastUsedBadge: {
+    position: "absolute",
+    top: -8,
+    right: 12,
+    backgroundColor: "#F4F4F5",
+    borderWidth: 1,
+    borderColor: "#E4E4E7",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
   },
-  pressed: {
-    opacity: 0.88,
+  lastUsedText: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 11,
+    color: "#71717A",
   },
   dividerRow: {
     flexDirection: "row",
@@ -561,115 +575,105 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "#E4E4E7",
   },
   dividerText: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 12,
-    color: "#94A3B8",
-    paddingHorizontal: 12,
+    fontFamily: Skoun.type.body,
+    fontSize: 13,
+    color: "#A1A1AA",
+    paddingHorizontal: 16,
   },
-  socialCol: {
-    gap: 10,
+  inputGroup: {
+    gap: 6,
   },
-  socialBtn: {
-    height: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  iconOffset: {
-    position: "absolute",
-    left: 16,
-  },
-  socialBtnText: {
+  inputLabel: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 14,
-    color: "#1E293B",
+    color: "#09090B",
   },
-
-  // GOOGLE CARD BUTTON (Matching screenshot)
-  googleCardBtn: {
-    height: 48,
-    borderRadius: 12,
+  input: {
+    fontFamily: Skoun.type.body,
+    fontSize: 14,
+    color: "#09090B",
+    height: 44,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E4E4E7",
+    paddingHorizontal: 14,
     backgroundColor: "#FFFFFF",
+  },
+  errorText: {
+    fontFamily: Skoun.type.body,
+    fontSize: 13,
+    color: Skoun.color.danger,
+    marginTop: -2,
+  },
+  primaryBtn: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "#18181B",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  btnRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    gap: 10,
+    gap: 6,
   },
-  googleAvatarCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#EA4335",
-    alignItems: "center",
-    justifyContent: "center",
+  btnChevron: {
+    fontSize: 12,
+    color: "#FFFFFF",
+    marginTop: 1,
   },
-  googleAvatarLetter: {
+  btnDisabled: {
+    opacity: 0.65,
+  },
+  primaryBtnText: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 13,
+    fontSize: 14,
     color: "#FFFFFF",
   },
-  googleAccountCol: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  googleSignTitle: {
-    fontFamily: Skoun.type.bodySemi,
-    fontSize: 12,
-    color: "#0F172A",
-    lineHeight: 15,
-  },
-  googleEmailText: {
-    fontFamily: Skoun.type.body,
-    fontSize: 11,
-    color: "#64748B",
-    lineHeight: 14,
-  },
-  googleGLogo: {
-    width: 22,
-    height: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  disclaimerText: {
-    fontFamily: Skoun.type.body,
-    fontSize: 11,
-    color: "#64748B",
-    textAlign: "center",
-    lineHeight: 16,
-    marginTop: 6,
-  },
-  disclaimerLink: {
-    color: "#FF5E7E",
-    fontFamily: Skoun.type.bodySemi,
+  pressed: {
+    opacity: 0.88,
   },
   otpSub: {
     fontFamily: Skoun.type.body,
     fontSize: 14,
-    color: "#475569",
+    color: "#71717A",
+    textAlign: "center",
     marginBottom: 4,
   },
   otpEmail: {
     fontFamily: Skoun.type.bodyBold,
-    color: "#0F172A",
+    color: "#09090B",
   },
   backBtn: {
     alignSelf: "center",
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   backBtnText: {
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 13,
-    color: "#FF5E7E",
+    color: "#18181B",
+    textDecorationLine: "underline",
+  },
+  footerCard: {
+    backgroundColor: "#FAFAFA",
+    borderTopWidth: 1,
+    borderColor: "#F4F4F5",
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footerText: {
+    fontFamily: Skoun.type.body,
+    fontSize: 14,
+    color: "#71717A",
+  },
+  signUpLink: {
+    fontFamily: Skoun.type.bodySemi,
+    color: "#09090B",
+    textDecorationLine: "underline",
   },
 });

@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { clearSession, getSession, type Session } from "@/lib/session";
+import { clearSession, getSession, setSession, type Session } from "@/lib/session";
 
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
@@ -34,10 +34,18 @@ export function WebTopNav({ showSearch = false }: Props) {
   const [session, setSessionState] = useState<Session | null>(null);
 
   useEffect(() => {
-    getSession().then(setSessionState);
-  }, [user]);
+    if (user?.id) {
+      setSession({ userId: user.id, role: "renter" }).then(() => {
+        setSessionState({ userId: user.id, role: "renter" });
+      });
+    } else {
+      clearSession().then(() => {
+        setSessionState(null);
+      });
+    }
+  }, [user?.id]);
 
-  const isSignedIn = !!session || !!user;
+  const isSignedIn = !!user || !!session;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -297,6 +305,10 @@ export function WebTopNav({ showSearch = false }: Props) {
         onClose={() => {
           setAuthModalOpen(false);
           getSession().then(setSessionState);
+        }}
+        onSuccess={(userId) => {
+          setSessionState({ userId, role: "renter" });
+          setAuthModalOpen(false);
         }}
       />
     </View>

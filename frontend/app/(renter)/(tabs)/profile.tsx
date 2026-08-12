@@ -15,19 +15,30 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useClerk, useUser } from "@clerk/expo";
 import { Skoun } from "@/constants/theme";
-import { clearSession, getSession, type Session } from "@/lib/session";
+import { clearSession, getSession, setSession, type Session } from "@/lib/session";
 import { ensureSessionForRole } from "@/features/auth/useEnsureSession";
 
 export default function ProfileScreen() {
+  const clerk = useClerk();
+  const { user } = useUser();
   const insets = useSafeAreaInsets();
   const [session, setSessionState] = useState<Session | null>(null);
 
   useEffect(() => {
-    getSession().then(setSessionState);
-  }, []);
+    if (user?.id) {
+      setSession({ userId: user.id, role: "renter" }).then(() => {
+        setSessionState({ userId: user.id, role: "renter" });
+      });
+    } else {
+      clearSession().then(() => {
+        setSessionState(null);
+      });
+    }
+  }, [user?.id]);
 
-  const isSignedIn = !!session;
+  const isSignedIn = !!user || !!session;
 
   const [loginSheetOpen, setLoginSheetOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -85,6 +96,11 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = async () => {
+    try {
+      if (clerk?.signOut) {
+        await clerk.signOut();
+      }
+    } catch {}
     await clearSession();
     setSessionState(null);
   };
