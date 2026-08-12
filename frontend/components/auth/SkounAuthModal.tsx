@@ -9,10 +9,14 @@ import {
   TextInput,
   View,
 } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import { Ionicons } from "@expo/vector-icons";
 import { useSignIn, useSignUp, useUser, useOAuth } from "@clerk/expo";
 import { Skoun } from "@/constants/theme";
+
+// Warm up WebBrowser on native/web to prevent popup delays
+WebBrowser.maybeCompleteAuthSession();
 
 type Props = {
   visible: boolean;
@@ -159,10 +163,10 @@ export function SkounAuthModal({ visible, onClose }: Props) {
           ? appleOAuth
           : facebookOAuth;
 
-      const redirectUrl =
-        Platform.OS === "web" && typeof window !== "undefined"
-          ? window.location.origin
-          : AuthSession.makeRedirectUri();
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: "skoun",
+        path: "oauth-native-callback",
+      });
 
       const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
         redirectUrl,

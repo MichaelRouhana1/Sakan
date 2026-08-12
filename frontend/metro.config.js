@@ -44,4 +44,14 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
+// Allow local OAuth popups to close and send session tokens back to the main window
+config.server = {
+  enhanceMiddleware: (metroMiddleware) => {
+    return (req, res, next) => {
+      res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+      return metroMiddleware(req, res, next);
+    };
+  },
+};
+
 module.exports = config;
