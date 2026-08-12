@@ -151,32 +151,25 @@ export function SkounAuthModal({ visible, onClose }: Props) {
       setLoading(true);
       setError(null);
 
-      if (Platform.OS === "web") {
-        if (!signIn) return;
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: window.location.origin,
-          redirectUrlComplete: window.location.origin,
-        });
-      } else {
-        const oauth =
-          strategy === "oauth_google"
-            ? googleOAuth
-            : strategy === "oauth_apple"
-            ? appleOAuth
-            : facebookOAuth;
+      const oauth =
+        strategy === "oauth_google"
+          ? googleOAuth
+          : strategy === "oauth_apple"
+          ? appleOAuth
+          : facebookOAuth;
 
-        const redirectUrl = AuthSession.makeRedirectUri();
-        const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({ redirectUrl });
+      const redirectUrl = AuthSession.makeRedirectUri();
+      const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
+        redirectUrl,
+      });
 
-        if (createdSessionId) {
-          if (setOAuthActive) {
-            await setOAuthActive({ session: createdSessionId });
-          } else if (setActive) {
-            await setActive({ session: createdSessionId });
-          }
-          handleClose();
+      if (createdSessionId) {
+        if (setOAuthActive) {
+          await setOAuthActive({ session: createdSessionId });
+        } else if (setActive) {
+          await setActive({ session: createdSessionId });
         }
+        handleClose();
       }
     } catch (err: any) {
       console.error("OAuth error:", err);
