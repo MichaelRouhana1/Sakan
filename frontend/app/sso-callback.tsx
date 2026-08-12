@@ -1,5 +1,49 @@
-import { AuthenticateWithRedirectCallback } from "@clerk/expo";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { useClerk } from "@clerk/expo";
+import { useRouter } from "expo-router";
 
 export default function SSOCallback() {
-  return <AuthenticateWithRedirectCallback />;
+  const clerk = useClerk();
+  const router = useRouter();
+
+  useEffect(() => {
+    async function processCallback() {
+      try {
+        if (clerk && typeof clerk.handleRedirectCallback === "function") {
+          await clerk.handleRedirectCallback({
+            afterSignInUrl: "/",
+            afterSignUpUrl: "/",
+          });
+        }
+      } catch (err) {
+        console.error("SSO Callback error:", err);
+      } finally {
+        router.replace("/");
+      }
+    }
+
+    processCallback();
+  }, [clerk, router]);
+
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#2563EB" />
+      <Text style={styles.text}>Completing sign in...</Text>
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  text: {
+    fontSize: 16,
+    color: "#64748B",
+    marginTop: 16,
+  },
+});
