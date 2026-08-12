@@ -10,23 +10,29 @@ import {
 import { Skoun } from "@/constants/theme";
 
 /**
- * Native single-element line-art morph loop replicating Amber Student's exact
- * 4-phase icon animation using SVG stroke keyframes:
- *
- * Phase 1 (Phone): Display phone frame outline with top camera dot centered at (12, 5).
- * Phase 2 (Morph): Camera dot stretches & dissolves downward into download arrow group.
- * Phase 3 (Tray Receive): Arrow lands above base tray line while frame softly dims.
- * Phase 4 (Loop Reset): Arrow dissolves into tray line as camera dot scales back in at (12, 5).
+ * SMIL Path Morphing Icon:
+ * Replicates Amber Student's exact single-element line-art morph loop natively using SVG
+ * SMIL `<animate attributeName="d">` path morphing. The single path element's control points
+ * morph smoothly between the Phone frame outline path and the Tray container path.
  */
-function AmberMorphIcon({ color = Skoun.color.ink }: { color?: string }) {
+function SmilMorphDownloadIcon({ color = Skoun.color.ink }: { color?: string }) {
   if (Platform.OS === "web") {
     const SVG = "svg" as any;
     const Path = "path" as any;
-    const Rect = "rect" as any;
-    const Line = "line" as any;
-    const Circle = "circle" as any;
-    const Style = "style" as any;
+    const Animate = "animate" as any;
+    const AnimateTransform = "animateTransform" as any;
     const G = "g" as any;
+
+    // Phone frame path topology (standing phone outline)
+    const dPhone =
+      "M 7,3 L 17,3 C 19,3 20,4 20,6 L 20,18 C 20,20 19,21 17,21 L 7,21 C 5,21 4,20 4,18 L 4,6 C 4,4 5,3 7,3 Z";
+
+    // Tray frame path topology (open top receiving tray container)
+    const dTray =
+      "M 4,11 L 4,11 C 4,11 4,11 4,11 L 4,15 C 4,18 5,19.5 8,19.5 L 16,19.5 C 19,19.5 20,18 20,15 L 20,11 C 20,11 20,11 20,11 Z";
+
+    const animValues = `${dPhone}; ${dTray}; ${dTray}; ${dPhone}`;
+    const animKeyTimes = "0; 0.35; 0.75; 1";
 
     return (
       <SVG
@@ -36,155 +42,48 @@ function AmberMorphIcon({ color = Skoun.color.ink }: { color?: string }) {
         fill="none"
         style={{ display: "block" }}
       >
-        <Style>{`
-          @keyframes cameraMorph {
-            0%, 22% {
-              opacity: 1;
-              transform: scale(1) translateY(0);
-            }
-            38% {
-              opacity: 0;
-              transform: translateY(4px) scaleY(2.2) scaleX(0.5);
-            }
-            75% {
-              opacity: 0;
-              transform: translateY(0) scale(0.3);
-            }
-            90%, 100% {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          @keyframes arrowMorph {
-            0%, 22% {
-              opacity: 0;
-              transform: translateY(-4px);
-            }
-            38% {
-              opacity: 1;
-              transform: translateY(-1px);
-            }
-            58%, 74% {
-              opacity: 1;
-              transform: translateY(2.5px);
-            }
-            88%, 100% {
-              opacity: 0;
-              transform: translateY(6px);
-            }
-          }
-
-          @keyframes frameMorph {
-            0%, 25% {
-              opacity: 1;
-            }
-            50%, 75% {
-              opacity: 0.65;
-            }
-            90%, 100% {
-              opacity: 1;
-            }
-          }
-
-          @keyframes trayMorph {
-            0%, 22% {
-              opacity: 0.25;
-              transform: scaleX(0.7);
-            }
-            50%, 75% {
-              opacity: 1;
-              transform: scaleX(1);
-            }
-            90%, 100% {
-              opacity: 0.25;
-              transform: scaleX(0.7);
-            }
-          }
-
-          .amber-camera-dot {
-            animation: cameraMorph 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            transform-origin: 12px 5px;
-          }
-
-          .amber-arrow-group {
-            animation: arrowMorph 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            transform-origin: 12px 9px;
-          }
-
-          .amber-phone-frame {
-            animation: frameMorph 3s ease-in-out infinite;
-          }
-
-          .amber-tray-line {
-            animation: trayMorph 3s ease-in-out infinite;
-            transform-origin: 12px 15.5px;
-          }
-        `}</Style>
-
-        {/* Phase 1-3: Phone Frame Chassis */}
-        <Rect
-          x="4.5"
-          y="2.5"
-          width="15"
-          height="19"
-          rx="3.5"
+        {/* Single path morphing continuously between Phone and Tray outline */}
+        <Path
+          d={dPhone}
           stroke={color}
           strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           fill="none"
-          className="amber-phone-frame"
-        />
-
-        {/* Bottom Speaker Notch */}
-        <Line
-          x1="10"
-          y1="18.5"
-          x2="14"
-          y2="18.5"
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-
-        {/* Phase 1: Camera Dot centered at (12, 5) */}
-        <Circle
-          cx="12"
-          cy="5"
-          r="1.2"
-          fill={color}
-          className="amber-camera-dot"
-        />
-
-        {/* Phase 3: Base Receiving Tray Line */}
-        <Line
-          x1="8.5"
-          y1="15.5"
-          x2="15.5"
-          y2="15.5"
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          className="amber-tray-line"
-        />
-
-        {/* Phase 2-4: Download Arrow Line + Arrowhead */}
-        <G className="amber-arrow-group">
-          <Line
-            x1="12"
-            y1="5"
-            x2="12"
-            y2="12"
-            stroke={color}
-            strokeWidth="1.8"
-            strokeLinecap="round"
+        >
+          <Animate
+            attributeName="d"
+            values={animValues}
+            keyTimes={animKeyTimes}
+            dur="2.8s"
+            repeatCount="indefinite"
           />
+        </Path>
+
+        {/* Download arrow dropping into the morphing frame */}
+        <G>
           <Path
-            d="M8.5 9.5L12 13L15.5 9.5"
+            d="M 12,4 L 12,12 M 8.5,8.5 L 12,12 L 15.5,8.5"
             stroke={color}
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
+          />
+          <AnimateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,-5; 0,-1; 0,2.5; 0,7; 0,-5"
+            keyTimes="0; 0.35; 0.7; 0.85; 1"
+            dur="2.8s"
+            repeatCount="indefinite"
+          />
+          <Animate
+            attributeName="opacity"
+            values="0; 1; 1; 0; 0"
+            keyTimes="0; 0.25; 0.7; 0.85; 1"
+            dur="2.8s"
+            repeatCount="indefinite"
           />
         </G>
       </SVG>
@@ -212,7 +111,7 @@ export function DownloadAppButton() {
         accessibilityLabel="Download Skoun Mobile App"
       >
         <View style={styles.iconSlot}>
-          <AmberMorphIcon
+          <SmilMorphDownloadIcon
             color={isHovered ? Skoun.color.primary : Skoun.color.ink}
           />
         </View>
@@ -252,7 +151,7 @@ export function DownloadAppButton() {
 
             <View style={styles.qrContainer}>
               <View style={styles.qrPlaceholder}>
-                <AmberMorphIcon color={Skoun.color.primary} />
+                <SmilMorphDownloadIcon color={Skoun.color.primary} />
                 <Text style={styles.qrText}>Scan QR Code</Text>
               </View>
             </View>
