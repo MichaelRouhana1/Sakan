@@ -6,7 +6,7 @@ import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { ClerkProvider, ClerkLoaded } from "@clerk/expo";
+import { ClerkProvider, ClerkLoaded, useClerk } from "@clerk/expo";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -55,6 +55,21 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const clerk = useClerk();
+
+  useEffect(() => {
+    // Process OAuth redirect params on Web if present in URL
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      window.location.search.includes("__clerk")
+    ) {
+      clerk.handleRedirectCallback({
+        afterSignInUrl: "/",
+        afterSignUpUrl: "/",
+      });
+    }
+  }, [clerk]);
 
   return (
     <QueryClientProvider client={queryClient}>

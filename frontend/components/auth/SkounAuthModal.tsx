@@ -37,6 +37,7 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   // Auto-close modal if user becomes signed in
   useEffect(() => {
     if (isSignedIn && visible) {
+      setLoading(false);
       onClose();
     }
   }, [isSignedIn, visible, onClose]);
@@ -147,34 +148,49 @@ export function SkounAuthModal({ visible, onClose }: Props) {
   };
 
   const handleOAuth = async (strategy: "oauth_google" | "oauth_apple" | "oauth_facebook") => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-
-      const oauth =
-        strategy === "oauth_google"
-          ? googleOAuth
-          : strategy === "oauth_apple"
-          ? appleOAuth
-          : facebookOAuth;
-
-      const redirectUrl = AuthSession.makeRedirectUri();
-      const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
-        redirectUrl,
-      });
-
-      if (createdSessionId) {
-        if (setOAuthActive) {
-          await setOAuthActive({ session: createdSessionId });
-        } else if (setActive) {
-          await setActive({ session: createdSessionId });
+      if (Platform.OS === "web") {
+        if (!isSignInLoaded || !signIn) {
+          console.error("Clerk SignIn not loaded yet");
+          setLoading(false);
+          return;
         }
-        handleClose();
+
+        // Full page redirect on Web — avoids COOP popup blocking completely
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: window.location.origin,
+          redirectUrlComplete: window.location.origin,
+        });
+      } else {
+        const oauth =
+          strategy === "oauth_google"
+            ? googleOAuth
+            : strategy === "oauth_apple"
+            ? appleOAuth
+            : facebookOAuth;
+
+        const redirectUrl = AuthSession.makeRedirectUri();
+        const { createdSessionId, setActive: setOAuthActive } = await oauth.startOAuthFlow({
+          redirectUrl,
+        });
+
+        if (createdSessionId) {
+          if (setOAuthActive) {
+            await setOAuthActive({ session: createdSessionId });
+          } else if (setActive) {
+            await setActive({ session: createdSessionId });
+          }
+          handleClose();
+        }
+        setLoading(false);
       }
     } catch (err: any) {
       console.error("OAuth error:", err);
       setError(err?.errors?.[0]?.message || "OAuth sign in could not be completed.");
-    } finally {
       setLoading(false);
     }
   };
