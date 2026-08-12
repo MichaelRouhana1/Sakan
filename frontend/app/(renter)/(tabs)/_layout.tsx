@@ -40,6 +40,13 @@ export default function RenterTabsLayout() {
           androidSrc={<VectorIcon family={Ionicons} name="heart" />}
         />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <Label>Profile</Label>
+        <Icon
+          sf={{ default: "person", selected: "person.fill" }}
+          androidSrc={<VectorIcon family={Ionicons} name="person" />}
+        />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

@@ -615,7 +615,6 @@ export function SkounHomePage() {
                 style={[
                   styles.promoCard,
                   p.tone === "warm" && styles.promoWarm,
-                  p.tone === "mist" && styles.promoMist,
                   p.tone === "deep" && styles.promoDeep,
                 ]}
                 onPress={() => {

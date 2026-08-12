@@ -8,6 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { Skoun } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
@@ -93,6 +94,7 @@ export function WebTopNav({ showSearch = false }: Props) {
               </Text>
             </Pressable>
           </Link>
+          <DownloadAppButton />
           <Link href="/(poster)/(tabs)/create" asChild>
             <Pressable style={styles.cta} accessibilityRole="link">
               <Text style={styles.ctaText}>List a room</Text>
