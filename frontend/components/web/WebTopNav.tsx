@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   brandHit: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 5,
     paddingVertical: 4,
     paddingRight: 8,
   },

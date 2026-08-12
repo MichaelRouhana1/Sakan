@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  navBrand: { flexDirection: "row", alignItems: "center", gap: 10 },
+  navBrand: { flexDirection: "row", alignItems: "center", gap: 5 },
   navBrandText: {
     fontFamily: Skoun.type.display,
     fontSize: 26,
