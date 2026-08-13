@@ -61,13 +61,14 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
   }
 
   return (
-    <View style={[styles.wrap, { height }]}>
+    <View style={[{ touchAction: "pan-x" } as any, styles.wrap, { height }]}>
       <FlatList
         data={urls}
         keyExtractor={(item, i) => `${item}-${i}`}
         horizontal
         directionalLockEnabled={true}
         nestedScrollEnabled={true}
+        style={[{ touchAction: "pan-x" } as any]}
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={urls.length > 1}

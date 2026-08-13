@@ -80,12 +80,13 @@ export function ListingCardCarousel({
 
   const panResponder = useRef(
     PanResponder.create({
-      // CLAIM TOUCH RESPONDER INSTANTLY ON TOUCH DOWN TO BLOCK VERTICAL PAGE SCROLL
       onStartShouldSetPanResponderCapture: () => countRef.current > 1,
       onStartShouldSetPanResponder: () => countRef.current > 1,
-      onMoveShouldSetPanResponderCapture: () => countRef.current > 1,
-      onMoveShouldSetPanResponder: () => countRef.current > 1,
-      // Hard-lock: NEVER allow vertical page scroll to steal responder
+      onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+        countRef.current > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy),
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        countRef.current > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy),
+      // Hard-lock: Refuses to let parent vertical ScrollView steal the touch gesture
       onPanResponderTerminationRequest: () => false,
       onPanResponderGrant: () => {
         isSlidingRef.current = true;
@@ -192,6 +193,15 @@ export function ListingCardCarousel({
       <View
         style={[{ touchAction: "pan-x" } as any, styles.root, style]}
         onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
+        onStartShouldSetResponder={() => count > 1}
+        onStartShouldSetResponderCapture={() => count > 1}
+        onMoveShouldSetResponder={(_, gestureState) =>
+          count > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy)
+        }
+        onMoveShouldSetResponderCapture={(_, gestureState) =>
+          count > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy)
+        }
+        onResponderTerminationRequest={() => false}
         onTouchStart={(e) => {
           if (count > 1) e?.stopPropagation?.();
         }}

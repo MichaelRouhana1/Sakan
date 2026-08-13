@@ -716,7 +716,12 @@ export function ListingBrowseMap({
   const canToggleExpand = Boolean(onExpandedChange);
 
   return (
-    <View style={[styles.root, expanded && styles.rootExpanded]}>
+    <View
+      style={[
+        styles.root,
+        fillContainer ? styles.rootFill : expanded && styles.rootExpanded,
+      ]}
+    >
       {universityMode && campuses.length === 0 ? (
         <LText variant="caption" tone="muted" style={styles.caption}>
           Campus pin unavailable — showing listings only.
@@ -725,7 +730,10 @@ export function ListingBrowseMap({
 
       {/* Map shell — height morphs for immersive expand; preview stays below */}
       <Animated.View
-        style={[styles.mapShell, { height: heightAnim }]}
+        style={[
+          styles.mapShell,
+          fillContainer ? styles.mapShellFill : { height: heightAnim },
+        ]}
         collapsable={false}
       >
         {!mapReady || loading ? (
@@ -1018,6 +1026,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginBottom: 0,
   },
+  rootFill: {
+    flex: 1,
+    marginBottom: 0,
+  },
   caption: { marginBottom: 2 },
   mapShell: {
     borderRadius: Skoun.radius.lg,
@@ -1026,6 +1038,13 @@ const styles = StyleSheet.create({
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.bgWash,
     position: "relative",
+  },
+  mapShellFill: {
+    flex: 1,
+    borderRadius: 0,
+    borderWidth: 0,
+    position: "relative",
+    overflow: "hidden",
   },
   map: { ...StyleSheet.absoluteFillObject },
   expandBtn: {

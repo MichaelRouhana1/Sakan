@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { LText } from "@/components/lister/Typography";
 import { LButton } from "@/components/lister/Button";
 import {
@@ -20,6 +20,7 @@ import {
   EMPTY_BROWSE_FILTERS,
   type BrowseFiltersValue,
 } from "@/components/listings/BrowseFiltersPanel";
+import { ListingBrowseMap } from "@/components/listings/ListingBrowseMap";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { Skoun } from "@/constants/theme";
@@ -42,14 +43,49 @@ export default function RenterSearchScreen() {
   const insets = useSafeAreaInsets();
   const { q } = useLocalSearchParams<{ q?: string }>();
 
+  const navigation = useNavigation();
   const [mode, setMode] = useState<SearchMode>("standard");
   const [browseFilters, setBrowseFilters] = useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
   const [sort, setSort] = useState<BrowseSortKey>("newest");
   const [searchVal, setSearchVal] = useState(q ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [uniOpen, setUniOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   const universities = useUniversities();
+
+  const activeUniSlug = browseFilters.universitySlugs[0] ?? null;
+  const activeUni = useMemo(
+    () => universities.data?.find((u) => u.slug === activeUniSlug),
+    [universities.data, activeUniSlug]
+  );
+
+  // Hide tab bar when in map view mode
+  useEffect(() => {
+    try {
+      const parent = navigation.getParent();
+      if (viewMode === "map") {
+        navigation.setOptions({ tabBarStyle: { display: "none" } });
+        if (parent) parent.setOptions({ tabBarStyle: { display: "none" } });
+      } else {
+        navigation.setOptions({ tabBarStyle: undefined });
+        if (parent) parent.setOptions({ tabBarStyle: undefined });
+      }
+    } catch {
+      // Safe fallback
+    }
+
+    return () => {
+      try {
+        const parent = navigation.getParent();
+        navigation.setOptions({ tabBarStyle: undefined });
+        if (parent) parent.setOptions({ tabBarStyle: undefined });
+      } catch {
+        // Safe fallback
+      }
+    };
+  }, [navigation, viewMode]);
 
   // Parse entry search query
   useEffect(() => {
@@ -103,6 +139,10 @@ export default function RenterSearchScreen() {
 
   const listingsQuery = useListings(listFilters);
   const listings = listingsQuery.data?.listings ?? [];
+  const campuses = listingsQuery.data?.campuses ?? [];
+
+  const isUniversityMode =
+    deferredMode === "university" && deferredFilters.universitySlugs.length > 0;
 
   // Client side sorting for desc/distance
   const processedListings = useMemo(() => {
@@ -242,6 +282,24 @@ export default function RenterSearchScreen() {
             </Text>
           </Pressable>
 
+          {/* University Pill */}
+          <Pressable
+            onPress={() => setUniOpen(true)}
+            style={[styles.filterPill, activeUniSlug != null && styles.filterPillActive]}
+          >
+            <Ionicons
+              name="school-outline"
+              size={15}
+              color={activeUniSlug != null ? "#ffffff" : Skoun.color.inkMuted}
+            />
+            <Text
+              style={[styles.filterPillLabel, activeUniSlug != null && styles.filterPillLabelActive]}
+              numberOfLines={1}
+            >
+              {activeUni ? activeUni.name : "University"}
+            </Text>
+          </Pressable>
+
           {/* Budget Quick Info */}
           {(browseFilters.minRentUsd != null || browseFilters.maxRentUsd != null) ? (
             <Pressable
@@ -289,8 +347,18 @@ export default function RenterSearchScreen() {
         </ScrollView>
       </View>
 
-      {/* SEARCH RESULTS LIST */}
-      {listingsQuery.isLoading ? (
+      {/* SEARCH RESULTS LIST / MAP VIEW */}
+      {viewMode === "map" ? (
+        <View style={styles.mapContainer}>
+          <ListingBrowseMap
+            listings={processedListings}
+            campuses={campuses}
+            universityMode={isUniversityMode}
+            loading={listingsQuery.isLoading}
+            fillContainer
+          />
+        </View>
+      ) : listingsQuery.isLoading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator color={Skoun.color.primary} size="large" />
           <LText style={{ marginTop: 12 }} tone="muted">
@@ -326,12 +394,38 @@ export default function RenterSearchScreen() {
               <ListingResultCard listing={item} variant="grid" />
             </View>
           )}
-          contentContainerStyle={[styles.listContent, { paddingBottom: 80 + insets.bottom }]}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 90 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           refreshing={listingsQuery.isRefetching}
           onRefresh={() => void listingsQuery.refetch()}
         />
       )}
+
+      {/* FLOATING MAP / LIST TOGGLE PILL AT BOTTOM CENTER */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={viewMode === "list" ? "Show map view" : "Show list view"}
+        onPress={() => setViewMode((prev) => (prev === "list" ? "map" : "list"))}
+        style={({ pressed }) => [
+          styles.floatingPill,
+          {
+            bottom:
+              viewMode === "map"
+                ? Math.max(insets.bottom + 16, 24)
+                : Math.max(insets.bottom + 62, 68),
+          },
+          pressed && styles.floatingPillPressed,
+        ]}
+      >
+        <Ionicons
+          name={viewMode === "list" ? "map" : "list"}
+          size={18}
+          color="#ffffff"
+        />
+        <Text style={styles.floatingPillText}>
+          {viewMode === "list" ? "Map" : "List"}
+        </Text>
+      </Pressable>
 
       {/* FILTERS DRAWER PANEL */}
       <BrowseFiltersPanel
@@ -381,6 +475,110 @@ export default function RenterSearchScreen() {
                 );
               })}
             </View>
+          </View>
+        </View>
+      ) : null}
+
+      {/* UNIVERSITY SELECTOR BOTTOM SHEET */}
+      {uniOpen ? (
+        <View style={styles.sheetOverlay}>
+          <Pressable style={styles.sheetBackdrop} onPress={() => setUniOpen(false)} />
+          <View style={[styles.sheet, { maxHeight: "80%" }]}>
+            <View style={styles.sheetHeader}>
+              <View style={{ gap: 2 }}>
+                <LText variant="subtitle" style={{ fontWeight: "700" }}>
+                  Select University
+                </LText>
+                <LText variant="caption" tone="muted">
+                  Choose a campus (1 active at a time)
+                </LText>
+              </View>
+              <Pressable onPress={() => setUniOpen(false)}>
+                <Ionicons name="close" size={24} color={Skoun.color.ink} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <View style={styles.sheetOptions}>
+                {/* Clear / All Universities Option */}
+                <Pressable
+                  style={[
+                    styles.sheetOption,
+                    activeUniSlug == null && styles.sheetOptionActive,
+                  ]}
+                  onPress={() => {
+                    setBrowseFilters((prev) => ({ ...prev, universitySlugs: [] }));
+                    setMode("standard");
+                    setUniOpen(false);
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                    <Ionicons
+                      name="globe-outline"
+                      size={18}
+                      color={activeUniSlug == null ? Skoun.color.primary : Skoun.color.inkMuted}
+                    />
+                    <LText
+                      style={[
+                        styles.sheetOptionLabel,
+                        activeUniSlug == null && styles.sheetOptionLabelActive,
+                      ]}
+                    >
+                      All / No University Filter
+                    </LText>
+                  </View>
+                  {activeUniSlug == null ? (
+                    <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
+                  ) : null}
+                </Pressable>
+
+                {/* List of Universities (Only 1 active at a time) */}
+                {(universities.data ?? []).map((uni) => {
+                  const active = activeUniSlug === uni.slug;
+                  return (
+                    <Pressable
+                      key={uni.id || uni.slug}
+                      style={[styles.sheetOption, active && styles.sheetOptionActive]}
+                      onPress={() => {
+                        if (active) {
+                          setBrowseFilters((prev) => ({ ...prev, universitySlugs: [] }));
+                          setMode("standard");
+                        } else {
+                          // Only 1 active university at a time
+                          setBrowseFilters((prev) => ({
+                            ...prev,
+                            universitySlugs: [uni.slug],
+                          }));
+                          setMode("university");
+                        }
+                        setUniOpen(false);
+                      }}
+                    >
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                        <Ionicons
+                          name="school-outline"
+                          size={18}
+                          color={active ? Skoun.color.primary : Skoun.color.inkMuted}
+                        />
+                        <LText
+                          style={[
+                            styles.sheetOptionLabel,
+                            active && styles.sheetOptionLabelActive,
+                            { flex: 1 },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {uni.name}
+                        </LText>
+                      </View>
+                      {active ? (
+                        <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
           </View>
         </View>
       ) : null}
@@ -522,5 +720,36 @@ const styles = StyleSheet.create({
   sheetOptionLabelActive: {
     color: Skoun.color.primary,
     fontWeight: "600",
+  },
+  mapContainer: {
+    flex: 1,
+    position: "relative",
+  },
+  floatingPill: {
+    position: "absolute",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#111928",
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 24,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 99,
+  },
+  floatingPillPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.97 }],
+  },
+  floatingPillText: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 14,
+    color: "#ffffff",
+    fontWeight: "700",
   },
 });
