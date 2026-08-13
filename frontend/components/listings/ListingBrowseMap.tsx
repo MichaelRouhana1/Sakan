@@ -56,7 +56,7 @@ type Props = {
   /** Immersive map-focus layout (filters collapsed by parent). */
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
-  /** Web Amber split: fill parent; ignored on native. */
+  /** Web Amber split & search page map mode: fill parent container height. */
   fillContainer?: boolean;
 };
 
@@ -327,7 +327,7 @@ export function ListingBrowseMap({
   loading,
   expanded = false,
   onExpandedChange,
-  fillContainer: _fillContainer = false,
+  fillContainer = false,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);

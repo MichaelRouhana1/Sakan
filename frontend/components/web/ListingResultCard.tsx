@@ -157,7 +157,7 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
   if (isList) {
     return (
       <View style={[styles.card, styles.cardList]}>
-        <View style={[styles.mediaShell, styles.mediaList]}>
+        <View style={[{ touchAction: "pan-x" } as any, styles.mediaShell, styles.mediaList]}>
           <ListingCardCarousel urls={urls} onPressCard={onOpen} />
           <ImageCornerBadge listing={listing} variant="list" />
         </View>
@@ -230,7 +230,7 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
 
   return (
     <View style={[styles.card, styles.cardGrid]}>
-      <View style={styles.gridMedia}>
+      <View style={[{ touchAction: "pan-x" } as any, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
         <HeartButton

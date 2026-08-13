@@ -72,7 +72,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
 
   return (
     <View style={styles.card}>
-      <View style={styles.mediaShell}>
+      <View style={[{ touchAction: "pan-x" } as any, styles.mediaShell]}>
         <ListingCardCarousel urls={urls} onPressCard={onPress} alwaysShowArrows />
         <ImageCornerBadge listing={listing} />
       </View>

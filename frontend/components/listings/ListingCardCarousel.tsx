@@ -190,21 +190,30 @@ export function ListingCardCarousel({
   if (!isWeb) {
     return (
       <View
-        style={[styles.root, style]}
+        style={[{ touchAction: "pan-x" } as any, styles.root, style]}
         onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
+        onTouchStart={(e) => {
+          if (count > 1) e?.stopPropagation?.();
+        }}
+        onTouchEnd={(e) => {
+          if (count > 1) e?.stopPropagation?.();
+        }}
         {...(count > 1 ? panResponder.panHandlers : {})}
       >
         {count > 0 && cardWidth > 0 ? (
           <Animated.View
-            style={{
-              flexDirection: "row",
-              width: cardWidth * count,
-              height: "100%",
-              transform: [{ translateX: trackAnim }],
-            }}
+            style={[
+              { touchAction: "pan-x" } as any,
+              {
+                flexDirection: "row",
+                width: cardWidth * count,
+                height: "100%",
+                transform: [{ translateX: trackAnim }],
+              },
+            ]}
           >
             {photos.map((url, i) => (
-              <View key={i} style={{ width: cardWidth, height: "100%" }}>
+              <View key={i} style={[{ touchAction: "pan-x" } as any, { width: cardWidth, height: "100%" }]}>
                 <Image
                   pointerEvents="none"
                   source={{ uri: url }}
@@ -263,8 +272,14 @@ export function ListingCardCarousel({
 
   return (
     <View
-      style={[styles.root, style]}
+      style={[{ touchAction: "pan-x" } as any, styles.root, style]}
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
+      onTouchStart={(e) => {
+        if (count > 1) e?.stopPropagation?.();
+      }}
+      onTouchEnd={(e) => {
+        if (count > 1) e?.stopPropagation?.();
+      }}
       {...webHoverHandlers}
       {...(count > 1 ? panResponder.panHandlers : {})}
     >
