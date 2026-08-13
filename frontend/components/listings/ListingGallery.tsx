@@ -7,6 +7,7 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   StyleSheet,
   View,
   type ViewToken,
