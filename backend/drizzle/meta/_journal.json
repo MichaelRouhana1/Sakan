@@ -43,6 +43,13 @@
       "when": 1784647200000,
       "tag": "0005_email_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784650000000,
+      "tag": "0006_clerk_id",
+      "breakpoints": true
     }
   ]
 }

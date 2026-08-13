@@ -8,11 +8,18 @@ import {
   registerUserSchema,
   requestRegistrationCodeSchema,
   setGenderSchema,
+  syncClerkUserSchema,
   updateRoleSchema,
   verifyRegistrationCodeSchema,
 } from "./users.schemas.js";
 
 export const usersRouter = Router();
+
+usersRouter.post(
+  "/sync-clerk",
+  validate(syncClerkUserSchema),
+  (req, res, next) => usersController.syncClerkUser(req, res, next),
+);
 
 usersRouter.post(
   "/register",

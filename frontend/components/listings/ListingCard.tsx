@@ -71,19 +71,19 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
   const urls = photoUrls(listing);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${title}, ${rentLabel} per month`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-    >
+    <View style={styles.card}>
       <View style={styles.mediaShell}>
-        <ListingCardCarousel urls={urls} alwaysShowArrows />
+        <ListingCardCarousel urls={urls} onPressCard={onPress} alwaysShowArrows />
         <ImageCornerBadge listing={listing} />
       </View>
 
       {/* Column 2 — details */}
-      <View style={styles.middle}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${title}, ${rentLabel} per month`}
+        onPress={onPress}
+        style={({ pressed }) => [styles.middle, pressed && styles.pressed]}
+      >
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
@@ -118,7 +118,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
             ))}
           </View>
         ) : null}
-      </View>
+      </Pressable>
 
       {/* Column 3 — favorite + price + CTA */}
       <View style={styles.rightCol}>
@@ -139,7 +139,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           />
         </Pressable>
 
-        <View style={styles.priceBlock}>
+        <Pressable onPress={onPress} style={styles.priceBlock}>
           <Text style={styles.priceFrom}>From</Text>
           <Text style={styles.price}>
             {rentLabel}
@@ -148,9 +148,9 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           <View style={styles.cta}>
             <Text style={styles.ctaText}>View Listing</Text>
           </View>
-        </View>
+        </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -164,6 +164,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
     minHeight: 168,
+  },
+  detailsContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "stretch",
   },
   pressed: { opacity: 0.94 },
   mediaShell: {

@@ -25,8 +25,12 @@ async function fetchSavedListings(): Promise<Listing[]> {
 }
 
 async function fetchIsSaved(id: string): Promise<boolean> {
-  const { data } = await api.get<SavedFlagResponse>(`/api/saved/${id}`);
-  return Boolean(data.data?.saved);
+  try {
+    const { data } = await api.get<SavedFlagResponse>(`/api/saved/${id}`);
+    return Boolean(data.data?.saved);
+  } catch {
+    return false;
+  }
 }
 
 /** One-time merge of device AsyncStorage IDs into the account shortlist. */
@@ -76,10 +80,12 @@ export function useIsSaved(id: string) {
 
 export function useToggleSaved() {
   const queryClient = useQueryClient();
+  const preMutationState = useRef(new Map<string, boolean>());
 
   return useMutation({
     mutationFn: async (listing: Listing) => {
       const currentlySaved =
+        preMutationState.current.get(listing.id) ??
         queryClient.getQueryData<boolean>(savedKeys.one(listing.id)) ??
         false;
 
@@ -105,7 +111,15 @@ export function useToggleSaved() {
       const previousList = queryClient.getQueryData<Listing[]>(
         savedKeys.list(),
       );
-      const nextSaved = !(previousOne ?? false);
+
+      const currentlySaved =
+        previousOne ??
+        previousList?.some((l) => l.id === listing.id) ??
+        false;
+
+      preMutationState.current.set(listing.id, currentlySaved);
+
+      const nextSaved = !currentlySaved;
 
       queryClient.setQueryData(savedKeys.one(listing.id), nextSaved);
       queryClient.setQueryData<Listing[]>(savedKeys.list(), (prev) => {
@@ -125,7 +139,8 @@ export function useToggleSaved() {
 
       return { previousOne, previousList, listingId: listing.id };
     },
-    onError: (_err, _listing, context) => {
+    onError: (_err, listing, context) => {
+      preMutationState.current.delete(listing.id);
       if (!context) return;
       queryClient.setQueryData(
         savedKeys.one(context.listingId),
@@ -134,6 +149,7 @@ export function useToggleSaved() {
       queryClient.setQueryData(savedKeys.list(), context.previousList);
     },
     onSettled: (_data, _err, listing) => {
+      preMutationState.current.delete(listing.id);
       void queryClient.invalidateQueries({ queryKey: savedKeys.list() });
       void queryClient.invalidateQueries({
         queryKey: savedKeys.one(listing.id),

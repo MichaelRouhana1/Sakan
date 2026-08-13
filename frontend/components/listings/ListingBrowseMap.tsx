@@ -713,27 +713,6 @@ export function ListingBrowseMap({
     });
   }
 
-  if (loading) {
-    return (
-      <View style={styles.emptyBox}>
-        <ActivityIndicator color={Skoun.color.primary} />
-      </View>
-    );
-  }
-
-  if (groups.length === 0) {
-    return (
-      <View style={styles.emptyBox}>
-        <LText variant="subtitle">No pins on the map</LText>
-        <LText variant="body" tone="muted" style={styles.emptyBody}>
-          {listings.length > 0
-            ? "These listings don’t have a location pin yet. Switch to List to browse them."
-            : "Nothing matches these filters. Try another city or campus."}
-        </LText>
-      </View>
-    );
-  }
-
   const canToggleExpand = Boolean(onExpandedChange);
 
   return (
@@ -749,6 +728,24 @@ export function ListingBrowseMap({
         style={[styles.mapShell, { height: heightAnim }]}
         collapsable={false}
       >
+        {!mapReady || loading ? (
+          <View style={styles.mapLoading}>
+            <ActivityIndicator color={Skoun.color.primary} />
+            <LText variant="caption" tone="muted">
+              {loading ? "Updating map…" : "Loading map…"}
+            </LText>
+          </View>
+        ) : null}
+        {groups.length === 0 && mapReady && !loading ? (
+          <View style={styles.emptyOverlay}>
+            <LText variant="subtitle">No pins on the map</LText>
+            <LText variant="body" tone="muted" style={styles.emptyBody}>
+              {listings.length > 0
+                ? "These listings don’t have a location pin yet. Switch to List to browse them."
+                : "Nothing matches these filters. Try another city or campus."}
+            </LText>
+          </View>
+        ) : null}
         <MapView
           ref={mapRef}
           style={styles.map}
@@ -1166,6 +1163,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
+  },
+  mapLoading: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 200,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Skoun.color.primaryMist,
+  },
+  emptyOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 300,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+    backgroundColor: "rgba(255,255,255,0.92)",
   },
   emptyBody: { textAlign: "center" },
 });

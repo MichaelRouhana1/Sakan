@@ -17,9 +17,7 @@
   "engines": {
     "node": ">=20"
   },
-  "dependencies": {
-    "expo": "^57.0.7"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@playwright/test": "^1.62.1"
   }

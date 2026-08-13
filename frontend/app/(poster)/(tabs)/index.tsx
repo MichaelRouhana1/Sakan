@@ -90,7 +90,7 @@ export default function PosterDashboardScreen() {
               <LText variant="subtitle">Your listings</LText>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => router.push("/(poster)/create")}
+                onPress={() => router.push("/(poster)/create" as never)}
               >
                 <LText variant="caption" tone="primary" style={styles.link}>
                   New listing
@@ -136,7 +136,7 @@ export default function PosterDashboardScreen() {
               title="No listings yet"
               body="Publish your first place — free for 30 days. Renters will see it in Cities and University Hub."
               ctaLabel="Create a listing"
-              onCta={() => router.push("/(poster)/create")}
+              onCta={() => router.push("/(poster)/create" as never)}
               icon="add-circle-outline"
             />
           )

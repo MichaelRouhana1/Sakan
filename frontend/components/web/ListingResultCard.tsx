@@ -156,70 +156,71 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
 
   if (isList) {
     return (
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={`${title}, ${rentLabel} per month`}
-        onPress={onOpen}
-        style={({ hovered, pressed }) => [
-          styles.card,
-          styles.cardList,
-          (hovered || pressed) && styles.cardHover,
-        ]}
-      >
+      <View style={[styles.card, styles.cardList]}>
         <View style={[styles.mediaShell, styles.mediaList]}>
-          <ListingCardCarousel urls={urls} />
+          <ListingCardCarousel urls={urls} onPressCard={onOpen} />
           <ImageCornerBadge listing={listing} variant="list" />
         </View>
 
-        <View style={[styles.middle, styles.middleList]}>
-          <Text style={styles.title} numberOfLines={2}>
-            {title}
-          </Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {subtitle}
-            {listing.landmark ? ` · ${typeBadge}` : ""}
-          </Text>
-
-          {proximity ? (
-            <Text style={styles.proximityText} numberOfLines={2}>
-              {proximity}
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`${title}, ${rentLabel} per month`}
+          onPress={onOpen}
+          style={({ hovered, pressed }) => [
+            styles.listBodyContent,
+            (hovered || pressed) && styles.cardHover,
+          ]}
+        >
+          <View style={[styles.middle, styles.middleList]}>
+            <Text style={styles.title} numberOfLines={2}>
+              {title}
             </Text>
-          ) : null}
+            <Text style={styles.meta} numberOfLines={1}>
+              {subtitle}
+              {listing.landmark ? ` · ${typeBadge}` : ""}
+            </Text>
 
-          <View style={styles.divider} />
+            {proximity ? (
+              <Text style={styles.proximityText} numberOfLines={2}>
+                {proximity}
+              </Text>
+            ) : null}
 
-          <PillRow pills={highlights} highlight />
-          <PillRow pills={amenities} />
-        </View>
+            <View style={styles.divider} />
 
-        <View style={[styles.rightCol, styles.rightColList]}>
-          <View style={styles.listHeaderRow}>
-            {hasRating ? (
-              <ListingListRatingDisplay
-                rating={listing.rating!}
-                reviewCount={listing.reviewCount!}
-              />
-            ) : (
-              <View />
-            )}
-            <HeartButton
-              isSaved={isSaved}
-              onToggle={onToggleSave}
-              style={styles.heart}
-            />
+            <PillRow pills={highlights} highlight />
+            <PillRow pills={amenities} />
           </View>
-          <View style={styles.priceBlock}>
-            <Text style={styles.priceFrom}>From</Text>
-            <Text style={styles.price}>
-              {rentLabel}
-              <Text style={styles.priceUnit}> / month</Text>
-            </Text>
-            <View style={styles.cta}>
-              <Text style={styles.ctaText}>View Listing</Text>
+
+          <View style={[styles.rightCol, styles.rightColList]}>
+            <View style={styles.listHeaderRow}>
+              {hasRating ? (
+                <ListingListRatingDisplay
+                  rating={listing.rating!}
+                  reviewCount={listing.reviewCount!}
+                />
+              ) : (
+                <View />
+              )}
+              <HeartButton
+                isSaved={isSaved}
+                onToggle={onToggleSave}
+                style={styles.heart}
+              />
+            </View>
+            <View style={styles.priceBlock}>
+              <Text style={styles.priceFrom}>From</Text>
+              <Text style={styles.price}>
+                {rentLabel}
+                <Text style={styles.priceUnit}> / month</Text>
+              </Text>
+              <View style={styles.cta}>
+                <Text style={styles.ctaText}>View Listing</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     );
   }
 
@@ -228,18 +229,9 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`${title}, ${rentLabel} per month`}
-      onPress={onOpen}
-      style={({ hovered, pressed }) => [
-        styles.card,
-        styles.cardGrid,
-        (hovered || pressed) && styles.cardHover,
-      ]}
-    >
+    <View style={[styles.card, styles.cardGrid]}>
       <View style={styles.gridMedia}>
-        <ListingCardCarousel urls={urls} />
+        <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
         <HeartButton
           isSaved={isSaved}
@@ -250,7 +242,15 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
         <ImageCornerBadge listing={listing} variant="grid" />
       </View>
 
-      <View style={styles.gridBody}>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`${title}, ${rentLabel} per month`}
+        onPress={onOpen}
+        style={({ hovered, pressed }) => [
+          styles.gridBody,
+          (hovered || pressed) && styles.cardHover,
+        ]}
+      >
         <View style={styles.gridHeader}>
           <View style={styles.gridHeaderLeft}>
             <Text style={styles.gridTitle} numberOfLines={1}>
@@ -288,8 +288,8 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
         <View style={styles.gridPillSlot}>
           <PillRow pills={gridPills} compact />
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
@@ -300,6 +300,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CARD_BORDER,
     overflow: "hidden",
+  },
+  listBodyContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "stretch",
   },
   cardList: {
     flexDirection: "row",

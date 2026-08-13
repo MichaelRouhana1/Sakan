@@ -554,7 +554,6 @@ export function SkounRegisterFlow({
               Date of birth <Text style={styles.requiredMark}>*</Text>
             </Text>
             {Platform.OS === "web" ? (
-              // @ts-expect-error web-only input
               <input
                 type="date"
                 value={dateOfBirth}

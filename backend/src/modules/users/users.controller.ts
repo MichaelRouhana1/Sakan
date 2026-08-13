@@ -7,11 +7,22 @@ import type {
   RegisterUserInput,
   RequestRegistrationCodeInput,
   SetGenderInput,
+  SyncClerkUserInput,
   UpdateRoleInput,
   VerifyRegistrationCodeInput,
 } from "./users.schemas.js";
 
 export class UsersController {
+  async syncClerkUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = await usersService.syncClerkUser(
+        req.body as SyncClerkUserInput,
+      );
+      res.json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await usersService.register(req.body as RegisterUserInput);

@@ -144,7 +144,7 @@ export default function RoleSelectScreen() {
     setError(null);
     try {
       await switchToRole(selected);
-      router.replace(selected === "renter" ? "/(renter)" : "/(poster)");
+      router.replace((selected === "renter" ? "/(renter)" : "/(poster)") as never);
     } catch {
       setError(
         "We couldn’t switch roles. Check your connection and try again.",

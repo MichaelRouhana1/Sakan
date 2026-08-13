@@ -31,7 +31,7 @@ export function SwitchRoleControl({ currentRole }: Props) {
       // Ensure headers still send current role until switch completes.
       await getSession();
       await switchToRole(nextRole);
-      router.replace(nextRole === "renter" ? "/(renter)" : "/(poster)");
+      router.replace((nextRole === "renter" ? "/(renter)" : "/(poster)") as never);
     } catch {
       setError("Couldn’t switch roles. Try again.");
     } finally {

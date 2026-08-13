@@ -6,7 +6,7 @@ import {
   extractUrlFromPaste,
   parseCoordsFromLocationUrl,
   parseCoordsFromMapsHtml,
-} from "./parseLocationLink.ts";
+} from "./parseLocationLink";
 
 function assert(cond: unknown, msg: string) {
   if (!cond) throw new Error(msg);

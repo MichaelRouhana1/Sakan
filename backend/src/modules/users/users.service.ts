@@ -4,10 +4,15 @@ import { usersRepository } from "./users.repository.js";
 import type {
   RegisterUserInput,
   SetGenderInput,
+  SyncClerkUserInput,
   UpdateRoleInput,
 } from "./users.schemas.js";
 
 export class UsersService {
+  async syncClerkUser(input: SyncClerkUserInput) {
+    const user = await usersRepository.syncClerkUser(input);
+    return toPublicUser(user);
+  }
   async getById(id: string) {
     const user = await usersRepository.findById(id);
     if (!user) {

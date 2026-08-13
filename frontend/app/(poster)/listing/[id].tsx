@@ -47,7 +47,7 @@ export default function PosterListingDetailScreen() {
 
   const { data: listing, isLoading, isError, refetch } = useListing(id ?? "");
   const archive = useArchiveListing();
-  useSafeHardwareBack("/(poster)");
+  useSafeHardwareBack("/(poster)" as never);
 
   if (isLoading) {
     return (
@@ -67,7 +67,7 @@ export default function PosterListingDetailScreen() {
           <LButton
             label="Back to listings"
             variant="secondary"
-            onPress={() => router.replace("/(poster)")}
+            onPress={() => router.replace("/(poster)" as never)}
             style={{ marginTop: 16 }}
           />
         </View>
@@ -92,7 +92,7 @@ export default function PosterListingDetailScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to listings"
-            onPress={() => safeBack("/(poster)")}
+            onPress={() => safeBack("/(poster)" as never)}
             style={styles.backBtn}
           >
             <Ionicons
@@ -187,7 +187,7 @@ export default function PosterListingDetailScreen() {
                   variant="ghost"
                   onPress={() => {
                     void archive.mutateAsync(listing.id).then(() => {
-                      router.replace("/(poster)");
+                      router.replace("/(poster)" as never);
                     });
                   }}
                 />

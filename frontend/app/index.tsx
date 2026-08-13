@@ -5,5 +5,5 @@ import { Redirect } from "expo-router";
  * Default into auth phone screen; role groups take over after role-select.
  */
 export default function Index() {
-  return <Redirect href="/(renter)" />;
+  return <Redirect href={"/(renter)" as never} />;
 }

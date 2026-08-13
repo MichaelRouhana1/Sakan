@@ -37,6 +37,54 @@ export class UsersRepository {
     return row ?? null;
   }
 
+  async findByClerkId(clerkId: string) {
+    const [row] = await db
+      .select()
+      .from(users)
+      .where(eq(users.clerkId, clerkId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  async syncClerkUser(input: {
+    clerkId: string;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  }) {
+    let user = await this.findByClerkId(input.clerkId);
+    if (user) {
+      return user;
+    }
+
+    if (input.email) {
+      user = await this.findByEmail(input.email);
+      if (user) {
+        const [updated] = await db
+          .update(users)
+          .set({ clerkId: input.clerkId, updatedAt: new Date() })
+          .where(eq(users.id, user.id))
+          .returning();
+        return updated ?? user;
+      }
+    }
+
+    const [row] = await db
+      .insert(users)
+      .values({
+        clerkId: input.clerkId,
+        email: input.email || null,
+        firstName: input.firstName || null,
+        lastName: input.lastName || null,
+        role: "renter",
+        postCredits: 0,
+        emailVerifiedAt: input.email ? new Date() : null,
+      })
+      .returning();
+
+    return row;
+  }
+
   async create(input: RegisterUserInput) {
     const postCredits = input.role === "poster" ? 1 : 0;
     const [row] = await db

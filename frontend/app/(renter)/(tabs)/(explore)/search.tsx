@@ -173,7 +173,7 @@ export default function RenterSearchScreen() {
   const badgeCount = browseFilterBadgeCount(browseFilters, mode);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       
       {/* SEARCH HEADER */}
       <View style={styles.header}>
@@ -326,7 +326,7 @@ export default function RenterSearchScreen() {
               <ListingResultCard listing={item} variant="grid" />
             </View>
           )}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 80 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           refreshing={listingsQuery.isRefetching}
           onRefresh={() => void listingsQuery.refetch()}
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 32,
+    paddingBottom: 80,
   },
   cardContainer: {
     marginBottom: 16,

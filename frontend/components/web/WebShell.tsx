@@ -41,10 +41,14 @@ const styles = StyleSheet.create({
     minHeight: "100vh" as unknown as number,
     backgroundColor: Skoun.color.bg,
     boxSizing: "border-box",
+    display: "flex" as unknown as "flex",
+    flexDirection: "column",
   },
   body: {
     width: "100%",
     flexGrow: 1,
+    display: "flex" as unknown as "flex",
+    flexDirection: "column",
     boxSizing: "border-box",
   },
   main: {
@@ -55,6 +59,9 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: 48,
     boxSizing: "border-box",
+    flexGrow: 1,
+    display: "flex" as unknown as "flex",
+    flexDirection: "column",
   },
   mainBleed: {
     maxWidth: "100%" as unknown as number,

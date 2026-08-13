@@ -96,3 +96,18 @@ export async function loginWithPassword(email: string, password: string) {
     throw toApiError(err, "Invalid email or password.");
   }
 }
+
+export async function syncClerkUser(params: {
+  clerkId: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+}): Promise<User> {
+  try {
+    const { data } = await api.post<{ data: User }>("/api/users/sync-clerk", params);
+    return data.data;
+  } catch (err) {
+    throw toApiError(err, "Could not sync user account.");
+  }
+}
+

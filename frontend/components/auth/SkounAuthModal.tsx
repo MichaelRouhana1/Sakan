@@ -18,6 +18,7 @@ import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   loginWithPassword,
+  syncClerkUser,
   RegistrationApiError,
 } from "@/features/auth/registrationApi";
 import {
@@ -211,21 +212,43 @@ export function SkounAuthModal({
       const res = await startFlow();
       if (res?.createdSessionId && res?.setActive) {
         await res.setActive({ session: res.createdSessionId });
-        const userId = clerk?.user?.id;
-        if (userId) {
-          await finishSuccess(provider, userId);
+        if (clerk?.user?.id) {
+          const synced = await syncClerkUser({
+            clerkId: clerk.user.id,
+            email: clerk.user.primaryEmailAddress?.emailAddress,
+            firstName: clerk.user.firstName,
+            lastName: clerk.user.lastName,
+          });
+          await finishSuccess(provider, synced.id);
           return;
         }
       }
 
       if (clerk?.user?.id) {
-        await finishSuccess(provider, clerk.user.id);
+        const synced = await syncClerkUser({
+          clerkId: clerk.user.id,
+          email: clerk.user.primaryEmailAddress?.emailAddress,
+          firstName: clerk.user.firstName,
+          lastName: clerk.user.lastName,
+        });
+        await finishSuccess(provider, synced.id);
+        return;
       }
     } catch (err: unknown) {
       console.error("OAuth error:", err);
       if (isAlreadySignedInError(err) && clerk?.user?.id) {
-        await finishSuccess(provider, clerk.user.id);
-        return;
+        try {
+          const synced = await syncClerkUser({
+            clerkId: clerk.user.id,
+            email: clerk.user.primaryEmailAddress?.emailAddress,
+            firstName: clerk.user.firstName,
+            lastName: clerk.user.lastName,
+          });
+          await finishSuccess(provider, synced.id);
+          return;
+        } catch {
+          // fallback to clerk id if sync fails
+        }
       }
       setError(
         clerkErrorMessage(

@@ -26,7 +26,7 @@ export default function RenterTabsLayout() {
       labelStyle={{ color: Skoun.color.inkMuted }}
       minimizeBehavior="onScrollDown"
     >
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="(explore)">
         <Label>Search</Label>
         <Icon
           sf={{ default: "magnifyingglass", selected: "magnifyingglass" }}

@@ -18,7 +18,10 @@ import {
   setSession,
   type Session,
 } from "@/lib/session";
+import { syncClerkUser } from "@/features/auth/registrationApi";
 import type { User } from "@/types/user";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type AuthSessionContextValue = {
   session: Session | null;
@@ -51,14 +54,21 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 
   const hydrateFromStorage = useCallback(async () => {
     const stored = await getSession();
-    setSessionState(stored);
     if (!stored) {
+      setSessionState(null);
       setUser(null);
       return null;
     }
+
+    if (!UUID_RE.test(stored.userId)) {
+      await clearSession();
+      setSessionState(null);
+      setUser(null);
+      return null;
+    }
+
+    setSessionState(stored);
     const me = await fetchCurrentUser();
-    // Keep AsyncStorage session even when /me 404s (e.g. Clerk OAuth id not in DB yet).
-    // Email/password users will have a matching /me row and populate profile fields.
     setUser(me);
     if (me && me.role !== stored.role) {
       const next = { userId: me.id, role: me.role };
@@ -108,29 +118,43 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     };
   }, [hydrateFromStorage]);
 
-  // Clerk OAuth can establish a session — never wipe backend session when Clerk is null.
+  // Clerk OAuth establishes a session synced with Postgres user table.
   useEffect(() => {
     if (!clerkUser?.id) return;
 
     let cancelled = false;
     (async () => {
-      const pending = await consumePendingAuthProvider();
-      if (pending) {
-        await setLastAuthProvider(pending);
+      try {
+        const pending = await consumePendingAuthProvider();
+        if (pending) {
+          await setLastAuthProvider(pending);
+        }
+        const syncedUser = await syncClerkUser({
+          clerkId: clerkUser.id,
+          email: clerkUser.primaryEmailAddress?.emailAddress,
+          firstName: clerkUser.firstName,
+          lastName: clerkUser.lastName,
+        });
+        if (cancelled) return;
+
+        const next: Session = { userId: syncedUser.id, role: syncedUser.role };
+        await setSession(next);
+        setSessionState(next);
+        setUser(syncedUser);
+      } catch (err) {
+        console.error("Failed to sync Clerk user with backend:", err);
       }
-      const next: Session = { userId: clerkUser.id, role: "renter" };
-      await setSession(next);
-      if (cancelled) return;
-      setSessionState(next);
-      // Clerk ids may not exist in Postgres yet — keep session even if /me 404s.
-      const me = await fetchCurrentUser();
-      if (!cancelled) setUser(me);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [clerkUser?.id]);
+  }, [
+    clerkUser?.id,
+    clerkUser?.primaryEmailAddress?.emailAddress,
+    clerkUser?.firstName,
+    clerkUser?.lastName,
+  ]);
 
   const value = useMemo<AuthSessionContextValue>(
     () => ({

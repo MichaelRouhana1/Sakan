@@ -89,6 +89,13 @@ export const loginWithPasswordSchema = z.object({
   password: z.string().min(1).max(128),
 });
 
+export const syncClerkUserSchema = z.object({
+  clerkId: z.string().min(1).max(255),
+  email: z.string().trim().email().optional().nullable(),
+  firstName: z.string().trim().optional().nullable(),
+  lastName: z.string().trim().optional().nullable(),
+});
+
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;
 export type UpdateRoleInput = z.infer<typeof updateRoleSchema>;
 export type SetGenderInput = z.infer<typeof setGenderSchema>;
@@ -102,3 +109,5 @@ export type CompleteRegistrationInput = z.infer<
   typeof completeRegistrationSchema
 >;
 export type LoginWithPasswordInput = z.infer<typeof loginWithPasswordSchema>;
+export type SyncClerkUserInput = z.infer<typeof syncClerkUserSchema>;
+

@@ -66,19 +66,23 @@ export function WebTopNav({ showSearch = false }: Props) {
         </Link>
 
         {showSearch ? (
-          <View style={styles.searchWrap}>
+          <Pressable
+            style={styles.searchWrap}
+            onPress={() => router.push("/search")}
+            accessibilityRole="button"
+            accessibilityLabel="Search listings"
+          >
             <TextInput
               placeholder="Search by city, area, university, or listing"
               placeholderTextColor={Skoun.color.inkMuted}
               style={styles.searchInput}
               editable={false}
-              onPressIn={() => router.push("/search")}
-              accessibilityLabel="Search listings"
+              pointerEvents="none"
             />
             <View style={styles.searchBtn} accessibilityElementsHidden>
               <Text style={styles.searchBtnGlyph}>⌕</Text>
             </View>
-          </View>
+          </Pressable>
         ) : null}
 
         <View style={styles.links}>

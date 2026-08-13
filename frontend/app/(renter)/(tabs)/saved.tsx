@@ -98,7 +98,7 @@ export default function SavedScreen() {
               title="Nothing saved yet"
               body="When a place feels right, tap the heart. It’ll stay on your account for quick return visits."
               ctaLabel="Browse listings"
-              onCta={() => router.push("/(renter)")}
+              onCta={() => router.push("/(renter)" as never)}
               icon="heart-outline"
             />
           )

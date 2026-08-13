@@ -11,6 +11,7 @@ import { userAccountStatusEnum, userGenderEnum, userRoleEnum } from "./enums.js"
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
+  clerkId: varchar("clerk_id", { length: 255 }).unique(),
   /** Legacy phone accounts; nullable for email/password registrations. */
   phone: varchar("phone", { length: 32 }).unique(),
   email: varchar("email", { length: 320 }).unique(),

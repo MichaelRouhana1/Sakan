@@ -559,7 +559,9 @@ function isStale(
 const styles = StyleSheet.create({
   page: {
     width: "100%",
-    minHeight: "100%" as unknown as number,
+    flexGrow: 1,
+    display: "flex" as unknown as "flex",
+    flexDirection: "column",
     backgroundColor: Skoun.color.bg,
   },
   pageMap: {

@@ -59,7 +59,7 @@ export default function RenterListingDetailScreen() {
     ),
   });
   const [reportOpen, setReportOpen] = useState(false);
-  useSafeHardwareBack("/(renter)");
+  useSafeHardwareBack("/(renter)" as never);
   useRecordListingView(id ?? "", Boolean(id) && !isError);
 
   if (isLoading) {
@@ -80,7 +80,7 @@ export default function RenterListingDetailScreen() {
           <LButton
             label="Back to search"
             variant="secondary"
-            onPress={() => router.replace("/(renter)")}
+            onPress={() => router.replace("/(renter)" as never)}
             style={{ marginTop: 16 }}
           />
         </View>
@@ -111,7 +111,7 @@ export default function RenterListingDetailScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Back to search"
-                onPress={() => safeBack("/(renter)")}
+                onPress={() => safeBack("/(renter)" as never)}
                 style={styles.iconBtn}
               >
                 <Ionicons
