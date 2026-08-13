@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     minHeight: "100%",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
-    ...(Platform.OS === "web" ? ({ touchAction: "none" } as any) : {}),
+    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   fallback: {
     backgroundColor: "#E2E8F0",

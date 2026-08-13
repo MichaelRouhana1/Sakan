@@ -177,6 +177,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     flexShrink: 0,
     overflow: Platform.OS === "web" ? "hidden" : "visible",
+    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   middle: {
     backgroundColor: "#FFFFFF",

@@ -327,6 +327,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignSelf: "stretch",
     overflow: "hidden",
+    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   mediaList: {
     width: 280,
@@ -486,6 +487,7 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 10,
     overflow: Platform.OS === "web" ? "hidden" : "visible",
     backgroundColor: Skoun.color.primaryMist,
+    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   gridHeart: {
     position: "absolute",

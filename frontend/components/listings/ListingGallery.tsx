@@ -65,6 +65,8 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
         data={urls}
         keyExtractor={(item, i) => `${item}-${i}`}
         horizontal
+        directionalLockEnabled={true}
+        nestedScrollEnabled={true}
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         bounces={urls.length > 1}
@@ -117,6 +119,7 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: Skoun.color.bgWash,
     overflow: "hidden",
+    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   placeholder: {
     width: "100%",
