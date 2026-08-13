@@ -95,6 +95,15 @@ export function queryVisibleFeatures(
   });
 }
 
+export function idsInCluster(
+  index: PinClusterIndex,
+  clusterId: number,
+): string[] {
+  return index
+    .getLeaves(clusterId, Infinity)
+    .map((leaf) => (leaf.properties as PinClusterProps).groupId);
+}
+
 /** Pad viewport so edge pins don't pop in/out while panning. */
 export function padBBox(bbox: MapBBox, padFraction = 0.12): MapBBox {
   const [west, south, east, north] = bbox;
@@ -159,5 +168,44 @@ export function regionForExpansion(
     longitude: lng,
     longitudeDelta,
     latitudeDelta: longitudeDelta * Math.max(aspect, 0.5),
+  };
+}
+
+const LISTING_FOCUS_ZOOM = 16;
+
+/**
+ * Center a listing pin in the visible map above a bottom overlay (carousel).
+ * Shifts latitude south so the pin is not hidden under the rail.
+ */
+export function regionForListingFocus(
+  lat: number,
+  lng: number,
+  viewportWidthPx: number,
+  viewportHeightPx: number,
+  bottomOverlayPx: number,
+  zoom = LISTING_FOCUS_ZOOM,
+): {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+} {
+  const z = Math.min(Math.max(zoom, 12), 18);
+  const longitudeDelta = (360 * viewportWidthPx) / (Math.pow(2, z) * 256);
+  const aspect =
+    viewportHeightPx > 0 && viewportWidthPx > 0
+      ? viewportHeightPx / viewportWidthPx
+      : 1;
+  const latitudeDelta = longitudeDelta * Math.max(aspect, 0.5);
+  const overlayFraction =
+    viewportHeightPx > 0
+      ? Math.min(0.55, Math.max(0, bottomOverlayPx / viewportHeightPx))
+      : 0;
+  const latShift = (latitudeDelta * overlayFraction) / 2;
+  return {
+    latitude: lat - latShift,
+    longitude: lng,
+    latitudeDelta,
+    longitudeDelta,
   };
 }

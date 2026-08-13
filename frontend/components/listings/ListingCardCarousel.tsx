@@ -2,16 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   type GestureResponderEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
 
 const MAX_PHOTOS = 5;
 
@@ -28,6 +30,18 @@ function stopCardNav(e?: GestureResponderEvent) {
   e?.stopPropagation?.();
 }
 
+const webPanX =
+  Platform.OS === "web"
+    ? ({
+        touchAction: "pan-x",
+        overflowX: "auto",
+        overflowY: "hidden",
+        overscrollBehavior: "contain",
+        WebkitOverflowScrolling: "touch",
+        scrollSnapType: "x mandatory",
+      } as ViewStyle)
+    : null;
+
 export function ListingCardCarousel({
   urls,
   style,
@@ -39,299 +53,166 @@ export function ListingCardCarousel({
   const [cardWidth, setCardWidth] = useState(0);
   const [hovered, setHovered] = useState(false);
   const count = photos.length;
-  const safeIndex = count > 0 ? Math.max(0, Math.min(count - 1, index)) : 0;
   const isWeb = Platform.OS === "web";
+  const scrollRef = useRef<ScrollView>(null);
+  const lockedRef = useRef(false);
+  const draggingRef = useRef(false);
+  const indexRef = useRef(0);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const { lockListScroll, unlockListScroll } = useCarouselListScroll();
+  indexRef.current = index;
 
-  // ALWAYS KEEP REFS FRESH TO PREVENT STALE CLOSURES
-  const safeIndexRef = useRef(safeIndex);
-  safeIndexRef.current = safeIndex;
+  const setParentLocked = (next: boolean) => {
+    if (lockedRef.current === next) return;
+    lockedRef.current = next;
+    if (next) lockListScroll();
+    else unlockListScroll();
+  };
 
-  const cardWidthRef = useRef(cardWidth);
-  cardWidthRef.current = cardWidth;
+  useEffect(
+    () => () => {
+      if (lockedRef.current) {
+        lockedRef.current = false;
+        unlockListScroll();
+      }
+    },
+    [unlockListScroll],
+  );
 
-  const countRef = useRef(count);
-  countRef.current = count;
-
-  const onPressCardRef = useRef(onPressCard);
-  onPressCardRef.current = onPressCard;
-
-  // Track active drag & spring transition
-  const isSlidingRef = useRef(false);
-
-  // Animated offset for the horizontal side-by-side reel track
-  const trackAnim = useRef(new Animated.Value(0)).current;
-
-  // Keep trackAnim synchronized with safeIndex
   useEffect(() => {
-    if (cardWidth > 0) {
-      Animated.spring(trackAnim, {
-        toValue: -safeIndex * cardWidth,
-        useNativeDriver: true,
-        tension: 220,
-        friction: 18,
-      }).start();
-    }
-  }, [safeIndex, cardWidth]);
+    if (cardWidth <= 0) return;
+    scrollRef.current?.scrollTo({
+      x: indexRef.current * cardWidth,
+      animated: false,
+    });
+  }, [cardWidth]);
 
   const go = (delta: number) => {
+    if (count < 2 || cardWidth <= 0) return;
+    const next = Math.max(0, Math.min(count - 1, index + delta));
+    setIndex(next);
+    scrollRef.current?.scrollTo({ x: next * cardWidth, animated: true });
+  };
+
+  const syncIndex = (x: number) => {
+    if (cardWidth <= 0) return;
+    setIndex(Math.max(0, Math.min(count - 1, Math.round(x / cardWidth))));
+  };
+
+  const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    syncIndex(e.nativeEvent.contentOffset.x);
+    setParentLocked(false);
+  };
+
+  const onTouchStart = (e: GestureResponderEvent) => {
     if (count < 2) return;
-    setIndex((i) => Math.max(0, Math.min(count - 1, i + delta)));
+    const t = e.nativeEvent.touches[0] ?? e.nativeEvent;
+    startX.current = t.pageX;
+    startY.current = t.pageY;
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => countRef.current > 1,
-      onStartShouldSetPanResponder: () => countRef.current > 1,
-      onMoveShouldSetPanResponderCapture: (_, gestureState) =>
-        countRef.current > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy),
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        countRef.current > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy),
-      // Hard-lock: Refuses to let parent vertical ScrollView steal the touch gesture
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: () => {
-        isSlidingRef.current = true;
-      },
-      onPanResponderMove: (_, gestureState) => {
-        isSlidingRef.current = true;
-        const { dx } = gestureState;
-        const curIdx = safeIndexRef.current;
-        const width = cardWidthRef.current;
-        const total = countRef.current;
-        const baseOffset = -curIdx * width;
-        let effectiveDx = dx;
-
-        // HEAVY ELASTIC RESISTANCE AT BOUNDARIES (Photo #0 & Last Photo)
-        if (curIdx === 0 && dx > 0) {
-          // Pulling right past photo #0 -> 88% heavy resistance
-          effectiveDx = Math.pow(dx, 0.55) * 2;
-        } else if (curIdx === total - 1 && dx < 0) {
-          // Pulling left past last photo -> 88% heavy resistance
-          effectiveDx = -Math.pow(Math.abs(dx), 0.55) * 2;
-        }
-
-        trackAnim.setValue(baseOffset + effectiveDx);
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const { dx, dy } = gestureState;
-        const curIdx = safeIndexRef.current;
-        const width = cardWidthRef.current;
-        const total = countRef.current;
-        const threshold = 15;
-
-        // Tap Detection: If finger moved less than 8px, handle tap to open details
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
-          isSlidingRef.current = false;
-          onPressCardRef.current?.();
-          return;
-        }
-
-        isSlidingRef.current = true;
-
-        const animateTo = (targetIdx: number) => {
-          setIndex(targetIdx);
-          Animated.spring(trackAnim, {
-            toValue: -targetIdx * width,
-            useNativeDriver: true,
-            tension: 220,
-            friction: 18,
-          }).start(() => {
-            isSlidingRef.current = false;
-          });
-        };
-
-        if (dx < -threshold && curIdx < total - 1) {
-          // Swipe left -> advance to next photo
-          animateTo(curIdx + 1);
-        } else if (dx > threshold && curIdx > 0) {
-          // Swipe right -> go back to previous photo
-          animateTo(curIdx - 1);
-        } else {
-          // Snap back to current photo
-          animateTo(curIdx);
-        }
-      },
-      onPanResponderTerminate: (_, gestureState) => {
-        const { dx, dy } = gestureState;
-        const curIdx = safeIndexRef.current;
-        const width = cardWidthRef.current;
-        const total = countRef.current;
-        const threshold = 15;
-
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
-          isSlidingRef.current = false;
-          return;
-        }
-
-        isSlidingRef.current = true;
-
-        const animateTo = (targetIdx: number) => {
-          setIndex(targetIdx);
-          Animated.spring(trackAnim, {
-            toValue: -targetIdx * width,
-            useNativeDriver: true,
-            tension: 220,
-            friction: 18,
-          }).start(() => {
-            isSlidingRef.current = false;
-          });
-        };
-
-        if (dx < -threshold && curIdx < total - 1) {
-          animateTo(curIdx + 1);
-        } else if (dx > threshold && curIdx > 0) {
-          animateTo(curIdx - 1);
-        } else {
-          animateTo(curIdx);
-        }
-      },
-    })
-  ).current;
-
-  // ──────── MOBILE (NATIVE & MOBILE WEB): TRUE 2D SIDE-BY-SIDE SLIDING REEL ────────
-  if (!isWeb) {
-    return (
-      <View
-        style={[{ touchAction: "pan-x" } as any, styles.root, style]}
-        onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
-        onStartShouldSetResponder={() => count > 1}
-        onStartShouldSetResponderCapture={() => count > 1}
-        onMoveShouldSetResponder={(_, gestureState) =>
-          count > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy)
-        }
-        onMoveShouldSetResponderCapture={(_, gestureState) =>
-          count > 1 && Math.abs(gestureState.dx) >= Math.abs(gestureState.dy)
-        }
-        onResponderTerminationRequest={() => false}
-        onTouchStart={(e) => {
-          if (count > 1) e?.stopPropagation?.();
-        }}
-        onTouchEnd={(e) => {
-          if (count > 1) e?.stopPropagation?.();
-        }}
-        {...(count > 1 ? panResponder.panHandlers : {})}
-      >
-        {count > 0 && cardWidth > 0 ? (
-          <Animated.View
-            style={[
-              { touchAction: "pan-x" } as any,
-              {
-                flexDirection: "row",
-                width: cardWidth * count,
-                height: "100%",
-                transform: [{ translateX: trackAnim }],
-              },
-            ]}
-          >
-            {photos.map((url, i) => (
-              <View key={i} style={[{ touchAction: "pan-x" } as any, { width: cardWidth, height: "100%" }]}>
-                <Image
-                  pointerEvents="none"
-                  source={{ uri: url }}
-                  style={StyleSheet.absoluteFillObject}
-                  contentFit="cover"
-                />
-              </View>
-            ))}
-          </Animated.View>
-        ) : count > 0 ? (
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={onPressCard}>
-            <Image
-              pointerEvents="none"
-              source={{ uri: photos[0] }}
-              style={StyleSheet.absoluteFillObject}
-              contentFit="cover"
-            />
-          </Pressable>
-        ) : (
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFillObject, styles.fallback]}
-          />
-        )}
-
-        {/* Dots Indicator */}
-        {count > 1 ? (
-          <View style={styles.dots} pointerEvents="none">
-            {photos.map((_, i) => {
-              const active = i === safeIndex;
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    active ? styles.dotActive : styles.dotIdle,
-                  ]}
-                />
-              );
-            })}
-          </View>
-        ) : null}
-      </View>
-    );
-  }
-
-  // ──────── WEB (DESKTOP): CHEVRONS & HOVER ────────
-  const arrowsVisible = count > 1 && (alwaysShowArrows || hovered);
-
-  const webHoverHandlers = {
-    onMouseEnter: () => setHovered(true),
-    onMouseLeave: () => setHovered(false),
-    onPointerEnter: () => setHovered(true),
-    onPointerLeave: () => setHovered(false),
+  const onTouchMove = (e: GestureResponderEvent) => {
+    if (count < 2 || lockedRef.current) return;
+    const t = e.nativeEvent.touches[0] ?? e.nativeEvent;
+    const dx = Math.abs(t.pageX - startX.current);
+    const dy = Math.abs(t.pageY - startY.current);
+    if (dx > 8 && dx > dy) setParentLocked(true);
   };
+
+  const arrowsVisible = isWeb && count > 1 && (alwaysShowArrows || hovered);
+
+  const webHoverHandlers = isWeb
+    ? {
+        onMouseEnter: () => setHovered(true),
+        onMouseLeave: () => setHovered(false),
+        onPointerEnter: () => setHovered(true),
+        onPointerLeave: () => setHovered(false),
+      }
+    : {};
 
   return (
     <View
-      style={[{ touchAction: "pan-x" } as any, styles.root, style]}
+      collapsable={false}
+      style={[styles.root, style]}
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
-      onTouchStart={(e) => {
-        if (count > 1) e?.stopPropagation?.();
-      }}
-      onTouchEnd={(e) => {
-        if (count > 1) e?.stopPropagation?.();
-      }}
       {...webHoverHandlers}
-      {...(count > 1 ? panResponder.panHandlers : {})}
     >
-      <Pressable style={StyleSheet.absoluteFillObject} onPress={onPressCard}>
-        {count > 0 && cardWidth > 0 ? (
-          <Animated.View
-            style={{
-              flexDirection: "row",
-              width: cardWidth * count,
-              height: "100%",
-              transform: [{ translateX: trackAnim }],
-            }}
-          >
-            {photos.map((url, i) => (
-              <View key={i} style={{ width: cardWidth, height: "100%" }}>
-                <Image
-                  pointerEvents="none"
-                  source={{ uri: url }}
-                  style={StyleSheet.absoluteFillObject}
-                  contentFit="cover"
-                />
-              </View>
-            ))}
-          </Animated.View>
-        ) : count > 0 ? (
+      {count > 0 && cardWidth > 0 ? (
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          nestedScrollEnabled
+          directionalLockEnabled
+          disableIntervalMomentum
+          decelerationRate="fast"
+          bounces={count > 1}
+          scrollEnabled={count > 1}
+          showsHorizontalScrollIndicator={false}
+          overScrollMode="never"
+          keyboardShouldPersistTaps="handled"
+          style={[StyleSheet.absoluteFillObject, webPanX]}
+          contentContainerStyle={count > 1 ? undefined : styles.singleContent}
+          onScrollBeginDrag={() => {
+            if (count < 2) return;
+            draggingRef.current = true;
+            setParentLocked(true);
+          }}
+          onScrollEndDrag={(e) => {
+            draggingRef.current = false;
+            onScrollEnd(e);
+          }}
+          onMomentumScrollEnd={(e) => {
+            draggingRef.current = false;
+            onScrollEnd(e);
+          }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={() => {
+            if (!draggingRef.current) setParentLocked(false);
+          }}
+          onTouchCancel={() => {
+            draggingRef.current = false;
+            setParentLocked(false);
+          }}
+        >
+          {photos.map((url, i) => (
+            <Pressable
+              key={`${url}-${i}`}
+              onPress={onPressCard}
+              style={[
+                { width: cardWidth, height: "100%" },
+                isWeb ? ({ scrollSnapAlign: "start" } as ViewStyle) : null,
+              ]}
+            >
+              <Image
+                pointerEvents="none"
+                source={{ uri: url }}
+                style={StyleSheet.absoluteFillObject}
+                contentFit="cover"
+              />
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : count > 0 ? (
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onPressCard}>
           <Image
             pointerEvents="none"
             source={{ uri: photos[0] }}
             style={StyleSheet.absoluteFillObject}
             contentFit="cover"
           />
-        ) : (
-          <View
-            pointerEvents="none"
-            style={[StyleSheet.absoluteFillObject, styles.fallback]}
-          />
-        )}
-      </Pressable>
+        </Pressable>
+      ) : (
+        <View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFillObject, styles.fallback]}
+        />
+      )}
 
-      {/* Full-bleed overlay */}
       <View style={styles.overlay} pointerEvents="box-none">
-        {count > 1 ? (
+        {arrowsVisible ? (
           <>
             <Pressable
               accessibilityRole="button"
@@ -347,13 +228,10 @@ export function ListingCardCarousel({
                 styles.arrowLeft,
                 styles.arrowMotion,
                 {
-                  opacity: arrowsVisible ? 1 : 0,
-                  transform: [
-                    { scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 },
-                  ],
+                  opacity: 1,
+                  transform: [{ scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 }],
                 },
               ]}
-              pointerEvents={arrowsVisible ? "auto" : "none"}
             >
               <Ionicons name="chevron-back" size={18} color="#121826" />
             </Pressable>
@@ -372,13 +250,10 @@ export function ListingCardCarousel({
                 styles.arrowRight,
                 styles.arrowMotion,
                 {
-                  opacity: arrowsVisible ? 1 : 0,
-                  transform: [
-                    { scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 },
-                  ],
+                  opacity: 1,
+                  transform: [{ scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 }],
                 },
               ]}
-              pointerEvents={arrowsVisible ? "auto" : "none"}
             >
               <Ionicons name="chevron-forward" size={18} color="#121826" />
             </Pressable>
@@ -388,13 +263,13 @@ export function ListingCardCarousel({
         {count > 1 ? (
           <View style={styles.dots} pointerEvents="none">
             {photos.map((_, i) => {
-              const active = i === safeIndex;
+              const active = i === index;
               return (
                 <View
                   key={i}
                   style={[
                     styles.dot,
-                    styles.dotMotion,
+                    isWeb ? styles.dotMotion : null,
                     active ? styles.dotActive : styles.dotIdle,
                   ]}
                 />
@@ -426,7 +301,10 @@ const styles = StyleSheet.create({
     minHeight: "100%",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
-    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
+    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as object) : {}),
+  },
+  singleContent: {
+    flexGrow: 1,
   },
   fallback: {
     backgroundColor: "#E2E8F0",

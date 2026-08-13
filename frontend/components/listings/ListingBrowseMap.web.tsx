@@ -9,6 +9,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type {
   LayerGroup,
   Map as LeafletMap,
@@ -16,10 +17,13 @@ import type {
   Polyline as LeafletPolyline,
 } from "leaflet";
 import { LText } from "@/components/lister/Typography";
-import { ListingMapPicker } from "@/components/listings/ListingMapPicker";
-import { ListingMapPreview } from "@/components/listings/ListingMapPreview";
+import {
+  ListingMapCarousel,
+  mapCarouselOverlayHeight,
+} from "@/components/listings/ListingMapCarousel";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
+import { agentDebugLog } from "@/lib/agentDebugLog";
 import {
   buildPinClusterIndex,
   clusterBubbleSize,
@@ -37,8 +41,6 @@ import {
 import {
   campusPinIcon,
   clusterBubbleIcon,
-  createAmberGroupPopupHtml,
-  createAmberPopupHtml,
   createSkounMap,
   distanceBadgeIcon,
   loadLeaflet,
@@ -57,7 +59,28 @@ type Props = {
   onExpandedChange?: (expanded: boolean) => void;
   /** Fill parent height (Amber map split) — skips collapsed/expanded fixed heights. */
   fillContainer?: boolean;
+  onCarouselOpenChange?: (open: boolean) => void;
+  onOpenListing?: (listing: Listing) => void;
 };
+
+function calculateDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
 
 function resolveNearestCampus(
   listing: Listing | null | undefined,
@@ -65,7 +88,8 @@ function resolveNearestCampus(
 ): CampusMeta | null {
   if (!listing || campuses.length === 0) return null;
   if (listing.nearestCampusSlug) {
-    const hit = campuses.find((c) => c.slug === listing.nearestCampusSlug);
+    const target = listing.nearestCampusSlug.toLowerCase();
+    const hit = campuses.find((c) => c.slug.toLowerCase() === target);
     if (hit) return hit;
   }
   return campuses[0] ?? null;
@@ -73,8 +97,7 @@ function resolveNearestCampus(
 
 type SheetState =
   | { kind: "none" }
-  | { kind: "picker"; groupId: string }
-  | { kind: "preview"; listingId: string; groupId: string };
+  | { kind: "carousel"; listingId: string };
 
 function shortPriceLabel(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
@@ -104,16 +127,18 @@ export function ListingBrowseMap({
   expanded = false,
   onExpandedChange,
   fillContainer = false,
+  onCarouselOpenChange,
+  onOpenListing,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
   const leafletRef = useRef<LeafletNS | null>(null);
   const clusterIndexRef = useRef<PinClusterIndex | null>(null);
-  const activePopupRef = useRef<any>(null);
   const ignoreNextMapClick = useRef(false);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
@@ -185,20 +210,28 @@ export function ListingBrowseMap({
     setVisibleFeatures(queryVisibleFeatures(index, bbox, map.getZoom()));
   }
 
+  const carouselListings = useMemo(
+    () =>
+      [...mappable].sort((a, b) => {
+        const rent = a.monthlyRentUsd - b.monthlyRentUsd;
+        if (rent !== 0) return rent;
+        return a.id.localeCompare(b.id);
+      }),
+    [mappable],
+  );
+
   const selectedListing = useMemo(() => {
-    if (sheet.kind !== "preview") return null;
-    return mappable.find((l) => l.id === sheet.listingId) ?? null;
-  }, [sheet, mappable]);
+    if (sheet.kind !== "carousel") return null;
+    return carouselListings.find((l) => l.id === sheet.listingId) ?? null;
+  }, [sheet, carouselListings]);
 
-  const pickerGroup = useMemo(() => {
-    if (sheet.kind !== "picker") return null;
-    return groupsById.get(sheet.groupId) ?? null;
-  }, [sheet, groupsById]);
-
-  const activeGroupId =
-    sheet.kind === "picker" || sheet.kind === "preview"
-      ? sheet.groupId
-      : null;
+  const activeGroupId = useMemo(() => {
+    if (sheet.kind !== "carousel") return null;
+    for (const g of groups) {
+      if (g.listings.some((l) => l.id === sheet.listingId)) return g.id;
+    }
+    return null;
+  }, [sheet, groups]);
 
   const listingIdsKey = useMemo(
     () => mappable.map((l) => l.id).join(","),
@@ -213,6 +246,12 @@ export function ListingBrowseMap({
   useEffect(() => {
     setSheet({ kind: "none" });
   }, [listingIdsKey, campusesKey, universityMode]);
+
+  const sheetOpen = sheet.kind !== "none";
+
+  useEffect(() => {
+    onCarouselOpenChange?.(sheetOpen);
+  }, [sheetOpen, onCarouselOpenChange]);
 
   // Init Leaflet on the client only (after mount — window exists).
   useEffect(() => {
@@ -239,10 +278,6 @@ export function ListingBrowseMap({
         layerRef.current = L.layerGroup().addTo(map);
 
         map.on("click", () => {
-          if (activePopupRef.current) {
-            activePopupRef.current.remove();
-            activePopupRef.current = null;
-          }
           if (ignoreNextMapClick.current) {
             ignoreNextMapClick.current = false;
             return;
@@ -321,44 +356,9 @@ export function ListingBrowseMap({
       setTimeout(() => {
         ignoreNextMapClick.current = false;
       }, 80);
-
-      if (fillContainer) {
-        if (!L || !map) return;
-        if (activePopupRef.current) {
-          activePopupRef.current.remove();
-          activePopupRef.current = null;
-        }
-        const html =
-          group.count === 1 && group.listings[0]
-            ? createAmberPopupHtml(group.listings[0])
-            : createAmberGroupPopupHtml(group);
-
-        const popup = L.popup({
-          offset: [0, -36],
-          closeButton: false,
-          className: "skoun-leaflet-amber-popup",
-        })
-          .setLatLng([group.lat, group.lng])
-          .setContent(html)
-          .openOn(map);
-
-        activePopupRef.current = popup;
-        // @ts-expect-error window active popup
-        window._skounActivePopup = popup;
-        return;
-      }
-
-      if (group.count === 1) {
-        const only = group.listings[0];
-        if (!only) return;
-        setSheet({
-          kind: "preview",
-          listingId: only.id,
-          groupId: group.id,
-        });
-        return;
-      }
-      setSheet({ kind: "picker", groupId: group.id });
+      const listing = group.listings[0];
+      if (!listing) return;
+      setSheet({ kind: "carousel", listingId: listing.id });
     }
 
     function expandCluster(feature: Extract<VisibleMapFeature, { kind: "cluster" }>) {
@@ -434,7 +434,22 @@ export function ListingBrowseMap({
 
       const midLat = (lineCampus.lat + selectedListing.lat) / 2;
       const midLng = (lineCampus.lng + selectedListing.lng) / 2;
-      const distLabel = formatDistanceShort(selectedListing.distanceMeters);
+      let distMeters = selectedListing.distanceMeters;
+      if (
+        distMeters == null &&
+        lineCampus.lat != null &&
+        lineCampus.lng != null &&
+        selectedListing.lat != null &&
+        selectedListing.lng != null
+      ) {
+        distMeters = calculateDistanceMeters(
+          lineCampus.lat,
+          lineCampus.lng,
+          selectedListing.lat,
+          selectedListing.lng,
+        );
+      }
+      const distLabel = formatDistanceShort(distMeters);
       if (distLabel) {
         L.marker([midLat, midLng], {
           icon: distanceBadgeIcon(L, distLabel),
@@ -480,14 +495,40 @@ export function ListingBrowseMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded]);
 
+  function focusListingOnMap(listing: Listing) {
+    const map = mapRef.current;
+    if (!map || listing.lat == null || listing.lng == null) return;
+    const size = map.getSize();
+    const overlayH =
+      mapCarouselOverlayHeight(size.x) + Math.max(insets.bottom, 12) + 20;
+    const zoom = Math.min(16, Math.max(map.getZoom(), 14));
+    const target = map.project([listing.lat, listing.lng], zoom);
+    target.y += overlayH / 2;
+    const latlng = map.unproject(target, zoom);
+    map.flyTo(latlng, zoom, { duration: reduceMotion ? 0 : 0.75 });
+  }
+
+  function openCarousel(listingId: string, fly = true) {
+    // #region agent log
+    agentDebugLog("H1", "ListingBrowseMap.web.tsx:openCarousel", "open carousel", { listingId, fly, sheetKind: sheet.kind });
+    // #endregion
+    setSheet({ kind: "carousel", listingId });
+    if (!fly) return;
+    const listing = mappable.find((l) => l.id === listingId);
+    if (listing) focusListingOnMap(listing);
+  }
+
   function openListingDetail(listing: Listing) {
+    if (onOpenListing) {
+      onOpenListing(listing);
+      return;
+    }
     router.push({
       pathname: "/(renter)/listing/[id]",
       params: { id: listing.id },
     });
   }
 
-  const sheetOpen = sheet.kind !== "none";
   const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
 
   return (
@@ -565,49 +606,18 @@ export function ListingBrowseMap({
         </View>
       ) : null}
 
-      {sheet.kind === "picker" && pickerGroup ? (
-        <View style={styles.sheetBelow}>
-          <ListingMapPicker
-            listings={pickerGroup.listings}
-            showDistance={universityMode}
+      {sheet.kind === "carousel" && selectedListing ? (
+        <View
+          style={[styles.sheetBelow, fillContainer && styles.sheetOverlay]}
+          pointerEvents="box-none"
+        >
+          <ListingMapCarousel
+            listings={carouselListings}
+            selectedId={selectedListing.id}
+            onIndexChange={(listingId) => openCarousel(listingId, true)}
             onDismiss={() => setSheet({ kind: "none" })}
-            onSelect={(listing) =>
-              setSheet({
-                kind: "preview",
-                listingId: listing.id,
-                groupId: pickerGroup.id,
-              })
-            }
-          />
-        </View>
-      ) : null}
-
-      {sheet.kind === "preview" && selectedListing ? (
-        <View style={styles.sheetBelow}>
-          {(groupsById.get(sheet.groupId)?.count ?? 1) > 1 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Back to places at this pin"
-              onPress={() =>
-                setSheet({ kind: "picker", groupId: sheet.groupId })
-              }
-              style={styles.backToGroup}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={16}
-                color={Skoun.color.primary}
-              />
-              <LText variant="caption" tone="primary" style={styles.backText}>
-                {(groupsById.get(sheet.groupId)?.count ?? 0)} places here
-              </LText>
-            </Pressable>
-          ) : null}
-          <ListingMapPreview
-            listing={selectedListing}
-            showDistance={universityMode}
-            onDismiss={() => setSheet({ kind: "none" })}
-            onPress={() => openListingDetail(selectedListing)}
+            onPressCard={openListingDetail}
+            bottomInset={fillContainer ? Math.max(insets.bottom, 12) + 20 : 8}
           />
         </View>
       ) : null}
@@ -685,6 +695,13 @@ const styles = StyleSheet.create({
   },
   sheetBelow: {
     gap: 6,
+  },
+  sheetOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 450,
   },
   backToGroup: {
     alignSelf: "flex-start",

@@ -78,6 +78,11 @@ type Props = {
   universitiesLoading?: boolean;
   onClose: () => void;
   onApply: (next: BrowseFiltersValue) => void;
+  /** Drawer slides from left (list). Sheet slides up (map). */
+  variant?: "drawer" | "sheet";
+  sort?: string;
+  sortOptions?: { value: string; label: string }[];
+  onSortChange?: (value: string) => void;
 };
 
 const SLIDE_MS = 300;
@@ -198,11 +203,18 @@ export function BrowseFiltersPanel({
   universitiesLoading,
   onClose,
   onApply,
+  variant = "drawer",
+  sort,
+  sortOptions,
+  onSortChange,
 }: Props) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const screenW = Dimensions.get("window").width;
-  const translateX = useRef(new Animated.Value(-screenW)).current;
+  const screenH = Dimensions.get("window").height;
+  const isSheet = variant === "sheet";
+  const offscreen = isSheet ? screenH : -screenW;
+  const slide = useRef(new Animated.Value(offscreen)).current;
   const [mounted, setMounted] = useState(visible);
 
   const [draftAreas, setDraftAreas] = useState<string[]>(applied.areas);
@@ -281,8 +293,8 @@ export function BrowseFiltersPanel({
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      translateX.setValue(reduceMotion ? 0 : -screenW);
-      Animated.timing(translateX, {
+      slide.setValue(reduceMotion ? 0 : offscreen);
+      Animated.timing(slide, {
         toValue: 0,
         duration: reduceMotion ? 0 : SLIDE_MS,
         useNativeDriver: true,
@@ -290,8 +302,8 @@ export function BrowseFiltersPanel({
       return;
     }
     if (!mounted) return;
-    Animated.timing(translateX, {
-      toValue: -screenW,
+    Animated.timing(slide, {
+      toValue: offscreen,
       duration: reduceMotion ? 0 : SLIDE_MS,
       useNativeDriver: true,
     }).start(({ finished }) => {
@@ -299,7 +311,7 @@ export function BrowseFiltersPanel({
     });
     // Intentionally omit `mounted` — including it restarts the open animation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, reduceMotion, screenW, translateX]);
+  }, [visible, reduceMotion, offscreen, slide]);
 
   const filteredAreas = useMemo(() => {
     const q = areaQuery.trim().toLowerCase();
@@ -418,11 +430,13 @@ export function BrowseFiltersPanel({
         />
         <Animated.View
           style={[
-            styles.panel,
+            isSheet ? styles.panelSheet : styles.panel,
             {
-              paddingTop: insets.top + 8,
+              paddingTop: isSheet ? 8 : insets.top + 8,
               paddingBottom: Math.max(insets.bottom, 12),
-              transform: [{ translateX }],
+              transform: isSheet
+                ? [{ translateY: slide }]
+                : [{ translateX: slide }],
             },
           ]}
           accessibilityViewIsModal
@@ -449,6 +463,35 @@ export function BrowseFiltersPanel({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            {sortOptions && sortOptions.length > 0 && onSortChange ? (
+              <View style={styles.blockSection}>
+                <LText variant="label" tone="muted" style={styles.sectionLabel}>
+                  Sort
+                </LText>
+                <View style={styles.chipWrap}>
+                  {sortOptions.map((opt) => {
+                    const on = sort === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: on }}
+                        onPress={() => onSortChange(opt.value)}
+                        style={[styles.chip, on && styles.chipOn]}
+                      >
+                        <LText
+                          variant="caption"
+                          style={on ? styles.chipLabelOn : styles.chipLabel}
+                        >
+                          {opt.label}
+                        </LText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
             <LText variant="label" tone="muted" style={styles.sectionLabel}>
               Cities
             </LText>
@@ -517,7 +560,7 @@ export function BrowseFiltersPanel({
               })}
             </View>
 
-            {mode === "university" ? (
+            {mode === "university" || isSheet ? (
               <View style={styles.blockSection}>
                 <LText
                   variant="label"
@@ -840,6 +883,20 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.bg,
     borderRightWidth: 1,
     borderRightColor: Skoun.color.border,
+  },
+  panelSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "88%",
+    maxHeight: "88%",
+    width: "100%",
+    backgroundColor: Skoun.color.bg,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 1,
+    borderTopColor: Skoun.color.border,
   },
   header: {
     flexDirection: "row",

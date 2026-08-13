@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -36,7 +38,7 @@ import {
   labelListingType,
 } from "@/lib/listingLabels";
 import { rentPriceType } from "@/lib/rentPriceType";
-import { safeBack, useSafeHardwareBack } from "@/lib/safeBack";
+import { safeBack } from "@/lib/safeBack";
 import {
   buildWhatsAppListingUrl,
   hasUsableWhatsAppPhone,
@@ -47,8 +49,15 @@ function getPosterPhone(_listingId: string): string | null {
   return null;
 }
 
-export default function RenterListingDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export default function RenterListingDetailScreen({
+  listingId,
+  onClose,
+}: {
+  listingId?: string;
+  onClose?: () => void;
+} = {}) {
+  const { id: paramId } = useLocalSearchParams<{ id: string }>();
+  const id = listingId ?? paramId;
   const { data: listing, isLoading, isError, refetch } = useListing(id ?? "");
   const saved = useIsSaved(id ?? "");
   const toggleSaved = useToggleSaved();
@@ -59,7 +68,26 @@ export default function RenterListingDetailScreen() {
     ),
   });
   const [reportOpen, setReportOpen] = useState(false);
-  useSafeHardwareBack("/(renter)" as never);
+  const goBack = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    safeBack("/(renter)" as never);
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (onClose) {
+        onClose();
+        return true;
+      }
+      safeBack("/(renter)" as never);
+      return true;
+    });
+    return () => sub.remove();
+  }, [onClose]);
   useRecordListingView(id ?? "", Boolean(id) && !isError);
 
   if (isLoading) {
@@ -80,7 +108,7 @@ export default function RenterListingDetailScreen() {
           <LButton
             label="Back to search"
             variant="secondary"
-            onPress={() => router.replace("/(renter)" as never)}
+            onPress={goBack}
             style={{ marginTop: 16 }}
           />
         </View>
@@ -111,7 +139,7 @@ export default function RenterListingDetailScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Back to search"
-                onPress={() => safeBack("/(renter)" as never)}
+                onPress={goBack}
                 style={styles.iconBtn}
               >
                 <Ionicons

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo, useDeferredValue } from "react";
+import React, { useState, useEffect, useMemo, useDeferredValue, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -11,9 +13,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import { LText } from "@/components/lister/Typography";
 import { LButton } from "@/components/lister/Button";
+import RenterListingDetailScreen from "@/app/(renter)/listing/[id]";
 import {
   BrowseFiltersPanel,
   browseFilterBadgeCount,
@@ -21,12 +25,17 @@ import {
   type BrowseFiltersValue,
 } from "@/components/listings/BrowseFiltersPanel";
 import { ListingBrowseMap } from "@/components/listings/ListingBrowseMap";
+import {
+  CarouselListScrollContext,
+  useCarouselListScrollController,
+} from "@/components/listings/carouselListScroll";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { Skoun } from "@/constants/theme";
 import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
+import { agentDebugLog } from "@/lib/agentDebugLog";
 import { LEBANON_AREAS } from "@/constants/areas";
 
 type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
@@ -41,9 +50,10 @@ const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
 
 export default function RenterSearchScreen() {
   const insets = useSafeAreaInsets();
+  const carouselScroll = useCarouselListScrollController();
   const { q } = useLocalSearchParams<{ q?: string }>();
+  const isFocused = useIsFocused();
 
-  const navigation = useNavigation();
   const [mode, setMode] = useState<SearchMode>("standard");
   const [browseFilters, setBrowseFilters] = useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
   const [sort, setSort] = useState<BrowseSortKey>("newest");
@@ -52,6 +62,9 @@ export default function RenterSearchScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [uniOpen, setUniOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [carouselOpen, setCarouselOpen] = useState(false);
+  const [mapSearchOpen, setMapSearchOpen] = useState(false);
+  const [mapListingId, setMapListingId] = useState<string | null>(null);
 
   const universities = useUniversities();
 
@@ -61,31 +74,27 @@ export default function RenterSearchScreen() {
     [universities.data, activeUniSlug]
   );
 
-  // Hide tab bar when in map view mode
   useEffect(() => {
-    try {
-      const parent = navigation.getParent();
-      if (viewMode === "map") {
-        navigation.setOptions({ tabBarStyle: { display: "none" } });
-        if (parent) parent.setOptions({ tabBarStyle: { display: "none" } });
-      } else {
-        navigation.setOptions({ tabBarStyle: undefined });
-        if (parent) parent.setOptions({ tabBarStyle: undefined });
-      }
-    } catch {
-      // Safe fallback
-    }
+    // #region agent log
+    agentDebugLog("H4", "search.tsx:carouselOpen", "chrome + map layout", {
+      carouselOpen,
+      viewMode,
+      mapFullscreen: viewMode === "map",
+      navigator: "native-tabs",
+    });
+    // #endregion
+  }, [carouselOpen, viewMode]);
 
-    return () => {
-      try {
-        const parent = navigation.getParent();
-        navigation.setOptions({ tabBarStyle: undefined });
-        if (parent) parent.setOptions({ tabBarStyle: undefined });
-      } catch {
-        // Safe fallback
-      }
-    };
-  }, [navigation, viewMode]);
+  const onCarouselOpenChange = useCallback((open: boolean) => {
+    setCarouselOpen(open);
+  }, []);
+
+  useEffect(() => {
+    if (viewMode !== "map") {
+      setCarouselOpen(false);
+      setMapSearchOpen(false);
+    }
+  }, [viewMode]);
 
   // Parse entry search query
   useEffect(() => {
@@ -160,6 +169,7 @@ export default function RenterSearchScreen() {
   }, [listings, deferredSort]);
 
   const handleSearchSubmit = () => {
+    setMapSearchOpen(false);
     const val = searchVal.trim();
     if (!val) {
       setBrowseFilters(EMPTY_BROWSE_FILTERS);
@@ -213,8 +223,17 @@ export default function RenterSearchScreen() {
   const badgeCount = browseFilterBadgeCount(browseFilters, mode);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <CarouselListScrollContext.Provider value={carouselScroll.value}>
+    <StatusBar barStyle="dark-content" />
+    <View
+      style={[
+        styles.container,
+        viewMode === "map" ? { paddingTop: 0 } : { paddingTop: insets.top },
+      ]}
+    >
       
+      {viewMode !== "map" ? (
+      <>
       {/* SEARCH HEADER */}
       <View style={styles.header}>
         <Pressable
@@ -346,18 +365,170 @@ export default function RenterSearchScreen() {
 
         </ScrollView>
       </View>
+      </>
+      ) : null}
 
       {/* SEARCH RESULTS LIST / MAP VIEW */}
       {viewMode === "map" ? (
-        <View style={styles.mapContainer}>
-          <ListingBrowseMap
-            listings={processedListings}
-            campuses={campuses}
-            universityMode={isUniversityMode}
-            loading={listingsQuery.isLoading}
-            fillContainer
+        <Modal
+          visible={viewMode === "map" && isFocused}
+          animationType="none"
+          presentationStyle="fullScreen"
+          statusBarTranslucent
+          onRequestClose={() => {
+            setFiltersOpen(false);
+            setMapSearchOpen(false);
+            setMapListingId(null);
+            setViewMode("list");
+          }}
+        >
+          <View style={styles.mapScreen}>
+            <ListingBrowseMap
+              listings={processedListings}
+              campuses={campuses}
+              universityMode={isUniversityMode}
+              loading={listingsQuery.isLoading}
+              fillContainer
+              onCarouselOpenChange={onCarouselOpenChange}
+              onOpenListing={(listing) => setMapListingId(listing.id)}
+            />
+            {!carouselOpen ? (
+              <View
+                style={[styles.mapChrome, { paddingTop: insets.top + 8 }]}
+                pointerEvents="box-none"
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Search"
+                  onPress={() => setMapSearchOpen(true)}
+                  style={styles.mapChromeBtn}
+                >
+                  <Ionicons name="search" size={20} color={Skoun.color.ink} />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    badgeCount > 0 ? `Filters, ${badgeCount} active` : "Filters"
+                  }
+                  onPress={() => setFiltersOpen(true)}
+                  style={styles.mapChromeBtn}
+                >
+                  <Ionicons name="options-outline" size={20} color={Skoun.color.ink} />
+                  {badgeCount > 0 ? (
+                    <View style={styles.mapFilterBadge}>
+                      <Text style={styles.mapFilterBadgeText}>{badgeCount}</Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+              </View>
+            ) : null}
+            {!carouselOpen ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Show list view"
+                onPress={() => {
+                  setMapListingId(null);
+                  setFiltersOpen(false);
+                  setMapSearchOpen(false);
+                  setViewMode("list");
+                }}
+                style={({ pressed }) => [
+                  styles.floatingPill,
+                  { bottom: Math.max(insets.bottom + 16, 28) },
+                  pressed && styles.floatingPillPressed,
+                ]}
+              >
+                <Ionicons name="list" size={18} color="#ffffff" />
+                <Text style={styles.floatingPillText}>List</Text>
+              </Pressable>
+            ) : null}
+          </View>
+          <BrowseFiltersPanel
+            visible={filtersOpen}
+            variant="sheet"
+            mode={mode}
+            applied={browseFilters}
+            universities={universities.data ?? []}
+            universitiesLoading={universities.isLoading}
+            sort={sort}
+            sortOptions={SORT_OPTIONS}
+            onSortChange={(value) => setSort(value as BrowseSortKey)}
+            onClose={() => setFiltersOpen(false)}
+            onApply={(next) => {
+              setBrowseFilters(next);
+              if (next.universitySlugs.length > 0) setMode("university");
+              setFiltersOpen(false);
+            }}
           />
-        </View>
+          <Modal
+            visible={mapSearchOpen}
+            animationType="fade"
+            transparent
+            statusBarTranslucent
+            onRequestClose={() => setMapSearchOpen(false)}
+          >
+            <View style={styles.mapSearchOverlay}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss search"
+                style={StyleSheet.absoluteFill}
+                onPress={() => setMapSearchOpen(false)}
+              />
+              <View style={[styles.mapSearchBarWrap, { paddingTop: insets.top + 8 }]}>
+                <View style={styles.searchBar}>
+                  <Ionicons
+                    name="search"
+                    size={18}
+                    color={Skoun.color.inkMuted}
+                    style={styles.searchIcon}
+                  />
+                  <TextInput
+                    style={styles.searchInput}
+                    value={searchVal}
+                    onChangeText={setSearchVal}
+                    placeholder="Search city, area, or university..."
+                    placeholderTextColor={Skoun.color.inkFaint}
+                    onSubmitEditing={handleSearchSubmit}
+                    returnKeyType="search"
+                    autoFocus
+                  />
+                  {searchVal ? (
+                    <Pressable
+                      onPress={() => {
+                        setSearchVal("");
+                        setBrowseFilters(EMPTY_BROWSE_FILTERS);
+                      }}
+                      style={styles.clearBtn}
+                    >
+                      <Ionicons name="close-circle" size={18} color={Skoun.color.inkMuted} />
+                    </Pressable>
+                  ) : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close search"
+                  onPress={() => setMapSearchOpen(false)}
+                  style={styles.mapSearchClose}
+                >
+                  <Ionicons name="close" size={22} color={Skoun.color.ink} />
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
+          <Modal
+            visible={mapListingId != null}
+            animationType="slide"
+            presentationStyle="fullScreen"
+            onRequestClose={() => setMapListingId(null)}
+          >
+            {mapListingId ? (
+              <RenterListingDetailScreen
+                listingId={mapListingId}
+                onClose={() => setMapListingId(null)}
+              />
+            ) : null}
+          </Modal>
+        </Modal>
       ) : listingsQuery.isLoading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator color={Skoun.color.primary} size="large" />
@@ -387,6 +558,7 @@ export default function RenterSearchScreen() {
         </View>
       ) : (
         <FlatList
+          ref={carouselScroll.listRef}
           data={processedListings}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -396,40 +568,34 @@ export default function RenterSearchScreen() {
           )}
           contentContainerStyle={[styles.listContent, { paddingBottom: 90 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          directionalLockEnabled
           refreshing={listingsQuery.isRefetching}
           onRefresh={() => void listingsQuery.refetch()}
         />
       )}
 
-      {/* FLOATING MAP / LIST TOGGLE PILL AT BOTTOM CENTER */}
+      {/* FLOATING MAP TOGGLE — list only; map has its own List pill in the Modal */}
+      {viewMode === "list" ? (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={viewMode === "list" ? "Show map view" : "Show list view"}
-        onPress={() => setViewMode((prev) => (prev === "list" ? "map" : "list"))}
+        accessibilityLabel="Show map view"
+        onPress={() => setViewMode("map")}
         style={({ pressed }) => [
           styles.floatingPill,
-          {
-            bottom:
-              viewMode === "map"
-                ? Math.max(insets.bottom + 16, 24)
-                : Math.max(insets.bottom + 62, 68),
-          },
+          { bottom: Math.max(insets.bottom + 62, 68) },
           pressed && styles.floatingPillPressed,
         ]}
       >
-        <Ionicons
-          name={viewMode === "list" ? "map" : "list"}
-          size={18}
-          color="#ffffff"
-        />
-        <Text style={styles.floatingPillText}>
-          {viewMode === "list" ? "Map" : "List"}
-        </Text>
+        <Ionicons name="map" size={18} color="#ffffff" />
+        <Text style={styles.floatingPillText}>Map</Text>
       </Pressable>
+      ) : null}
 
       {/* FILTERS DRAWER PANEL */}
       <BrowseFiltersPanel
-        visible={filtersOpen}
+        visible={filtersOpen && viewMode !== "map"}
+        variant="drawer"
         mode={mode}
         applied={browseFilters}
         universities={universities.data ?? []}
@@ -584,6 +750,7 @@ export default function RenterSearchScreen() {
       ) : null}
 
     </View>
+    </CarouselListScrollContext.Provider>
   );
 }
 
@@ -724,6 +891,70 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
     position: "relative",
+  },
+  mapScreen: {
+    flex: 1,
+  },
+  mapChrome: {
+    position: "absolute",
+    top: 0,
+    left: 12,
+    right: 12,
+    zIndex: 500,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    pointerEvents: "box-none",
+  },
+  mapChromeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#121826",
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  mapFilterBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#C23B2E",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  mapFilterBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontFamily: Skoun.type.bodyBold,
+    fontWeight: "700",
+  },
+  mapSearchOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(18,24,38,0.35)",
+  },
+  mapSearchBarWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  mapSearchClose: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
   floatingPill: {
     position: "absolute",

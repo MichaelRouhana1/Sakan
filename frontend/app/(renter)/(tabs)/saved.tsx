@@ -10,6 +10,10 @@ import { EmptyState } from "@/components/lister/EmptyState";
 import { ListerScreen } from "@/components/lister/Screen";
 import { LText } from "@/components/lister/Typography";
 import { ListingCard } from "@/components/listings/ListingCard";
+import {
+  CarouselListScrollContext,
+  useCarouselListScrollController,
+} from "@/components/listings/carouselListScroll";
 import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
@@ -50,13 +54,18 @@ function SavedCard({
 
 export default function SavedScreen() {
   const { data, isLoading, isError, refetch, isFetching } = useSavedListings();
+  const carouselScroll = useCarouselListScrollController();
 
   return (
+    <CarouselListScrollContext.Provider value={carouselScroll.value}>
     <ListerScreen>
       <FlatList
+        ref={carouselScroll.listRef}
         data={data ?? []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.content}
+        nestedScrollEnabled
+        directionalLockEnabled
         onRefresh={() => void refetch()}
         refreshing={isFetching && !isLoading}
         ListHeaderComponent={
@@ -106,6 +115,7 @@ export default function SavedScreen() {
         ListFooterComponent={<View style={{ height: 24 }} />}
       />
     </ListerScreen>
+    </CarouselListScrollContext.Provider>
   );
 }
 

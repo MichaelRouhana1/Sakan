@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -16,24 +16,25 @@ import MapView, {
   Polyline,
   PROVIDER_DEFAULT,
   type LatLng as MapLatLng,
-  type MapMarker,
   type MapPressEvent,
   type MarkerPressEvent,
   type Region,
 } from "react-native-maps";
 import { captureRef } from "react-native-view-shot";
 import { LText } from "@/components/lister/Typography";
-import { ListingMapPicker } from "@/components/listings/ListingMapPicker";
-import { ListingMapPreview } from "@/components/listings/ListingMapPreview";
+import { ListingMapCarousel, mapCarouselOverlayHeight } from "@/components/listings/ListingMapCarousel";
 import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
+import { agentDebugLog } from "@/lib/agentDebugLog";
 import {
   buildPinClusterIndex,
   clusterBubbleSize,
   padBBox,
   queryVisibleFeatures,
+  idsInCluster,
   regionForExpansion,
+  regionForListingFocus,
   regionToBBox,
   zoomFromLongitudeDelta,
   type VisibleMapFeature,
@@ -45,6 +46,7 @@ import {
 } from "@/lib/mapPinGroups";
 import { rentPriceTypeCompact } from "@/lib/rentPriceType";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CampusMeta, Listing } from "@/types/listing";
 
 type Props = {
@@ -56,9 +58,32 @@ type Props = {
   /** Immersive map-focus layout (filters collapsed by parent). */
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
-  /** Web Amber split & search page map mode: fill parent container height. */
+  /** Fill parent height (search map mode). */
   fillContainer?: boolean;
+  /** Fires when the listing carousel opens or closes. */
+  onCarouselOpenChange?: (open: boolean) => void;
+  /** Open listing detail. Defaults to expo-router push. */
+  onOpenListing?: (listing: Listing) => void;
 };
+
+function calculateDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
 
 function resolveNearestCampus(
   listing: Listing | null | undefined,
@@ -66,7 +91,8 @@ function resolveNearestCampus(
 ): CampusMeta | null {
   if (!listing || campuses.length === 0) return null;
   if (listing.nearestCampusSlug) {
-    const hit = campuses.find((c) => c.slug === listing.nearestCampusSlug);
+    const target = listing.nearestCampusSlug.toLowerCase();
+    const hit = campuses.find((c) => c.slug.toLowerCase() === target);
     if (hit) return hit;
   }
   return campuses[0] ?? null;
@@ -74,8 +100,7 @@ function resolveNearestCampus(
 
 type SheetState =
   | { kind: "none" }
-  | { kind: "picker"; groupId: string }
-  | { kind: "preview"; listingId: string; groupId: string };
+  | { kind: "carousel"; listingId: string };
 
 /** Fixed marker chrome size — color may change; bounds/anchor must not. */
 const MARKER_W = 88;
@@ -182,6 +207,28 @@ type PinVariant = {
 
 function pinVariantKey(amount: number, count: number, selected: boolean) {
   return `${amount}|${count}|${selected ? 1 : 0}`;
+}
+
+const CLEAR_PIN_KEY = "__clear__";
+
+/** Same `{ uri }` object for a given file — MapKit treats a new object as a reload. */
+const PIN_IMAGE_SRC = new Map<string, { uri: string }>();
+function pinImageSrc(uri: string | undefined): { uri: string } | undefined {
+  if (!uri) return undefined;
+  const hit = PIN_IMAGE_SRC.get(uri);
+  if (hit) return hit;
+  const src = { uri };
+  PIN_IMAGE_SRC.set(uri, src);
+  return src;
+}
+
+const PIN_COORD = new Map<string, MapLatLng>();
+function pinCoord(id: string, lat: number, lng: number): MapLatLng {
+  const prev = PIN_COORD.get(id);
+  if (prev && prev.latitude === lat && prev.longitude === lng) return prev;
+  const next = { latitude: lat, longitude: lng };
+  PIN_COORD.set(id, next);
+  return next;
 }
 
 function midpoint(
@@ -308,6 +355,42 @@ function PinSnapshot({
   );
 }
 
+function ClearPinSnapshot({
+  onCaptured,
+}: {
+  onCaptured: (key: string, uri: string) => void;
+}) {
+  const shotRef = useRef<View>(null);
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      if (!shotRef.current) return;
+      captureRef(shotRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      })
+        .then((uri) => {
+          if (!alive) return;
+          onCaptured(CLEAR_PIN_KEY, uri);
+        })
+        .catch(() => {});
+    }, 120);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [onCaptured]);
+  return (
+    <View
+      ref={shotRef}
+      collapsable={false}
+      pointerEvents="none"
+      style={styles.snapshotBox}
+    />
+  );
+}
+
 /**
  * Browse map: coincident pin groups + Supercluster zoom clusters.
  * Distance / polylines always use the selected listing’s real coords.
@@ -320,6 +403,43 @@ function expandedMapHeight(): number {
   return Math.max(360, h - appleTabScrollInset - 148);
 }
 
+/**
+ * In-tree overlay. JS tabs can hide for real; no Modal/FullWindowOverlay.
+ */
+function CarouselWindowLayer({
+  fillContainer,
+  open,
+  children,
+}: {
+  fillContainer: boolean;
+  open: boolean;
+  children: ReactNode;
+}) {
+  useEffect(() => {
+    // #region agent log
+    agentDebugLog("H8", "ListingBrowseMap.tsx:CarouselWindowLayer", "carousel layer", {
+      fillContainer,
+      os: Platform.OS,
+      overlay: "in-tree",
+      open,
+      swallow: false,
+      mask: false,
+    });
+    // #endregion
+  }, [fillContainer, open]);
+
+  if (!open) return null;
+
+  return (
+    <View
+      style={[styles.sheetBelow, fillContainer && styles.sheetOverlay]}
+      pointerEvents="box-none"
+    >
+      {children}
+    </View>
+  );
+}
+
 export function ListingBrowseMap({
   listings,
   campuses,
@@ -328,10 +448,18 @@ export function ListingBrowseMap({
   expanded = false,
   onExpandedChange,
   fillContainer = false,
+  onCarouselOpenChange,
+  onOpenListing,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);
+  const lastPinPressAt = useRef(0);
+  const panLoggedRef = useRef(false);
+  const flyStepRef = useRef<"idle" | "out" | "pan" | "in">("idle");
+  const flyPanRef = useRef<Region | null>(null);
+  const flyInRef = useRef<Region | null>(null);
   const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
   const [mapReady, setMapReady] = useState(false);
@@ -408,31 +536,74 @@ export function ListingBrowseMap({
     [visibleFeatures],
   );
 
-  const selectedListing = useMemo(() => {
-    if (sheet.kind !== "preview") return null;
-    return mappable.find((l) => l.id === sheet.listingId) ?? null;
-  }, [sheet, mappable]);
-
-  const pickerGroup = useMemo(() => {
-    if (sheet.kind !== "picker") return null;
-    return groupsById.get(sheet.groupId) ?? null;
-  }, [sheet, groupsById]);
-
-  const activeGroupId =
-    sheet.kind === "picker" || sheet.kind === "preview"
-      ? sheet.groupId
-      : null;
-
-  /** Listing used for campus polyline: preview pick, or cheapest in picker group. */
-  const focusListing = useMemo(() => {
-    if (sheet.kind === "preview") {
-      return mappable.find((l) => l.id === sheet.listingId) ?? null;
+  /** Clustered listing markers stay mounted (MapKit crashes if they unmount mid-zoom). */
+  const clusteredIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!clusterIndex) return ids;
+    for (const cluster of visibleClusters) {
+      for (const id of idsInCluster(clusterIndex, cluster.clusterId)) {
+        ids.add(id);
+      }
     }
-    if (sheet.kind === "picker") {
-      return groupsById.get(sheet.groupId)?.listings[0] ?? null;
+    return ids;
+  }, [clusterIndex, visibleClusters]);
+
+  const carouselListings = useMemo(
+    () =>
+      [...mappable].sort((a, b) => {
+        const rent = a.monthlyRentUsd - b.monthlyRentUsd;
+        if (rent !== 0) return rent;
+        return a.id.localeCompare(b.id);
+      }),
+    [mappable],
+  );
+
+  const selectedListing = useMemo(() => {
+    if (sheet.kind !== "carousel") return null;
+    return carouselListings.find((l) => l.id === sheet.listingId) ?? null;
+  }, [sheet, carouselListings]);
+
+  const selectedGroupId = useMemo(() => {
+    if (sheet.kind !== "carousel") return null;
+    for (const g of groups) {
+      if (g.listings.some((l) => l.id === sheet.listingId)) return g.id;
     }
     return null;
-  }, [sheet, mappable, groupsById]);
+  }, [sheet, groups]);
+
+  useEffect(() => {
+    if (!selectedGroupId) return;
+    const g = groups.find((x) => x.id === selectedGroupId);
+    const selKey = g
+      ? pinVariantKey(g.displayPriceUsd, g.count, true)
+      : null;
+    const greenKey = g
+      ? pinVariantKey(g.displayPriceUsd, g.count, false)
+      : null;
+    const hiddenCount = groups.filter((x) => clusteredIds.has(x.id)).length;
+    // #region agent log
+    agentDebugLog("H3", "ListingBrowseMap.tsx:selectedGroupId", "selected pin image", { selectedGroupId, selKey, hasSelectedUri: selKey ? Boolean(pinImages[selKey]) : false, hasGreenUri: greenKey ? Boolean(pinImages[greenKey]) : false, hiddenCount, groups: groups.length, leafTracks, zIndexBump: false, opacityHide: false, stayMounted: true, paintSel: true });
+    // #endregion
+  }, [selectedGroupId, clusteredIds, groups, pinImages, leafTracks]);
+
+  useEffect(() => {
+    if (sheet.kind !== "carousel") return;
+    // #region agent log
+    agentDebugLog("H2", "ListingBrowseMap.tsx:clusterSnapshot", "post-region clusters", {
+      leafCount: visibleLeaves.length,
+      clusterCount: visibleClusters.length,
+      clusteredIds: clusteredIds.size,
+      latDelta: mapRegion?.latitudeDelta ?? null,
+      zoom: mapRegion
+        ? zoomFromLongitudeDelta(mapRegion.longitudeDelta, mapWidthPx)
+        : null,
+      leafTracks,
+    });
+    // #endregion
+  }, [sheet.kind, visibleLeaves.length, visibleClusters.length, clusteredIds.size, mapRegion, mapWidthPx, leafTracks]);
+
+  /** Listing used for campus polyline + selected pin. */
+  const focusListing = selectedListing;
 
   const listingIdsKey = useMemo(
     () => mappable.map((l) => l.id).join(","),
@@ -459,6 +630,14 @@ export function ListingBrowseMap({
   }, [mapReady, listingIdsKey]);
 
   const sheetOpen = sheet.kind !== "none";
+
+  useEffect(() => {
+    onCarouselOpenChange?.(sheetOpen);
+  }, [sheetOpen, onCarouselOpenChange]);
+
+  useEffect(() => {
+    panLoggedRef.current = false;
+  }, [sheet.kind]);
 
   const focusCampus = useMemo(
     () => resolveNearestCampus(focusListing, campuses),
@@ -496,10 +675,26 @@ export function ListingBrowseMap({
     );
   }, [universityMode, focusCampus, focusListing]);
 
-  const midpointLabel = useMemo(
-    () => formatDistanceShort(focusListing?.distanceMeters),
-    [focusListing?.distanceMeters],
-  );
+  const midpointLabel = useMemo(() => {
+    if (!focusListing) return null;
+    let dist = focusListing.distanceMeters;
+    if (
+      dist == null &&
+      focusCampus &&
+      focusListing.lat != null &&
+      focusListing.lng != null &&
+      focusCampus.lat != null &&
+      focusCampus.lng != null
+    ) {
+      dist = calculateDistanceMeters(
+        focusCampus.lat,
+        focusCampus.lng,
+        focusListing.lat,
+        focusListing.lng,
+      );
+    }
+    return formatDistanceShort(dist);
+  }, [focusListing, focusCampus]);
 
   const [distImages, setDistImages] = useState<Record<string, string>>({});
 
@@ -509,16 +704,35 @@ export function ListingBrowseMap({
     if (!universityMode) return [] as string[];
     const labels = new Set<string>();
     for (const listing of mappable) {
-      const label = formatDistanceShort(listing.distanceMeters);
+      let dist = listing.distanceMeters;
+      if (dist == null || Number.isNaN(dist)) {
+        const campus = resolveNearestCampus(listing, campuses);
+        if (
+          campus &&
+          listing.lat != null &&
+          listing.lng != null
+        ) {
+          dist = calculateDistanceMeters(
+            campus.lat,
+            campus.lng,
+            listing.lat,
+            listing.lng,
+          );
+        }
+      }
+      const label = formatDistanceShort(dist);
       if (label) labels.add(label);
     }
     return [...labels];
-  }, [universityMode, mappable]);
+  }, [universityMode, mappable, campuses]);
 
-  const pendingDistLabels = useMemo(
-    () => distLabels.filter((label) => !distImages[label]),
-    [distLabels, distImages],
-  );
+  const pendingDistLabels = useMemo(() => {
+    const need = distLabels.filter((label) => !distImages[label]);
+    if (midpointLabel && !distImages[midpointLabel] && !need.includes(midpointLabel)) {
+      need.push(midpointLabel);
+    }
+    return need;
+  }, [distLabels, distImages, midpointLabel]);
 
   const onDistCaptured = useCallback((label: string, uri: string) => {
     const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
@@ -547,6 +761,21 @@ export function ListingBrowseMap({
       : anchorCampus
         ? { latitude: anchorCampus.lat, longitude: anchorCampus.lng }
         : null;
+
+  // Single badge marker: thaw whenever it becomes visible so MapKit paints the
+  // first opacity 0→1 + campus→midpoint jump (image markers skip that frame).
+  const [distTracks, setDistTracks] = useState(false);
+  const prevDistReady = useRef(false);
+  useEffect(() => {
+    const ready = Boolean(distReadyUri);
+    if (ready && !prevDistReady.current) {
+      setDistTracks(true);
+      const t = setTimeout(() => setDistTracks(false), 700);
+      prevDistReady.current = ready;
+      return () => clearTimeout(t);
+    }
+    prevDistReady.current = ready;
+  }, [distReadyUri]);
 
   // Static pin images (Option 2): every price/count/color variant is rendered
   // once offscreen, snapshotted to a PNG, and markers use the native `image`
@@ -579,44 +808,52 @@ export function ListingBrowseMap({
   /** Show pins once every unselected (green) image for visible leaves exists. */
   const pinsReady = useMemo(
     () =>
-      visibleLeaves.every(
+      groups.every(
         (g) => pinImages[pinVariantKey(g.displayPriceUsd, g.count, false)],
       ),
-    [visibleLeaves, pinImages],
+    [groups, pinImages],
   );
 
-  // Thaw cluster bubble views briefly after region settles (MapKit paint).
+  // Thaw cluster bubbles only when the cluster SET changes — not every pan.
+  const clusterIdsKey = visibleClusters.map((c) => c.clusterId).join(",");
   const [clusterTracks, setClusterTracks] = useState(false);
   useEffect(() => {
     if (!mapReady || visibleClusters.length === 0) return;
     setClusterTracks(true);
     const t = setTimeout(() => setClusterTracks(false), 450);
     return () => clearTimeout(t);
-  }, [mapReady, visibleClusters.length, mapRegion?.latitudeDelta]);
+  }, [mapReady, clusterIdsKey, visibleClusters.length]);
 
-  // MapKit only reliably raises the NATIVELY SELECTED annotation (zPriority,
-  // iOS 14+); the lib's zPosition/zIndex hack is ignored between annotation
-  // views. So on selection we natively select the dedicated red marker.
-  // Unlike before, this can't ping-pong: the tap selects the GREEN marker,
-  // and we select the separate red one — different annotations, one cycle.
-  const redMarkerRefs = useRef(new Map<string, MapMarker | null>());
-  const prevActiveGroupId = useRef<string | null>(null);
-
+  // Thaw listing pin images only when the listing SET changes — not on zoom.
+  // Thawing on every Supercluster leaf change blanks already-painted pins.
+  const [leafTracks, setLeafTracks] = useState(true);
   useEffect(() => {
-    const prev = prevActiveGroupId.current;
-    if (prev === activeGroupId) return;
-    prevActiveGroupId.current = activeGroupId;
+    if (!mapReady || groups.length === 0) return;
+    setLeafTracks(true);
+    const t = setTimeout(() => setLeafTracks(false), 750);
+    return () => clearTimeout(t);
+  }, [mapReady, listingIdsKey, groups.length]);
 
-    if (prev) {
-      redMarkerRefs.current.get(prev)?.hideCallout();
+  const lastSelectedRef = useRef<string | null>(null);
+  const prevClusteredRef = useRef<Set<string>>(new Set());
+  const [paintIds, setPaintIds] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    const ids = new Set<string>();
+    if (selectedGroupId) ids.add(selectedGroupId);
+    if (lastSelectedRef.current) ids.add(lastSelectedRef.current);
+    lastSelectedRef.current = selectedGroupId;
+    for (const id of prevClusteredRef.current) {
+      if (!clusteredIds.has(id)) ids.add(id);
     }
-    const nextRef = activeGroupId
-      ? redMarkerRefs.current.get(activeGroupId)
-      : null;
-    if (activeGroupId) {
-      nextRef?.showCallout();
+    for (const id of clusteredIds) {
+      if (!prevClusteredRef.current.has(id)) ids.add(id);
     }
-  }, [activeGroupId]);
+    prevClusteredRef.current = clusteredIds;
+    if (ids.size === 0) return;
+    setPaintIds(ids);
+    const t = setTimeout(() => setPaintIds(new Set()), 500);
+    return () => clearTimeout(t);
+  }, [selectedGroupId, clusteredIds]);
 
   const onPinCaptured = useCallback((key: string, uri: string) => {
     const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
@@ -654,23 +891,83 @@ export function ListingBrowseMap({
     ignoreNextMapPress.current = true;
     setTimeout(() => {
       ignoreNextMapPress.current = false;
-    }, 50);
+    }, 400);
+  }
+
+  function cancelFly() {
+    flyStepRef.current = "idle";
+    flyPanRef.current = null;
+    flyInRef.current = null;
+  }
+
+  function focusListingOnMap(listing: Listing, source: string) {
+    if (listing.lat == null || listing.lng == null) return;
+    const win = Dimensions.get("window");
+    const overlayH =
+      mapCarouselOverlayHeight(win.width) + Math.max(insets.bottom, 12) + 20;
+    const target = regionForListingFocus(
+      listing.lat,
+      listing.lng,
+      mapWidthPx,
+      win.height,
+      overlayH,
+    );
+    const current = mapRegion;
+    // #region agent log
+    agentDebugLog("H1", "ListingBrowseMap.tsx:focusListingOnMap", "camera fly", {
+      source,
+      listingId: listing.id,
+      hasRegion: Boolean(current),
+      latDelta: current?.latitudeDelta,
+      lngDelta: current?.longitudeDelta,
+      reduceMotion,
+      threeStep: Boolean(current && !reduceMotion),
+    });
+    // #endregion
+    if (reduceMotion || !current) {
+      cancelFly();
+      mapRef.current?.animateToRegion(target, reduceMotion ? 0 : 420);
+      return;
+    }
+    const outLat = Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2;
+    const outLng = Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2;
+    const zoomedOut: Region = {
+      latitude: current.latitude,
+      longitude: current.longitude,
+      latitudeDelta: outLat,
+      longitudeDelta: outLng,
+    };
+    flyPanRef.current = {
+      latitude: target.latitude,
+      longitude: target.longitude,
+      latitudeDelta: outLat,
+      longitudeDelta: outLng,
+    };
+    flyInRef.current = target;
+    flyStepRef.current = "out";
+    mapRef.current?.animateToRegion(zoomedOut, 320);
+  }
+
+  function openCarousel(listingId: string, fly = true) {
+    // #region agent log
+    agentDebugLog("H1", "ListingBrowseMap.tsx:openCarousel", "open carousel", { listingId, fly, sheetKind: sheet.kind, currentId: sheet.kind === "carousel" ? sheet.listingId : null });
+    // #endregion
+    setSheet({ kind: "carousel", listingId });
+    if (!fly) return;
+    const listing = mappable.find((l) => l.id === listingId);
+    if (listing) focusListingOnMap(listing, fly ? "openCarousel-fly" : "openCarousel-nofly");
   }
 
   function onGroupPress(group: MapPinGroup, e?: MarkerPressEvent) {
     e?.stopPropagation();
     markMarkerPress();
-    if (group.count === 1) {
-      const only = group.listings[0];
-      if (!only) return;
-      setSheet({
-        kind: "preview",
-        listingId: only.id,
-        groupId: group.id,
-      });
-      return;
-    }
-    setSheet({ kind: "picker", groupId: group.id });
+    lastPinPressAt.current = Date.now();
+    const listing = group.listings[0];
+    // #region agent log
+    agentDebugLog("H1", "ListingBrowseMap.tsx:onGroupPress", "pin tap", { groupId: group.id, listingId: listing?.id ?? null, count: group.count, visibleLeaves: visibleLeaves.length, visibleClusters: visibleClusters.length, clustered: clusteredIds.size, groups: groups.length, selectedUriReady: listing ? Boolean(pinImages[pinVariantKey(group.displayPriceUsd, group.count, true)]) : false });
+    // #endregion
+    if (!listing) return;
+    openCarousel(listing.id, false);
   }
 
   function onClusterPress(
@@ -694,19 +991,62 @@ export function ListingBrowseMap({
   }
 
   function onRegionChangeComplete(region: Region) {
+    const sincePin = Date.now() - lastPinPressAt.current;
+    const step = flyStepRef.current;
+    if (sheet.kind === "carousel" || sincePin < 2500 || step !== "idle") {
+      const zoom = zoomFromLongitudeDelta(region.longitudeDelta, mapWidthPx);
+      // #region agent log
+      agentDebugLog("H2", "ListingBrowseMap.tsx:onRegionChangeComplete", "region settled", {
+        sincePin,
+        sheetKind: sheet.kind,
+        latDelta: region.latitudeDelta,
+        lngDelta: region.longitudeDelta,
+        zoom,
+        flyStep: step,
+        leafCount: visibleLeaves.length,
+        clusterCount: visibleClusters.length,
+        clusteredIds: clusteredIds.size,
+        groups: groups.length,
+        selectedGroupId,
+      });
+      // #endregion
+    }
     setMapRegion(region);
+    if (step === "out" && flyPanRef.current) {
+      flyStepRef.current = "pan";
+      mapRef.current?.animateToRegion(flyPanRef.current, 450);
+      return;
+    }
+    if (step === "pan" && flyInRef.current) {
+      flyStepRef.current = "in";
+      mapRef.current?.animateToRegion(flyInRef.current, 380);
+      return;
+    }
+    if (step === "in") {
+      flyStepRef.current = "idle";
+    }
+  }
+
+  function dismissCarousel() {
+    cancelFly();
+    setSheet({ kind: "none" });
   }
 
   function onMapPress(e: MapPressEvent) {
     const action = (e.nativeEvent as { action?: string }).action;
-    if (action === "marker-press" || ignoreNextMapPress.current) {
+    const ignored = action === "marker-press" || ignoreNextMapPress.current;
+    if (ignored) {
       ignoreNextMapPress.current = false;
       return;
     }
-    setSheet({ kind: "none" });
+    dismissCarousel();
   }
 
   function openListingDetail(listing: Listing) {
+    if (onOpenListing) {
+      onOpenListing(listing);
+      return;
+    }
     router.push({
       pathname: "/(renter)/listing/[id]",
       params: { id: listing.id },
@@ -760,6 +1100,17 @@ export function ListingBrowseMap({
           provider={PROVIDER_DEFAULT}
           onMapReady={() => setMapReady(true)}
           onPress={onMapPress}
+          onPanDrag={() => {
+            if (flyStepRef.current !== "idle") cancelFly();
+            if (sheet.kind !== "carousel") return;
+            if (panLoggedRef.current) return;
+            panLoggedRef.current = true;
+            // #region agent log
+            agentDebugLog("H8", "ListingBrowseMap.tsx:onPanDrag", "map pan while carousel", {
+              overlay: "in-tree",
+            });
+            // #endregion
+          }}
           onRegionChangeComplete={onRegionChangeComplete}
           mapType={Platform.OS === "ios" ? "mutedStandard" : "standard"}
           toolbarEnabled={false}
@@ -811,70 +1162,42 @@ export function ListingBrowseMap({
           ))}
 
           {pinsReady
-            ? visibleLeaves.flatMap((group) => {
-                const selected = activeGroupId === group.id;
-                const greenUri =
-                  pinImages[
-                    pinVariantKey(group.displayPriceUsd, group.count, false)
-                  ];
-                const redUri =
-                  pinImages[
-                    pinVariantKey(group.displayPriceUsd, group.count, true)
-                  ];
+            ? groups.map((group) => {
+                const selected = selectedGroupId === group.id;
+                const clustered = clusteredIds.has(group.id);
+                const uri = clustered
+                  ? pinImages[CLEAR_PIN_KEY]
+                  : pinImages[
+                      pinVariantKey(
+                        group.displayPriceUsd,
+                        group.count,
+                        selected,
+                      )
+                    ] ??
+                    pinImages[
+                      pinVariantKey(group.displayPriceUsd, group.count, false)
+                    ];
                 const a11y =
                   group.count > 1
                     ? `${group.count} listings from ${shortPriceLabel(group.displayPriceUsd)}`
                     : `${group.listings[0]?.area ?? "Listing"}, ${shortPriceLabel(group.displayPriceUsd)}`;
-                // Two fully static markers per pin — image and zIndex never
-                // change after mount. Selection only flips opacity (native
-                // setAlpha: instant, no image reload, no layout). Transparent
-                // views are skipped by hit-testing, so taps always land on
-                // the visible one.
-                const nodes = [
+
+                return (
                   <Marker
-                    key={`${group.id}:green`}
-                    identifier={`${group.id}:green`}
-                    coordinate={{
-                      latitude: group.lat,
-                      longitude: group.lng,
-                    }}
+                    key={group.id}
+                    identifier={group.id}
+                    coordinate={pinCoord(group.id, group.lat, group.lng)}
                     anchor={{ x: 0.5, y: PIN_HEAD_CENTER_Y / MARKER_H }}
                     centerOffset={{ x: 0, y: MARKER_H / 2 - PIN_HEAD_CENTER_Y }}
                     zIndex={1}
-                    opacity={selected && redUri ? 0 : 1}
-                    image={{ uri: greenUri }}
+                    opacity={1}
+                    tappable={!clustered}
+                    tracksViewChanges={leafTracks || paintIds.has(group.id)}
+                    image={pinImageSrc(uri)}
                     onPress={(e) => onGroupPress(group, e)}
                     accessibilityLabel={a11y}
-                  />,
-                ];
-                if (redUri) {
-                  nodes.push(
-                    <Marker
-                      key={`${group.id}:red`}
-                      ref={(r) => {
-                        redMarkerRefs.current.set(group.id, r);
-                      }}
-                      identifier={`${group.id}:red`}
-                      coordinate={{
-                        latitude: group.lat,
-                        longitude: group.lng,
-                      }}
-                      anchor={{ x: 0.5, y: PIN_HEAD_CENTER_Y / MARKER_H }}
-                      centerOffset={{ x: 0, y: MARKER_H / 2 - PIN_HEAD_CENTER_Y }}
-                      zIndex={1000}
-                      opacity={selected ? 1 : 0}
-                      image={{ uri: redUri }}
-                      // Raised on top when selected — must not swallow taps
-                      // meant for neighboring pins (88x78 mostly-transparent
-                      // rect). userInteractionEnabled=NO lets touches fall
-                      // through to the green pins; all selection input comes
-                      // from those.
-                      pointerEvents="none"
-                      accessibilityLabel={a11y}
-                    />,
-                  );
-                }
-                return nodes;
+                  />
+                );
               })
             : null}
 
@@ -896,7 +1219,8 @@ export function ListingBrowseMap({
               centerOffset={{ x: 0, y: 0 }}
               zIndex={50}
               opacity={distReadyUri ? 1 : 0}
-              image={{ uri: distMarkerUri }}
+              tracksViewChanges={distTracks || Boolean(distReadyUri)}
+              image={pinImageSrc(distMarkerUri)}
               pointerEvents="none"
               tappable={false}
               accessibilityElementsHidden
@@ -922,8 +1246,13 @@ export function ListingBrowseMap({
       </Animated.View>
 
       {/* Offscreen pin / distance-badge renders awaiting snapshot */}
-      {pendingVariants.length > 0 || pendingDistLabels.length > 0 ? (
+      {pendingVariants.length > 0 ||
+      pendingDistLabels.length > 0 ||
+      !pinImages[CLEAR_PIN_KEY] ? (
         <View style={styles.snapshotLayer} pointerEvents="none">
+          {!pinImages[CLEAR_PIN_KEY] ? (
+            <ClearPinSnapshot onCaptured={onPinCaptured} />
+          ) : null}
           {pendingVariants.map(([key, variant]) => (
             <PinSnapshot
               key={key}
@@ -960,59 +1289,32 @@ export function ListingBrowseMap({
       ) : null}
 
       {!sheetOpen ? (
-        <View style={styles.hintBar} accessibilityRole="text">
+        <View
+          style={fillContainer ? styles.hintOverlay : styles.hintBar}
+          accessibilityRole="text"
+          pointerEvents="none"
+        >
           <LText variant="caption" tone="muted">
             Tap a pin or cluster for details
           </LText>
         </View>
       ) : null}
 
-      {sheet.kind === "picker" && pickerGroup ? (
-        <View style={styles.sheetBelow}>
-          <ListingMapPicker
-            listings={pickerGroup.listings}
-            showDistance={universityMode}
-            onDismiss={() => setSheet({ kind: "none" })}
-            onSelect={(listing) =>
-              setSheet({
-                kind: "preview",
-                listingId: listing.id,
-                groupId: pickerGroup.id,
-              })
-            }
+      <CarouselWindowLayer
+        fillContainer={fillContainer}
+        open={sheet.kind === "carousel" && !!selectedListing}
+      >
+        {sheet.kind === "carousel" && selectedListing ? (
+          <ListingMapCarousel
+            listings={carouselListings}
+            selectedId={selectedListing.id}
+            onIndexChange={(listingId) => openCarousel(listingId, true)}
+            onDismiss={dismissCarousel}
+            onPressCard={openListingDetail}
+            bottomInset={Math.max(insets.bottom, 12) + 20}
           />
-        </View>
-      ) : null}
-
-      {sheet.kind === "preview" && selectedListing ? (
-        <View style={styles.sheetBelow}>
-          {(groupsById.get(sheet.groupId)?.count ?? 1) > 1 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Back to places at this pin"
-              onPress={() =>
-                setSheet({ kind: "picker", groupId: sheet.groupId })
-              }
-              style={styles.backToGroup}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={16}
-                color={Skoun.color.primary}
-              />
-              <LText variant="caption" tone="primary" style={styles.backText}>
-                {(groupsById.get(sheet.groupId)?.count ?? 0)} places here
-              </LText>
-            </Pressable>
-          ) : null}
-          <ListingMapPreview
-            listing={selectedListing}
-            showDistance={universityMode}
-            onDismiss={() => setSheet({ kind: "none" })}
-            onPress={() => openListingDetail(selectedListing)}
-          />
-        </View>
-      ) : null}
+        ) : null}
+      </CarouselWindowLayer>
     </View>
   );
 }
@@ -1029,6 +1331,8 @@ const styles = StyleSheet.create({
   rootFill: {
     flex: 1,
     marginBottom: 0,
+    gap: 0,
+    position: "relative",
   },
   caption: { marginBottom: 2 },
   mapShell: {
@@ -1131,6 +1435,21 @@ const styles = StyleSheet.create({
   hintBar: {
     alignItems: "center",
     paddingVertical: 4,
+  },
+  hintOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 88,
+    alignItems: "center",
+    zIndex: 400,
+  },
+  sheetOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 450,
   },
   /* Offscreen but fully rendered — opacity 0 could blank the capture. */
   snapshotLayer: {
