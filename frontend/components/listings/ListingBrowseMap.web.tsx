@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -9,7 +8,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type {
   LayerGroup,
   Map as LeafletMap,
@@ -17,10 +15,6 @@ import type {
   Polyline as LeafletPolyline,
 } from "leaflet";
 import { LText } from "@/components/lister/Typography";
-import {
-  ListingMapCarousel,
-  mapCarouselOverlayHeight,
-} from "@/components/listings/ListingMapCarousel";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
 import {
@@ -44,6 +38,8 @@ import {
   distanceBadgeIcon,
   loadLeaflet,
   pricePinIcon,
+  amberPopupHtml,
+  bindAmberPopup,
   type LeafletNS,
 } from "@/lib/skounLeaflet.web";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -96,7 +92,7 @@ function resolveNearestCampus(
 
 type SheetState =
   | { kind: "none" }
-  | { kind: "carousel"; listingId: string };
+  | { kind: "preview"; listingId: string };
 
 function shortPriceLabel(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
@@ -127,17 +123,18 @@ export function ListingBrowseMap({
   onExpandedChange,
   fillContainer = false,
   onCarouselOpenChange,
-  onOpenListing,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
+  const overlayRef = useRef<LayerGroup | null>(null);
   const leafletRef = useRef<LeafletNS | null>(null);
   const clusterIndexRef = useRef<PinClusterIndex | null>(null);
+  const listingMarkersRef = useRef<Map<string, LeafletMarker>>(new Map());
+  const clusterMarkersRef = useRef<Map<number, LeafletMarker>>(new Map());
   const ignoreNextMapClick = useRef(false);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
-  const insets = useSafeAreaInsets();
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
@@ -209,23 +206,13 @@ export function ListingBrowseMap({
     setVisibleFeatures(queryVisibleFeatures(index, bbox, map.getZoom()));
   }
 
-  const carouselListings = useMemo(
-    () =>
-      [...mappable].sort((a, b) => {
-        const rent = a.monthlyRentUsd - b.monthlyRentUsd;
-        if (rent !== 0) return rent;
-        return a.id.localeCompare(b.id);
-      }),
-    [mappable],
-  );
-
   const selectedListing = useMemo(() => {
-    if (sheet.kind !== "carousel") return null;
-    return carouselListings.find((l) => l.id === sheet.listingId) ?? null;
-  }, [sheet, carouselListings]);
+    if (sheet.kind !== "preview") return null;
+    return mappable.find((l) => l.id === sheet.listingId) ?? null;
+  }, [sheet, mappable]);
 
   const activeGroupId = useMemo(() => {
-    if (sheet.kind !== "carousel") return null;
+    if (sheet.kind !== "preview") return null;
     for (const g of groups) {
       if (g.listings.some((l) => l.id === sheet.listingId)) return g.id;
     }
@@ -249,8 +236,8 @@ export function ListingBrowseMap({
   const sheetOpen = sheet.kind !== "none";
 
   useEffect(() => {
-    onCarouselOpenChange?.(sheetOpen);
-  }, [sheetOpen, onCarouselOpenChange]);
+    onCarouselOpenChange?.(false);
+  }, [onCarouselOpenChange]);
 
   // Init Leaflet on the client only (after mount — window exists).
   useEffect(() => {
@@ -275,12 +262,14 @@ export function ListingBrowseMap({
         mapRef.current = map;
         leafletRef.current = L;
         layerRef.current = L.layerGroup().addTo(map);
+        overlayRef.current = L.layerGroup().addTo(map);
 
         map.on("click", () => {
           if (ignoreNextMapClick.current) {
             ignoreNextMapClick.current = false;
             return;
           }
+          map.closePopup();
           setSheet({ kind: "none" });
         });
 
@@ -324,6 +313,9 @@ export function ListingBrowseMap({
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
+      overlayRef.current = null;
+      listingMarkersRef.current.clear();
+      clusterMarkersRef.current.clear();
       leafletRef.current = null;
       setMapReady(false);
       setVisibleFeatures([]);
@@ -341,14 +333,25 @@ export function ListingBrowseMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- bound to index rebuild
   }, [mapReady, clusterIndex]);
 
-  // Sync markers / line when viewport clusters or selection changes.
+  // Reuse Leaflet markers. Rebuilding layers closed the listing popup.
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
+    const overlay = overlayRef.current;
     const L = leafletRef.current;
     if (!map || !layer || !L || !mapReady) return;
 
-    layer.clearLayers();
+    type SkounMarker = LeafletMarker & {
+      _skounKey?: string;
+      _skounHtml?: string;
+      _skounCluster?: Extract<VisibleMapFeature, { kind: "cluster" }>;
+      _skounGroup?: MapPinGroup;
+    };
+
+    const listingMarkers = listingMarkersRef.current;
+    const clusterMarkers = clusterMarkersRef.current;
+    const seenListings = new Set<string>();
+    const seenClusters = new Set<number>();
 
     function openGroup(group: MapPinGroup) {
       ignoreNextMapClick.current = true;
@@ -357,10 +360,16 @@ export function ListingBrowseMap({
       }, 80);
       const listing = group.listings[0];
       if (!listing) return;
-      setSheet({ kind: "carousel", listingId: listing.id });
+      setSheet((prev) =>
+        prev.kind === "preview" && prev.listingId === listing.id
+          ? prev
+          : { kind: "preview", listingId: listing.id },
+      );
     }
 
-    function expandCluster(feature: Extract<VisibleMapFeature, { kind: "cluster" }>) {
+    function expandCluster(
+      feature: Extract<VisibleMapFeature, { kind: "cluster" }>,
+    ) {
       ignoreNextMapClick.current = true;
       setTimeout(() => {
         ignoreNextMapClick.current = false;
@@ -372,51 +381,131 @@ export function ListingBrowseMap({
 
     if (universityMode) {
       for (const campus of campuses) {
-        L.marker([campus.lat, campus.lng], {
+        const key = `campus:${campus.slug}`;
+        seenListings.add(key);
+        if (listingMarkers.has(key)) continue;
+        const campusMarker = L.marker([campus.lat, campus.lng], {
           icon: campusPinIcon(L),
           interactive: false,
           keyboard: false,
-        }).addTo(layer);
+        });
+        campusMarker.addTo(layer);
+        listingMarkers.set(key, campusMarker);
       }
     }
 
     for (const feature of visibleFeatures) {
       if (feature.kind === "cluster") {
+        seenClusters.add(feature.clusterId);
         const size = clusterBubbleSize(feature.pointCount);
-        const marker: LeafletMarker = L.marker([feature.lat, feature.lng], {
+        const iconKey = `${feature.pointCount}:${feature.lat.toFixed(5)}:${feature.lng.toFixed(5)}`;
+        const existing = clusterMarkers.get(feature.clusterId) as
+          | SkounMarker
+          | undefined;
+        if (existing) {
+          existing._skounCluster = feature;
+          const ll = existing.getLatLng();
+          if (ll.lat !== feature.lat || ll.lng !== feature.lng) {
+            existing.setLatLng([feature.lat, feature.lng]);
+          }
+          if (existing._skounKey !== iconKey) {
+            existing.setIcon(clusterBubbleIcon(L, feature.pointCount, size));
+            existing._skounKey = iconKey;
+          }
+          continue;
+        }
+        const marker = L.marker([feature.lat, feature.lng], {
           icon: clusterBubbleIcon(L, feature.pointCount, size),
           riseOnHover: true,
           zIndexOffset: 200,
-        });
+        }) as SkounMarker;
+        marker._skounKey = iconKey;
+        marker._skounCluster = feature;
         marker.on("click", (e) => {
           L.DomEvent.stopPropagation(e);
-          expandCluster(feature);
+          const next = marker._skounCluster;
+          if (next) expandCluster(next);
         });
         marker.addTo(layer);
+        clusterMarkers.set(feature.clusterId, marker);
         continue;
       }
 
       const group = groupsById.get(feature.groupId);
       if (!group) continue;
+      upsertListingMarker(group);
+    }
+
+    if (activeGroupId) {
+      const selectedGroup = groupsById.get(activeGroupId);
+      if (selectedGroup) upsertListingMarker(selectedGroup);
+    }
+
+    function upsertListingMarker(group: MapPinGroup) {
+      if (seenListings.has(group.id) && listingMarkers.has(group.id)) return;
+      seenListings.add(group.id);
       const selected = activeGroupId === group.id;
       const label =
         group.count > 1
           ? `${shortPriceLabel(group.displayPriceUsd)} · ${group.count}`
           : shortPriceLabel(group.displayPriceUsd);
-      const marker: LeafletMarker = L.marker([group.lat, group.lng], {
+      const iconKey = `${label}|${selected ? "1" : "0"}`;
+      const existing = listingMarkers.get(group.id) as SkounMarker | undefined;
+      if (existing) {
+        existing._skounGroup = group;
+        if (existing._skounKey !== iconKey) {
+          existing.setIcon(pricePinIcon(L, label, selected));
+          existing.setZIndexOffset(selected ? 1000 : 0);
+          existing._skounKey = iconKey;
+        }
+        const html = amberPopupHtml(group);
+        if (existing._skounHtml !== html) {
+          existing.setPopupContent(html);
+          existing._skounHtml = html;
+        }
+        return;
+      }
+      const marker = L.marker([group.lat, group.lng], {
         icon: pricePinIcon(L, label, selected),
         riseOnHover: true,
         zIndexOffset: selected ? 1000 : 0,
-      });
+      }) as SkounMarker;
+      const html = amberPopupHtml(group);
+      marker._skounKey = iconKey;
+      marker._skounHtml = html;
+      marker._skounGroup = group;
+      bindAmberPopup(
+        marker,
+        html,
+        () => {
+          const next = marker._skounGroup;
+          if (next) openGroup(next);
+        },
+        () => {
+          setSheet({ kind: "none" });
+        },
+      );
       marker.on("click", (e) => {
         L.DomEvent.stopPropagation(e);
-        openGroup(group);
       });
       marker.addTo(layer);
+      listingMarkers.set(group.id, marker);
     }
 
+    for (const [id, marker] of listingMarkers) {
+      if (seenListings.has(id)) continue;
+      marker.remove();
+      listingMarkers.delete(id);
+    }
+    for (const [id, marker] of clusterMarkers) {
+      if (seenClusters.has(id)) continue;
+      marker.remove();
+      clusterMarkers.delete(id);
+    }
+
+    overlay?.clearLayers();
     const lineCampus = resolveNearestCampus(selectedListing, campuses);
-    if (universityMode && lineCampus && selectedListing) {
+    if (universityMode && overlay && lineCampus && selectedListing) {
       const line: LeafletPolyline = L.polyline(
         [
           [lineCampus.lat, lineCampus.lng],
@@ -429,7 +518,7 @@ export function ListingBrowseMap({
           interactive: false,
         },
       );
-      line.addTo(layer);
+      line.addTo(overlay);
 
       const midLat = (lineCampus.lat + selectedListing.lat) / 2;
       const midLng = (lineCampus.lng + selectedListing.lng) / 2;
@@ -454,7 +543,7 @@ export function ListingBrowseMap({
           icon: distanceBadgeIcon(L, distLabel),
           interactive: false,
           keyboard: false,
-        }).addTo(layer);
+        }).addTo(overlay);
       }
     }
   }, [
@@ -493,37 +582,6 @@ export function ListingBrowseMap({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded]);
-
-  function focusListingOnMap(listing: Listing) {
-    const map = mapRef.current;
-    if (!map || listing.lat == null || listing.lng == null) return;
-    const size = map.getSize();
-    const overlayH =
-      mapCarouselOverlayHeight(size.x) + Math.max(insets.bottom, 12) + 20;
-    const zoom = Math.min(16, Math.max(map.getZoom(), 14));
-    const target = map.project([listing.lat, listing.lng], zoom);
-    target.y += overlayH / 2;
-    const latlng = map.unproject(target, zoom);
-    map.flyTo(latlng, zoom, { duration: reduceMotion ? 0 : 0.75 });
-  }
-
-  function openCarousel(listingId: string, fly = true) {
-    setSheet({ kind: "carousel", listingId });
-    if (!fly) return;
-    const listing = mappable.find((l) => l.id === listingId);
-    if (listing) focusListingOnMap(listing);
-  }
-
-  function openListingDetail(listing: Listing) {
-    if (onOpenListing) {
-      onOpenListing(listing);
-      return;
-    }
-    router.push({
-      pathname: "/(renter)/listing/[id]",
-      params: { id: listing.id },
-    });
-  }
 
   const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
 
@@ -602,21 +660,6 @@ export function ListingBrowseMap({
         </View>
       ) : null}
 
-      {sheet.kind === "carousel" && selectedListing ? (
-        <View
-          style={[styles.sheetBelow, fillContainer && styles.sheetOverlay]}
-          pointerEvents="box-none"
-        >
-          <ListingMapCarousel
-            listings={carouselListings}
-            selectedId={selectedListing.id}
-            onIndexChange={(listingId) => openCarousel(listingId, true)}
-            onDismiss={() => setSheet({ kind: "none" })}
-            onPressCard={openListingDetail}
-            bottomInset={fillContainer ? Math.max(insets.bottom, 12) + 20 : 8}
-          />
-        </View>
-      ) : null}
     </View>
   );
 }

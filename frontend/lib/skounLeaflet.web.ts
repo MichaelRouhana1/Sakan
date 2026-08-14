@@ -18,6 +18,12 @@ import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 
 export type LeafletNS = typeof import("leaflet");
 
+declare global {
+  interface Window {
+    _skounActivePopup?: { remove: () => void } | null;
+  }
+}
+
 let cssReady = false;
 let leafletPromise: Promise<LeafletNS> | null = null;
 
@@ -45,12 +51,19 @@ export function ensureLeafletCss(): void {
     .skoun-leaflet-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
     .skoun-leaflet-map .leaflet-container { width: 100%; height: 100%; max-width: 100%; max-height: 100%; position: relative; z-index: 0; overflow: hidden; }
     .skoun-leaflet-map .leaflet-control-attribution { font-size: 10px; }
-    .skoun-div-icon { background: transparent !important; border: none !important; }
-    .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .skoun-div-icon {
+      background: transparent !important;
+      border: none !important;
+      overflow: visible !important;
+      pointer-events: none !important;
+    }
+    .skoun-teardrop, .skoun-cluster-bubble { pointer-events: auto; }
+    .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; }
     .skoun-price-pill {
       background: #fff; border: 1px solid #C5CDD8; border-radius: 8px;
       padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #121826;
       box-shadow: 0 1px 3px rgba(18,24,38,0.12); white-space: nowrap;
+      pointer-events: none;
     }
     .skoun-price-pill.on { background: #fff; border-color: #C5CDD8; color: #121826; }
     .skoun-teardrop {
@@ -124,6 +137,13 @@ export function ensureLeafletCss(): void {
     }
     .skoun-leaflet-amber-popup .leaflet-popup-close-button {
       display: none !important;
+    }
+    .leaflet-fade-anim .skoun-leaflet-amber-popup {
+      transition: none !important;
+      opacity: 1 !important;
+    }
+    .leaflet-zoom-anim .skoun-leaflet-amber-popup {
+      transition: none !important;
     }
     .skoun-amber-popup-card {
       width: 240px;
@@ -299,6 +319,7 @@ export function createSkounMap(
     wheelDebounceTime: 60,
     zoomSnap: 0.5,
     zoomDelta: 0.5,
+    fadeAnimation: false,
   }).setView(center, zoom);
   addOsmTiles(L, map);
   requestAnimationFrame(() => map.invalidateSize());
@@ -341,8 +362,8 @@ export function pricePinIcon(
   return L.divIcon({
     className: "skoun-div-icon",
     html,
-    iconSize: [88, 72],
-    iconAnchor: [44, 72],
+    iconSize: [30, 65],
+    iconAnchor: [15, 65],
   });
 }
 
@@ -430,6 +451,40 @@ export function createAmberGroupPopupHtml(group: MapPinGroup): string {
     </div>
     <div class="skoun-popup-group-list">${itemsHtml}</div>
   </div>`;
+}
+
+const AMBER_POPUP_OPTS = {
+  className: "skoun-leaflet-amber-popup",
+  closeButton: false,
+  offset: [0, -8] as [number, number],
+  maxWidth: 240,
+  minWidth: 240,
+  autoPan: false,
+  autoPanPadding: [40, 40] as [number, number],
+};
+
+export function amberPopupHtml(group: MapPinGroup): string {
+  if (group.count > 1) return createAmberGroupPopupHtml(group);
+  const listing = group.listings[0];
+  return listing ? createAmberPopupHtml(listing) : "";
+}
+
+export function bindAmberPopup(
+  marker: Marker,
+  html: string,
+  onOpen?: () => void,
+  onClose?: () => void,
+): void {
+  marker.bindPopup(html, AMBER_POPUP_OPTS);
+  marker.on("popupopen", (e) => {
+    const popup = (e as unknown as { popup: { remove: () => void } }).popup;
+    window._skounActivePopup = popup;
+    onOpen?.();
+  });
+  marker.on("popupclose", () => {
+    window._skounActivePopup = null;
+    onClose?.();
+  });
 }
 
 function escapeHtml(text: string): string {
