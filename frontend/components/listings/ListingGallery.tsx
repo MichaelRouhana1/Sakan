@@ -1,14 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
   StyleSheet,
+  useWindowDimensions,
   View,
   type ViewToken,
 } from "react-native";
@@ -16,15 +16,23 @@ import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import type { ListingPhoto } from "@/types/listing";
 
-const WIDTH = Dimensions.get("window").width;
-
 type Props = {
   photos: ListingPhoto[];
   coverUrl?: string | null;
   height?: number;
+  /** Hide built-in dots/counter when a parent draws its own chrome. */
+  hideOverlays?: boolean;
+  onIndexChange?: (index: number, total: number) => void;
 };
 
-export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
+export function ListingGallery({
+  photos,
+  coverUrl,
+  height = 320,
+  hideOverlays = false,
+  onIndexChange,
+}: Props) {
+  const { width } = useWindowDimensions();
   const urls =
     photos.length > 0
       ? photos.map((p) => p.url)
@@ -40,6 +48,10 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
       if (first?.index != null) setIndex(first.index);
     },
   ).current;
+
+  useEffect(() => {
+    onIndexChange?.(index, urls.length);
+  }, [index, urls.length, onIndexChange]);
 
   if (urls.length === 0) {
     return (
@@ -64,24 +76,31 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
     <View style={[{ touchAction: "pan-x" } as any, styles.wrap, { height }]}>
       <FlatList
         data={urls}
+        extraData={width}
+        key={width}
         keyExtractor={(item, i) => `${item}-${i}`}
         horizontal
-        directionalLockEnabled={true}
-        nestedScrollEnabled={true}
-        style={[{ touchAction: "pan-x" } as any]}
+        directionalLockEnabled
+        nestedScrollEnabled
         pagingEnabled
+        style={[{ touchAction: "pan-x" } as any]}
         showsHorizontalScrollIndicator={false}
         bounces={urls.length > 1}
+        getItemLayout={(_, i) => ({
+          length: width,
+          offset: width * i,
+          index: i,
+        })}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewConfig}
         onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
-          const next = Math.round(e.nativeEvent.contentOffset.x / WIDTH);
+          const next = Math.round(e.nativeEvent.contentOffset.x / width);
           setIndex(next);
         }}
         renderItem={({ item }) => (
           <Image
             source={{ uri: item }}
-            style={{ width: WIDTH, height }}
+            style={{ width, height }}
             contentFit="cover"
             transition={180}
             accessibilityLabel="Listing photo"
@@ -94,7 +113,7 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      {urls.length > 1 ? (
+      {hideOverlays ? null : urls.length > 1 ? (
         <View style={styles.dots} accessibilityRole="adjustable">
           {urls.map((_, i) => (
             <View
@@ -107,11 +126,13 @@ export function ListingGallery({ photos, coverUrl, height = 320 }: Props) {
           ))}
         </View>
       ) : null}
-      <View style={styles.count}>
-        <LText variant="caption" style={styles.countText}>
-          {index + 1}/{urls.length}
-        </LText>
-      </View>
+      {hideOverlays ? null : (
+        <View style={styles.count}>
+          <LText variant="caption" style={styles.countText}>
+            {index + 1}/{urls.length}
+          </LText>
+        </View>
+      )}
     </View>
   );
 }
