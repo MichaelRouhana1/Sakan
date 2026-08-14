@@ -23,7 +23,6 @@ import {
 } from "@/components/listings/ListingMapCarousel";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
-import { agentDebugLog } from "@/lib/agentDebugLog";
 import {
   buildPinClusterIndex,
   clusterBubbleSize,
@@ -509,9 +508,6 @@ export function ListingBrowseMap({
   }
 
   function openCarousel(listingId: string, fly = true) {
-    // #region agent log
-    agentDebugLog("H1", "ListingBrowseMap.web.tsx:openCarousel", "open carousel", { listingId, fly, sheetKind: sheet.kind });
-    // #endregion
     setSheet({ kind: "carousel", listingId });
     if (!fly) return;
     const listing = mappable.find((l) => l.id === listingId);

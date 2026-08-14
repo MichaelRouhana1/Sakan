@@ -35,7 +35,6 @@ import { Skoun } from "@/constants/theme";
 import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
-import { agentDebugLog } from "@/lib/agentDebugLog";
 import { LEBANON_AREAS } from "@/constants/areas";
 
 type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
@@ -73,17 +72,6 @@ export default function RenterSearchScreen() {
     () => universities.data?.find((u) => u.slug === activeUniSlug),
     [universities.data, activeUniSlug]
   );
-
-  useEffect(() => {
-    // #region agent log
-    agentDebugLog("H4", "search.tsx:carouselOpen", "chrome + map layout", {
-      carouselOpen,
-      viewMode,
-      mapFullscreen: viewMode === "map",
-      navigator: "native-tabs",
-    });
-    // #endregion
-  }, [carouselOpen, viewMode]);
 
   const onCarouselOpenChange = useCallback((open: boolean) => {
     setCarouselOpen(open);

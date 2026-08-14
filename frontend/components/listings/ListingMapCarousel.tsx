@@ -14,7 +14,6 @@ import {
   MAP_CAROUSEL_BODY_H,
 } from "@/components/listings/ListingMapCarouselCard";
 import { Skoun } from "@/constants/theme";
-import { agentDebugLog } from "@/lib/agentDebugLog";
 import type { Listing } from "@/types/listing";
 
 export const MAP_CAROUSEL_CLOSE_H = 40;
@@ -55,12 +54,6 @@ export function ListingMapCarousel({
   const interval = cardWidth + MAP_CAROUSEL_GAP;
   const sidePad = (viewportWidth - cardWidth) / 2;
 
-  useEffect(() => {
-    // #region agent log
-    agentDebugLog("H6", "ListingMapCarousel.tsx:inset", "carousel inset", { bottomInset, listingCount: listings.length });
-    // #endregion
-  }, [bottomInset, listings.length]);
-
   const selectedIndex = useMemo(() => {
     const i = listings.findIndex((l) => l.id === selectedId);
     return i < 0 ? 0 : i;
@@ -93,9 +86,6 @@ export function ListingMapCarousel({
       const listing = listings[next];
       if (!listing || listing.id === selectedId) return;
       fromSwipe.current = true;
-      // #region agent log
-      agentDebugLog("H1", "ListingMapCarousel.tsx:emitIndex", "carousel index from swipe", { fromId: selectedId, toId: listing.id, next, offsetX });
-      // #endregion
       onIndexChange(listing.id);
     },
     [interval, listings, onIndexChange, selectedId],

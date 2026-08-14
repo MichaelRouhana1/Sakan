@@ -26,7 +26,6 @@ import { ListingMapCarousel, mapCarouselOverlayHeight } from "@/components/listi
 import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
-import { agentDebugLog } from "@/lib/agentDebugLog";
 import {
   buildPinClusterIndex,
   clusterBubbleSize,
@@ -415,19 +414,6 @@ function CarouselWindowLayer({
   open: boolean;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    // #region agent log
-    agentDebugLog("H8", "ListingBrowseMap.tsx:CarouselWindowLayer", "carousel layer", {
-      fillContainer,
-      os: Platform.OS,
-      overlay: "in-tree",
-      open,
-      swallow: false,
-      mask: false,
-    });
-    // #endregion
-  }, [fillContainer, open]);
-
   if (!open) return null;
 
   return (
@@ -453,8 +439,6 @@ export function ListingBrowseMap({
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);
-  const lastPinPressAt = useRef(0);
-  const panLoggedRef = useRef(false);
   const flyStepRef = useRef<"idle" | "out" | "pan" | "in">("idle");
   const flyPanRef = useRef<Region | null>(null);
   const flyInRef = useRef<Region | null>(null);
@@ -548,6 +532,29 @@ export function ListingBrowseMap({
     return ids;
   }, [clusterIndex, visibleClusters]);
 
+  /**
+   * Cluster bubble Markers never unmount. Zoom-in used to drop them (3→0) in
+   * the same commit as pin image swaps — MapKit native crash. Hidden slots
+   * park off-map and stay mounted.
+   */
+  const clusterSlotsRef = useRef<
+    Array<Extract<VisibleMapFeature, { kind: "cluster" }> & { hidden: boolean }>
+  >([]);
+  const clusterSlots = useMemo(() => {
+    const live = visibleClusters.map((c) => ({ ...c, hidden: false }));
+    const prev = clusterSlotsRef.current;
+    const n = Math.max(prev.length, live.length);
+    const next: Array<
+      Extract<VisibleMapFeature, { kind: "cluster" }> & { hidden: boolean }
+    > = [];
+    for (let i = 0; i < n; i++) {
+      if (live[i]) next.push(live[i]);
+      else if (prev[i]) next.push({ ...prev[i], hidden: true });
+    }
+    clusterSlotsRef.current = next;
+    return next;
+  }, [visibleClusters]);
+
   const carouselListings = useMemo(
     () =>
       [...mappable].sort((a, b) => {
@@ -570,37 +577,6 @@ export function ListingBrowseMap({
     }
     return null;
   }, [sheet, groups]);
-
-  useEffect(() => {
-    if (!selectedGroupId) return;
-    const g = groups.find((x) => x.id === selectedGroupId);
-    const selKey = g
-      ? pinVariantKey(g.displayPriceUsd, g.count, true)
-      : null;
-    const greenKey = g
-      ? pinVariantKey(g.displayPriceUsd, g.count, false)
-      : null;
-    const hiddenCount = groups.filter((x) => clusteredIds.has(x.id)).length;
-    // #region agent log
-    agentDebugLog("H3", "ListingBrowseMap.tsx:selectedGroupId", "selected pin image", { selectedGroupId, selKey, hasSelectedUri: selKey ? Boolean(pinImages[selKey]) : false, hasGreenUri: greenKey ? Boolean(pinImages[greenKey]) : false, hiddenCount, groups: groups.length, leafTracks, zIndexBump: false, opacityHide: false, stayMounted: true, paintSel: true });
-    // #endregion
-  }, [selectedGroupId, clusteredIds, groups, pinImages, leafTracks]);
-
-  useEffect(() => {
-    if (sheet.kind !== "carousel") return;
-    // #region agent log
-    agentDebugLog("H2", "ListingBrowseMap.tsx:clusterSnapshot", "post-region clusters", {
-      leafCount: visibleLeaves.length,
-      clusterCount: visibleClusters.length,
-      clusteredIds: clusteredIds.size,
-      latDelta: mapRegion?.latitudeDelta ?? null,
-      zoom: mapRegion
-        ? zoomFromLongitudeDelta(mapRegion.longitudeDelta, mapWidthPx)
-        : null,
-      leafTracks,
-    });
-    // #endregion
-  }, [sheet.kind, visibleLeaves.length, visibleClusters.length, clusteredIds.size, mapRegion, mapWidthPx, leafTracks]);
 
   /** Listing used for campus polyline + selected pin. */
   const focusListing = selectedListing;
@@ -634,10 +610,6 @@ export function ListingBrowseMap({
   useEffect(() => {
     onCarouselOpenChange?.(sheetOpen);
   }, [sheetOpen, onCarouselOpenChange]);
-
-  useEffect(() => {
-    panLoggedRef.current = false;
-  }, [sheet.kind]);
 
   const focusCampus = useMemo(
     () => resolveNearestCampus(focusListing, campuses),
@@ -841,15 +813,15 @@ export function ListingBrowseMap({
     const ids = new Set<string>();
     if (selectedGroupId) ids.add(selectedGroupId);
     if (lastSelectedRef.current) ids.add(lastSelectedRef.current);
+    const selectedChanged = lastSelectedRef.current !== selectedGroupId;
+    const selectedLeftCluster = Boolean(
+      selectedGroupId &&
+        prevClusteredRef.current.has(selectedGroupId) &&
+        !clusteredIds.has(selectedGroupId),
+    );
     lastSelectedRef.current = selectedGroupId;
-    for (const id of prevClusteredRef.current) {
-      if (!clusteredIds.has(id)) ids.add(id);
-    }
-    for (const id of clusteredIds) {
-      if (!prevClusteredRef.current.has(id)) ids.add(id);
-    }
     prevClusteredRef.current = clusteredIds;
-    if (ids.size === 0) return;
+    if (!selectedChanged && !selectedLeftCluster) return;
     setPaintIds(ids);
     const t = setTimeout(() => setPaintIds(new Set()), 500);
     return () => clearTimeout(t);
@@ -900,7 +872,7 @@ export function ListingBrowseMap({
     flyInRef.current = null;
   }
 
-  function focusListingOnMap(listing: Listing, source: string) {
+  function focusListingOnMap(listing: Listing) {
     if (listing.lat == null || listing.lng == null) return;
     const win = Dimensions.get("window");
     const overlayH =
@@ -913,24 +885,17 @@ export function ListingBrowseMap({
       overlayH,
     );
     const current = mapRegion;
-    // #region agent log
-    agentDebugLog("H1", "ListingBrowseMap.tsx:focusListingOnMap", "camera fly", {
-      source,
-      listingId: listing.id,
-      hasRegion: Boolean(current),
-      latDelta: current?.latitudeDelta,
-      lngDelta: current?.longitudeDelta,
-      reduceMotion,
-      threeStep: Boolean(current && !reduceMotion),
-    });
-    // #endregion
+    const outLat = current
+      ? Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2
+      : 0;
+    const outLng = current
+      ? Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2
+      : 0;
     if (reduceMotion || !current) {
       cancelFly();
       mapRef.current?.animateToRegion(target, reduceMotion ? 0 : 420);
       return;
     }
-    const outLat = Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2;
-    const outLng = Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2;
     const zoomedOut: Region = {
       latitude: current.latitude,
       longitude: current.longitude,
@@ -949,23 +914,16 @@ export function ListingBrowseMap({
   }
 
   function openCarousel(listingId: string, fly = true) {
-    // #region agent log
-    agentDebugLog("H1", "ListingBrowseMap.tsx:openCarousel", "open carousel", { listingId, fly, sheetKind: sheet.kind, currentId: sheet.kind === "carousel" ? sheet.listingId : null });
-    // #endregion
     setSheet({ kind: "carousel", listingId });
     if (!fly) return;
     const listing = mappable.find((l) => l.id === listingId);
-    if (listing) focusListingOnMap(listing, fly ? "openCarousel-fly" : "openCarousel-nofly");
+    if (listing) focusListingOnMap(listing);
   }
 
   function onGroupPress(group: MapPinGroup, e?: MarkerPressEvent) {
     e?.stopPropagation();
     markMarkerPress();
-    lastPinPressAt.current = Date.now();
     const listing = group.listings[0];
-    // #region agent log
-    agentDebugLog("H1", "ListingBrowseMap.tsx:onGroupPress", "pin tap", { groupId: group.id, listingId: listing?.id ?? null, count: group.count, visibleLeaves: visibleLeaves.length, visibleClusters: visibleClusters.length, clustered: clusteredIds.size, groups: groups.length, selectedUriReady: listing ? Boolean(pinImages[pinVariantKey(group.displayPriceUsd, group.count, true)]) : false });
-    // #endregion
     if (!listing) return;
     openCarousel(listing.id, false);
   }
@@ -991,26 +949,7 @@ export function ListingBrowseMap({
   }
 
   function onRegionChangeComplete(region: Region) {
-    const sincePin = Date.now() - lastPinPressAt.current;
     const step = flyStepRef.current;
-    if (sheet.kind === "carousel" || sincePin < 2500 || step !== "idle") {
-      const zoom = zoomFromLongitudeDelta(region.longitudeDelta, mapWidthPx);
-      // #region agent log
-      agentDebugLog("H2", "ListingBrowseMap.tsx:onRegionChangeComplete", "region settled", {
-        sincePin,
-        sheetKind: sheet.kind,
-        latDelta: region.latitudeDelta,
-        lngDelta: region.longitudeDelta,
-        zoom,
-        flyStep: step,
-        leafCount: visibleLeaves.length,
-        clusterCount: visibleClusters.length,
-        clusteredIds: clusteredIds.size,
-        groups: groups.length,
-        selectedGroupId,
-      });
-      // #endregion
-    }
     setMapRegion(region);
     if (step === "out" && flyPanRef.current) {
       flyStepRef.current = "pan";
@@ -1102,14 +1041,6 @@ export function ListingBrowseMap({
           onPress={onMapPress}
           onPanDrag={() => {
             if (flyStepRef.current !== "idle") cancelFly();
-            if (sheet.kind !== "carousel") return;
-            if (panLoggedRef.current) return;
-            panLoggedRef.current = true;
-            // #region agent log
-            agentDebugLog("H8", "ListingBrowseMap.tsx:onPanDrag", "map pan while carousel", {
-              overlay: "in-tree",
-            });
-            // #endregion
           }}
           onRegionChangeComplete={onRegionChangeComplete}
           mapType={Platform.OS === "ios" ? "mutedStandard" : "standard"}
@@ -1142,20 +1073,34 @@ export function ListingBrowseMap({
               ))
             : null}
 
-          {visibleClusters.map((cluster) => (
+          {clusterSlots.map((cluster, slot) => (
             <Marker
-              key={`cluster:${cluster.clusterId}`}
-              identifier={`cluster:${cluster.clusterId}`}
-              coordinate={{
-                latitude: cluster.lat,
-                longitude: cluster.lng,
-              }}
+              key={`cluster-slot-${slot}`}
+              identifier={`cluster-slot-${slot}`}
+              coordinate={
+                cluster.hidden
+                  ? pinCoord("__cluster_park__", -85, 0)
+                  : pinCoord(
+                      `cluster-slot-${slot}`,
+                      cluster.lat,
+                      cluster.lng,
+                    )
+              }
               anchor={{ x: 0.5, y: 0.5 }}
               centerOffset={{ x: 0, y: 0 }}
               zIndex={300 + cluster.pointCount}
-              tracksViewChanges={clusterTracks}
-              onPress={(e) => onClusterPress(cluster, e)}
-              accessibilityLabel={`${cluster.pointCount} places — tap to zoom`}
+              tracksViewChanges={clusterTracks && !cluster.hidden}
+              tappable={!cluster.hidden}
+              onPress={(e) => {
+                if (cluster.hidden) return;
+                onClusterPress(cluster, e);
+              }}
+              accessibilityLabel={
+                cluster.hidden
+                  ? undefined
+                  : `${cluster.pointCount} places — tap to zoom`
+              }
+              accessibilityElementsHidden={cluster.hidden}
             >
               <ClusterBubble count={cluster.pointCount} />
             </Marker>
