@@ -14,6 +14,7 @@ type Props = {
   onClose: () => void;
   /** Full-height split pane (map mode), not a fixed sidebar card. */
   fullHeight?: boolean;
+  hoveredListingId?: string | null;
 };
 
 /** Amber-style map pane: map fills the column; Close Map floats top-right. */
@@ -25,6 +26,7 @@ export function FindMapPane({
   visible,
   onClose,
   fullHeight = false,
+  hoveredListingId = null,
 }: Props) {
   if (!visible) return null;
 
@@ -73,6 +75,7 @@ export function FindMapPane({
           universityMode={universityMode}
           loading={loading}
           fillContainer={fullHeight}
+          hoveredListingId={hoveredListingId}
         />
       </View>
     </View>

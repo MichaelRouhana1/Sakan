@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -22,6 +22,8 @@ import {
   clusterBubbleSize,
   padBBox,
   queryVisibleFeatures,
+  regionForListingFocus,
+  zoomFromLongitudeDelta,
   type MapBBox,
   type PinClusterIndex,
   type VisibleMapFeature,
@@ -36,10 +38,13 @@ import {
   clusterBubbleIcon,
   createSkounMap,
   distanceBadgeIcon,
+  distanceBadgeLatLng,
   loadLeaflet,
   pricePinIcon,
   amberPopupHtml,
+  applyAmberPopupSide,
   bindAmberPopup,
+  resolveUniPopupSide,
   type LeafletNS,
 } from "@/lib/skounLeaflet.web";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -56,6 +61,15 @@ type Props = {
   fillContainer?: boolean;
   onCarouselOpenChange?: (open: boolean) => void;
   onOpenListing?: (listing: Listing) => void;
+  hoveredListingId?: string | null;
+};
+
+type FlyStep = "idle" | "out" | "pan" | "in";
+
+type FlyTarget = {
+  lat: number;
+  lng: number;
+  zoom: number;
 };
 
 function calculateDistanceMeters(
@@ -105,6 +119,22 @@ function hasCoords(
 }
 
 const MAP_HEIGHT_COLLAPSED = 320;
+/** Pin click: zoom in to this if farther out. Never zoom out if already closer. */
+const PIN_SELECT_MIN_ZOOM = 16;
+const PIN_SELECT_ZOOM_IN_S = 0.55;
+const PIN_SELECT_PAN_S = 0.35;
+const CAMPUS_ZOOM_BOOST_START_M = 400;
+const CAMPUS_ZOOM_BOOST_FULL_M = 100;
+const PIN_SELECT_NEAR_ZOOM = 18;
+
+function pinSelectZoomForCampusDistance(meters: number): number {
+  if (meters >= CAMPUS_ZOOM_BOOST_START_M) return PIN_SELECT_MIN_ZOOM;
+  if (meters <= CAMPUS_ZOOM_BOOST_FULL_M) return PIN_SELECT_NEAR_ZOOM;
+  const t =
+    (CAMPUS_ZOOM_BOOST_START_M - meters) /
+    (CAMPUS_ZOOM_BOOST_START_M - CAMPUS_ZOOM_BOOST_FULL_M);
+  return PIN_SELECT_MIN_ZOOM + t * (PIN_SELECT_NEAR_ZOOM - PIN_SELECT_MIN_ZOOM);
+}
 
 function expandedMapHeight(): number {
   const h = Dimensions.get("window").height;
@@ -123,6 +153,7 @@ export function ListingBrowseMap({
   onExpandedChange,
   fillContainer = false,
   onCarouselOpenChange,
+  hoveredListingId = null,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -134,7 +165,17 @@ export function ListingBrowseMap({
   const clusterMarkersRef = useRef<Map<number, LeafletMarker>>(new Map());
   const ignoreNextMapClick = useRef(false);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flyStepRef = useRef<FlyStep>("idle");
+  const flyPanRef = useRef<FlyTarget | null>(null);
+  const flyInRef = useRef<FlyTarget | null>(null);
+  const universityModeRef = useRef(universityMode);
+  universityModeRef.current = universityMode;
+  const campusesRef = useRef(campuses);
+  campusesRef.current = campuses;
   const reduceMotion = useReducedMotion();
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
@@ -212,12 +253,14 @@ export function ListingBrowseMap({
   }, [sheet, mappable]);
 
   const activeGroupId = useMemo(() => {
-    if (sheet.kind !== "preview") return null;
+    const listingId =
+      sheet.kind === "preview" ? sheet.listingId : hoveredListingId;
+    if (!listingId) return null;
     for (const g of groups) {
-      if (g.listings.some((l) => l.id === sheet.listingId)) return g.id;
+      if (g.listings.some((l) => l.id === listingId)) return g.id;
     }
     return null;
-  }, [sheet, groups]);
+  }, [sheet, groups, hoveredListingId]);
 
   const listingIdsKey = useMemo(
     () => mappable.map((l) => l.id).join(","),
@@ -238,6 +281,99 @@ export function ListingBrowseMap({
   useEffect(() => {
     onCarouselOpenChange?.(false);
   }, [onCarouselOpenChange]);
+
+  const cancelFly = useCallback(() => {
+    flyStepRef.current = "idle";
+    flyPanRef.current = null;
+    flyInRef.current = null;
+  }, []);
+
+  const getMapViewportSize = useCallback(() => {
+    const map = mapRef.current;
+    if (map) {
+      const size = map.getSize();
+      return { width: size.x, height: size.y };
+    }
+    const el = hostRef.current;
+    return {
+      width: el?.clientWidth ?? 400,
+      height: el?.clientHeight ?? 400,
+    };
+  }, []);
+
+  const focusListingOnMap = useCallback(
+    (listing: Listing & { lat: number; lng: number }) => {
+      const map = mapRef.current;
+      if (!map) return;
+
+      cancelFly();
+
+      const { width, height } = getMapViewportSize();
+      const target = regionForListingFocus(
+        listing.lat,
+        listing.lng,
+        width,
+        height,
+        0,
+      );
+      const targetZoom = zoomFromLongitudeDelta(target.longitudeDelta, width);
+      const targetCenter: [number, number] = [
+        target.latitude,
+        target.longitude,
+      ];
+
+      const bounds = map.getBounds();
+      const currentLngDelta = bounds.getEast() - bounds.getWest();
+      const currentLatDelta = bounds.getNorth() - bounds.getSouth();
+      const outLng =
+        Math.max(currentLngDelta, target.longitudeDelta) * 2.2;
+      const outLat =
+        Math.max(currentLatDelta, target.latitudeDelta) * 2.2;
+      const outZoom = zoomFromLongitudeDelta(outLng, width);
+
+      const currentCenter = map.getCenter();
+
+      if (reduceMotion) {
+        cancelFly();
+        map.flyTo(targetCenter, targetZoom, { duration: 0 });
+        return;
+      }
+
+      flyPanRef.current = {
+        lat: listing.lat,
+        lng: listing.lng,
+        zoom: outZoom,
+      };
+      flyInRef.current = {
+        lat: targetCenter[0],
+        lng: targetCenter[1],
+        zoom: targetZoom,
+      };
+      flyStepRef.current = "out";
+      map.flyTo([currentCenter.lat, currentCenter.lng], outZoom, {
+        duration: 0.32,
+      });
+    },
+    [cancelFly, getMapViewportSize, reduceMotion],
+  );
+
+  useEffect(() => {
+    if (!mapReady || !hoveredListingId) return;
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      const map = mapRef.current;
+      if (!map) return;
+      if (sheet.kind === "preview") {
+        map.closePopup();
+        setSheet({ kind: "none" });
+      }
+      const listing = mappable.find((l) => l.id === hoveredListingId);
+      if (listing) focusListingOnMap(listing);
+    }, 80);
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, [hoveredListingId, mapReady, mappable, focusListingOnMap, sheet.kind]);
 
   // Init Leaflet on the client only (after mount — window exists).
   useEffect(() => {
@@ -269,9 +405,39 @@ export function ListingBrowseMap({
             ignoreNextMapClick.current = false;
             return;
           }
+          cancelFly();
           map.closePopup();
           setSheet({ kind: "none" });
         });
+
+        map.on("dragstart", () => {
+          cancelFly();
+        });
+
+        const onFlyMoveEnd = () => {
+          const step = flyStepRef.current;
+          const m = mapRef.current;
+          if (!m || step === "idle") return;
+
+          if (step === "out" && flyPanRef.current) {
+            flyStepRef.current = "pan";
+            const pan = flyPanRef.current;
+            m.flyTo([pan.lat, pan.lng], pan.zoom, { duration: 0.45 });
+            return;
+          }
+          if (step === "pan" && flyInRef.current) {
+            flyStepRef.current = "in";
+            const fin = flyInRef.current;
+            m.flyTo([fin.lat, fin.lng], fin.zoom, { duration: 0.38 });
+            return;
+          }
+          if (step === "in") {
+            flyStepRef.current = "idle";
+            flyPanRef.current = null;
+            flyInRef.current = null;
+          }
+        };
+        map.on("moveend", onFlyMoveEnd);
 
         const onViewport = () => {
           if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
@@ -310,6 +476,10 @@ export function ListingBrowseMap({
       cancelled = true;
       window.removeEventListener("resize", onResize);
       if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      flyStepRef.current = "idle";
+      flyPanRef.current = null;
+      flyInRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
@@ -480,6 +650,53 @@ export function ListingBrowseMap({
         () => {
           const next = marker._skounGroup;
           if (next) openGroup(next);
+          const popup = marker.getPopup();
+          if (!popup) return;
+          const listing = next?.listings[0];
+          const map = mapRef.current;
+          if (
+            universityModeRef.current &&
+            map &&
+            listing &&
+            listing.lat != null &&
+            listing.lng != null
+          ) {
+            const campus = resolveNearestCampus(listing, campusesRef.current);
+            if (campus) {
+              applyAmberPopupSide(
+                popup,
+                resolveUniPopupSide(map, listing, campus),
+              );
+              flyStepRef.current = "idle";
+              flyPanRef.current = null;
+              flyInRef.current = null;
+              const currentZoom = map.getZoom();
+              const distM =
+                listing.distanceMeters ??
+                calculateDistanceMeters(
+                  campus.lat,
+                  campus.lng,
+                  listing.lat,
+                  listing.lng,
+                );
+              const targetZoom = pinSelectZoomForCampusDistance(distM);
+              const nextZoom = Math.max(currentZoom, targetZoom);
+              const animate = !reduceMotionRef.current;
+              if (nextZoom > currentZoom) {
+                map.flyTo([listing.lat, listing.lng], nextZoom, {
+                  animate,
+                  duration: PIN_SELECT_ZOOM_IN_S,
+                });
+              } else {
+                map.panTo([listing.lat, listing.lng], {
+                  animate,
+                  duration: PIN_SELECT_PAN_S,
+                });
+              }
+              return;
+            }
+          }
+          applyAmberPopupSide(popup, "n");
         },
         () => {
           setSheet({ kind: "none" });
@@ -520,8 +737,6 @@ export function ListingBrowseMap({
       );
       line.addTo(overlay);
 
-      const midLat = (lineCampus.lat + selectedListing.lat) / 2;
-      const midLng = (lineCampus.lng + selectedListing.lng) / 2;
       let distMeters = selectedListing.distanceMeters;
       if (
         distMeters == null &&
@@ -539,7 +754,13 @@ export function ListingBrowseMap({
       }
       const distLabel = formatDistanceShort(distMeters);
       if (distLabel) {
-        L.marker([midLat, midLng], {
+        const badgePos = distanceBadgeLatLng(
+          map,
+          lineCampus,
+          selectedListing,
+          distLabel,
+        );
+        L.marker([badgePos.lat, badgePos.lng], {
           icon: distanceBadgeIcon(L, distLabel),
           interactive: false,
           keyboard: false,

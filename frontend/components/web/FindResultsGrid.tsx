@@ -13,6 +13,7 @@ type Props = {
   variant?: "grid" | "list";
   /** Desktop column count for grid mode (1–3). */
   columns?: 1 | 2 | 3;
+  onHoverListing?: (id: string | null) => void;
 };
 
 function SkeletonCard({ list }: { list?: boolean }) {
@@ -40,6 +41,7 @@ export function FindResultsGrid({
   onRetry,
   variant = "grid",
   columns = 3,
+  onHoverListing,
 }: Props) {
   const isList = variant === "list";
   const layoutStyle = isList
@@ -86,7 +88,11 @@ export function FindResultsGrid({
             key={listing.id}
             style={isList ? undefined : styles.gridCell}
           >
-            <ListingResultCard listing={listing} variant={variant} />
+            <ListingResultCard
+              listing={listing}
+              variant={variant}
+              onHoverListing={onHoverListing}
+            />
           </View>
         ))}
       </View>

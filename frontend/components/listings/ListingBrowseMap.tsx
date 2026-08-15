@@ -63,6 +63,8 @@ type Props = {
   onCarouselOpenChange?: (open: boolean) => void;
   /** Open listing detail. Defaults to expo-router push. */
   onOpenListing?: (listing: Listing) => void;
+  /** Web map split: card hover focus (web-only). */
+  hoveredListingId?: string | null;
 };
 
 function calculateDistanceMeters(

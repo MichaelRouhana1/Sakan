@@ -9,6 +9,8 @@ import type {
   LayerGroup,
   Map as LeafletMap,
   Marker,
+  Point,
+  Popup,
   Polyline,
   TileLayer,
 } from "leaflet";
@@ -24,29 +26,31 @@ declare global {
   }
 }
 
-let cssReady = false;
 let leafletPromise: Promise<LeafletNS> | null = null;
 
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OSM_ATTR =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-/** Ensure Leaflet CSS is loaded (client only). */
+/** Ensure Leaflet CSS is loaded (client only). Always refresh overrides. */
 export function ensureLeafletCss(): void {
-  if (cssReady || typeof document === "undefined") return;
+  if (typeof document === "undefined") return;
   const id = "skoun-leaflet-css";
-  if (document.getElementById(id)) {
-    cssReady = true;
-    return;
+  if (!document.getElementById(id)) {
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+    document.head.appendChild(link);
   }
-  const link = document.createElement("link");
-  link.id = id;
-  link.rel = "stylesheet";
-  link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-  document.head.appendChild(link);
 
-  const style = document.createElement("style");
-  style.id = "skoun-leaflet-overrides";
+  const overridesId = "skoun-leaflet-overrides";
+  let style = document.getElementById(overridesId) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement("style");
+    style.id = overridesId;
+    document.head.appendChild(style);
+  }
   style.textContent = `
     .skoun-leaflet-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
     .skoun-leaflet-map .leaflet-container { width: 100%; height: 100%; max-width: 100%; max-height: 100%; position: relative; z-index: 0; overflow: hidden; }
@@ -102,10 +106,16 @@ export function ensureLeafletCss(): void {
     .skoun-campus-pin .base {
       width: 14px; height: 4px; border-radius: 2px; background: #121826; margin-top: -1px;
     }
+    .skoun-dist-icon {
+      background: transparent !important;
+      border: none !important;
+    }
     .skoun-dist-badge {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 100%; box-sizing: border-box;
       background: #fff; border: 1.5px solid #C23B2E; border-radius: 999px;
-      padding: 3px 8px; font: 600 11px "DM Sans", system-ui, sans-serif; color: #8E241A;
-      box-shadow: 0 1px 3px rgba(18,24,38,0.16); white-space: nowrap;
+      padding: 0 6px; font: 600 10px/1 "DM Sans", system-ui, sans-serif; color: #8E241A;
+      box-shadow: 0 1px 3px rgba(18,24,38,0.16); white-space: nowrap; text-align: center;
     }
     .skoun-cluster-bubble {
       display: flex; align-items: center; justify-content: center;
@@ -132,8 +142,58 @@ export function ensureLeafletCss(): void {
       width: 240px !important;
       line-height: 1.4 !important;
     }
+    .skoun-leaflet-amber-popup {
+      overflow: visible !important;
+    }
     .skoun-leaflet-amber-popup .leaflet-popup-tip-container {
       margin-top: -1px;
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-s,
+    .skoun-leaflet-amber-popup.skoun-popup-e,
+    .skoun-leaflet-amber-popup.skoun-popup-w {
+      margin-bottom: 0;
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-s .leaflet-popup-tip-container {
+      top: 0;
+      bottom: auto;
+      left: 50%;
+      margin: 0 0 0 -20px;
+      width: 40px;
+      height: 20px;
+      transform: translateY(-100%);
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-s .leaflet-popup-tip {
+      margin: 8px auto -10px;
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-e .leaflet-popup-tip-container {
+      left: 0;
+      right: auto;
+      top: 50%;
+      margin: -12px 0 0 0;
+      width: 12px;
+      height: 24px;
+      transform: translate(-100%, 0);
+      overflow: hidden;
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-e .leaflet-popup-tip {
+      width: 16px;
+      height: 16px;
+      margin: 4px 0 0 6px;
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-w .leaflet-popup-tip-container {
+      left: auto;
+      right: 0;
+      top: 50%;
+      margin: -12px 0 0 0;
+      width: 12px;
+      height: 24px;
+      transform: translate(100%, 0);
+      overflow: hidden;
+    }
+    .skoun-leaflet-amber-popup.skoun-popup-w .leaflet-popup-tip {
+      width: 16px;
+      height: 16px;
+      margin: 4px 0 0 -10px;
     }
     .skoun-leaflet-amber-popup .leaflet-popup-close-button {
       display: none !important;
@@ -279,8 +339,6 @@ export function ensureLeafletCss(): void {
       color: #2F6FED;
     }
   `;
-  document.head.appendChild(style);
-  cssReady = true;
 }
 
 /** Dynamically load leaflet only in the browser (safe for Expo SSR). */
@@ -400,12 +458,208 @@ export function listingPinIcon(L: LeafletNS, selected = false): DivIcon {
   });
 }
 
+const DIST_BADGE_H = 18;
+const DIST_BADGE_EDGE_PAD = 6;
+
+function distBadgeSize(label: string): [number, number] {
+  const padX = 12;
+  const border = 3;
+  if (typeof document !== "undefined") {
+    const ctx = document.createElement("canvas").getContext("2d");
+    if (ctx) {
+      ctx.font = '600 10px "DM Sans", system-ui, sans-serif';
+      const w = Math.ceil(ctx.measureText(label).width + padX + border);
+      return [Math.max(w, 28), DIST_BADGE_H];
+    }
+  }
+  return [Math.ceil(label.length * 6.4 + padX + border), DIST_BADGE_H];
+}
+
+type ScreenPt = { x: number; y: number };
+
+/** Liang–Barsky clip. Returns segment params t0..t1 on p0→p1 inside rect, or null. */
+function clipSegmentToRect(
+  p0: ScreenPt,
+  p1: ScreenPt,
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+): { t0: number; t1: number } | null {
+  const dx = p1.x - p0.x;
+  const dy = p1.y - p0.y;
+  let t0 = 0;
+  let t1 = 1;
+  const edges = [
+    { p: -dx, q: p0.x - left },
+    { p: dx, q: right - p0.x },
+    { p: -dy, q: p0.y - top },
+    { p: dy, q: bottom - p0.y },
+  ];
+  for (const { p, q } of edges) {
+    if (p === 0) {
+      if (q < 0) return null;
+    } else {
+      const r = q / p;
+      if (p < 0) {
+        if (r > t1) return null;
+        if (r > t0) t0 = r;
+      } else {
+        if (r < t0) return null;
+        if (r < t1) t1 = r;
+      }
+    }
+  }
+  return { t0, t1 };
+}
+
+function pointInRect(
+  p: ScreenPt,
+  left: number,
+  top: number,
+  right: number,
+  bottom: number,
+): boolean {
+  return p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
+}
+
+function rectsOverlap(
+  a: { left: number; top: number; right: number; bottom: number },
+  b: { left: number; top: number; right: number; bottom: number },
+): boolean {
+  return !(
+    a.right < b.left ||
+    a.left > b.right ||
+    a.bottom < b.top ||
+    a.top > b.bottom
+  );
+}
+
+function badgeRectAt(
+  sx: number,
+  sy: number,
+  bw: number,
+  bh: number,
+): { left: number; top: number; right: number; bottom: number } {
+  return {
+    left: sx - bw / 2,
+    top: sy - bh / 2,
+    right: sx + bw / 2,
+    bottom: sy + bh / 2,
+  };
+}
+
+/** Leaflet +/- zoom control — measured from map container when present. */
+function zoomControlExcludeRect(
+  map: LeafletMap,
+  pad: number,
+): { left: number; top: number; right: number; bottom: number } | null {
+  const container = map.getContainer();
+  const zoom = container.querySelector(".leaflet-control-zoom");
+  if (!zoom) return null;
+  const mapBox = container.getBoundingClientRect();
+  const zoomBox = zoom.getBoundingClientRect();
+  return {
+    left: zoomBox.left - mapBox.left - pad,
+    top: zoomBox.top - mapBox.top - pad,
+    right: zoomBox.right - mapBox.left + pad,
+    bottom: zoomBox.bottom - mapBox.top + pad,
+  };
+}
+
+/** Slide t along the line (toward listing first) until the badge clears UI chrome. */
+function nudgeTOffZoomControl(
+  a: ScreenPt,
+  b: ScreenPt,
+  tPreferred: number,
+  tMin: number,
+  tMax: number,
+  bw: number,
+  bh: number,
+  zoomEx: { left: number; top: number; right: number; bottom: number },
+): number {
+  const overlaps = (t: number) =>
+    rectsOverlap(
+      badgeRectAt(
+        a.x + t * (b.x - a.x),
+        a.y + t * (b.y - a.y),
+        bw,
+        bh,
+      ),
+      zoomEx,
+    );
+  if (!overlaps(tPreferred)) return tPreferred;
+
+  const steps = 32;
+  for (let i = 1; i <= steps; i++) {
+    const t = tPreferred + ((tMax - tPreferred) * i) / steps;
+    if (!overlaps(t)) return t;
+  }
+  for (let i = 1; i <= steps; i++) {
+    const t = tPreferred - ((tPreferred - tMin) * i) / steps;
+    if (!overlaps(t)) return t;
+  }
+  return tPreferred;
+}
+
+/**
+ * Badge lat/lng on the campus line. True midpoint when on screen;
+ * otherwise clamped to the visible line at the viewport edge.
+ */
+export function distanceBadgeLatLng(
+  map: LeafletMap,
+  campus: { lat: number; lng: number },
+  listing: { lat: number; lng: number },
+  label: string,
+): { lat: number; lng: number } {
+  const geoMid = {
+    lat: (campus.lat + listing.lat) / 2,
+    lng: (campus.lng + listing.lng) / 2,
+  };
+  const a = map.latLngToContainerPoint([campus.lat, campus.lng]);
+  const b = map.latLngToContainerPoint([listing.lat, listing.lng]);
+  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const [bw, bh] = distBadgeSize(label);
+  const size = map.getSize();
+  const left = bw / 2 + DIST_BADGE_EDGE_PAD;
+  const top = bh / 2 + DIST_BADGE_EDGE_PAD;
+  const right = size.x - bw / 2 - DIST_BADGE_EDGE_PAD;
+  const bottom = size.y - bh / 2 - DIST_BADGE_EDGE_PAD;
+
+  let tMin = 0;
+  let tMax = 1;
+  let t = 0.5;
+
+  if (pointInRect(mid, left, top, right, bottom)) {
+    t = 0.5;
+  } else {
+    const clip = clipSegmentToRect(a, b, left, top, right, bottom);
+    if (!clip) return geoMid;
+    tMin = clip.t0;
+    tMax = clip.t1;
+    t = Math.max(tMin, Math.min(tMax, 0.5));
+  }
+
+  const zoomEx = zoomControlExcludeRect(map, 4);
+  if (zoomEx) {
+    t = nudgeTOffZoomControl(a, b, t, tMin, tMax, bw, bh, zoomEx);
+  }
+
+  const ll = map.containerPointToLatLng([
+    a.x + t * (b.x - a.x),
+    a.y + t * (b.y - a.y),
+  ]);
+  return { lat: ll.lat, lng: ll.lng };
+}
+
 export function distanceBadgeIcon(L: LeafletNS, label: string): DivIcon {
+  ensureLeafletCss();
+  const size = distBadgeSize(label);
   return L.divIcon({
-    className: "skoun-div-icon",
+    className: "skoun-div-icon skoun-dist-icon",
     html: `<div class="skoun-dist-badge">${escapeHtml(label)}</div>`,
-    iconSize: [72, 24],
-    iconAnchor: [36, 12],
+    iconSize: size,
+    iconAnchor: [size[0] / 2, size[1] / 2],
   });
 }
 export function createAmberPopupHtml(listing: Listing): string {
@@ -463,6 +717,136 @@ const AMBER_POPUP_OPTS = {
   autoPanPadding: [40, 40] as [number, number],
 };
 
+export type AmberPopupSide = "n" | "s" | "e" | "w";
+
+const POPUP_SIDE_CLASS: Record<AmberPopupSide, string> = {
+  n: "skoun-popup-n",
+  s: "skoun-popup-s",
+  e: "skoun-popup-e",
+  w: "skoun-popup-w",
+};
+
+const POPUP_SIDE_CLASSES = Object.values(POPUP_SIDE_CLASS);
+
+const CARD_W = 240;
+const CARD_H = 222;
+const TIP = 20;
+const GAP = 8;
+const CLIP_PAD = 8;
+
+type LatLngLike = { lat: number; lng: number };
+
+/** Leftover px from pin to map edge after placing the card on that side. */
+function leftoverSpace(
+  side: AmberPopupSide,
+  pin: Point,
+  mapSize: { x: number; y: number },
+): number {
+  switch (side) {
+    case "e":
+      return mapSize.x - CLIP_PAD - pin.x - (CARD_W + TIP + GAP);
+    case "w":
+      return pin.x - CLIP_PAD - (CARD_W + TIP + GAP);
+    case "s":
+      return mapSize.y - CLIP_PAD - pin.y - (CARD_H + TIP + GAP);
+    case "n":
+    default:
+      return pin.y - CLIP_PAD - (CARD_H + TIP + GAP);
+  }
+}
+
+function roomierSide(
+  a: AmberPopupSide,
+  b: AmberPopupSide,
+  pin: Point,
+  mapSize: { x: number; y: number },
+): AmberPopupSide {
+  return leftoverSpace(a, pin, mapSize) >= leftoverSpace(b, pin, mapSize)
+    ? a
+    : b;
+}
+
+/** Smaller/larger axis ≥ this → treat as diagonal (opposite corner). */
+const DIAGONAL_RATIO = 0.35;
+
+/**
+ * Vertical line → left/right. Horizontal → top/bottom.
+ * Diagonal → opposite corner (away from campus).
+ */
+function candidatePair(
+  map: LeafletMap,
+  listing: LatLngLike,
+  campus: LatLngLike,
+): [AmberPopupSide, AmberPopupSide] {
+  const pin = map.latLngToContainerPoint([listing.lat, listing.lng]);
+  const hub = map.latLngToContainerPoint([campus.lat, campus.lng]);
+  const dx = hub.x - pin.x;
+  const dy = hub.y - pin.y;
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  const longest = Math.max(ax, ay);
+  if (longest < 1) return ["w", "e"];
+  if (Math.min(ax, ay) / longest >= DIAGONAL_RATIO) {
+    return [dx >= 0 ? "w" : "e", dy >= 0 ? "n" : "s"];
+  }
+  return ay >= ax ? ["w", "e"] : ["n", "s"];
+}
+
+/** Score leftover as if pin is already map-center (we pan there on select). */
+function centeredPin(map: LeafletMap): Point {
+  const size = map.getSize();
+  return { x: size.x / 2, y: size.y / 2 } as Point;
+}
+
+/** Roomier side from the line pair only — never flips to the other axis. */
+export function preferredUniPopupSide(
+  map: LeafletMap,
+  listing: LatLngLike,
+  campus: LatLngLike,
+): AmberPopupSide {
+  const size = map.getSize();
+  const [a, b] = candidatePair(map, listing, campus);
+  return roomierSide(a, b, centeredPin(map), size);
+}
+
+export function resolveUniPopupSide(
+  map: LeafletMap,
+  listing: LatLngLike,
+  campus: LatLngLike,
+): AmberPopupSide {
+  return preferredUniPopupSide(map, listing, campus);
+}
+
+function offsetForSide(
+  side: AmberPopupSide,
+  width: number,
+  height: number,
+): [number, number] {
+  switch (side) {
+    case "s":
+      return [0, height + TIP + GAP];
+    case "e":
+      return [width / 2 + TIP + GAP, height / 2];
+    case "w":
+      return [-(width / 2 + TIP + GAP), height / 2];
+    case "n":
+    default:
+      return [0, -GAP];
+  }
+}
+
+export function applyAmberPopupSide(popup: Popup, side: AmberPopupSide): void {
+  const el = popup.getElement();
+  if (el) {
+    for (const cls of POPUP_SIDE_CLASSES) el.classList.remove(cls);
+    el.classList.add(POPUP_SIDE_CLASS[side]);
+  }
+  const width = el?.offsetWidth || CARD_W;
+  const height = el?.offsetHeight || CARD_H;
+  popup.options.offset = offsetForSide(side, width, height);
+  popup.update();
+}
+
 export function amberPopupHtml(group: MapPinGroup): string {
   if (group.count > 1) return createAmberGroupPopupHtml(group);
   const listing = group.listings[0];
@@ -501,6 +885,7 @@ export type {
   LayerGroup,
   LeafletMap,
   Marker,
+  Popup,
   Polyline,
   TileLayer,
 };

@@ -14,6 +14,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
+import { useCoarsePointer } from "@/lib/useCoarsePointer";
 
 const MAX_PHOTOS = 5;
 
@@ -30,17 +31,17 @@ function stopCardNav(e?: GestureResponderEvent) {
   e?.stopPropagation?.();
 }
 
-const webPanX =
-  Platform.OS === "web"
-    ? ({
-        touchAction: "pan-x",
-        overflowX: "auto",
-        overflowY: "hidden",
-        overscrollBehavior: "contain",
-        WebkitOverflowScrolling: "touch",
-        scrollSnapType: "x mandatory",
-      } as ViewStyle)
-    : null;
+function webPanXStyles(coarsePointer: boolean): ViewStyle | null {
+  if (Platform.OS !== "web" || !coarsePointer) return null;
+  return {
+    touchAction: "pan-x",
+    overflowX: "auto",
+    overflowY: "hidden",
+    overscrollBehavior: "contain",
+    WebkitOverflowScrolling: "touch",
+    scrollSnapType: "x mandatory",
+  } as ViewStyle;
+}
 
 export function ListingCardCarousel({
   urls,
@@ -54,6 +55,8 @@ export function ListingCardCarousel({
   const [hovered, setHovered] = useState(false);
   const count = photos.length;
   const isWeb = Platform.OS === "web";
+  const coarsePointer = useCoarsePointer();
+  const webPanX = webPanXStyles(coarsePointer);
   const scrollRef = useRef<ScrollView>(null);
   const lockedRef = useRef(false);
   const draggingRef = useRef(false);
@@ -134,7 +137,11 @@ export function ListingCardCarousel({
   return (
     <View
       collapsable={false}
-      style={[styles.root, style]}
+      style={[
+        styles.root,
+        isWeb && coarsePointer ? ({ touchAction: "pan-x" } as ViewStyle) : null,
+        style,
+      ]}
       onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
       {...webHoverHandlers}
     >
@@ -301,7 +308,6 @@ const styles = StyleSheet.create({
     minHeight: "100%",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
-    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as object) : {}),
   },
   singleContent: {
     flexGrow: 1,

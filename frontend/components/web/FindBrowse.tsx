@@ -92,6 +92,7 @@ export function FindBrowse() {
   const [browseSort, setBrowseSort] = useState<BrowseSortKey>("newest");
   const [resultsLayout, setResultsLayout] = useState<ResultsLayout>("grid");
   const [mapOpen, setMapOpen] = useState(false);
+  const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterSection, setFilterSection] = useState<FilterSection>("area");
   const [chipSheet, setChipSheet] = useState<ChipSheet>(null);
@@ -290,6 +291,7 @@ export function FindBrowse() {
                 ? 2
                 : 1
       }
+      onHoverListing={isMap ? setHoveredListingId : undefined}
     />
   );
 
@@ -326,7 +328,11 @@ export function FindBrowse() {
             loading={isLoading}
             visible
             fullHeight
-            onClose={() => setMapOpen(false)}
+            hoveredListingId={hoveredListingId}
+            onClose={() => {
+              setHoveredListingId(null);
+              setMapOpen(false);
+            }}
           />
         </View>
       ) : (

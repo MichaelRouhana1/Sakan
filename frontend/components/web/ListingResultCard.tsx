@@ -22,11 +22,13 @@ import {
   type ListingAmberPill,
 } from "@/lib/listingCardMeta";
 import { labelListingType } from "@/lib/listingLabels";
+import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { Listing } from "@/types/listing";
 
 type Props = {
   listing: Listing;
   variant?: "grid" | "list";
+  onHoverListing?: (id: string | null) => void;
 };
 
 const CARD_BORDER = "#E2E8F0";
@@ -131,9 +133,25 @@ function ImageCornerBadge({
   return <ListingFeatureBadge label={badge.label!} />;
 }
 
-export function ListingResultCard({ listing, variant = "grid" }: Props) {
+export function ListingResultCard({
+  listing,
+  variant = "grid",
+  onHoverListing,
+}: Props) {
   const router = useRouter();
   const isList = variant === "list";
+  const coarsePointer = useCoarsePointer();
+  const touchPanX =
+    Platform.OS === "web" && coarsePointer
+      ? ({ touchAction: "pan-x" } as object)
+      : null;
+  const mapHoverHandlers =
+    onHoverListing && Platform.OS === "web"
+      ? {
+          onMouseEnter: () => onHoverListing(listing.id),
+          onMouseLeave: () => onHoverListing(null),
+        }
+      : {};
   const title = listingCardTitle(listing);
   const subtitle = listingCardSubtitle(listing);
   const rentLabel = formatFreshUsd(listing.monthlyRentUsd);
@@ -156,8 +174,8 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
 
   if (isList) {
     return (
-      <View style={[styles.card, styles.cardList]}>
-        <View style={[{ touchAction: "pan-x" } as any, styles.mediaShell, styles.mediaList]}>
+      <View style={[styles.card, styles.cardList]} {...mapHoverHandlers}>
+        <View style={[touchPanX, styles.mediaShell, styles.mediaList]}>
           <ListingCardCarousel urls={urls} onPressCard={onOpen} />
           <ImageCornerBadge listing={listing} variant="list" />
         </View>
@@ -229,8 +247,8 @@ export function ListingResultCard({ listing, variant = "grid" }: Props) {
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
   return (
-    <View style={[styles.card, styles.cardGrid]}>
-      <View style={[{ touchAction: "pan-x" } as any, styles.gridMedia]}>
+    <View style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
+      <View style={[touchPanX, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
         <HeartButton
@@ -327,7 +345,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignSelf: "stretch",
     overflow: "hidden",
-    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   mediaList: {
     width: 280,
@@ -487,7 +504,6 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 10,
     overflow: Platform.OS === "web" ? "hidden" : "visible",
     backgroundColor: Skoun.color.primaryMist,
-    ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   gridHeart: {
     position: "absolute",
