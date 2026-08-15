@@ -4,11 +4,13 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useClerk, useUser } from "@clerk/expo";
 
 import { api } from "@/lib/api";
+import { useClerkEnabled } from "@/lib/clerkEnabled";
 import { queryClient } from "@/lib/queryClient";
 import {
   clearSession,
@@ -22,6 +24,33 @@ import { syncClerkUser } from "@/features/auth/registrationApi";
 import type { User } from "@/types/user";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type ClerkUserLike = {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  primaryEmailAddress?: { emailAddress?: string | null } | null;
+};
+
+type ClerkClientLike = {
+  signOut?: () => Promise<unknown>;
+};
+
+function ClerkSessionBridge({
+  clerkRef,
+  onUser,
+}: {
+  clerkRef: React.MutableRefObject<ClerkClientLike | null>;
+  onUser: (user: ClerkUserLike | null) => void;
+}) {
+  const clerk = useClerk();
+  const { user } = useUser();
+  clerkRef.current = clerk;
+  useEffect(() => {
+    onUser(user ?? null);
+  }, [onUser, user]);
+  return null;
+}
 
 type AuthSessionContextValue = {
   session: Session | null;
@@ -46,8 +75,9 @@ async function fetchCurrentUser(): Promise<User | null> {
 }
 
 export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
-  const { user: clerkUser } = useUser();
-  const clerk = useClerk();
+  const clerkEnabled = useClerkEnabled();
+  const clerkRef = useRef<ClerkClientLike | null>(null);
+  const [clerkUser, setClerkUser] = useState<ClerkUserLike | null>(null);
   const [session, setSessionState] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,8 +123,8 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 
   const logout = useCallback(async () => {
     try {
-      if (clerk?.signOut) {
-        await clerk.signOut();
+      if (clerkRef.current?.signOut) {
+        await clerkRef.current.signOut();
       }
     } catch {
       // ignore Clerk sign-out failures
@@ -103,7 +133,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     setSessionState(null);
     setUser(null);
     queryClient.clear();
-  }, [clerk]);
+  }, []);
 
   // App start: restore AsyncStorage session (email/password persistence).
   useEffect(() => {
@@ -171,6 +201,9 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
 
   return (
     <AuthSessionContext.Provider value={value}>
+      {clerkEnabled ? (
+        <ClerkSessionBridge clerkRef={clerkRef} onUser={setClerkUser} />
+      ) : null}
       {children}
     </AuthSessionContext.Provider>
   );

@@ -16,6 +16,7 @@ import * as WebBrowser from "expo-web-browser";
 import { SkounRegisterFlow } from "@/components/auth/SkounRegisterFlow";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { useClerkEnabled } from "@/lib/clerkEnabled";
 import {
   loginWithPassword,
   syncClerkUser,
@@ -69,66 +70,37 @@ function isAlreadySignedInError(err: unknown): boolean {
   );
 }
 
-export function SkounAuthModal({
-  visible,
-  onClose,
-  onSuccess,
-  title = "Sign in to Skoun",
-}: Props) {
+function ClerkOAuthSection({
+  loading,
+  lastUsedProvider,
+  setLoading,
+  setError,
+  finishSuccess,
+}: {
+  loading: boolean;
+  lastUsedProvider: AuthProvider | null;
+  setLoading: (value: boolean) => void;
+  setError: (value: string | null) => void;
+  finishSuccess: (provider: AuthProvider, userId: string) => Promise<void>;
+}) {
   const clerk = useClerk();
-  const { establishSession } = useAuthSession();
-
-  const { startOAuthFlow: startGoogleOAuth } = useOAuth({ strategy: "oauth_google" });
+  const { startOAuthFlow: startGoogleOAuth } = useOAuth({
+    strategy: "oauth_google",
+  });
   const { startOAuthFlow: startFacebookOAuth } = useOAuth({
     strategy: "oauth_facebook",
   });
-  const { startOAuthFlow: startAppleOAuth } = useOAuth({ strategy: "oauth_apple" });
+  const { startOAuthFlow: startAppleOAuth } = useOAuth({
+    strategy: "oauth_apple",
+  });
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("signIn");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{
-    email?: string;
-    password?: string;
-  }>({});
-  const [lastUsedProvider, setLastUsedProvider] = useState<AuthProvider | null>(
-    null,
-  );
-
-  useEffect(() => {
-    if (!visible) return;
-    let cancelled = false;
-    getLastAuthProvider().then((provider) => {
-      if (!cancelled) setLastUsedProvider(provider);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [visible]);
-
-  const handleClose = () => {
-    setError(null);
-    setFieldErrors({});
-    setLoading(false);
-    setPassword("");
-    setShowPassword(false);
-    setAuthMode("signIn");
-    setEmail("");
-    onClose();
-  };
-
-  const finishSuccess = async (
-    provider: AuthProvider,
-    userId: string,
-  ) => {
-    await setLastAuthProvider(provider);
-    setLastUsedProvider(provider);
-    await establishSession({ userId, role: "renter" });
-    onSuccess?.(userId);
-    handleClose();
+  const renderLastUsedBadge = (provider: AuthProvider) => {
+    if (lastUsedProvider !== provider) return null;
+    return (
+      <View style={styles.lastUsedBadge}>
+        <Text style={styles.lastUsedText}>Last used</Text>
+      </View>
+    );
   };
 
   const handleClearStaleSession = async (): Promise<void> => {
@@ -138,34 +110,6 @@ export function SkounAuthModal({
       }
     } catch {
       // ignore
-    }
-  };
-
-  const handleEmailPasswordSignIn = async () => {
-    if (loading) return;
-    const next: typeof fieldErrors = {};
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) next.email = "Email is required.";
-    else if (!EMAIL_RE.test(trimmedEmail)) {
-      next.email = "Enter a valid email address.";
-    }
-    if (!password) next.password = "Password is required.";
-    setFieldErrors(next);
-    if (Object.keys(next).length) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const user = await loginWithPassword(trimmedEmail, password);
-      await finishSuccess("email", user.id);
-    } catch (err) {
-      if (err instanceof RegistrationApiError) {
-        setError(err.message);
-      } else {
-        setError("Could not sign in.");
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -261,16 +205,152 @@ export function SkounAuthModal({
     }
   };
 
-  if (!visible) return null;
+  return (
+    <>
+      <View style={styles.socialCol}>
+        <View style={styles.socialBtnWrapper}>
+          <Pressable
+            disabled={loading}
+            style={({ pressed }) => [
+              styles.socialBtn,
+              pressed && styles.pressed,
+              loading && styles.btnDisabled,
+            ]}
+            onPress={() => handleOAuth("google")}
+          >
+            <Ionicons name="logo-google" size={18} color="#EA4335" />
+            <Text style={styles.socialBtnText}>Continue with Google</Text>
+          </Pressable>
+          {renderLastUsedBadge("google")}
+        </View>
 
-  const renderLastUsedBadge = (provider: AuthProvider) => {
-    if (lastUsedProvider !== provider) return null;
-    return (
-      <View style={styles.lastUsedBadge}>
-        <Text style={styles.lastUsedText}>Last used</Text>
+        <View style={styles.socialBtnWrapper}>
+          <Pressable
+            disabled={loading}
+            style={({ pressed }) => [
+              styles.socialBtn,
+              pressed && styles.pressed,
+              loading && styles.btnDisabled,
+            ]}
+            onPress={() => handleOAuth("apple")}
+          >
+            <Ionicons name="logo-apple" size={18} color="#000000" />
+            <Text style={styles.socialBtnText}>Continue with Apple</Text>
+          </Pressable>
+          {renderLastUsedBadge("apple")}
+        </View>
+
+        <View style={styles.socialBtnWrapper}>
+          <Pressable
+            disabled={loading}
+            style={({ pressed }) => [
+              styles.socialBtn,
+              pressed && styles.pressed,
+              loading && styles.btnDisabled,
+            ]}
+            onPress={() => handleOAuth("facebook")}
+          >
+            <Ionicons name="logo-facebook" size={18} color="#1877F2" />
+            <Text style={styles.socialBtnText}>Continue with Facebook</Text>
+          </Pressable>
+          {renderLastUsedBadge("facebook")}
+        </View>
       </View>
-    );
+
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>or</Text>
+        <View style={styles.dividerLine} />
+      </View>
+    </>
+  );
+}
+
+export function SkounAuthModal({
+  visible,
+  onClose,
+  onSuccess,
+  title = "Sign in to Skoun",
+}: Props) {
+  const clerkEnabled = useClerkEnabled();
+  const { establishSession } = useAuthSession();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("signIn");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
+  const [lastUsedProvider, setLastUsedProvider] = useState<AuthProvider | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    getLastAuthProvider().then((provider) => {
+      if (!cancelled) setLastUsedProvider(provider);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
+
+  const handleClose = () => {
+    setError(null);
+    setFieldErrors({});
+    setLoading(false);
+    setPassword("");
+    setShowPassword(false);
+    setAuthMode("signIn");
+    setEmail("");
+    onClose();
   };
+
+  const finishSuccess = async (
+    provider: AuthProvider,
+    userId: string,
+  ) => {
+    await setLastAuthProvider(provider);
+    setLastUsedProvider(provider);
+    await establishSession({ userId, role: "renter" });
+    onSuccess?.(userId);
+    handleClose();
+  };
+
+  const handleEmailPasswordSignIn = async () => {
+    if (loading) return;
+    const next: typeof fieldErrors = {};
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) next.email = "Email is required.";
+    else if (!EMAIL_RE.test(trimmedEmail)) {
+      next.email = "Enter a valid email address.";
+    }
+    if (!password) next.password = "Password is required.";
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const user = await loginWithPassword(trimmedEmail, password);
+      await finishSuccess("email", user.id);
+    } catch (err) {
+      if (err instanceof RegistrationApiError) {
+        setError(err.message);
+      } else {
+        setError("Could not sign in.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!visible) return null;
 
   return (
     <Modal
@@ -316,71 +396,15 @@ export function SkounAuthModal({
                 </View>
 
                 <View style={styles.body}>
-                  <View style={styles.socialCol}>
-                    <View style={styles.socialBtnWrapper}>
-                      <Pressable
-                        disabled={loading}
-                        style={({ pressed }) => [
-                          styles.socialBtn,
-                          pressed && styles.pressed,
-                          loading && styles.btnDisabled,
-                        ]}
-                        onPress={() => handleOAuth("google")}
-                      >
-                        <Ionicons name="logo-google" size={18} color="#EA4335" />
-                        <Text style={styles.socialBtnText}>
-                          Continue with Google
-                        </Text>
-                      </Pressable>
-                      {renderLastUsedBadge("google")}
-                    </View>
-
-                    <View style={styles.socialBtnWrapper}>
-                      <Pressable
-                        disabled={loading}
-                        style={({ pressed }) => [
-                          styles.socialBtn,
-                          pressed && styles.pressed,
-                          loading && styles.btnDisabled,
-                        ]}
-                        onPress={() => handleOAuth("apple")}
-                      >
-                        <Ionicons name="logo-apple" size={18} color="#000000" />
-                        <Text style={styles.socialBtnText}>
-                          Continue with Apple
-                        </Text>
-                      </Pressable>
-                      {renderLastUsedBadge("apple")}
-                    </View>
-
-                    <View style={styles.socialBtnWrapper}>
-                      <Pressable
-                        disabled={loading}
-                        style={({ pressed }) => [
-                          styles.socialBtn,
-                          pressed && styles.pressed,
-                          loading && styles.btnDisabled,
-                        ]}
-                        onPress={() => handleOAuth("facebook")}
-                      >
-                        <Ionicons
-                          name="logo-facebook"
-                          size={18}
-                          color="#1877F2"
-                        />
-                        <Text style={styles.socialBtnText}>
-                          Continue with Facebook
-                        </Text>
-                      </Pressable>
-                      {renderLastUsedBadge("facebook")}
-                    </View>
-                  </View>
-
-                  <View style={styles.dividerRow}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>or</Text>
-                    <View style={styles.dividerLine} />
-                  </View>
+                  {clerkEnabled ? (
+                    <ClerkOAuthSection
+                      loading={loading}
+                      lastUsedProvider={lastUsedProvider}
+                      setLoading={setLoading}
+                      setError={setError}
+                      finishSuccess={finishSuccess}
+                    />
+                  ) : null}
 
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Email address</Text>
