@@ -75,7 +75,8 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
   }, [clerk, clerk.session?.id]);
 
   const syncWithBackend = useCallback(async () => {
-    if (!isClerkSignedIn) {
+    const hasClerkSession = Boolean(clerk.session?.id || isClerkSignedIn);
+    if (!hasClerkSession) {
       await clearSession();
       setSessionState(null);
       setUser(null);
@@ -92,10 +93,10 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
     setSessionState(next);
     setUser(me);
     return me;
-  }, [isClerkSignedIn]);
+  }, [isClerkSignedIn, clerk.session?.id]);
 
   const refreshUser = useCallback(async () => {
-    if (!isClerkSignedIn) return null;
+    if (!clerk.session?.id && !isClerkSignedIn) return null;
     const me = await fetchMe();
     setUser(me);
     if (me) {
@@ -104,7 +105,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
       setSessionState(next);
     }
     return me;
-  }, [isClerkSignedIn]);
+  }, [isClerkSignedIn, clerk.session?.id]);
 
   const logout = useCallback(async () => {
     try {
@@ -156,7 +157,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
     () => ({
       session,
       user,
-      isSignedIn: Boolean(isClerkSignedIn && user),
+      isSignedIn: Boolean((isClerkSignedIn || clerk.session?.id) && user),
       isLoading: !isClerkLoaded || isLoading,
       syncWithBackend,
       refreshUser,

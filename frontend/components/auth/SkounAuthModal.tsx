@@ -16,6 +16,7 @@ import * as WebBrowser from "expo-web-browser";
 
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { UserApiError } from "@/features/auth/userApi";
 import {
   CLERK_SETUP_MESSAGE,
   useClerkEnabled,
@@ -337,7 +338,16 @@ function SkounAuthModalClerk({
   const finishAuth = async (provider: AuthProvider) => {
     await setLastAuthProvider(provider);
     setLastUsedProvider(provider);
-    const me = await syncWithBackend();
+
+    let me = await syncWithBackend();
+    if (!me) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1)));
+        me = await syncWithBackend();
+        if (me) break;
+      }
+    }
+
     if (!me) {
       throw new Error("Could not load your Skoun account.");
     }
@@ -346,7 +356,17 @@ function SkounAuthModalClerk({
   };
 
   const handleOAuthComplete = async (provider: AuthProvider) => {
-    await finishAuth(provider);
+    try {
+      await finishAuth(provider);
+    } catch (err) {
+      if (err instanceof UserApiError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Could not complete sign-in.");
+      }
+    }
   };
 
   const validateEmailPassword = () => {
@@ -379,7 +399,11 @@ function SkounAuthModalClerk({
         setError("Sign-in could not be completed. Try again.");
       }
     } catch (err) {
-      setError(clerkErrorMessage(err, "Could not sign in."));
+      if (err instanceof UserApiError) {
+        setError(err.message);
+      } else {
+        setError(clerkErrorMessage(err, "Could not sign in."));
+      }
     } finally {
       setLoading(false);
     }
@@ -442,7 +466,13 @@ function SkounAuthModalClerk({
         setError("Verification could not be completed. Try again.");
       }
     } catch (err) {
-      setError(clerkErrorMessage(err, "Incorrect verification code."));
+      if (err instanceof UserApiError) {
+        setError(err.message);
+      } else {
+        setError(
+          clerkErrorMessage(err, "Incorrect verification code or account sync failed."),
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -627,6 +657,15 @@ function SkounAuthModalClerk({
                         </Text>
                       ) : null}
                     </View>
+
+                    {authMode === "signUp" && signUpStep === "form" ? (
+                      <View
+                        nativeID="clerk-captcha"
+                        accessibilityElementsHidden
+                        importantForAccessibility="no-hide-descendants"
+                        style={styles.captchaMount}
+                      />
+                    ) : null}
                   </>
                 )}
 
@@ -849,6 +888,10 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     gap: 6,
+  },
+  captchaMount: {
+    minHeight: 1,
+    width: "100%",
   },
   inputLabel: {
     fontFamily: Skoun.type.bodySemi,
