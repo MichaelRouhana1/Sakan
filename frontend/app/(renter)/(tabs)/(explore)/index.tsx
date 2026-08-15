@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +15,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { api } from "@/lib/api";
+import type { User } from "@/types/user";
 import { Skoun } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
 import {
@@ -33,6 +38,14 @@ import {
 } from "@/components/web/home/homeData";
 
 export default function RenterNewHomeScreen() {
+  const { user, isSignedIn, refreshUser } = useAuthSession();
+  const campusLabel = user?.campus
+    ? user.campus.displayName ||
+      `${user.campus.institutionShortName ?? ""} — ${user.campus.name}`.replace(
+        /^ — /,
+        "",
+      )
+    : null;
   const { width } = useWindowDimensions();
   const [regionId, setRegionId] = useState(AREA_REGIONS[0].id);
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
@@ -140,13 +153,24 @@ export default function RenterNewHomeScreen() {
 
             {/* Amber Style Mock Search Input Container */}
             <Pressable
-              onPress={() => router.push("/search")}
+              onPress={() =>
+                router.push({
+                  pathname: "/search",
+                  params: campusLabel && user?.campus?.slug
+                    ? { q: user.campus.slug }
+                    : {},
+                })
+              }
               style={styles.searchContainer}
             >
               <View style={styles.searchFieldMock}>
-                <Text style={styles.searchHintBold}>Search by</Text>
+                <Text style={styles.searchHintBold}>
+                  {campusLabel ? "Near your campus" : "Search by"}
+                </Text>
                 <Text style={styles.searchHintMuted}>
-                  {" "}City, University, or Neighborhood
+                  {campusLabel
+                    ? ` ${campusLabel}`
+                    : " City, University, or Neighborhood"}
                 </Text>
               </View>
               <View style={styles.searchCircleIcon}>
@@ -160,7 +184,9 @@ export default function RenterNewHomeScreen() {
                 Save Big on Student Accommodation
               </Text>
               <Text style={styles.heroSubtitleText}>
-                Best student accommodations near top Lebanese universities & neighborhoods
+                {campusLabel
+                  ? `Find a place near ${campusLabel}`
+                  : "Best student accommodations near top Lebanese universities & neighborhoods"}
               </Text>
               <View style={styles.lowestPriceBadge}>
                 <Ionicons name="pricetag" size={14} color="#ffffff" />
@@ -573,6 +599,28 @@ export default function RenterNewHomeScreen() {
         </View>
 
       </ScrollView>
+
+      {isSignedIn && !user?.campusId ? (
+        <Modal visible animationType="slide">
+          <ScrollView
+            contentContainerStyle={{
+              padding: 20,
+              paddingTop: 56,
+              paddingBottom: 40,
+            }}
+          >
+            <InstitutionCampusPicker
+              selectedCampusId={null}
+              onSelectCampus={async (campus) => {
+                await api.patch<{ data: User }>("/api/users/me/campus", {
+                  campusId: campus.id,
+                });
+                await refreshUser();
+              }}
+            />
+          </ScrollView>
+        </Modal>
+      ) : null}
     </View>
   );
 }

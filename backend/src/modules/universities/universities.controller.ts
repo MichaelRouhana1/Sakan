@@ -11,6 +11,15 @@ export class UniversitiesController {
     }
   }
 
+  async listInstitutions(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await universitiesService.listInstitutions();
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getBySlug(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await universitiesService.getBySlug(

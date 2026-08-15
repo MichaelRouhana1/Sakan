@@ -20,6 +20,7 @@ import {
   MAX_UNIVERSITY_SLUGS,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
+import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import { Skoun } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
@@ -38,6 +39,8 @@ import type {
 export type BrowseFiltersValue = {
   areas: string[];
   universitySlugs: string[];
+  /** Institution kept while campus is still being chosen. */
+  institutionSlug: string | null;
   electricity: ElectricityStatus[];
   water: WaterStatus[];
   /** true = Wi‑Fi included only; false = any. */
@@ -54,6 +57,7 @@ export type BrowseFiltersValue = {
 export const EMPTY_BROWSE_FILTERS: BrowseFiltersValue = {
   areas: [],
   universitySlugs: [],
+  institutionSlug: null,
   electricity: [],
   water: [],
   wifiIncluded: false,
@@ -99,12 +103,6 @@ function toggleInList<T extends string>(
   return [...list, value];
 }
 
-/** Single-select: tap selects this slug only; tap again clears. */
-function selectOne(list: string[], value: string): string[] {
-  if (list.includes(value)) return [];
-  return [value];
-}
-
 function sameStringSet(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
   const other = new Set(b);
@@ -133,6 +131,7 @@ function sameBrowseFilters(
       a.universitySlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       b.universitySlugs.slice(0, MAX_UNIVERSITY_SLUGS),
     ) &&
+    a.institutionSlug === b.institutionSlug &&
     sameStringSet(a.electricity, b.electricity) &&
     sameStringSet(a.water, b.water) &&
     sameStringSet(a.listingTypes, b.listingTypes) &&
@@ -151,7 +150,7 @@ export function browseFilterBadgeCount(
 ): number {
   return (
     value.areas.length +
-    (mode === "university" ? value.universitySlugs.length : 0) +
+    value.universitySlugs.length +
     value.electricity.length +
     value.water.length +
     (value.wifiIncluded ? 1 : 0) +
@@ -197,10 +196,8 @@ function FilterToggle({
  */
 export function BrowseFiltersPanel({
   visible,
-  mode,
+  mode: _mode,
   applied,
-  universities,
-  universitiesLoading,
   onClose,
   onApply,
   variant = "drawer",
@@ -220,6 +217,9 @@ export function BrowseFiltersPanel({
   const [draftAreas, setDraftAreas] = useState<string[]>(applied.areas);
   const [draftSlugs, setDraftSlugs] = useState<string[]>(
     applied.universitySlugs,
+  );
+  const [draftInstSlug, setDraftInstSlug] = useState<string | null>(
+    applied.institutionSlug,
   );
   const [draftElectricity, setDraftElectricity] = useState<
     ElectricityStatus[]
@@ -241,13 +241,13 @@ export function BrowseFiltersPanel({
   const [draftGender, setDraftGender] = useState(applied.genderRestrictions);
   const [rentError, setRentError] = useState<string | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
-  const [uniQuery, setUniQuery] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const draftValue: BrowseFiltersValue = useMemo(
     () => ({
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
+      institutionSlug: draftInstSlug,
       electricity: draftElectricity,
       water: draftWater,
       wifiIncluded: draftWifi,
@@ -260,6 +260,7 @@ export function BrowseFiltersPanel({
     [
       draftAreas,
       draftSlugs,
+      draftInstSlug,
       draftElectricity,
       draftWater,
       draftWifi,
@@ -276,6 +277,7 @@ export function BrowseFiltersPanel({
     if (!visible) return;
     setDraftAreas(applied.areas);
     setDraftSlugs(applied.universitySlugs.slice(0, MAX_UNIVERSITY_SLUGS));
+    setDraftInstSlug(applied.institutionSlug);
     setDraftElectricity(applied.electricity);
     setDraftWater(applied.water);
     setDraftWifi(applied.wifiIncluded);
@@ -286,7 +288,6 @@ export function BrowseFiltersPanel({
     setDraftGender(applied.genderRestrictions);
     setRentError(null);
     setAreaQuery("");
-    setUniQuery("");
     setConfirmDiscard(false);
   }, [visible, applied]);
 
@@ -318,16 +319,6 @@ export function BrowseFiltersPanel({
     if (!q) return [...LEBANON_AREAS];
     return LEBANON_AREAS.filter((a) => a.toLowerCase().includes(q));
   }, [areaQuery]);
-
-  const filteredUnis = useMemo(() => {
-    const q = uniQuery.trim().toLowerCase();
-    if (!q) return universities;
-    return universities.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.slug.toLowerCase().includes(q),
-    );
-  }, [universities, uniQuery]);
 
   const areasAtCap = draftAreas.length >= MAX_LISTING_AREAS;
   const isDirty = !sameBrowseFilters(draftValue, {
@@ -363,6 +354,7 @@ export function BrowseFiltersPanel({
   const handleClear = () => {
     setDraftAreas([]);
     setDraftSlugs([]);
+    setDraftInstSlug(null);
     setDraftElectricity([]);
     setDraftWater([]);
     setDraftWifi(false);
@@ -400,6 +392,7 @@ export function BrowseFiltersPanel({
     onApply({
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
+      institutionSlug: draftInstSlug,
       electricity: draftElectricity,
       water: draftWater,
       wifiIncluded: draftWifi,
@@ -492,130 +485,24 @@ export function BrowseFiltersPanel({
               </View>
             ) : null}
 
-            <LText variant="label" tone="muted" style={styles.sectionLabel}>
-              Cities
-            </LText>
-            <LText variant="caption" tone="muted" style={styles.sectionHint}>
-              {mode === "university"
-                ? "Optional — narrow Hub results to these areas."
-                : "Leave empty for all cities. Pick up to 15."}
-            </LText>
-            <TextInput
-              style={styles.search}
-              placeholder="Search cities…"
-              placeholderTextColor={Skoun.color.inkFaint}
-              value={areaQuery}
-              onChangeText={setAreaQuery}
-              accessibilityLabel="Search cities"
-            />
-            <View style={styles.chipWrap}>
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: draftAreas.length === 0 }}
-                onPress={() => setDraftAreas([])}
-                style={[
-                  styles.chip,
-                  draftAreas.length === 0 && styles.chipOn,
-                ]}
-              >
-                <LText
-                  variant="caption"
-                  style={
-                    draftAreas.length === 0
-                      ? styles.chipLabelOn
-                      : styles.chipLabel
-                  }
-                >
-                  All cities
-                </LText>
-              </Pressable>
-              {filteredAreas.map((area) => {
-                const on = draftAreas.includes(area);
-                const disabled = !on && areasAtCap;
-                return (
-                  <Pressable
-                    key={area}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on, disabled }}
-                    disabled={disabled}
-                    onPress={() =>
-                      setDraftAreas((prev) =>
-                        toggleInList(prev, area, MAX_LISTING_AREAS),
-                      )
-                    }
-                    style={[
-                      styles.chip,
-                      on && styles.chipOn,
-                      disabled && styles.chipDisabled,
-                    ]}
-                  >
-                    <LText
-                      variant="caption"
-                      style={on ? styles.chipLabelOn : styles.chipLabel}
-                    >
-                      {area}
-                    </LText>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.blockSection}>
+              <LText variant="label" tone="muted" style={styles.sectionLabel}>
+                University
+              </LText>
+              <LText variant="caption" tone="muted" style={styles.sectionHint}>
+                Pick a university, then a campus. Required to search near
+                campus.
+              </LText>
+              <UniversityCampusFilter
+                hideHeading
+                selectedCampusSlug={draftSlugs[0] ?? null}
+                selectedInstitutionSlug={draftInstSlug}
+                onSelectInstitutionSlug={setDraftInstSlug}
+                onSelectCampusSlug={(slug) =>
+                  setDraftSlugs(slug ? [slug] : [])
+                }
+              />
             </View>
-
-            {mode === "university" || isSheet ? (
-              <View style={styles.blockSection}>
-                <LText
-                  variant="label"
-                  tone="muted"
-                  style={styles.sectionLabel}
-                >
-                  Universities
-                </LText>
-                <LText
-                  variant="caption"
-                  tone="muted"
-                  style={styles.sectionHint}
-                >
-                  Optional — pick one campus to order results by distance to
-                  the gate. Leave empty to browse all cities.
-                </LText>
-                <TextInput
-                  style={styles.search}
-                  placeholder="Search universities…"
-                  placeholderTextColor={Skoun.color.inkFaint}
-                  value={uniQuery}
-                  onChangeText={setUniQuery}
-                  accessibilityLabel="Search universities"
-                />
-                {universitiesLoading ? (
-                  <LText variant="caption" tone="muted">
-                    Loading campuses…
-                  </LText>
-                ) : (
-                  <View style={styles.chipWrap}>
-                    {filteredUnis.map((u) => {
-                      const on = draftSlugs.includes(u.slug);
-                      return (
-                        <Pressable
-                          key={u.slug}
-                          accessibilityRole="radio"
-                          accessibilityState={{ checked: on }}
-                          onPress={() =>
-                            setDraftSlugs((prev) => selectOne(prev, u.slug))
-                          }
-                          style={[styles.chip, on && styles.chipOn]}
-                        >
-                          <LText
-                            variant="caption"
-                            style={on ? styles.chipLabelOn : styles.chipLabel}
-                          >
-                            {u.name}
-                          </LText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            ) : null}
 
             <View style={styles.blockSection}>
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
@@ -809,6 +696,74 @@ export function BrowseFiltersPanel({
                   value={draftStudentsOnly}
                   onToggle={() => setDraftStudentsOnly((v) => !v)}
                 />
+              </View>
+            </View>
+
+            <View style={styles.blockSection}>
+              <LText variant="label" tone="muted" style={styles.sectionLabel}>
+                Area
+              </LText>
+              <LText variant="caption" tone="muted" style={styles.sectionHint}>
+                Optional — narrow results after campus is set.
+              </LText>
+              <TextInput
+                style={styles.search}
+                placeholder="Search areas…"
+                placeholderTextColor={Skoun.color.inkFaint}
+                value={areaQuery}
+                onChangeText={setAreaQuery}
+                accessibilityLabel="Search areas"
+              />
+              <View style={styles.chipWrap}>
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: draftAreas.length === 0 }}
+                  onPress={() => setDraftAreas([])}
+                  style={[
+                    styles.chip,
+                    draftAreas.length === 0 && styles.chipOn,
+                  ]}
+                >
+                  <LText
+                    variant="caption"
+                    style={
+                      draftAreas.length === 0
+                        ? styles.chipLabelOn
+                        : styles.chipLabel
+                    }
+                  >
+                    All areas
+                  </LText>
+                </Pressable>
+                {filteredAreas.map((area) => {
+                  const on = draftAreas.includes(area);
+                  const disabled = !on && areasAtCap;
+                  return (
+                    <Pressable
+                      key={area}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: on, disabled }}
+                      disabled={disabled}
+                      onPress={() =>
+                        setDraftAreas((prev) =>
+                          toggleInList(prev, area, MAX_LISTING_AREAS),
+                        )
+                      }
+                      style={[
+                        styles.chip,
+                        on && styles.chipOn,
+                        disabled && styles.chipDisabled,
+                      ]}
+                    >
+                      <LText
+                        variant="caption"
+                        style={on ? styles.chipLabelOn : styles.chipLabel}
+                      >
+                        {area}
+                      </LText>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           </ScrollView>

@@ -14,6 +14,10 @@ export const setGenderSchema = z.object({
   gender: z.enum(["male", "female"]),
 });
 
+export const setCampusSchema = z.object({
+  campusId: z.string().uuid("Select your campus"),
+});
+
 export const verifyPhoneSchema = z.object({}).optional();
 
 const emailField = z
@@ -73,6 +77,7 @@ export const completeRegistrationSchema = z
     password: z.string().min(MIN_PASSWORD_LENGTH).max(128),
     confirmPassword: z.string().min(1).max(128),
     role: z.enum(["renter", "poster"]).default("renter"),
+    campusId: z.string().uuid("Select your campus"),
   })
   .superRefine((val, ctx) => {
     if (val.password !== val.confirmPassword) {
@@ -99,6 +104,7 @@ export const syncClerkUserSchema = z.object({
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;
 export type UpdateRoleInput = z.infer<typeof updateRoleSchema>;
 export type SetGenderInput = z.infer<typeof setGenderSchema>;
+export type SetCampusInput = z.infer<typeof setCampusSchema>;
 export type RequestRegistrationCodeInput = z.infer<
   typeof requestRegistrationCodeSchema
 >;

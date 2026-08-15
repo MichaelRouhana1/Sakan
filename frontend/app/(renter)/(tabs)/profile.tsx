@@ -1,16 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Skoun } from "@/constants/theme";
+import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { api } from "@/lib/api";
+import type { User } from "@/types/user";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { isSignedIn, user, logout, refreshUser } = useAuthSession();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [campusOpen, setCampusOpen] = useState(false);
+  const [campusSaving, setCampusSaving] = useState(false);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -68,6 +80,34 @@ export default function ProfileScreen() {
 
         {/* MENU OPTIONS */}
         <View style={styles.menuList}>
+          <Pressable
+            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
+            onPress={() => {
+              if (isSignedIn) {
+                setCampusOpen(true);
+              } else {
+                handleOpenLogin();
+              }
+            }}
+          >
+            <View style={styles.menuLeft}>
+              <View style={styles.menuIconBg}>
+                <Ionicons name="school-outline" size={20} color={Skoun.color.ink} />
+              </View>
+              <View>
+                <Text style={styles.menuLabel}>My campus</Text>
+                {user?.campus ? (
+                  <Text style={styles.guestSubtitle}>
+                    {user.campus.displayName}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            <View style={styles.chevronCircle}>
+              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+            </View>
+          </Pressable>
+
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
             onPress={() => {
@@ -201,6 +241,43 @@ export default function ProfileScreen() {
         onClose={() => setAuthModalOpen(false)}
         onSuccess={() => setAuthModalOpen(false)}
       />
+
+      <Modal
+        visible={campusOpen}
+        animationType="slide"
+        onRequestClose={() => setCampusOpen(false)}
+      >
+        <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            {campusOpen ? (
+              <>
+            <InstitutionCampusPicker
+              selectedCampusId={user?.campusId ?? null}
+              onSelectCampus={async (campus) => {
+                setCampusSaving(true);
+                try {
+                  await api.patch<{ data: User }>("/api/users/me/campus", {
+                    campusId: campus.id,
+                  });
+                  await refreshUser();
+                  setCampusOpen(false);
+                } finally {
+                  setCampusSaving(false);
+                }
+              }}
+            />
+            <Pressable
+              onPress={() => setCampusOpen(false)}
+              style={styles.menuCard}
+              disabled={campusSaving}
+            >
+              <Text style={styles.menuLabel}>Close</Text>
+            </Pressable>
+              </>
+            ) : null}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }

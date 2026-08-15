@@ -22,8 +22,10 @@ import {
   SEND_WINDOW_MS,
 } from "./registration.constants.js";
 import { registrationRepository } from "./registration.repository.js";
+import { universitiesService } from "../universities/universities.service.js";
 import { toPublicUser } from "./users.public.js";
 import { usersRepository } from "./users.repository.js";
+import { usersService } from "./users.service.js";
 import type {
   CompleteRegistrationInput,
   LoginWithPasswordInput,
@@ -260,6 +262,8 @@ export class RegistrationService {
       throw new ValidationError("First and last name are required");
     }
 
+    const campus = await universitiesService.requireActiveCampus(input.campusId);
+
     const passwordHash = await hashPassword(input.password);
     const user = await usersRepository.createEmailUser({
       email,
@@ -269,11 +273,12 @@ export class RegistrationService {
       dateOfBirth: input.dateOfBirth,
       role: input.role ?? "renter",
       emailVerifiedAt: challenge.verifiedAt,
+      campusId: campus.id,
     });
 
     await registrationRepository.consumeChallenge(challenge.id);
 
-    return toPublicUser(user);
+    return usersService.withCampus(toPublicUser(user));
   }
 
   async login(input: LoginWithPasswordInput) {
@@ -292,7 +297,7 @@ export class RegistrationService {
       throw new AppError(403, "This account has been banned.", "ACCOUNT_BANNED");
     }
 
-    return toPublicUser(user);
+    return usersService.withCampus(toPublicUser(user));
   }
 }
 

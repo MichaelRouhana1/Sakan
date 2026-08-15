@@ -6,6 +6,7 @@ import type {
   LoginWithPasswordInput,
   RegisterUserInput,
   RequestRegistrationCodeInput,
+  SetCampusInput,
   SetGenderInput,
   SyncClerkUserInput,
   UpdateRoleInput,
@@ -100,6 +101,18 @@ export class UsersController {
   async verifyPhone(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await usersService.verifyPhone(req.user!.id);
+      res.json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async setCampus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = await usersService.setCampus(
+        req.user!.id,
+        req.body as SetCampusInput,
+      );
       res.json({ data: user });
     } catch (err) {
       next(err);

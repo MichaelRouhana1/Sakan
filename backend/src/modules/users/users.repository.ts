@@ -11,6 +11,7 @@ export type CreateEmailUserInput = {
   dateOfBirth: string;
   role: "renter" | "poster";
   emailVerifiedAt: Date;
+  campusId: string;
 };
 
 export class UsersRepository {
@@ -114,6 +115,7 @@ export class UsersRepository {
         role: input.role,
         postCredits,
         freeCreditClaimed: input.role === "poster",
+        campusId: input.campusId,
       })
       .returning();
     return row;
@@ -151,6 +153,15 @@ export class UsersRepository {
         phoneVerifiedAt: new Date(),
         updatedAt: new Date(),
       })
+      .where(eq(users.id, id))
+      .returning();
+    return row ?? null;
+  }
+
+  async setCampus(id: string, campusId: string) {
+    const [row] = await db
+      .update(users)
+      .set({ campusId, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
     return row ?? null;

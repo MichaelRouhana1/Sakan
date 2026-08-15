@@ -8,6 +8,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { userAccountStatusEnum, userGenderEnum, userRoleEnum } from "./enums.js";
+import { universities } from "./universities.js";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -33,6 +34,10 @@ export const users = pgTable("users", {
     .default(0),
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   gender: userGenderEnum("gender"),
+  /** Student study campus, or poster “property near” campus. */
+  campusId: uuid("campus_id").references(() => universities.id, {
+    onDelete: "set null",
+  }),
   accountStatus: userAccountStatusEnum("account_status")
     .notNull()
     .default("active"),

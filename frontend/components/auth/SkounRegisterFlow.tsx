@@ -27,10 +27,19 @@ import {
   type PasswordStrength,
 } from "@/lib/passwordStrength";
 import { setLastAuthProvider } from "@/lib/session";
+import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 
-type Step = "email" | "otp" | "name" | "dob" | "password" | "success";
+type Step = "email" | "otp" | "name" | "dob" | "password" | "campus" | "success";
 
-const STEPS: Step[] = ["email", "otp", "name", "dob", "password", "success"];
+const STEPS: Step[] = [
+  "email",
+  "otp",
+  "name",
+  "dob",
+  "password",
+  "campus",
+  "success",
+];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -84,6 +93,8 @@ export function SkounRegisterFlow({
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [showNativePicker, setShowNativePicker] = useState(false);
+  const [campusId, setCampusId] = useState<string | null>(null);
+  const [campusLabel, setCampusLabel] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -224,6 +235,20 @@ export function SkounRegisterFlow({
     setStep("password");
   };
 
+  const handlePasswordNext = () => {
+    const next: Record<string, string> = {};
+    if (!strength.isStrong) {
+      next.password = "Password must meet the strong password requirements.";
+    }
+    if (password !== confirmPassword) {
+      next.confirmPassword = "Passwords do not match.";
+    }
+    setFieldErrors(next);
+    if (Object.keys(next).length) return;
+    setError(null);
+    setStep("campus");
+  };
+
   const handleCreateAccount = async () => {
     if (!completionToken) {
       setError("Email verification required. Request a new code.");
@@ -239,6 +264,11 @@ export function SkounRegisterFlow({
     }
     setFieldErrors(next);
     if (Object.keys(next).length) return;
+    if (!campusId) {
+      setError("Select your university campus.");
+      setStep("campus");
+      return;
+    }
 
     await setBusy(async () => {
       try {
@@ -249,6 +279,7 @@ export function SkounRegisterFlow({
           dateOfBirth,
           password,
           confirmPassword,
+          campusId,
         });
         await setLastAuthProvider("email");
         await establishSession({ userId: user.id, role: user.role });
@@ -358,6 +389,7 @@ export function SkounRegisterFlow({
             {step === "name" && "What is your legal name?"}
             {step === "dob" && "When is your date of birth?"}
             {step === "password" && "Create a strong password"}
+            {step === "campus" && "Tell us where you study"}
           </Text>
         ) : null}
         {renderProgress()}
@@ -721,7 +753,7 @@ export function SkounRegisterFlow({
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <Pressable
-            onPress={handleCreateAccount}
+            onPress={handlePasswordNext}
             disabled={
               loading ||
               !strength.isStrong ||
@@ -738,13 +770,46 @@ export function SkounRegisterFlow({
               pressed && styles.pressed,
             ]}
           >
+            <Text style={styles.primaryBtnText}>Continue</Text>
+          </Pressable>
+          <Pressable onPress={() => setStep("dob")} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>Back</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {step === "campus" ? (
+        <View style={styles.body}>
+          <InstitutionCampusPicker
+            selectedCampusId={campusId}
+            onSelectCampus={(campus, institution) => {
+              setCampusId(campus.id);
+              setCampusLabel(
+                `${institution.shortName} — ${campus.name}`,
+              );
+              setError(null);
+            }}
+          />
+          {campusLabel ? (
+            <Text style={styles.otpSub}>Selected: {campusLabel}</Text>
+          ) : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <Pressable
+            onPress={handleCreateAccount}
+            disabled={loading || !campusId}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              (loading || !campusId) && styles.btnDisabled,
+              pressed && styles.pressed,
+            ]}
+          >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.primaryBtnText}>Create account</Text>
             )}
           </Pressable>
-          <Pressable onPress={() => setStep("dob")} style={styles.backBtn}>
+          <Pressable onPress={() => setStep("password")} style={styles.backBtn}>
             <Text style={styles.backBtnText}>Back</Text>
           </Pressable>
         </View>

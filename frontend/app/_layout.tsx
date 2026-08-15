@@ -14,6 +14,11 @@ WebBrowser.maybeCompleteAuthSession();
 
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthSessionProvider } from "@/features/auth/AuthSessionProvider";
+import {
+  CLERK_PUBLISHABLE_KEY,
+  ClerkEnabledProvider,
+  isClerkEnabled,
+} from "@/lib/clerkEnabled";
 import { queryClient } from "@/lib/queryClient";
 
 export { ErrorBoundary } from "expo-router";
@@ -21,8 +26,6 @@ export { ErrorBoundary } from "expo-router";
 export const unstable_settings = {
   initialRouteName: "index",
 };
-
-const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
 
 const tokenCache = {
   async getToken(key: string) {
@@ -71,11 +74,21 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+  const tree = (
+    <ClerkEnabledProvider value={isClerkEnabled}>
       <AuthSessionProvider>
         <RootLayoutNav />
       </AuthSessionProvider>
+    </ClerkEnabledProvider>
+  );
+
+  if (!isClerkEnabled) {
+    return tree;
+  }
+
+  return (
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+      {tree}
     </ClerkProvider>
   );
 }

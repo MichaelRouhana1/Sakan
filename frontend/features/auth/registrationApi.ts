@@ -73,6 +73,7 @@ export async function completeRegistration(input: {
   dateOfBirth: string;
   password: string;
   confirmPassword: string;
+  campusId: string;
 }) {
   try {
     const { data } = await api.post<{ data: User }>(

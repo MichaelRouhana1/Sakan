@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -19,6 +18,7 @@ import {
   MAX_UNIVERSITY_SLUGS,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
+import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import { Skoun } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
@@ -53,12 +53,12 @@ type Props = {
 };
 
 const SECTIONS: { id: FilterSection; label: string }[] = [
-  { id: "area", label: "Area" },
   { id: "university", label: "University" },
   { id: "budget", label: "Budget" },
   { id: "roomType", label: "Room type" },
   { id: "utilities", label: "Utilities" },
   { id: "audience", label: "Who it's for" },
+  { id: "area", label: "Area" },
 ];
 
 const LISTING_TYPE_OPTIONS = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
@@ -89,11 +89,6 @@ function toggleInList<T extends string>(
   return [...list, value];
 }
 
-function selectOne(list: string[], value: string): string[] {
-  if (list.includes(value)) return [];
-  return [value];
-}
-
 /**
  * Desktop Amber-style filter dialog: left category rail + right options pane.
  * Lebanon / Skoun fields only — no move-in, guarantor, or multi-country fluff.
@@ -101,8 +96,6 @@ function selectOne(list: string[], value: string): string[] {
 export function FindFiltersDialog({
   visible,
   applied,
-  universities,
-  universitiesLoading,
   initialSection = "area",
   onClose,
   onApply,
@@ -110,6 +103,7 @@ export function FindFiltersDialog({
   const [section, setSection] = useState<FilterSection>(initialSection);
   const [draftAreas, setDraftAreas] = useState(applied.areas);
   const [draftSlugs, setDraftSlugs] = useState(applied.universitySlugs);
+  const [draftInstSlug, setDraftInstSlug] = useState(applied.institutionSlug);
   const [draftElectricity, setDraftElectricity] = useState(applied.electricity);
   const [draftWater, setDraftWater] = useState(applied.water);
   const [draftWifi, setDraftWifi] = useState(applied.wifiIncluded);
@@ -126,13 +120,13 @@ export function FindFiltersDialog({
   const [draftGender, setDraftGender] = useState(applied.genderRestrictions);
   const [rentError, setRentError] = useState<string | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
-  const [uniQuery, setUniQuery] = useState("");
 
   useEffect(() => {
     if (!visible) return;
     setSection(initialSection);
     setDraftAreas(applied.areas);
     setDraftSlugs(applied.universitySlugs.slice(0, MAX_UNIVERSITY_SLUGS));
+    setDraftInstSlug(applied.institutionSlug);
     setDraftElectricity(applied.electricity);
     setDraftWater(applied.water);
     setDraftWifi(applied.wifiIncluded);
@@ -143,7 +137,6 @@ export function FindFiltersDialog({
     setDraftGender(applied.genderRestrictions);
     setRentError(null);
     setAreaQuery("");
-    setUniQuery("");
   }, [visible, applied, initialSection]);
 
   const filteredAreas = useMemo(() => {
@@ -152,21 +145,13 @@ export function FindFiltersDialog({
     return LEBANON_AREAS.filter((a) => a.toLowerCase().includes(q));
   }, [areaQuery]);
 
-  const filteredUnis = useMemo(() => {
-    const q = uniQuery.trim().toLowerCase();
-    if (!q) return universities;
-    return universities.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) || u.slug.toLowerCase().includes(q),
-    );
-  }, [universities, uniQuery]);
-
   const sectionTitle =
     SECTIONS.find((s) => s.id === section)?.label ?? "Filters";
 
   const handleClear = () => {
     setDraftAreas(EMPTY_BROWSE_FILTERS.areas);
     setDraftSlugs(EMPTY_BROWSE_FILTERS.universitySlugs);
+    setDraftInstSlug(EMPTY_BROWSE_FILTERS.institutionSlug);
     setDraftElectricity(EMPTY_BROWSE_FILTERS.electricity);
     setDraftWater(EMPTY_BROWSE_FILTERS.water);
     setDraftWifi(EMPTY_BROWSE_FILTERS.wifiIncluded);
@@ -199,6 +184,7 @@ export function FindFiltersDialog({
     onApply({
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
+      institutionSlug: draftInstSlug,
       electricity: draftElectricity,
       water: draftWater,
       wifiIncluded: draftWifi,
@@ -328,47 +314,15 @@ export function FindFiltersDialog({
 
                 {section === "university" ? (
                   <View style={styles.paneBlock}>
-                    <View style={styles.searchWrap}>
-                      <Ionicons
-                        name="search-outline"
-                        size={16}
-                        color={Skoun.color.inkFaint}
-                      />
-                      <TextInput
-                        value={uniQuery}
-                        onChangeText={setUniQuery}
-                        placeholder="Search university"
-                        placeholderTextColor={Skoun.color.inkFaint}
-                        style={styles.searchInput}
-                      />
-                    </View>
-                    {universitiesLoading ? (
-                      <ActivityIndicator
-                        color={Skoun.color.primary}
-                        style={{ marginTop: 24 }}
-                      />
-                    ) : (
-                      <View style={styles.optionList}>
-                        {filteredUnis.map((uni) => {
-                          const on = draftSlugs.includes(uni.slug);
-                          return (
-                            <OptionRow
-                              key={uni.slug}
-                              label={uni.name}
-                              selected={on}
-                              onPress={() =>
-                                setDraftSlugs((prev) =>
-                                  selectOne(prev, uni.slug).slice(
-                                    0,
-                                    MAX_UNIVERSITY_SLUGS,
-                                  ),
-                                )
-                              }
-                            />
-                          );
-                        })}
-                      </View>
-                    )}
+                    <UniversityCampusFilter
+                      hideHeading
+                      selectedCampusSlug={draftSlugs[0] ?? null}
+                      selectedInstitutionSlug={draftInstSlug}
+                      onSelectInstitutionSlug={setDraftInstSlug}
+                      onSelectCampusSlug={(slug) =>
+                        setDraftSlugs(slug ? [slug] : [])
+                      }
+                    />
                   </View>
                 ) : null}
 
