@@ -14,12 +14,5 @@ if (users.length) {
   console.log("deleted user", email);
 }
 
-const challenges = await sql`
-  DELETE FROM email_registration_challenges
-  WHERE email = ${email}
-  RETURNING id
-`;
-console.log("deleted challenges:", challenges.length);
-
 await sql.end();
 console.log("done");

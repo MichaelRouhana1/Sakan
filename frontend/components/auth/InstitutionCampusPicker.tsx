@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { Skoun } from "@/constants/theme";
 import {
   POPULAR_INSTITUTION_SLUGS,
@@ -22,23 +22,6 @@ type Props = {
   onSelectCampus: (campus: University, institution: Institution) => void;
   title?: string;
 };
-
-function LogoMark({
-  shortName,
-  logoUrl,
-}: {
-  shortName: string;
-  logoUrl?: string | null;
-}) {
-  if (logoUrl) {
-    return <Image source={{ uri: logoUrl }} style={styles.logoImg} />;
-  }
-  return (
-    <View style={styles.logoFallback}>
-      <Text style={styles.logoFallbackText}>{shortName.slice(0, 3)}</Text>
-    </View>
-  );
-}
 
 export function InstitutionCampusPicker({
   selectedCampusId,
@@ -148,7 +131,12 @@ export function InstitutionCampusPicker({
               onPress={() => pickInstitution(inst)}
               style={styles.row}
             >
-              <LogoMark shortName={inst.shortName} logoUrl={inst.logoUrl} />
+              <InstitutionLogo
+                shortName={inst.shortName}
+                website={inst.website}
+                logoUrl={inst.logoUrl}
+                size={36}
+              />
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{inst.name}</Text>
                 <Text style={styles.rowMeta}>{inst.shortName}</Text>
@@ -166,7 +154,12 @@ export function InstitutionCampusPicker({
           onPress={() => pickInstitution(inst)}
           style={styles.row}
         >
-          <LogoMark shortName={inst.shortName} logoUrl={inst.logoUrl} />
+          <InstitutionLogo
+            shortName={inst.shortName}
+            website={inst.website}
+            logoUrl={inst.logoUrl}
+            size={36}
+          />
           <View style={styles.rowText}>
             <Text style={styles.rowTitle}>{inst.name}</Text>
             <Text style={styles.rowMeta}>
@@ -220,20 +213,6 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowTitle: { fontSize: 15, fontWeight: "600", color: Skoun.color.ink },
   rowMeta: { fontSize: 13, color: Skoun.color.inkMuted, marginTop: 2 },
-  logoImg: { width: 36, height: 36, borderRadius: 8 },
-  logoFallback: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: Skoun.color.primaryMist,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoFallbackText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: Skoun.color.primary,
-  },
   back: { marginTop: 16, alignSelf: "flex-start" },
   backText: { color: Skoun.color.primary, fontWeight: "600" },
 });

@@ -14,7 +14,11 @@ import { LButton } from "@/components/lister/Button";
 import { ListerScreen } from "@/components/lister/Screen";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
-import { switchToRole } from "@/features/auth/useEnsureSession";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import {
+  AuthRequiredError,
+  switchToRole,
+} from "@/features/auth/useEnsureSession";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { UserRole } from "@/types/user";
 
@@ -32,14 +36,16 @@ const OPTIONS: RoleOption[] = [
     title: "Looking for a place",
     benefit: "Browse cities & campuses, then WhatsApp landlords directly.",
     icon: "search-outline",
-    a11yLabel: "Looking for a place — browse cities and campuses, WhatsApp landlords",
+    a11yLabel:
+      "Looking for a place — browse cities and campuses, WhatsApp landlords",
   },
   {
     role: "poster",
     title: "Listing a place",
     benefit: "Publish a rental and reach renters across Lebanon.",
     icon: "home-outline",
-    a11yLabel: "Listing a place — publish a rental and reach renters in Lebanon",
+    a11yLabel:
+      "Listing a place — publish a rental and reach renters in Lebanon",
   },
 ];
 
@@ -131,6 +137,7 @@ function RoleCard({
 }
 
 export default function RoleSelectScreen() {
+  const { isSignedIn, isLoading } = useAuthSession();
   const [selected, setSelected] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,16 +152,47 @@ export default function RoleSelectScreen() {
     try {
       await switchToRole(selected);
       router.replace((selected === "renter" ? "/(renter)" : "/(poster)") as never);
-    } catch {
-      setError(
-        "We couldn’t switch roles. Check your connection and try again.",
-      );
-      void AccessibilityInfo.announceForAccessibility(
-        "Could not switch roles. Check your connection and try again.",
-      );
+    } catch (err) {
+      const message =
+        err instanceof AuthRequiredError
+          ? "Sign in first, then choose your role."
+          : "We couldn’t switch roles. Check your connection and try again.";
+      setError(message);
+      void AccessibilityInfo.announceForAccessibility(message);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <ListerScreen edges={["left", "right", "bottom"]}>
+        <View style={styles.centered}>
+          <LText variant="body" tone="muted">
+            Loading…
+          </LText>
+        </View>
+      </ListerScreen>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <ListerScreen edges={["left", "right", "bottom"]}>
+        <View style={styles.centered}>
+          <LText variant="title">Sign in required</LText>
+          <LText variant="body" tone="muted" style={styles.signInHint}>
+            Open the app menu and sign in, then return here to choose renter or
+            poster.
+          </LText>
+          <LButton
+            label="Browse as guest"
+            onPress={() => router.replace("/(renter)" as never)}
+            style={styles.cta}
+          />
+        </View>
+      </ListerScreen>
+    );
   }
 
   return (
@@ -236,6 +274,15 @@ const styles = StyleSheet.create({
     paddingBottom: Lister.space.xl,
     gap: Lister.space.lg,
     justifyContent: "center",
+  },
+  centered: {
+    flex: 1,
+    paddingHorizontal: Lister.space.lg,
+    justifyContent: "center",
+    gap: 12,
+  },
+  signInHint: {
+    lineHeight: 22,
   },
   hero: {
     gap: 8,

@@ -2,13 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { Skoun } from "@/constants/theme";
 import {
   useInstitutions,
@@ -24,23 +24,10 @@ type Props = {
   hideHeading?: boolean;
 };
 
-function UniLogo({
-  shortName,
-  logoUrl,
-}: {
-  shortName: string;
-  logoUrl?: string | null;
-}) {
-  if (logoUrl) {
-    return <Image source={{ uri: logoUrl }} style={styles.logo} />;
-  }
-  return (
-    <View style={styles.logoFallback}>
-      <LText variant="caption" style={styles.logoFallbackText}>
-        {shortName.slice(0, 3)}
-      </LText>
-    </View>
-  );
+function institutionSubtitle(inst: Institution): string {
+  const campusNote =
+    inst.campuses.length > 1 ? ` · ${inst.campuses.length} campuses` : "";
+  return `${inst.shortName}${campusNote}`;
 }
 
 export function UniversityCampusFilter({
@@ -114,8 +101,9 @@ export function UniversityCampusFilter({
           </LText>
         )}
         <View style={styles.pickedUni}>
-          <UniLogo
+          <InstitutionLogo
             shortName={selectedInstitution.shortName}
+            website={selectedInstitution.website}
             logoUrl={selectedInstitution.logoUrl}
           />
           <View style={styles.rowText}>
@@ -203,16 +191,17 @@ export function UniversityCampusFilter({
             onPress={() => pickInstitution(inst)}
             style={styles.row}
           >
-            <UniLogo shortName={inst.shortName} logoUrl={inst.logoUrl} />
+            <InstitutionLogo
+              shortName={inst.shortName}
+              website={inst.website}
+              logoUrl={inst.logoUrl}
+            />
             <View style={styles.rowText}>
               <LText variant="caption" style={styles.rowTitle}>
                 {inst.name}
               </LText>
               <LText variant="caption" tone="muted">
-                {inst.shortName}
-                {inst.campuses.length > 1
-                  ? ` · ${inst.campuses.length} campuses`
-                  : ""}
+                {institutionSubtitle(inst)}
               </LText>
             </View>
             <Ionicons
@@ -270,18 +259,4 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backText: { color: Skoun.color.primary, fontWeight: "600" },
-  logo: { width: 32, height: 32, borderRadius: 8 },
-  logoFallback: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: Skoun.color.primaryMist,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoFallbackText: {
-    color: Skoun.color.primary,
-    fontWeight: "700",
-    fontSize: 10,
-  },
 });

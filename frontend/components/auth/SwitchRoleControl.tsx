@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
-import { switchToRole } from "@/features/auth/useEnsureSession";
+import { AuthRequiredError, switchToRole } from "@/features/auth/useEnsureSession";
 import { getSession } from "@/lib/session";
 import type { UserRole } from "@/types/user";
 
@@ -14,7 +14,7 @@ type Props = {
 };
 
 /**
- * Dev-friendly role flip — updates session and navigates without a hard reload.
+ * Role flip for signed-in users — updates DB role and navigates without reload.
  */
 export function SwitchRoleControl({ currentRole }: Props) {
   const [busy, setBusy] = useState(false);
@@ -32,8 +32,12 @@ export function SwitchRoleControl({ currentRole }: Props) {
       await getSession();
       await switchToRole(nextRole);
       router.replace((nextRole === "renter" ? "/(renter)" : "/(poster)") as never);
-    } catch {
-      setError("Couldn’t switch roles. Try again.");
+    } catch (err) {
+      setError(
+        err instanceof AuthRequiredError
+          ? "Sign in to switch roles."
+          : "Couldn’t switch roles. Try again.",
+      );
     } finally {
       setBusy(false);
     }

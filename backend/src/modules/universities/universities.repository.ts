@@ -5,8 +5,8 @@ import { institutions, universities } from "../../db/schema/index.js";
 function isPublicLebaneseUniversity(row: {
   slug: string;
   name: string;
-  institutionSlug: string | null;
-  institutionName: string | null;
+  institutionSlug?: string | null;
+  institutionName?: string | null;
 }): boolean {
   const slugs = [row.slug, row.institutionSlug]
     .filter(Boolean)

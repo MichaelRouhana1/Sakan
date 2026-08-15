@@ -1,19 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { users } from "../../db/schema/index.js";
-import type { RegisterUserInput } from "./users.schemas.js";
-
-export type CreateEmailUserInput = {
-  email: string;
-  passwordHash: string;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  role: "renter" | "poster";
-  emailVerifiedAt: Date;
-  campusId: string;
-};
-
 export class UsersRepository {
   async findById(id: string) {
     const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -47,7 +34,7 @@ export class UsersRepository {
     return row ?? null;
   }
 
-  async syncClerkUser(input: {
+  async provisionFromClerk(input: {
     clerkId: string;
     email?: string | null;
     firstName?: string | null;
@@ -83,41 +70,6 @@ export class UsersRepository {
       })
       .returning();
 
-    return row;
-  }
-
-  async create(input: RegisterUserInput) {
-    const postCredits = input.role === "poster" ? 1 : 0;
-    const [row] = await db
-      .insert(users)
-      .values({
-        phone: input.phone,
-        role: input.role,
-        postCredits,
-        freeCreditClaimed: input.role === "poster",
-        phoneVerifiedAt: new Date(),
-      })
-      .returning();
-    return row;
-  }
-
-  async createEmailUser(input: CreateEmailUserInput) {
-    const postCredits = input.role === "poster" ? 1 : 0;
-    const [row] = await db
-      .insert(users)
-      .values({
-        email: input.email,
-        passwordHash: input.passwordHash,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        dateOfBirth: input.dateOfBirth,
-        emailVerifiedAt: input.emailVerifiedAt,
-        role: input.role,
-        postCredits,
-        freeCreditClaimed: input.role === "poster",
-        campusId: input.campusId,
-      })
-      .returning();
     return row;
   }
 

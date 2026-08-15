@@ -10,13 +10,20 @@
 ### Auth & onboarding
 | Feature | Status | Where |
 |--------|--------|--------|
-| Phone screen shell | Stub (skip) | `frontend/app/(auth)/phone.tsx` |
-| OTP screen shell | Stub (skip) | `frontend/app/(auth)/otp.tsx` |
+| Clerk OAuth (Google / Apple / Facebook) | Done | `SkounAuthModal.tsx` |
+| Clerk email + password sign-in / sign-up | Done | `SkounAuthModal.tsx` |
 | Role select (renter vs poster) | Done | `frontend/app/(auth)/role-select.tsx` |
-| Dev session (throwaway register) | Done (temp) | `features/auth/useEnsureSession.ts` |
-| Local session storage | Done | `lib/session.ts` |
-| Header auth (`x-user-id` / `x-user-role`) | Stub | `backend/src/middleware/auth.ts` |
-| Real WhatsApp/SMS OTP + JWT | Missing | — |
+| Clerk JWT on protected API routes | Done | `backend/src/middleware/auth.ts` |
+| Local session cache (userId + role) | Done | `lib/session.ts` |
+| Campus picker post-login | Done | `InstitutionCampusPicker.tsx`, profile + explore |
+
+**Clerk setup checklist**
+
+1. [Clerk Dashboard](https://dashboard.clerk.com): enable Email + Password, email verification, Google / Apple / Facebook OAuth.
+2. Web redirect URLs: `http://localhost:8081` (and production domain).
+3. Native OAuth: Expo scheme `skoun` in `frontend/app.json`.
+4. `frontend/.env`: `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...`
+5. `backend/.env`: `CLERK_SECRET_KEY=sk_test_...`
 
 ### Renter — browse & discover
 | Feature | Status | Where |
@@ -105,10 +112,8 @@
 ## Screens (Expo Router)
 
 ### Auth
-- `/` → redirect to auth
-- `/(auth)/phone`
-- `/(auth)/otp`
-- `/(auth)/role-select`
+- `/` → redirect to renter browse (guest OK)
+- `/(auth)/role-select` — requires Clerk sign-in
 
 ### Renter
 - `/(renter)/(tabs)/` — Search (list/map)
@@ -191,7 +196,7 @@
 
 ### Auth
 - `useAuth` — session shell
-- `useEnsureSession` — register throwaway user for role
+- `useEnsureSession` — role switch for signed-in users
 
 ### Listings
 - `useListings` — filtered list (+ campuses envelope)
@@ -226,7 +231,7 @@
 ### `lib/`
 | Module | Role |
 |--------|------|
-| `api.ts` | Axios client + auth headers |
+| `api.ts` | Axios client + Clerk Bearer token |
 | `session.ts` | AsyncStorage user session |
 | `queryClient.ts` | TanStack Query client |
 | `whatsapp.ts` | Listing WhatsApp deep-link builder |
@@ -264,8 +269,10 @@
 ### Users — `/api/users`
 | Method | Path | Notes |
 |--------|------|--------|
-| POST | `/register` | Phone + role; poster gets 1 free post credit |
-| GET | `/me` | Current user + credit balances |
+| GET | `/me` | Current user (Clerk JWT); auto-provisions on first request |
+| PATCH | `/me/role` | Switch renter ↔ poster |
+| PATCH | `/me/campus` | Set study / property campus |
+| PATCH | `/me/gender` | Set gender (locked after first set) |
 
 ### Listings — `/api/listings`
 | Method | Path | Notes |
@@ -345,7 +352,7 @@
 - **Role-gated apps:** separate `(renter)` and `(poster)` tab trees after role select  
 - **Maps:** `react-native-maps` native; Leaflet on web  
 - **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
-- **Auth today:** not real OTP — headers + AsyncStorage only  
+- **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
 - **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed  
 
 ---
@@ -355,7 +362,7 @@
 - In-app chat  
 - Roommate Finder (removed from product; legacy DB tables may remain)  
 - Card payment gateways  
-- Real OTP/JWT  
+- Real OTP/JWT — **done via Clerk JWT** (WhatsApp/SMS OTP still not built)  
 - Working WhatsApp contact (phone exposure)  
 - Report auto-restrict / broker flagging (reports store only)  
 - Admin web UI  

@@ -1,23 +1,26 @@
 import "dotenv/config";
 import { sql } from "drizzle-orm";
 import { db } from "../index.js";
-import { institutionSeeds } from "./universities.js";
+import { institutionSeeds, logoUrlFromWebsite } from "./universities.js";
 
 async function main() {
   for (const inst of institutionSeeds) {
+    const logoUrl = logoUrlFromWebsite(inst.website);
     await db.execute(sql`
-      INSERT INTO institutions (name, short_name, slug, website, active)
+      INSERT INTO institutions (name, short_name, slug, website, logo_url, active)
       VALUES (
         ${inst.name},
         ${inst.shortName},
         ${inst.slug},
         ${inst.website},
+        ${logoUrl},
         true
       )
       ON CONFLICT (slug) DO UPDATE SET
         name = EXCLUDED.name,
         short_name = EXCLUDED.short_name,
         website = EXCLUDED.website,
+        logo_url = EXCLUDED.logo_url,
         active = true,
         updated_at = now()
     `);

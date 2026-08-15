@@ -6,7 +6,11 @@ import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { WebShell } from "@/components/web/WebShell";
 import { Skoun } from "@/constants/theme";
-import { switchToRole } from "@/features/auth/useEnsureSession";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import {
+  AuthRequiredError,
+  switchToRole,
+} from "@/features/auth/useEnsureSession";
 import type { UserRole } from "@/types/user";
 
 const OPTIONS: {
@@ -30,6 +34,7 @@ const OPTIONS: {
 ];
 
 export default function RoleSelectWebScreen() {
+  const { isSignedIn, isLoading } = useAuthSession();
   const [selected, setSelected] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +48,48 @@ export default function RoleSelectWebScreen() {
       router.replace(
         (selected === "renter" ? "/search" : "/(poster)/(tabs)/create") as never,
       );
-    } catch {
-      setError("We couldn’t switch roles. Check your connection and try again.");
+    } catch (err) {
+      setError(
+        err instanceof AuthRequiredError
+          ? "Sign in first, then choose your role."
+          : "We couldn’t switch roles. Check your connection and try again.",
+      );
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isLoading) {
+    return (
+      <WebShell showFooter={false}>
+        <View style={styles.page}>
+          <LText variant="body" tone="muted">
+            Loading…
+          </LText>
+        </View>
+      </WebShell>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <WebShell showFooter={false}>
+        <View style={styles.page}>
+          <LText variant="display" style={styles.title}>
+            Sign in required
+          </LText>
+          <LText variant="body" tone="muted" style={styles.sub}>
+            Use the Login button in the header, then return here to choose your
+            role.
+          </LText>
+          <Pressable onPress={() => router.replace("/search" as never)}>
+            <LText variant="caption" tone="primary">
+              Browse without signing in
+            </LText>
+          </Pressable>
+        </View>
+      </WebShell>
+    );
   }
 
   return (

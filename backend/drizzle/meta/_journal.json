@@ -57,6 +57,13 @@
       "when": 1786770000000,
       "tag": "0007_institutions_campuses",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786773600000,
+      "tag": "0008_drop_email_registration",
+      "breakpoints": true
     }
   ]
 }

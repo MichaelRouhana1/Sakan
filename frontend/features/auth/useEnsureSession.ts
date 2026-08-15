@@ -2,24 +2,15 @@ import { api } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { getSession, setSession } from "@/lib/session";
 import type { User, UserRole } from "@/types/user";
+import { fetchMe } from "./userApi";
 
 type UserResponse = { data: User };
 
-/** Registers a throwaway account for the chosen role (OTP not wired yet). */
-export async function ensureSessionForRole(role: UserRole): Promise<User> {
-  const phone = `961${Date.now().toString().slice(-8)}`;
-  const { data } = await api.post<UserResponse>("/api/users/register", {
-    phone,
-    role,
-  });
-  await setSession({ userId: data.data.id, role: data.data.role });
-  // Stub OTP complete → mark phone verified
-  try {
-    await api.post("/api/users/me/verify-phone");
-  } catch {
-    // register already sets phoneVerifiedAt
+export class AuthRequiredError extends Error {
+  constructor(message = "Sign in required") {
+    super(message);
+    this.name = "AuthRequiredError";
   }
-  return data.data;
 }
 
 /**
@@ -29,12 +20,11 @@ export async function ensureSessionForRole(role: UserRole): Promise<User> {
 export async function switchToRole(role: UserRole): Promise<User> {
   const session = await getSession();
   if (!session) {
-    return ensureSessionForRole(role);
+    throw new AuthRequiredError();
   }
 
   if (session.role === role) {
-    const { data } = await api.get<UserResponse>("/api/users/me");
-    return data.data;
+    return fetchMe();
   }
 
   const { data } = await api.patch<UserResponse>("/api/users/me/role", {

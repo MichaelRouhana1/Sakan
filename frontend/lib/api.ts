@@ -1,7 +1,6 @@
 import axios from "axios";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
-import { getSession } from "@/lib/session";
 
 /** Physical device: Metro host = dev machine LAN IP. Simulator/web: localhost. */
 function resolveApiBaseUrl(): string {
@@ -29,11 +28,20 @@ export const api = axios.create({
   },
 });
 
+let authTokenGetter: (() => Promise<string | null>) | null = null;
+
+export function setAuthTokenGetter(
+  getter: (() => Promise<string | null>) | null,
+): void {
+  authTokenGetter = getter;
+}
+
 api.interceptors.request.use(async (config) => {
-  const session = await getSession();
-  if (session) {
-    config.headers.set("x-user-id", session.userId);
-    config.headers.set("x-user-role", session.role);
+  if (authTokenGetter) {
+    const token = await authTokenGetter();
+    if (token) {
+      config.headers.set("Authorization", `Bearer ${token}`);
+    }
   }
   return config;
 });

@@ -30,6 +30,13 @@ export class ForbiddenError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AppError {
+  constructor(message = "Authentication required") {
+    super(401, message, "UNAUTHORIZED");
+    this.name = "UnauthorizedError";
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message = "Validation failed") {
     super(400, message, "VALIDATION_ERROR");

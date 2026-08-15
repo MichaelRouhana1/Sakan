@@ -22,6 +22,16 @@ export type InstitutionSeed = {
   campuses: CampusSeed[];
 };
 
+/** High-res site icon (better than Google favicon upscaling). */
+export function logoUrlFromWebsite(website: string): string | null {
+  try {
+    const host = new URL(website).hostname.replace(/^www\./i, "");
+    return `https://icon.horse/icon/${host}`;
+  } catch {
+    return null;
+  }
+}
+
 export const institutionSeeds: InstitutionSeed[] = [
   {
     name: "American University of Beirut",

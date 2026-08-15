@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,15 +14,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useClerk, useOAuth } from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";
 
-import { SkounRegisterFlow } from "@/components/auth/SkounRegisterFlow";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
-import { useClerkEnabled } from "@/lib/clerkEnabled";
 import {
-  loginWithPassword,
-  syncClerkUser,
-  RegistrationApiError,
-} from "@/features/auth/registrationApi";
+  CLERK_SETUP_MESSAGE,
+  useClerkEnabled,
+} from "@/lib/clerkEnabled";
 import {
   getLastAuthProvider,
   setLastAuthProvider,
@@ -41,6 +39,7 @@ type Props = {
 };
 
 type AuthMode = "signIn" | "signUp";
+type SignUpStep = "form" | "verify";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -75,13 +74,13 @@ function ClerkOAuthSection({
   lastUsedProvider,
   setLoading,
   setError,
-  finishSuccess,
+  onOAuthComplete,
 }: {
   loading: boolean;
   lastUsedProvider: AuthProvider | null;
   setLoading: (value: boolean) => void;
   setError: (value: string | null) => void;
-  finishSuccess: (provider: AuthProvider, userId: string) => Promise<void>;
+  onOAuthComplete: (provider: AuthProvider) => Promise<void>;
 }) {
   const clerk = useClerk();
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({
@@ -156,42 +155,20 @@ function ClerkOAuthSection({
       const res = await startFlow();
       if (res?.createdSessionId && res?.setActive) {
         await res.setActive({ session: res.createdSessionId });
-        if (clerk?.user?.id) {
-          const synced = await syncClerkUser({
-            clerkId: clerk.user.id,
-            email: clerk.user.primaryEmailAddress?.emailAddress,
-            firstName: clerk.user.firstName,
-            lastName: clerk.user.lastName,
-          });
-          await finishSuccess(provider, synced.id);
-          return;
-        }
       }
 
-      if (clerk?.user?.id) {
-        const synced = await syncClerkUser({
-          clerkId: clerk.user.id,
-          email: clerk.user.primaryEmailAddress?.emailAddress,
-          firstName: clerk.user.firstName,
-          lastName: clerk.user.lastName,
-        });
-        await finishSuccess(provider, synced.id);
+      if (clerk?.session) {
+        await onOAuthComplete(provider);
         return;
       }
     } catch (err: unknown) {
       console.error("OAuth error:", err);
-      if (isAlreadySignedInError(err) && clerk?.user?.id) {
+      if (isAlreadySignedInError(err) && clerk?.session) {
         try {
-          const synced = await syncClerkUser({
-            clerkId: clerk.user.id,
-            email: clerk.user.primaryEmailAddress?.emailAddress,
-            firstName: clerk.user.firstName,
-            lastName: clerk.user.lastName,
-          });
-          await finishSuccess(provider, synced.id);
+          await onOAuthComplete(provider);
           return;
         } catch {
-          // fallback to clerk id if sync fails
+          // fall through
         }
       }
       setError(
@@ -273,18 +250,60 @@ export function SkounAuthModal({
   title = "Sign in to Skoun",
 }: Props) {
   const clerkEnabled = useClerkEnabled();
-  const { establishSession } = useAuthSession();
+
+  if (!visible) return null;
+
+  if (!clerkEnabled) {
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.backdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.modalCard}>
+            <View style={styles.contentPadding}>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.errorText}>{CLERK_SETUP_MESSAGE}</Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
+  return (
+    <SkounAuthModalClerk
+      visible={visible}
+      onClose={onClose}
+      onSuccess={onSuccess}
+      title={title}
+    />
+  );
+}
+
+function SkounAuthModalClerk({
+  visible,
+  onClose,
+  onSuccess,
+  title = "Sign in to Skoun",
+}: Props) {
+  const clerk = useClerk();
+  const { syncWithBackend } = useAuthSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("signIn");
+  const [signUpStep, setSignUpStep] = useState<SignUpStep>("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{
-    email?: string;
-    password?: string;
-  }>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [lastUsedProvider, setLastUsedProvider] = useState<AuthProvider | null>(
     null,
   );
@@ -305,26 +324,33 @@ export function SkounAuthModal({
     setFieldErrors({});
     setLoading(false);
     setPassword("");
+    setVerificationCode("");
     setShowPassword(false);
     setAuthMode("signIn");
+    setSignUpStep("form");
     setEmail("");
+    setFirstName("");
+    setLastName("");
     onClose();
   };
 
-  const finishSuccess = async (
-    provider: AuthProvider,
-    userId: string,
-  ) => {
+  const finishAuth = async (provider: AuthProvider) => {
     await setLastAuthProvider(provider);
     setLastUsedProvider(provider);
-    await establishSession({ userId, role: "renter" });
-    onSuccess?.(userId);
+    const me = await syncWithBackend();
+    if (!me) {
+      throw new Error("Could not load your Skoun account.");
+    }
+    onSuccess?.(me.id);
     handleClose();
   };
 
-  const handleEmailPasswordSignIn = async () => {
-    if (loading) return;
-    const next: typeof fieldErrors = {};
+  const handleOAuthComplete = async (provider: AuthProvider) => {
+    await finishAuth(provider);
+  };
+
+  const validateEmailPassword = () => {
+    const next: Record<string, string> = {};
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) next.email = "Email is required.";
     else if (!EMAIL_RE.test(trimmedEmail)) {
@@ -332,25 +358,111 @@ export function SkounAuthModal({
     }
     if (!password) next.password = "Password is required.";
     setFieldErrors(next);
-    if (Object.keys(next).length) return;
+    return Object.keys(next).length === 0;
+  };
+
+  const handleEmailSignIn = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signIn) return;
+    if (!validateEmailPassword()) return;
 
     setLoading(true);
     setError(null);
     try {
-      const user = await loginWithPassword(trimmedEmail, password);
-      await finishSuccess("email", user.id);
-    } catch (err) {
-      if (err instanceof RegistrationApiError) {
-        setError(err.message);
+      const result = await clerk.client.signIn.create({
+        identifier: email.trim().toLowerCase(),
+        password,
+      });
+      if (result.status === "complete" && result.createdSessionId) {
+        await clerk.setActive({ session: result.createdSessionId });
+        await finishAuth("email");
       } else {
-        setError("Could not sign in.");
+        setError("Sign-in could not be completed. Try again.");
       }
+    } catch (err) {
+      setError(clerkErrorMessage(err, "Could not sign in."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailSignUp = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signUp) return;
+    if (!validateEmailPassword()) return;
+
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    if (!trimmedFirst) {
+      setFieldErrors({ firstName: "First name is required." });
+      return;
+    }
+    if (!trimmedLast) {
+      setFieldErrors({ lastName: "Last name is required." });
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await clerk.client.signUp.create({
+        emailAddress: email.trim().toLowerCase(),
+        password,
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
+      });
+      await clerk.client.signUp.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      setSignUpStep("verify");
+    } catch (err) {
+      setError(clerkErrorMessage(err, "Could not create account."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySignUp = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signUp) return;
+    const code = verificationCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setFieldErrors({ code: "Enter the 6-digit verification code." });
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setFieldErrors({});
+    try {
+      const result = await clerk.client.signUp.attemptEmailAddressVerification({
+        code,
+      });
+      if (result.status === "complete" && result.createdSessionId) {
+        await clerk.setActive({ session: result.createdSessionId });
+        await finishAuth("email");
+      } else {
+        setError("Verification could not be completed. Try again.");
+      }
+    } catch (err) {
+      setError(clerkErrorMessage(err, "Incorrect verification code."));
     } finally {
       setLoading(false);
     }
   };
 
   if (!visible) return null;
+
+  const modalTitle =
+    authMode === "signUp"
+      ? signUpStep === "verify"
+        ? "Verify your email"
+        : "Create your account"
+      : title;
+
+  const modalSubtitle =
+    authMode === "signUp"
+      ? signUpStep === "verify"
+        ? `Enter the code sent to ${email.trim().toLowerCase()}`
+        : "Sign up with email or continue with a social account"
+      : "Welcome back! Sign in to continue";
 
   return (
     <Modal
@@ -373,141 +485,240 @@ export function SkounAuthModal({
             <Ionicons name="close" size={20} color="#64748B" />
           </Pressable>
 
-          {authMode === "signUp" ? (
-            <View style={styles.registerPad}>
-              <SkounRegisterFlow
-                onBackToSignIn={() => {
-                  setAuthMode("signIn");
-                  setError(null);
-                  setPassword("");
-                }}
-                onSuccess={onSuccess}
-                onClose={handleClose}
-              />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.contentPadding}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.title}>{modalTitle}</Text>
+              <Text style={styles.subtitle}>{modalSubtitle}</Text>
             </View>
-          ) : (
-            <>
-              <View style={styles.contentPadding}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.title}>{title}</Text>
-                  <Text style={styles.subtitle}>
-                    Welcome back! Please sign in to continue
-                  </Text>
-                </View>
 
-                <View style={styles.body}>
-                  {clerkEnabled ? (
-                    <ClerkOAuthSection
-                      loading={loading}
-                      lastUsedProvider={lastUsedProvider}
-                      setLoading={setLoading}
-                      setError={setError}
-                      finishSuccess={finishSuccess}
-                    />
-                  ) : null}
+            <View style={styles.body}>
+                {signUpStep === "form" ? (
+                  <ClerkOAuthSection
+                    loading={loading}
+                    lastUsedProvider={lastUsedProvider}
+                    setLoading={setLoading}
+                    setError={setError}
+                    onOAuthComplete={handleOAuthComplete}
+                  />
+                ) : null}
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>Email address</Text>
-                    <TextInput
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="Enter your email address"
-                      placeholderTextColor="#A1A1AA"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      style={[
-                        styles.input,
-                        fieldErrors.email ? styles.inputError : null,
-                      ]}
-                    />
-                    {fieldErrors.email ? (
-                      <Text style={styles.fieldErrorText}>
-                        {fieldErrors.email}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <View style={styles.inputGroup}>
-                    <View style={styles.passwordLabelRow}>
-                      <Text style={styles.inputLabel}>Password</Text>
-                      <Pressable
-                        onPress={() => setShowPassword((v) => !v)}
-                        hitSlop={8}
-                      >
-                        <Text style={styles.showHideText}>
-                          {showPassword ? "HIDE" : "SHOW"}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <TextInput
-                      value={password}
-                      onChangeText={setPassword}
-                      placeholder="Enter your password"
-                      placeholderTextColor="#A1A1AA"
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      textContentType="oneTimeCode"
-                      style={[
-                        styles.input,
-                        fieldErrors.password ? styles.inputError : null,
-                      ]}
-                    />
-                    {fieldErrors.password ? (
-                      <Text style={styles.fieldErrorText}>
-                        {fieldErrors.password}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  {lastUsedProvider === "email" ? (
-                    <Text style={styles.lastUsedHint}>
-                      Email was last used on this device
-                    </Text>
-                  ) : null}
-
-                  {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                  <Pressable
-                    onPress={handleEmailPasswordSignIn}
-                    disabled={!email.trim() || !password || loading}
-                    style={({ pressed }) => [
-                      styles.primaryBtn,
-                      (!email.trim() || !password || loading) &&
-                        styles.btnDisabled,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <View style={styles.btnRow}>
-                        <Text style={styles.primaryBtnText}>Sign in</Text>
-                        <Text style={styles.btnChevron}>▸</Text>
+                {authMode === "signUp" && signUpStep === "form" ? (
+                  <>
+                    <View style={styles.nameRow}>
+                      <View style={[styles.inputGroup, styles.nameField]}>
+                        <Text style={styles.inputLabel}>First name</Text>
+                        <TextInput
+                          value={firstName}
+                          onChangeText={setFirstName}
+                          placeholder="First name"
+                          placeholderTextColor="#A1A1AA"
+                          autoCapitalize="words"
+                          style={[
+                            styles.input,
+                            fieldErrors.firstName ? styles.inputError : null,
+                          ]}
+                        />
+                        {fieldErrors.firstName ? (
+                          <Text style={styles.fieldErrorText}>
+                            {fieldErrors.firstName}
+                          </Text>
+                        ) : null}
                       </View>
-                    )}
-                  </Pressable>
-                </View>
-              </View>
+                      <View style={[styles.inputGroup, styles.nameField]}>
+                        <Text style={styles.inputLabel}>Last name</Text>
+                        <TextInput
+                          value={lastName}
+                          onChangeText={setLastName}
+                          placeholder="Last name"
+                          placeholderTextColor="#A1A1AA"
+                          autoCapitalize="words"
+                          style={[
+                            styles.input,
+                            fieldErrors.lastName ? styles.inputError : null,
+                          ]}
+                        />
+                        {fieldErrors.lastName ? (
+                          <Text style={styles.fieldErrorText}>
+                            {fieldErrors.lastName}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  </>
+                ) : null}
 
-              <View style={styles.footerCard}>
-                <Text style={styles.footerText}>
-                  Don’t have an account?{" "}
-                  <Text
-                    style={styles.signUpLink}
-                    onPress={() => {
-                      setAuthMode("signUp");
-                      setError(null);
-                      setPassword("");
-                    }}
-                  >
-                    Sign up
+                {signUpStep === "verify" ? (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>Verification code</Text>
+                    <TextInput
+                      value={verificationCode}
+                      onChangeText={setVerificationCode}
+                      placeholder="6-digit code"
+                      placeholderTextColor="#A1A1AA"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      style={[
+                        styles.input,
+                        fieldErrors.code ? styles.inputError : null,
+                      ]}
+                    />
+                    {fieldErrors.code ? (
+                      <Text style={styles.fieldErrorText}>
+                        {fieldErrors.code}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Email address</Text>
+                      <TextInput
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="Enter your email address"
+                        placeholderTextColor="#A1A1AA"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={[
+                          styles.input,
+                          fieldErrors.email ? styles.inputError : null,
+                        ]}
+                      />
+                      {fieldErrors.email ? (
+                        <Text style={styles.fieldErrorText}>
+                          {fieldErrors.email}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                      <View style={styles.passwordLabelRow}>
+                        <Text style={styles.inputLabel}>Password</Text>
+                        <Pressable
+                          onPress={() => setShowPassword((v) => !v)}
+                          hitSlop={8}
+                        >
+                          <Text style={styles.showHideText}>
+                            {showPassword ? "HIDE" : "SHOW"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <TextInput
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        placeholderTextColor="#A1A1AA"
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        textContentType="oneTimeCode"
+                        style={[
+                          styles.input,
+                          fieldErrors.password ? styles.inputError : null,
+                        ]}
+                      />
+                      {fieldErrors.password ? (
+                        <Text style={styles.fieldErrorText}>
+                          {fieldErrors.password}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </>
+                )}
+
+                {lastUsedProvider === "email" && signUpStep === "form" ? (
+                  <Text style={styles.lastUsedHint}>
+                    Email was last used on this device
                   </Text>
-                </Text>
+                ) : null}
+
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                <Pressable
+                  onPress={() => {
+                    if (signUpStep === "verify") {
+                      void handleVerifySignUp();
+                      return;
+                    }
+                    if (authMode === "signUp") {
+                      void handleEmailSignUp();
+                      return;
+                    }
+                    void handleEmailSignIn();
+                  }}
+                  disabled={
+                    loading ||
+                    (signUpStep === "form" && !email.trim()) ||
+                    (signUpStep === "form" && !password) ||
+                    (signUpStep === "verify" && verificationCode.length < 6)
+                  }
+                  style={({ pressed }) => [
+                    styles.primaryBtn,
+                    (loading ||
+                      (signUpStep === "form" && (!email.trim() || !password)) ||
+                      (signUpStep === "verify" &&
+                        verificationCode.length < 6)) &&
+                      styles.btnDisabled,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <View style={styles.btnRow}>
+                      <Text style={styles.primaryBtnText}>
+                        {signUpStep === "verify"
+                          ? "Verify email"
+                          : authMode === "signUp"
+                            ? "Create account"
+                            : "Sign in"}
+                      </Text>
+                      <Text style={styles.btnChevron}>▸</Text>
+                    </View>
+                  )}
+                </Pressable>
+
+                {signUpStep === "verify" ? (
+                  <Pressable
+                    onPress={() => {
+                      setSignUpStep("form");
+                      setVerificationCode("");
+                      setError(null);
+                    }}
+                    style={styles.backLinkWrap}
+                  >
+                    <Text style={styles.backLink}>Back to sign up</Text>
+                  </Pressable>
+                ) : null}
               </View>
-            </>
-          )}
+          </ScrollView>
+
+          {signUpStep === "form" ? (
+            <View style={styles.footerCard}>
+              <Text style={styles.footerText}>
+                {authMode === "signUp"
+                  ? "Already have an account? "
+                  : "Don’t have an account? "}
+                <Text
+                  style={styles.signUpLink}
+                  onPress={() => {
+                    setAuthMode(authMode === "signUp" ? "signIn" : "signUp");
+                    setError(null);
+                    setFieldErrors({});
+                    setPassword("");
+                    setVerificationCode("");
+                    setSignUpStep("form");
+                  }}
+                >
+                  {authMode === "signUp" ? "Sign in" : "Sign up"}
+                </Text>
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -542,9 +753,6 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
     padding: 4,
-  },
-  registerPad: {
-    paddingTop: 32,
   },
   contentPadding: {
     paddingHorizontal: 28,
@@ -632,6 +840,13 @@ const styles = StyleSheet.create({
     color: "#A1A1AA",
     paddingHorizontal: 16,
   },
+  nameRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  nameField: {
+    flex: 1,
+  },
   inputGroup: {
     gap: 6,
   },
@@ -704,6 +919,15 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.88,
+  },
+  backLinkWrap: {
+    alignItems: "center",
+  },
+  backLink: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 13,
+    color: "#71717A",
+    textDecorationLine: "underline",
   },
   footerCard: {
     backgroundColor: "#FAFAFA",

@@ -4,10 +4,8 @@ import { universitiesService } from "../universities/universities.service.js";
 import { toPublicUser } from "./users.public.js";
 import { usersRepository } from "./users.repository.js";
 import type {
-  RegisterUserInput,
   SetCampusInput,
   SetGenderInput,
-  SyncClerkUserInput,
   UpdateRoleInput,
 } from "./users.schemas.js";
 
@@ -18,24 +16,11 @@ export class UsersService {
     return { ...user, campus: campus?.active ? campus : null };
   }
 
-  async syncClerkUser(input: SyncClerkUserInput) {
-    const user = await usersRepository.syncClerkUser(input);
-    return this.withCampus(toPublicUser(user));
-  }
   async getById(id: string) {
     const user = await usersRepository.findById(id);
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }
-    return this.withCampus(toPublicUser(user));
-  }
-
-  async register(input: RegisterUserInput) {
-    const existing = await usersRepository.findByPhone(input.phone);
-    if (existing) {
-      throw new AppError(409, "Phone already registered", "PHONE_EXISTS");
-    }
-    const user = await usersRepository.create(input);
     return this.withCampus(toPublicUser(user));
   }
 
@@ -50,14 +35,6 @@ export class UsersService {
 
   async updateRole(userId: string, input: UpdateRoleInput) {
     const user = await usersRepository.updateRole(userId, input.role);
-    if (!user) {
-      throw new AppError(404, "User not found", "NOT_FOUND");
-    }
-    return this.withCampus(toPublicUser(user));
-  }
-
-  async verifyPhone(userId: string) {
-    const user = await usersRepository.markPhoneVerified(userId);
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }

@@ -5,6 +5,9 @@ export const CLERK_PUBLISHABLE_KEY =
 
 export const isClerkEnabled = CLERK_PUBLISHABLE_KEY.startsWith("pk_");
 
+export const CLERK_SETUP_MESSAGE =
+  "Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in frontend/.env to enable sign-in.";
+
 const ClerkEnabledContext = createContext(isClerkEnabled);
 
 export const ClerkEnabledProvider = ClerkEnabledContext.Provider;

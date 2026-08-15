@@ -7,119 +7,104 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useClerk, useUser } from "@clerk/expo";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
 
-import { api } from "@/lib/api";
+import { fetchMe } from "@/features/auth/userApi";
+import { setAuthTokenGetter } from "@/lib/api";
 import { useClerkEnabled } from "@/lib/clerkEnabled";
 import { queryClient } from "@/lib/queryClient";
 import {
   clearSession,
   consumePendingAuthProvider,
-  getSession,
   setLastAuthProvider,
   setSession,
   type Session,
 } from "@/lib/session";
-import { syncClerkUser } from "@/features/auth/registrationApi";
 import type { User } from "@/types/user";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-type ClerkUserLike = {
-  id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  primaryEmailAddress?: { emailAddress?: string | null } | null;
-};
 
 type ClerkClientLike = {
   signOut?: () => Promise<unknown>;
+  session?: {
+    getToken: () => Promise<string | null>;
+  } | null;
 };
-
-function ClerkSessionBridge({
-  clerkRef,
-  onUser,
-}: {
-  clerkRef: React.MutableRefObject<ClerkClientLike | null>;
-  onUser: (user: ClerkUserLike | null) => void;
-}) {
-  const clerk = useClerk();
-  const { user } = useUser();
-  clerkRef.current = clerk;
-  useEffect(() => {
-    onUser(user ?? null);
-  }, [onUser, user]);
-  return null;
-}
 
 type AuthSessionContextValue = {
   session: Session | null;
   user: User | null;
   isSignedIn: boolean;
   isLoading: boolean;
-  /** Call after email/password login or registration succeeds. */
-  establishSession: (session: Session) => Promise<void>;
+  syncWithBackend: () => Promise<User | null>;
   refreshUser: () => Promise<User | null>;
   logout: () => Promise<void>;
 };
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
-async function fetchCurrentUser(): Promise<User | null> {
-  try {
-    const { data } = await api.get<{ data: User }>("/api/users/me");
-    return data.data;
-  } catch {
-    return null;
-  }
-}
+const disabledValue: AuthSessionContextValue = {
+  session: null,
+  user: null,
+  isSignedIn: false,
+  isLoading: false,
+  syncWithBackend: async () => null,
+  refreshUser: async () => null,
+  logout: async () => {},
+};
 
-export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
-  const clerkEnabled = useClerkEnabled();
+function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
+  const clerk = useClerk();
+  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useAuth();
+  const { user: clerkUser } = useUser();
   const clerkRef = useRef<ClerkClientLike | null>(null);
-  const [clerkUser, setClerkUser] = useState<ClerkUserLike | null>(null);
   const [session, setSessionState] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const hydrateFromStorage = useCallback(async () => {
-    const stored = await getSession();
-    if (!stored) {
-      setSessionState(null);
-      setUser(null);
-      return null;
-    }
+  clerkRef.current = clerk;
 
-    if (!UUID_RE.test(stored.userId)) {
+  useEffect(() => {
+    setAuthTokenGetter(async () => {
+      try {
+        return (await clerk.session?.getToken()) ?? null;
+      } catch {
+        return null;
+      }
+    });
+
+    return () => setAuthTokenGetter(null);
+  }, [clerk, clerk.session?.id]);
+
+  const syncWithBackend = useCallback(async () => {
+    if (!isClerkSignedIn) {
       await clearSession();
       setSessionState(null);
       setUser(null);
       return null;
     }
 
-    setSessionState(stored);
-    const me = await fetchCurrentUser();
+    const me = await fetchMe();
+    const pending = await consumePendingAuthProvider();
+    if (pending) {
+      await setLastAuthProvider(pending);
+    }
+    const next: Session = { userId: me.id, role: me.role };
+    await setSession(next);
+    setSessionState(next);
     setUser(me);
-    if (me && me.role !== stored.role) {
+    return me;
+  }, [isClerkSignedIn]);
+
+  const refreshUser = useCallback(async () => {
+    if (!isClerkSignedIn) return null;
+    const me = await fetchMe();
+    setUser(me);
+    if (me) {
       const next = { userId: me.id, role: me.role };
       await setSession(next);
       setSessionState(next);
     }
     return me;
-  }, []);
-
-  const establishSession = useCallback(async (next: Session) => {
-    await setSession(next);
-    setSessionState(next);
-    const me = await fetchCurrentUser();
-    setUser(me);
-  }, []);
-
-  const refreshUser = useCallback(async () => {
-    const me = await fetchCurrentUser();
-    setUser(me);
-    return me;
-  }, []);
+  }, [isClerkSignedIn]);
 
   const logout = useCallback(async () => {
     try {
@@ -135,78 +120,79 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     queryClient.clear();
   }, []);
 
-  // App start: restore AsyncStorage session (email/password persistence).
   useEffect(() => {
+    if (!isClerkLoaded) return;
+
     let cancelled = false;
     (async () => {
       setIsLoading(true);
-      await hydrateFromStorage();
-      if (!cancelled) setIsLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [hydrateFromStorage]);
-
-  // Clerk OAuth establishes a session synced with Postgres user table.
-  useEffect(() => {
-    if (!clerkUser?.id) return;
-
-    let cancelled = false;
-    (async () => {
       try {
-        const pending = await consumePendingAuthProvider();
-        if (pending) {
-          await setLastAuthProvider(pending);
+        if (isClerkSignedIn) {
+          await syncWithBackend();
+        } else {
+          await clearSession();
+          if (!cancelled) {
+            setSessionState(null);
+            setUser(null);
+          }
         }
-        const syncedUser = await syncClerkUser({
-          clerkId: clerkUser.id,
-          email: clerkUser.primaryEmailAddress?.emailAddress,
-          firstName: clerkUser.firstName,
-          lastName: clerkUser.lastName,
-        });
-        if (cancelled) return;
-
-        const next: Session = { userId: syncedUser.id, role: syncedUser.role };
-        await setSession(next);
-        setSessionState(next);
-        setUser(syncedUser);
       } catch (err) {
-        console.error("Failed to sync Clerk user with backend:", err);
+        console.error("Failed to sync Clerk session with backend:", err);
+        if (!cancelled) {
+          setSessionState(null);
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [
-    clerkUser?.id,
-    clerkUser?.primaryEmailAddress?.emailAddress,
-    clerkUser?.firstName,
-    clerkUser?.lastName,
-  ]);
+  }, [isClerkLoaded, isClerkSignedIn, clerkUser?.id, syncWithBackend]);
 
   const value = useMemo<AuthSessionContextValue>(
     () => ({
       session,
       user,
-      isSignedIn: !!session,
-      isLoading,
-      establishSession,
+      isSignedIn: Boolean(isClerkSignedIn && user),
+      isLoading: !isClerkLoaded || isLoading,
+      syncWithBackend,
       refreshUser,
       logout,
     }),
-    [session, user, isLoading, establishSession, refreshUser, logout],
+    [
+      session,
+      user,
+      isClerkSignedIn,
+      isClerkLoaded,
+      isLoading,
+      syncWithBackend,
+      refreshUser,
+      logout,
+    ],
   );
 
   return (
     <AuthSessionContext.Provider value={value}>
-      {clerkEnabled ? (
-        <ClerkSessionBridge clerkRef={clerkRef} onUser={setClerkUser} />
-      ) : null}
       {children}
     </AuthSessionContext.Provider>
   );
+}
+
+export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
+  const clerkEnabled = useClerkEnabled();
+
+  if (!clerkEnabled) {
+    return (
+      <AuthSessionContext.Provider value={disabledValue}>
+        {children}
+      </AuthSessionContext.Provider>
+    );
+  }
+
+  return <ClerkAuthSessionProvider>{children}</ClerkAuthSessionProvider>;
 }
 
 export function useAuthSession(): AuthSessionContextValue {
