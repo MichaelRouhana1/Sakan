@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -33,10 +32,11 @@ import {
 import { FindMapPane } from "@/components/web/FindMapPane";
 import { FindResultsGrid } from "@/components/web/FindResultsGrid";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
-import { LEBANON_AREAS, MAX_UNIVERSITY_SLUGS } from "@/constants/areas";
+import { LEBANON_AREAS } from "@/constants/areas";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
+import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
 import { useStableBreakpoint } from "@/lib/breakpoints";
@@ -86,14 +86,14 @@ export function FindBrowse() {
   const isDesktop = bp === "desktop";
   const { setFullBleed, setHideFooter, setLockScroll } = useWebShellChrome();
 
-  const [mode, setMode] = useState<SearchMode>("standard");
+  const [mode, setMode] = useState<SearchMode>("university");
   const [filters, setFilters] =
     useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
   const [browseSort, setBrowseSort] = useState<BrowseSortKey>("newest");
   const [resultsLayout, setResultsLayout] = useState<ResultsLayout>("grid");
   const [mapOpen, setMapOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filterSection, setFilterSection] = useState<FilterSection>("area");
+  const [filterSection, setFilterSection] = useState<FilterSection>("university");
   const [chipSheet, setChipSheet] = useState<ChipSheet>(null);
 
   const deferredFilters = useDeferredValue(filters);
@@ -132,8 +132,7 @@ export function FindBrowse() {
       ? "university"
       : "standard";
   const filterCount = browseFilterBadgeCount(filters, badgeMode);
-  const hasActiveFilters =
-    filterCount > 0 || browseSort !== "newest" || mode === "university";
+  const hasActiveFilters = filterCount > 0 || browseSort !== "newest";
   const cityLabel = cityLabelFromFilters(filters);
   const isMap = mapOpen;
   /** Map rail always uses grid card chrome; list/grid choice is restored on close. */
@@ -151,14 +150,14 @@ export function FindBrowse() {
     };
   }, [isMap, setFullBleed, setHideFooter, setLockScroll]);
 
-  const openFilters = (section: FilterSection = "area") => {
+  const openFilters = (section: FilterSection = "university") => {
     setFilterSection(section);
     setFiltersOpen(true);
   };
   const clearAll = () => {
     setFilters(EMPTY_BROWSE_FILTERS);
     setBrowseSort("newest");
-    setMode("standard");
+    setMode("university");
   };
 
   const toggleArea = (area: string) => {
@@ -168,17 +167,6 @@ export function FindBrowse() {
         : [...prev.areas, area];
       return { ...prev, areas: next };
     });
-  };
-
-  const selectUniversity = (slug: string) => {
-    setFilters((prev) => {
-      const next =
-        prev.universitySlugs.includes(slug)
-          ? []
-          : [slug].slice(0, MAX_UNIVERSITY_SLUGS);
-      return { ...prev, universitySlugs: next };
-    });
-    setMode("university");
   };
 
   const heading = (
@@ -296,14 +284,14 @@ export function FindBrowse() {
   return (
     <View style={[styles.page, isMap && styles.pageMap]}>
       <FindFilterBar
-        mode={mode}
         filters={filters}
         sort={browseSort}
-        onModeChange={setMode}
-        onOpenFilters={() => openFilters("area")}
+        onOpenFilters={() => openFilters("university")}
         onOpenSort={() => setChipSheet("sort")}
-        onOpenAreas={() => setChipSheet("areas")}
-        onOpenUniversities={() => setChipSheet("universities")}
+        onOpenAreas={() =>
+          isDesktop ? openFilters("area") : setChipSheet("areas")
+        }
+        onOpenUniversities={() => openFilters("university")}
         onOpenBudget={() => openFilters("budget")}
         onOpenRoomType={() => openFilters("roomType")}
         onOpenUtilities={() => openFilters("utilities")}
@@ -488,38 +476,26 @@ export function FindBrowse() {
 
             {chipSheet === "universities" ? (
               <ScrollView style={styles.sheetScroll}>
-                {universities.isLoading ? (
-                  <ActivityIndicator color={Skoun.color.primary} />
-                ) : (
-                  <View style={styles.chipWrap}>
-                    {(universities.data ?? []).map((uni) => {
-                      const active = filters.universitySlugs.includes(
-                        uni.slug,
-                      );
-                      return (
-                        <Pressable
-                          key={uni.slug}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          onPress={() => selectUniversity(uni.slug)}
-                          style={[
-                            styles.choiceChip,
-                            active && styles.choiceChipActive,
-                          ]}
-                        >
-                          <LText
-                            variant="caption"
-                            style={
-                              active ? styles.choiceChipLabelOn : undefined
-                            }
-                          >
-                            {uni.name}
-                          </LText>
-                        </Pressable>
-                      );
-                    })}
-                  </View>
-                )}
+                <UniversityCampusFilter
+                  hideHeading
+                  selectedCampusSlug={filters.universitySlugs[0] ?? null}
+                  selectedInstitutionSlug={filters.institutionSlug}
+                  onSelectInstitutionSlug={(slug) => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      institutionSlug: slug,
+                      universitySlugs: [],
+                    }));
+                    setMode("university");
+                  }}
+                  onSelectCampusSlug={(slug) => {
+                    setFilters((prev) => ({
+                      ...prev,
+                      universitySlugs: slug ? [slug] : [],
+                    }));
+                    setMode("university");
+                  }}
+                />
               </ScrollView>
             ) : null}
 

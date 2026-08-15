@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
-import type { SearchMode } from "@/components/listings/SearchModeToggle";
 import { Skoun } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
@@ -53,10 +52,8 @@ function FilterPill({ label, active, icon, onPress }: PillProps) {
 }
 
 type Props = {
-  mode: SearchMode;
   filters: BrowseFiltersValue;
   sort: BrowseSortKey;
-  onModeChange: (mode: SearchMode) => void;
   onOpenFilters: () => void;
   onOpenSort: () => void;
   onOpenAreas: () => void;
@@ -91,10 +88,8 @@ function sortLabel(sort: BrowseSortKey): string {
 }
 
 export function FindFilterBar({
-  mode,
   filters,
   sort,
-  onModeChange,
   onOpenFilters,
   onOpenSort,
   onOpenAreas,
@@ -105,6 +100,9 @@ export function FindFilterBar({
   onClearAll,
   hasActiveFilters,
 }: Props) {
+  const uniActive =
+    filters.universitySlugs.length > 0 || Boolean(filters.institutionSlug);
+
   return (
     <View style={styles.bar}>
       <ScrollView
@@ -114,12 +112,11 @@ export function FindFilterBar({
       >
         <Pressable
           accessibilityRole="button"
-          onPress={() =>
-            onModeChange(mode === "university" ? "standard" : "university")
-          }
+          accessibilityLabel="University"
+          onPress={onOpenUniversities}
           style={({ hovered, pressed }) => [
             styles.modePill,
-            mode === "university" && styles.modePillActive,
+            uniActive && styles.modePillActive,
             (hovered || pressed) && styles.pillHover,
           ]}
         >
@@ -127,19 +124,14 @@ export function FindFilterBar({
             name="school-outline"
             size={15}
             color={
-              mode === "university"
-                ? Skoun.color.primaryDeep
-                : Skoun.color.inkMuted
+              uniActive ? Skoun.color.primaryDeep : Skoun.color.inkMuted
             }
           />
           <LText
             variant="caption"
-            style={[
-              styles.pillLabel,
-              mode === "university" && styles.pillLabelActive,
-            ]}
+            style={[styles.pillLabel, uniActive && styles.pillLabelActive]}
           >
-            {mode === "university" ? "Near campus" : "By area"}
+            University
           </LText>
         </Pressable>
 
@@ -155,27 +147,6 @@ export function FindFilterBar({
           active={sort !== "newest"}
           onPress={onOpenSort}
         />
-        {mode === "standard" ? (
-          <FilterPill
-            label={
-              filters.areas.length
-                ? filters.areas.length === 1
-                  ? filters.areas[0]!
-                  : `${filters.areas.length} areas`
-                : "Area"
-            }
-            active={filters.areas.length > 0}
-            onPress={onOpenAreas}
-          />
-        ) : (
-          <FilterPill
-            label={
-              filters.universitySlugs.length ? "Campus set" : "University"
-            }
-            active={filters.universitySlugs.length > 0}
-            onPress={onOpenUniversities}
-          />
-        )}
         <FilterPill
           label={budgetLabel(filters)}
           active={filters.minRentUsd != null || filters.maxRentUsd != null}
@@ -206,6 +177,17 @@ export function FindFilterBar({
             filters.wifiIncluded
           }
           onPress={onOpenUtilities}
+        />
+        <FilterPill
+          label={
+            filters.areas.length
+              ? filters.areas.length === 1
+                ? filters.areas[0]!
+                : `${filters.areas.length} areas`
+              : "Area"
+          }
+          active={filters.areas.length > 0}
+          onPress={onOpenAreas}
         />
 
         {hasActiveFilters ? (

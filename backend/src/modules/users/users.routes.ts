@@ -7,6 +7,7 @@ import {
   loginWithPasswordSchema,
   registerUserSchema,
   requestRegistrationCodeSchema,
+  setCampusSchema,
   setGenderSchema,
   syncClerkUserSchema,
   updateRoleSchema,
@@ -71,4 +72,11 @@ usersRouter.patch(
   requireAuth,
   validate(setGenderSchema),
   (req, res, next) => usersController.setGender(req, res, next),
+);
+
+usersRouter.patch(
+  "/me/campus",
+  requireAuth,
+  validate(setCampusSchema),
+  (req, res, next) => usersController.setCampus(req, res, next),
 );

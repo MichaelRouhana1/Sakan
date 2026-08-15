@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
+import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
 import {
   LEBANON_AREAS,
@@ -89,8 +90,6 @@ export function FindFilterRail({
   mode,
   value,
   onChange,
-  universities,
-  universitiesLoading,
   compact,
 }: Props) {
   const [areaQuery, setAreaQuery] = useState("");
@@ -106,32 +105,23 @@ export function FindFilterRail({
 
   const content = (
     <>
-      {mode === "university" ? (
-        <Section title="Campus">
-          {universitiesLoading ? (
-            <LText variant="caption" tone="muted">
-              Loading campuses…
-            </LText>
-          ) : (
-            <View style={styles.chipRow}>
-              {universities.map((u) => (
-                <Chip
-                  key={u.slug}
-                  label={u.name}
-                  selected={value.universitySlugs.includes(u.slug)}
-                  onPress={() =>
-                    patch({
-                      universitySlugs: value.universitySlugs.includes(u.slug)
-                        ? []
-                        : [u.slug].slice(0, MAX_UNIVERSITY_SLUGS),
-                    })
-                  }
-                />
-              ))}
-            </View>
-          )}
-        </Section>
-      ) : null}
+      <Section title="University">
+        <UniversityCampusFilter
+          hideHeading
+          selectedCampusSlug={value.universitySlugs[0] ?? null}
+          selectedInstitutionSlug={value.institutionSlug}
+          onSelectInstitutionSlug={(slug) =>
+            patch({ institutionSlug: slug, universitySlugs: [] })
+          }
+          onSelectCampusSlug={(slug) =>
+            patch({
+              universitySlugs: slug
+                ? [slug].slice(0, MAX_UNIVERSITY_SLUGS)
+                : [],
+            })
+          }
+        />
+      </Section>
 
       <Section title="Areas">
         <TextInput
@@ -300,6 +290,7 @@ export function FindFilterRail({
           onChange({
             areas: [],
             universitySlugs: [],
+            institutionSlug: null,
             electricity: [],
             water: [],
             wifiIncluded: false,

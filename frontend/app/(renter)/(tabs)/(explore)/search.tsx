@@ -33,6 +33,12 @@ import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { Skoun } from "@/constants/theme";
 import { useListings } from "@/features/listings/useListings";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
+import {
+  campusFilterLabel,
+  useInstitutions,
+} from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
 import { LEBANON_AREAS } from "@/constants/areas";
@@ -53,7 +59,7 @@ export default function RenterSearchScreen() {
   const { q } = useLocalSearchParams<{ q?: string }>();
   const isFocused = useIsFocused();
 
-  const [mode, setMode] = useState<SearchMode>("standard");
+  const [mode, setMode] = useState<SearchMode>("university");
   const [browseFilters, setBrowseFilters] = useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
   const [sort, setSort] = useState<BrowseSortKey>("newest");
   const [searchVal, setSearchVal] = useState(q ?? "");
@@ -65,13 +71,28 @@ export default function RenterSearchScreen() {
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [mapListingId, setMapListingId] = useState<string | null>(null);
 
+  const { user } = useAuthSession();
   const universities = useUniversities();
+  const institutions = useInstitutions();
+  const appliedProfileCampus = React.useRef(false);
 
   const activeUniSlug = browseFilters.universitySlugs[0] ?? null;
   const activeUni = useMemo(
     () => universities.data?.find((u) => u.slug === activeUniSlug),
     [universities.data, activeUniSlug]
   );
+  const activeInst = useMemo(
+    () =>
+      (institutions.data ?? []).find(
+        (i) => i.slug === browseFilters.institutionSlug,
+      ) ?? null,
+    [institutions.data, browseFilters.institutionSlug],
+  );
+  const uniPillLabel = activeUni
+    ? campusFilterLabel(activeUni)
+    : activeInst
+      ? activeInst.shortName
+      : "University";
 
   const onCarouselOpenChange = useCallback((open: boolean) => {
     setCarouselOpen(open);
@@ -84,42 +105,57 @@ export default function RenterSearchScreen() {
     }
   }, [viewMode]);
 
-  // Parse entry search query
   useEffect(() => {
-    if (q) {
-      setSearchVal(q);
-      const queryLower = q.toLowerCase().trim();
-      
-      const matchedArea = LEBANON_AREAS.find(
-        (a) => a.toLowerCase() === queryLower
-      );
-      
-      if (matchedArea) {
-        setBrowseFilters((prev) => ({
-          ...prev,
-          areas: [matchedArea],
-        }));
-        setMode("standard");
-        return;
-      }
-      
-      if (universities.data) {
-        const matchedUni = universities.data.find(
-          (u) =>
-            u.slug.toLowerCase() === queryLower ||
-            u.name.toLowerCase().includes(queryLower)
-        );
-        
-        if (matchedUni) {
-          setBrowseFilters((prev) => ({
-            ...prev,
-            universitySlugs: [matchedUni.slug],
-          }));
-          setMode("university");
-        }
-      }
+    if (q || appliedProfileCampus.current) return;
+    const slug = user?.campus?.slug;
+    if (!slug) return;
+    appliedProfileCampus.current = true;
+    setBrowseFilters((prev) => ({
+      ...prev,
+      universitySlugs: [slug],
+      institutionSlug: user?.campus?.institutionSlug ?? prev.institutionSlug,
+    }));
+    setMode("university");
+    setSort("distance");
+  }, [q, user?.campus?.slug]);
+
+  // Parse entry search query — university first
+  useEffect(() => {
+    if (!q) return;
+    setSearchVal(q);
+    const queryLower = q.toLowerCase().trim();
+
+    const matchedInst = (institutions.data ?? []).find(
+      (inst) =>
+        inst.slug.toLowerCase() === queryLower ||
+        inst.shortName.toLowerCase() === queryLower ||
+        inst.name.toLowerCase().includes(queryLower),
+    );
+    if (matchedInst) {
+      setBrowseFilters((prev) => ({
+        ...prev,
+        institutionSlug: matchedInst.slug,
+        universitySlugs: [],
+      }));
+      setMode("university");
+      setUniOpen(true);
+      return;
     }
-  }, [q, universities.data]);
+
+    const matchedCampus = (universities.data ?? []).find(
+      (u) =>
+        u.slug.toLowerCase() === queryLower ||
+        u.name.toLowerCase() === queryLower,
+    );
+    if (matchedCampus) {
+      setBrowseFilters((prev) => ({
+        ...prev,
+        universitySlugs: [matchedCampus.slug],
+        institutionSlug: matchedCampus.institutionSlug ?? prev.institutionSlug,
+      }));
+      setMode("university");
+    }
+  }, [q, institutions.data, universities.data]);
 
   const deferredFilters = useDeferredValue(browseFilters);
   const deferredMode = useDeferredValue(mode);
@@ -164,48 +200,54 @@ export default function RenterSearchScreen() {
       return;
     }
     const valLower = val.toLowerCase();
-    
-    // Check matched area
+
+    const matchedInst = (institutions.data ?? []).find(
+      (inst) =>
+        inst.slug.toLowerCase() === valLower ||
+        inst.shortName.toLowerCase() === valLower ||
+        inst.name.toLowerCase().includes(valLower),
+    );
+    if (matchedInst) {
+      setBrowseFilters((prev) => ({
+        ...prev,
+        institutionSlug: matchedInst.slug,
+        universitySlugs: [],
+      }));
+      setMode("university");
+      setUniOpen(true);
+      return;
+    }
+
+    const matchedCampus = (universities.data ?? []).find(
+      (u) =>
+        u.slug.toLowerCase() === valLower ||
+        u.name.toLowerCase() === valLower,
+    );
+    if (matchedCampus) {
+      setBrowseFilters((prev) => ({
+        ...prev,
+        universitySlugs: [matchedCampus.slug],
+        institutionSlug: matchedCampus.institutionSlug ?? prev.institutionSlug,
+      }));
+      setMode("university");
+      return;
+    }
+
     const matchedArea = LEBANON_AREAS.find(
-      (a) => a.toLowerCase() === valLower
+      (a) => a.toLowerCase() === valLower,
     );
     if (matchedArea) {
       setBrowseFilters((prev) => ({
         ...prev,
         areas: [matchedArea],
       }));
-      setMode("standard");
-      return;
     }
-
-    // Check matched university
-    if (universities.data) {
-      const matchedUni = universities.data.find(
-        (u) =>
-          u.slug.toLowerCase() === valLower ||
-          u.name.toLowerCase().includes(valLower)
-      );
-      if (matchedUni) {
-        setBrowseFilters((prev) => ({
-          ...prev,
-          universitySlugs: [matchedUni.slug],
-        }));
-        setMode("university");
-        return;
-      }
-    }
-
-    // Generic text filter (set as area fallback or clear area filter)
-    setBrowseFilters((prev) => ({
-      ...prev,
-      areas: [val],
-    }));
   };
 
   const clearAllFilters = () => {
     setBrowseFilters(EMPTY_BROWSE_FILTERS);
     setSearchVal("");
-    setMode("standard");
+    setMode("university");
   };
 
   const badgeCount = browseFilterBadgeCount(browseFilters, mode);
@@ -239,7 +281,7 @@ export default function RenterSearchScreen() {
             style={styles.searchInput}
             value={searchVal}
             onChangeText={setSearchVal}
-            placeholder="Search city, area, or university..."
+            placeholder="Search university…"
             placeholderTextColor={Skoun.color.inkFaint}
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
@@ -259,6 +301,24 @@ export default function RenterSearchScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRail}
         >
+          {/* University Pill — primary search */}
+          <Pressable
+            onPress={() => setUniOpen(true)}
+            style={[styles.filterPill, activeUniSlug != null && styles.filterPillActive]}
+          >
+            <Ionicons
+              name="school-outline"
+              size={15}
+              color={activeUniSlug != null ? "#ffffff" : Skoun.color.inkMuted}
+            />
+            <Text
+              style={[styles.filterPillLabel, activeUniSlug != null && styles.filterPillLabelActive]}
+              numberOfLines={1}
+            >
+              {uniPillLabel}
+            </Text>
+          </Pressable>
+
           {/* Main Filters Drawer Button */}
           <Pressable
             onPress={() => setFiltersOpen(true)}
@@ -286,24 +346,6 @@ export default function RenterSearchScreen() {
             />
             <Text style={[styles.filterPillLabel, sort !== "newest" && styles.filterPillLabelActive]}>
               {SORT_OPTIONS.find((o) => o.value === sort)?.label || "Sort"}
-            </Text>
-          </Pressable>
-
-          {/* University Pill */}
-          <Pressable
-            onPress={() => setUniOpen(true)}
-            style={[styles.filterPill, activeUniSlug != null && styles.filterPillActive]}
-          >
-            <Ionicons
-              name="school-outline"
-              size={15}
-              color={activeUniSlug != null ? "#ffffff" : Skoun.color.inkMuted}
-            />
-            <Text
-              style={[styles.filterPillLabel, activeUniSlug != null && styles.filterPillLabelActive]}
-              numberOfLines={1}
-            >
-              {activeUni ? activeUni.name : "University"}
             </Text>
           </Pressable>
 
@@ -444,7 +486,8 @@ export default function RenterSearchScreen() {
             onClose={() => setFiltersOpen(false)}
             onApply={(next) => {
               setBrowseFilters(next);
-              if (next.universitySlugs.length > 0) setMode("university");
+              setMode("university");
+              if (next.universitySlugs.length > 0) setSort("distance");
               setFiltersOpen(false);
             }}
           />
@@ -474,7 +517,7 @@ export default function RenterSearchScreen() {
                     style={styles.searchInput}
                     value={searchVal}
                     onChangeText={setSearchVal}
-                    placeholder="Search city, area, or university..."
+                    placeholder="Search university…"
                     placeholderTextColor={Skoun.color.inkFaint}
                     onSubmitEditing={handleSearchSubmit}
                     returnKeyType="search"
@@ -591,7 +634,8 @@ export default function RenterSearchScreen() {
         onClose={() => setFiltersOpen(false)}
         onApply={(next) => {
           setBrowseFilters(next);
-          if (next.universitySlugs.length > 0) setMode("university");
+          setMode("university");
+          if (next.universitySlugs.length > 0) setSort("distance");
           setFiltersOpen(false);
         }}
       />
@@ -644,7 +688,7 @@ export default function RenterSearchScreen() {
                   Select University
                 </LText>
                 <LText variant="caption" tone="muted">
-                  Choose a campus (1 active at a time)
+                  University first, then campus — required
                 </LText>
               </View>
               <Pressable onPress={() => setUniOpen(false)}>
@@ -661,8 +705,12 @@ export default function RenterSearchScreen() {
                     activeUniSlug == null && styles.sheetOptionActive,
                   ]}
                   onPress={() => {
-                    setBrowseFilters((prev) => ({ ...prev, universitySlugs: [] }));
-                    setMode("standard");
+                    setBrowseFilters((prev) => ({
+                      ...prev,
+                      universitySlugs: [],
+                      institutionSlug: null,
+                    }));
+                    setMode("university");
                     setUniOpen(false);
                   }}
                 >
@@ -686,51 +734,35 @@ export default function RenterSearchScreen() {
                   ) : null}
                 </Pressable>
 
-                {/* List of Universities (Only 1 active at a time) */}
-                {(universities.data ?? []).map((uni) => {
-                  const active = activeUniSlug === uni.slug;
-                  return (
-                    <Pressable
-                      key={uni.id || uni.slug}
-                      style={[styles.sheetOption, active && styles.sheetOptionActive]}
-                      onPress={() => {
-                        if (active) {
-                          setBrowseFilters((prev) => ({ ...prev, universitySlugs: [] }));
-                          setMode("standard");
-                        } else {
-                          // Only 1 active university at a time
-                          setBrowseFilters((prev) => ({
-                            ...prev,
-                            universitySlugs: [uni.slug],
-                          }));
-                          setMode("university");
-                        }
-                        setUniOpen(false);
-                      }}
-                    >
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                        <Ionicons
-                          name="school-outline"
-                          size={18}
-                          color={active ? Skoun.color.primary : Skoun.color.inkMuted}
-                        />
-                        <LText
-                          style={[
-                            styles.sheetOptionLabel,
-                            active && styles.sheetOptionLabelActive,
-                            { flex: 1 },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {uni.name}
-                        </LText>
-                      </View>
-                      {active ? (
-                        <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
-                      ) : null}
-                    </Pressable>
-                  );
-                })}
+                <UniversityCampusFilter
+                  hideHeading
+                  selectedCampusSlug={activeUniSlug}
+                  selectedInstitutionSlug={browseFilters.institutionSlug}
+                  onSelectInstitutionSlug={(slug) => {
+                    setBrowseFilters((prev) => ({
+                      ...prev,
+                      institutionSlug: slug,
+                      universitySlugs: [],
+                    }));
+                    setMode("university");
+                  }}
+                  onSelectCampusSlug={(slug) => {
+                    if (slug) {
+                      setBrowseFilters((prev) => ({
+                        ...prev,
+                        universitySlugs: [slug],
+                      }));
+                      setMode("university");
+                      setSort("distance");
+                      setUniOpen(false);
+                    } else {
+                      setBrowseFilters((prev) => ({
+                        ...prev,
+                        universitySlugs: [],
+                      }));
+                    }
+                  }}
+                />
               </View>
             </ScrollView>
           </View>

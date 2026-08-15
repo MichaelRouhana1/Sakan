@@ -1,10 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { isPublicLebaneseUniversity } from "@/features/universities/useInstitutions";
 
 export type University = {
   id: string;
   name: string;
   slug: string;
+  city?: string | null;
+  displayName?: string;
+  institutionId?: string | null;
+  institutionName?: string | null;
+  institutionShortName?: string | null;
+  institutionSlug?: string | null;
+  logoUrl?: string | null;
   lng: number | null;
   lat: number | null;
 };
@@ -22,11 +30,13 @@ export function useUniversities() {
     queryKey: ["universities"],
     queryFn: async () => {
       const { data } = await api.get<UniversitiesResponse>("/api/universities");
-      return (data.data ?? []).map((u) => ({
-        ...u,
-        lng: parseCoord(u.lng),
-        lat: parseCoord(u.lat),
-      }));
+      return (data.data ?? [])
+        .filter((u) => !isPublicLebaneseUniversity(u))
+        .map((u) => ({
+          ...u,
+          lng: parseCoord(u.lng),
+          lat: parseCoord(u.lat),
+        }));
     },
   });
 }
