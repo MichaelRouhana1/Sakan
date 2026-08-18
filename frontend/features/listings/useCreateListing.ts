@@ -29,6 +29,10 @@ export type CreateListingBody = {
   availableFrom?: string | null;
   paymentModality: PaymentModality;
   electricity: Listing["electricity"];
+  electricityCutsStart?: string | null;
+  electricityCutsEnd?: string | null;
+  electricityHoursOn?: number | null;
+  electricityCutWindows?: { start: string; end: string }[];
   water: Listing["water"];
   wifiIncluded: boolean;
   routerUps: boolean;
@@ -58,6 +62,14 @@ export type CreateListingBody = {
   contactName: string;
   contactPhone?: string;
   whatsappNumber?: string;
+  contactNumbers?: {
+    kind: "mobile" | "landline";
+    prefix: string;
+    subscriber: string;
+    e164: string;
+    calls: boolean;
+    whatsapp: boolean;
+  }[];
   area: string;
   landmark?: string;
   addressLine?: string;

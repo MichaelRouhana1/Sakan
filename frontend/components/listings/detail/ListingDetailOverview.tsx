@@ -11,7 +11,7 @@ import {
   labelGenderRestriction,
   labelWater,
 } from "@/lib/listingLabels";
-import { rentPriceType } from "@/lib/rentPriceType";
+import { formatWindowsSummary } from "@/lib/electricityCuts";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -153,7 +153,26 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
                 Electricity
               </LText>
               <LText variant="subtitle">{labelElectricity(elec)}</LText>
-              {listing.infrastructure?.electricity.generatorSpecs ? (
+              {listing.electricity === "scheduled_cuts" ||
+              elec === "scheduled_cuts" ? (
+                <LText variant="caption" tone="muted">
+                  {[
+                    formatWindowsSummary(
+                      listing.electricityCutWindows ??
+                        listing.infrastructure?.electricity.windows ??
+                        [],
+                    ),
+                    listing.electricityHoursOn != null
+                      ? `${listing.electricityHoursOn}/24 hours with power`
+                      : listing.infrastructure?.electricity.hoursOn != null
+                        ? `${listing.infrastructure.electricity.hoursOn}/24 hours with power`
+                        : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") ||
+                    listing.infrastructure?.electricity.generatorSpecs}
+                </LText>
+              ) : listing.infrastructure?.electricity.generatorSpecs ? (
                 <LText variant="caption" tone="muted">
                   {listing.infrastructure.electricity.generatorSpecs}
                 </LText>

@@ -1,14 +1,13 @@
 import { toWkt } from "@/lib/locationWkt";
+import { hoursWithPowerFromWindows, toHHMM, windowComplete } from "@/lib/electricityCuts";
+import {
+  deriveContactPhones,
+  numbersFromLegacy,
+  serializeContactNumber,
+} from "@/lib/lebanonPhone";
 import type { CreateListingBody } from "@/features/listings/useCreateListing";
 import { deriveListingType } from "./deriveListingType";
 import type { CreateListingDraft } from "./draft";
-
-function digitsPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("961")) return `+${digits}`;
-  if (digits.startsWith("0")) return `+961${digits.slice(1)}`;
-  return `+961${digits}`;
-}
 
 export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
   const rent = Number(draft.monthlyRentUsd);
@@ -21,11 +20,23 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
           ? rent * 2
           : Number(draft.securityDepositUsd || 0);
   const ready = draft.photos.filter((p) => p.status === "ready" && p.url);
-  const phone = digitsPhone(draft.contactPhone);
-  const wa = draft.whatsappSameAsPhone
-    ? phone
-    : digitsPhone(draft.whatsappNumber || draft.contactPhone);
   const areaSqm = draft.areaSqm.trim() ? Number(draft.areaSqm) : null;
+  const rawNumbers = numbersFromLegacy(draft);
+  const contactNumbers = rawNumbers
+    .map(serializeContactNumber)
+    .filter((n): n is NonNullable<typeof n> => n != null);
+  const derivedPhones = deriveContactPhones(rawNumbers);
+
+  const cutWindows =
+    draft.electricity === "scheduled_cuts"
+      ? (draft.electricityCutWindows ?? [])
+          .map((w) => ({
+            start: toHHMM(w.start) ?? "",
+            end: toHHMM(w.end) ?? "",
+          }))
+          .filter(windowComplete)
+      : [];
+  const first = cutWindows[0];
 
   return {
     spaceType: draft.spaceType!,
@@ -40,6 +51,13 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     availableFrom: draft.availableImmediate ? null : draft.availableFrom,
     paymentModality: draft.paymentModality,
     electricity: draft.electricity!,
+    electricityCutsStart: first?.start ?? null,
+    electricityCutsEnd: first?.end ?? null,
+    electricityHoursOn:
+      draft.electricity === "scheduled_cuts"
+        ? hoursWithPowerFromWindows(cutWindows)
+        : null,
+    electricityCutWindows: cutWindows,
     water: draft.water!,
     wifiIncluded: draft.wifiIncluded,
     routerUps: draft.routerUps,
@@ -67,8 +85,9 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     highlightTags: draft.highlightTags,
     listingPosterRole: draft.listingPosterRole!,
     contactName: draft.contactName.trim(),
-    contactPhone: phone,
-    whatsappNumber: wa,
+    contactPhone: derivedPhones.contactPhone ?? undefined,
+    whatsappNumber: derivedPhones.whatsappNumber ?? undefined,
+    contactNumbers,
     area: draft.area!,
     landmark: draft.pin.landmarkLabel || draft.landmark || undefined,
     addressLine: draft.addressLine.trim() || undefined,

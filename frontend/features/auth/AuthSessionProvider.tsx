@@ -11,6 +11,10 @@ import { useAuth, useClerk, useUser } from "@clerk/expo";
 
 import { fetchMe } from "@/features/auth/userApi";
 import { setAuthTokenGetter } from "@/lib/api";
+import {
+  completeOAuthRedirectIfPresent,
+  waitForClerkToken,
+} from "@/lib/clerkAuth";
 import { useClerkEnabled } from "@/lib/clerkEnabled";
 import { queryClient } from "@/lib/queryClient";
 import {
@@ -65,7 +69,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setAuthTokenGetter(async () => {
       try {
-        return (await clerk.session?.getToken()) ?? null;
+        return (await clerk.session?.getToken({ skipCache: false })) ?? null;
       } catch {
         return null;
       }
@@ -83,6 +87,11 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
 
+    const token = await waitForClerkToken(clerk);
+    if (!token) {
+      throw new Error("Clerk session token was not ready.");
+    }
+
     const me = await fetchMe();
     const pending = await consumePendingAuthProvider();
     if (pending) {
@@ -93,10 +102,12 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
     setSessionState(next);
     setUser(me);
     return me;
-  }, [isClerkSignedIn, clerk.session?.id]);
+  }, [clerk, isClerkSignedIn, clerk.session?.id]);
 
   const refreshUser = useCallback(async () => {
     if (!clerk.session?.id && !isClerkSignedIn) return null;
+    const token = await waitForClerkToken(clerk);
+    if (!token) return null;
     const me = await fetchMe();
     setUser(me);
     if (me) {
@@ -105,7 +116,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
       setSessionState(next);
     }
     return me;
-  }, [isClerkSignedIn, clerk.session?.id]);
+  }, [clerk, isClerkSignedIn, clerk.session?.id]);
 
   const logout = useCallback(async () => {
     try {
@@ -128,7 +139,9 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       setIsLoading(true);
       try {
-        if (isClerkSignedIn) {
+        await completeOAuthRedirectIfPresent(clerk);
+        const signedIn = Boolean(isClerkSignedIn || clerk.session?.id);
+        if (signedIn) {
           await syncWithBackend();
         } else {
           await clearSession();
@@ -139,7 +152,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error("Failed to sync Clerk session with backend:", err);
-        if (!cancelled) {
+        if (!cancelled && !isClerkSignedIn && !clerk.session?.id) {
           setSessionState(null);
           setUser(null);
         }
@@ -151,7 +164,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isClerkLoaded, isClerkSignedIn, clerkUser?.id, syncWithBackend]);
+  }, [isClerkLoaded, isClerkSignedIn, clerkUser?.id, clerk, syncWithBackend]);
 
   const value = useMemo<AuthSessionContextValue>(
     () => ({

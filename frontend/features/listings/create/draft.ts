@@ -1,4 +1,5 @@
 import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
+import type { ListingPin } from "@/components/listings/LocationPicker";
 import type { LebanonArea } from "@/constants/areas";
 import type {
   ElectricityStatus,
@@ -17,7 +18,12 @@ import type {
   WaterStatus,
 } from "@/types/listing";
 
-export const CREATE_DRAFT_STORAGE_KEY = "skoun.createListing.draft.v1";
+import type { CutWindow } from "@/lib/electricityCuts";
+import { emptyCutWindow } from "@/lib/electricityCuts";
+import type { ContactNumber } from "@/lib/lebanonPhone";
+import { emptyContactNumber } from "@/lib/lebanonPhone";
+
+export const CREATE_DRAFT_STORAGE_KEY = "skoun.createListing.draft.v4";
 
 export const EMPTY_PIN: ListingPin = {
   lng: 35.5018,
@@ -49,6 +55,10 @@ export type CreateListingDraft = {
   hasElevator: boolean;
   elevator24_7: boolean;
   electricity: ElectricityStatus | null;
+  electricityCutWindows: CutWindow[];
+  electricityCutsStart: string;
+  electricityCutsEnd: string;
+  electricityHoursOn: number | null;
   generatorAmperes: number | null;
   hasSolar: boolean;
   generatorIncluded: boolean;
@@ -77,6 +87,7 @@ export type CreateListingDraft = {
   highlightTags: string[];
   listingPosterRole: ListingPosterRole | null;
   contactName: string;
+  contactNumbers: ContactNumber[];
   contactPhone: string;
   whatsappSameAsPhone: boolean;
   whatsappNumber: string;
@@ -103,6 +114,10 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   hasElevator: false,
   elevator24_7: false,
   electricity: null,
+  electricityCutWindows: [emptyCutWindow()],
+  electricityCutsStart: "",
+  electricityCutsEnd: "",
+  electricityHoursOn: null,
   generatorAmperes: null,
   hasSolar: false,
   generatorIncluded: false,
@@ -131,6 +146,7 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   highlightTags: [],
   listingPosterRole: null,
   contactName: "",
+  contactNumbers: [emptyContactNumber()],
   contactPhone: "",
   whatsappSameAsPhone: true,
   whatsappNumber: "",

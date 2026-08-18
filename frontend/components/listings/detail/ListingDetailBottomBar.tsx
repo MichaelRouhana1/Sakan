@@ -25,6 +25,8 @@ export function ListingDetailBottomBar({
 }: Props) {
   const insets = useSafeAreaInsets();
   const canContact = hasUsableWhatsAppPhone(posterPhone);
+  const callPhone = listing.contactPhone ?? null;
+  const canCall = Boolean(callPhone && callPhone.replace(/\D/g, "").length >= 8);
 
   const openWhatsApp = () => {
     if (!posterPhone || !canContact) return;
@@ -37,6 +39,11 @@ export function ListingDetailBottomBar({
     );
   };
 
+  const openCall = () => {
+    if (!callPhone || !canCall) return;
+    void Linking.openURL(`tel:${callPhone}`);
+  };
+
   return (
     <View
       style={[
@@ -44,31 +51,57 @@ export function ListingDetailBottomBar({
         { paddingBottom: Math.max(insets.bottom, 10) },
       ]}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          canContact ? "Contact on WhatsApp" : "WhatsApp contact soon"
-        }
-        accessibilityHint={
-          canContact
-            ? undefined
-            : "Landlord phone will appear when account linking is ready"
-        }
-        disabled={!canContact}
-        onPress={openWhatsApp}
-        style={[styles.primary, !canContact && styles.primaryOff]}
-      >
-        {canContact ? (
+      {canContact ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Contact on WhatsApp"
+          onPress={openWhatsApp}
+          style={styles.primary}
+        >
           <Ionicons
             name="logo-whatsapp"
             size={18}
             color={Skoun.color.surface}
           />
-        ) : null}
-        <LText variant="subtitle" style={styles.primaryText}>
-          {canContact ? "WhatsApp" : "WhatsApp soon"}
-        </LText>
-      </Pressable>
+          <LText variant="subtitle" style={styles.primaryText}>
+            WhatsApp
+          </LText>
+        </Pressable>
+      ) : null}
+
+      {canCall ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Call listing"
+          onPress={openCall}
+          style={canContact ? styles.outline : styles.primary}
+        >
+          <Ionicons
+            name="call-outline"
+            size={18}
+            color={canContact ? Skoun.color.primary : Skoun.color.surface}
+          />
+          <LText
+            variant="subtitle"
+            style={canContact ? styles.outlineText : styles.primaryText}
+          >
+            Call
+          </LText>
+        </Pressable>
+      ) : null}
+
+      {!canContact && !canCall ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="WhatsApp contact soon"
+          disabled
+          style={[styles.primary, styles.primaryOff]}
+        >
+          <LText variant="subtitle" style={styles.primaryText}>
+            WhatsApp soon
+          </LText>
+        </Pressable>
+      ) : null}
 
       {reported ? (
         <View style={styles.outline}>
@@ -118,8 +151,10 @@ const styles = StyleSheet.create({
   primaryText: { color: Skoun.color.surface },
   outline: {
     flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
     borderRadius: 12,
     paddingVertical: 14,
     borderWidth: 1.5,

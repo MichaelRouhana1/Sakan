@@ -1,6 +1,6 @@
 import { verifyToken } from "@clerk/backend";
 import type { NextFunction, Request, Response } from "express";
-import { loadEnv } from "../config/env.js";
+import { isUsableClerkSecret, loadEnv } from "../config/env.js";
 import { AppError, UnauthorizedError } from "../lib/errors.js";
 import { getClerkClient, getClerkSecretKey } from "../lib/clerk.js";
 import { usersRepository } from "../modules/users/users.repository.js";
@@ -26,26 +26,39 @@ function bearerToken(req: Request): string | null {
   return token || null;
 }
 
+type ClerkVerifyResult = {
+  sub?: string;
+  data?: { sub?: string } | null;
+  errors?: unknown[];
+};
+
+function clerkUserIdFromVerifyResult(result: unknown): string | null {
+  const verified = result as ClerkVerifyResult;
+  if (verified.errors && verified.errors.length > 0) return null;
+  return verified.data?.sub ?? verified.sub ?? null;
+}
+
 async function resolveAuthUser(req: Request): Promise<AuthUser | null> {
   const token = bearerToken(req);
   if (!token) return null;
 
   const env = loadEnv();
-  if (!env.CLERK_SECRET_KEY) {
+  if (!isUsableClerkSecret(env.CLERK_SECRET_KEY)) {
     throw new AppError(
       500,
-      "CLERK_SECRET_KEY is not configured",
+      "CLERK_SECRET_KEY is not configured. Paste the real sk_test_ key from the Clerk Dashboard into backend/.env",
       "AUTH_MISCONFIGURED",
     );
   }
 
   let clerkUserId: string;
   try {
-    const payload = await verifyToken(token, {
+    const verified = await verifyToken(token, {
       secretKey: getClerkSecretKey(),
     });
-    if (!payload.sub) return null;
-    clerkUserId = payload.sub;
+    const sub = clerkUserIdFromVerifyResult(verified);
+    if (!sub) return null;
+    clerkUserId = sub;
   } catch {
     return null;
   }

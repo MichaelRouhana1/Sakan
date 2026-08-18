@@ -4,6 +4,11 @@ import {
   MAX_LISTING_AREAS,
   MAX_UNIVERSITY_SLUGS,
 } from "../../constants/lebanonAreas.js";
+import { resolveCutWindows } from "../../lib/electricityCuts.js";
+import {
+  resolveContactNumbers,
+  toE164,
+} from "../../lib/lebanonPhone.js";
 
 const photoUrlSchema = z
   .string()
@@ -89,6 +94,26 @@ export const createListingSchema = z.object({
     .enum(["monthly", "semester", "quarterly"])
     .default("monthly"),
   electricity: z.enum(["solar", "generator_24_7", "scheduled_cuts"]),
+  electricityCutsStart: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24h)")
+    .nullable()
+    .optional(),
+  electricityCutsEnd: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24h)")
+    .nullable()
+    .optional(),
+  electricityHoursOn: z.coerce.number().int().min(0).max(24).nullable().optional(),
+  electricityCutWindows: z
+    .array(
+      z.object({
+        start: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+        end: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      }),
+    )
+    .max(6)
+    .optional(),
   water: z.enum(["state_well_24_7", "tank_delivery"]),
   wifiIncluded: z.boolean().default(false),
   routerUps: z.boolean().default(false),
@@ -120,6 +145,19 @@ export const createListingSchema = z.object({
   contactName: z.string().trim().min(2).max(80),
   contactPhone: z.string().trim().min(8).max(32).optional(),
   whatsappNumber: z.string().trim().min(8).max(32).optional(),
+  contactNumbers: z
+    .array(
+      z.object({
+        kind: z.enum(["mobile", "landline"]),
+        prefix: z.string().regex(/^(0[13456789]|7[01689]|81)$/),
+        subscriber: z.string().regex(/^\d{6}$/),
+        e164: z.string().regex(/^\+961\d{7,8}$/),
+        calls: z.boolean(),
+        whatsapp: z.boolean(),
+      }),
+    )
+    .max(4)
+    .optional(),
   area: z.string().min(1).max(128),
   landmark: z.string().max(256).optional(),
   addressLine: z.string().trim().max(256).optional(),
@@ -130,6 +168,49 @@ export const createListingSchema = z.object({
   photoUrls: z.array(photoUrlSchema).min(3).max(15),
   photoCaptions: z.array(z.string().max(48)).max(15).optional(),
   publishNow: z.boolean().default(true),
+}).superRefine((data, ctx) => {
+  if (
+    data.electricity === "scheduled_cuts" &&
+    resolveCutWindows(data).length === 0
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["electricityCutWindows"],
+      message: "Add at least one cut period",
+    });
+  }
+  const numbers = resolveContactNumbers(data);
+  if (numbers.length === 0 && !data.contactPhone) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["contactNumbers"],
+      message: "Add at least one Lebanese phone number",
+    });
+  }
+  for (const [i, n] of (data.contactNumbers ?? []).entries()) {
+    const expected = toE164(n.kind, n.prefix, n.subscriber);
+    if (expected && n.e164 !== expected) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contactNumbers", i, "e164"],
+        message: "Phone e164 does not match prefix",
+      });
+    }
+    if (n.kind === "landline" && n.whatsapp) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contactNumbers", i, "whatsapp"],
+        message: "Landline cannot be WhatsApp",
+      });
+    }
+    if (!n.calls && !n.whatsapp) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contactNumbers", i],
+        message: "Pick calls, WhatsApp, or both",
+      });
+    }
+  }
 });
 
 export const listingSortSchema = z.enum(["newest", "price_asc"]).default("newest");

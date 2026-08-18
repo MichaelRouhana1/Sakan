@@ -1,10 +1,4 @@
-import type {
-  CampusMeta,
-  Listing,
-  ListingPhoto,
-  PbsaRoomType,
-  StandardUnitSpecs,
-} from "@/types/listing";
+import { coerceCutWindows, formatWindowsSummary } from "@/lib/electricityCuts";
 
 function normalizePhotos(row: Record<string, unknown>): ListingPhoto[] {
   const raw = row.photos;
@@ -79,14 +73,51 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
   const wifiIncluded = Boolean(row.wifiIncluded ?? row.wifi_included ?? true);
   const routerUps = Boolean(row.routerUps ?? row.router_ups ?? true);
 
+  const electricityCutsStart =
+    (row.electricityCutsStart as string | null | undefined) ??
+    (row.electricity_cuts_start as string | null | undefined) ??
+    null;
+  const electricityCutsEnd =
+    (row.electricityCutsEnd as string | null | undefined) ??
+    (row.electricity_cuts_end as string | null | undefined) ??
+    null;
+  const electricityHoursOn =
+    row.electricityHoursOn != null || row.electricity_hours_on != null
+      ? Number(row.electricityHoursOn ?? row.electricity_hours_on)
+      : null;
+  const electricityCutWindows = coerceCutWindows(
+    row.electricityCutWindows ?? row.electricity_cut_windows,
+    electricityCutsStart,
+    electricityCutsEnd,
+  );
+  const firstWindow = electricityCutWindows[0];
+  const cutsStart = firstWindow?.start ?? electricityCutsStart;
+  const cutsEnd = firstWindow?.end ?? electricityCutsEnd;
+
+  const cutBits = [
+    formatWindowsSummary(electricityCutWindows),
+    electricityHoursOn != null ? `${electricityHoursOn}/24 hours with power` : null,
+  ].filter(Boolean);
+  const scheduledSpecs = cutBits.join(" · ");
+
   const infrastructure = {
     electricity: {
       status: electricity,
       ampLimit: Number(row.ampLimit ?? row.amp_limit ?? (electricity === "solar" ? 15 : 10)),
       solarBackup: electricity === "solar" || Boolean(row.solarBackup ?? row.solar_backup),
       generatorSpecs: String(
-        row.generatorSpecs ?? row.generator_specs ?? (electricity === "solar" ? "24/7 Solar + Automatic Generator Switch" : "24/7 Dedicated Building Generator (10 Amp Max)")
+        row.generatorSpecs ??
+          row.generator_specs ??
+          (electricity === "scheduled_cuts"
+            ? scheduledSpecs || "Scheduled EDL cuts"
+            : electricity === "solar"
+              ? "24/7 Solar + Automatic Generator Switch"
+              : "24/7 Dedicated Building Generator (10 Amp Max)"),
       ),
+      cutsStart,
+      cutsEnd,
+      hoursOn: electricityHoursOn,
+      windows: electricityCutWindows,
     },
     water: {
       status: water,
@@ -195,6 +226,10 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     paymentModality: (row.paymentModality ??
       row.payment_modality) as Listing["paymentModality"],
     electricity,
+    electricityCutsStart: cutsStart,
+    electricityCutsEnd: cutsEnd,
+    electricityHoursOn,
+    electricityCutWindows,
     water,
     wifiIncluded,
     routerUps,
@@ -244,6 +279,9 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     whatsappNumber: (row.whatsappNumber ?? row.whatsapp_number ?? null) as
       | string
       | null,
+    contactNumbers: Array.isArray(row.contactNumbers ?? row.contact_numbers)
+      ? ((row.contactNumbers ?? row.contact_numbers) as Listing["contactNumbers"])
+      : [],
     addressLine: (row.addressLine ?? row.address_line ?? null) as string | null,
     buildingName: (row.buildingName ?? row.building_name ?? null) as
       | string

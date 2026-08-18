@@ -18,6 +18,14 @@ import {
 import { db } from "../../db/index.js";
 import { listingPhotos, listings } from "../../db/schema/index.js";
 import { deriveListingType } from "./deriveListingType.js";
+import {
+  hoursWithPowerFromWindows,
+  resolveCutWindows,
+} from "../../lib/electricityCuts.js";
+import {
+  deriveContactPhones,
+  resolveContactNumbers,
+} from "../../lib/lebanonPhone.js";
 import type {
   CreateListingInput,
   ListingPhotoDto,
@@ -52,6 +60,10 @@ export const listingPublicColumns = {
   availableFrom: listings.availableFrom,
   paymentModality: listings.paymentModality,
   electricity: listings.electricity,
+  electricityCutsStart: listings.electricityCutsStart,
+  electricityCutsEnd: listings.electricityCutsEnd,
+  electricityHoursOn: listings.electricityHoursOn,
+  electricityCutWindows: listings.electricityCutWindows,
   water: listings.water,
   wifiIncluded: listings.wifiIncluded,
   routerUps: listings.routerUps,
@@ -81,6 +93,7 @@ export const listingPublicColumns = {
   contactName: listings.contactName,
   contactPhone: listings.contactPhone,
   whatsappNumber: listings.whatsappNumber,
+  contactNumbers: listings.contactNumbers,
   area: listings.area,
   landmark: listings.landmark,
   addressLine: listings.addressLine,
@@ -427,6 +440,10 @@ export class ListingsRepository {
         l.available_from,
         l.payment_modality,
         l.electricity,
+        l.electricity_cuts_start,
+        l.electricity_cuts_end,
+        l.electricity_hours_on,
+        l.electricity_cut_windows,
         l.water,
         l.wifi_included,
         l.router_ups,
@@ -456,6 +473,7 @@ export class ListingsRepository {
         l.contact_name,
         l.contact_phone,
         l.whatsapp_number,
+        l.contact_numbers,
         l.area,
         l.landmark,
         l.address_line,
@@ -496,6 +514,13 @@ export class ListingsRepository {
       availableFrom: row.available_from ?? null,
       paymentModality: row.payment_modality,
       electricity: row.electricity,
+      electricityCutsStart: (row.electricity_cuts_start as string | null) ?? null,
+      electricityCutsEnd: (row.electricity_cuts_end as string | null) ?? null,
+      electricityHoursOn:
+        row.electricity_hours_on == null
+          ? null
+          : Number(row.electricity_hours_on),
+      electricityCutWindows: row.electricity_cut_windows ?? [],
       water: row.water,
       wifiIncluded: Boolean(row.wifi_included),
       routerUps: Boolean(row.router_ups),
@@ -526,6 +551,7 @@ export class ListingsRepository {
       contactName: String(row.contact_name ?? ""),
       contactPhone: (row.contact_phone as string | null) ?? null,
       whatsappNumber: (row.whatsapp_number as string | null) ?? null,
+      contactNumbers: row.contact_numbers ?? [],
       area: String(row.area),
       landmark: (row.landmark as string | null) ?? null,
       addressLine: (row.address_line as string | null) ?? null,
@@ -574,6 +600,11 @@ export class ListingsRepository {
       input.listingType ??
       deriveListingType(input.spaceType, input.propertyType);
     const captions = input.photoCaptions ?? [];
+    const cutWindows = resolveCutWindows(input);
+    const firstCut = cutWindows[0];
+    const hoursOn = hoursWithPowerFromWindows(cutWindows);
+    const contactNumbers = resolveContactNumbers(input);
+    const phones = deriveContactPhones(contactNumbers);
 
     const [row] = await db
       .insert(listings)
@@ -591,6 +622,10 @@ export class ListingsRepository {
         availableFrom: input.availableFrom ?? null,
         paymentModality: input.paymentModality,
         electricity: input.electricity,
+        electricityCutsStart: firstCut?.start ?? null,
+        electricityCutsEnd: firstCut?.end ?? null,
+        electricityHoursOn: hoursOn,
+        electricityCutWindows: cutWindows,
         water: input.water,
         wifiIncluded: input.wifiIncluded,
         routerUps: input.routerUps,
@@ -618,8 +653,9 @@ export class ListingsRepository {
         highlightTags: input.highlightTags,
         listingPosterRole: input.listingPosterRole,
         contactName: input.contactName,
-        contactPhone: input.contactPhone ?? null,
-        whatsappNumber: input.whatsappNumber ?? null,
+        contactPhone: phones.contactPhone ?? input.contactPhone ?? null,
+        whatsappNumber: phones.whatsappNumber ?? input.whatsappNumber ?? null,
+        contactNumbers,
         area: input.area,
         landmark: input.landmark,
         addressLine: input.addressLine ?? null,

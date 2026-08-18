@@ -5,14 +5,6 @@ const path = require('path');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Lottie JSON must be a JS module (object), not an asset number.
-config.resolver.assetExts = config.resolver.assetExts.filter(
-  (ext) => ext !== "json",
-);
-if (!config.resolver.sourceExts.includes("json")) {
-  config.resolver.sourceExts.push("json");
-}
-
 // ---------------------------------------------------------------------------
 // Fix: react-native-svg v15 ships a `"react-native": "src/index.ts"` field
 // in its package.json.  Metro follows that entry point and then fails to
@@ -21,12 +13,6 @@ if (!config.resolver.sourceExts.includes("json")) {
 // We intercept every request whose origin is inside react-native-svg/src and
 // redirect the root import to the pre-compiled CommonJS build instead.
 // ---------------------------------------------------------------------------
-const rnsvgSrc = path.resolve(
-  __dirname,
-  'node_modules',
-  'react-native-svg',
-  'src',
-);
 const rnsvgCommonJS = path.resolve(
   __dirname,
   'node_modules',
@@ -36,23 +22,6 @@ const rnsvgCommonJS = path.resolve(
   'index.js',
 );
 
-const zxcvbnCoreCjs = path.resolve(
-  __dirname,
-  'node_modules',
-  '@zxcvbn-ts',
-  'core',
-  'dist',
-  'index.cjs',
-);
-const zxcvbnCommonCjs = path.resolve(
-  __dirname,
-  'node_modules',
-  '@zxcvbn-ts',
-  'language-common',
-  'dist',
-  'index.cjs',
-);
-
 const originalResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -60,13 +29,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // the pre-compiled CommonJS bundle so Metro never enters the src/ tree.
   if (moduleName === 'react-native-svg') {
     return { filePath: rnsvgCommonJS, type: 'sourceFile' };
-  }
-
-  if (moduleName === '@zxcvbn-ts/core') {
-    return { filePath: zxcvbnCoreCjs, type: 'sourceFile' };
-  }
-  if (moduleName === '@zxcvbn-ts/language-common') {
-    return { filePath: zxcvbnCommonCjs, type: 'sourceFile' };
   }
 
   // Default resolver

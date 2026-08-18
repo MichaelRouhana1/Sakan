@@ -39,7 +39,11 @@ export function listingAmberPills(listing: Listing): ListingAmberPill[] {
   } else if (listing.electricity === "solar") {
     pills.push({ key: "solar", label: "☀️ Solar Power" });
   } else if (listing.electricity === "scheduled_cuts") {
-    pills.push({ key: "cuts", label: "⚡ Scheduled Cuts" });
+    const hours = listing.electricityHoursOn ?? listing.infrastructure?.electricity.hoursOn;
+    pills.push({
+      key: "cuts",
+      label: hours != null ? `⚡ ${hours}/24 Power` : "⚡ Scheduled Cuts",
+    });
   }
 
   if (listing.routerUps) {

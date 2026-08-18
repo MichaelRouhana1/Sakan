@@ -12,6 +12,7 @@ import { savedRouter } from "./modules/saved/saved.routes.js";
 import { institutionsRouter } from "./modules/universities/institutions.routes.js";
 import { universitiesRouter } from "./modules/universities/universities.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
+import { authDevRouter } from "./modules/auth/auth.dev.routes.js";
 
 const REPO_ROOT = process.cwd();
 const DEBUG_LOG = path.join(REPO_ROOT, ".cursor", "debug-b50488.log");
@@ -44,6 +45,9 @@ export function createApp() {
   // #endregion
 
   app.use("/api/users", usersRouter);
+  if (process.env.NODE_ENV !== "production") {
+    app.use("/api/auth", authDevRouter);
+  }
   app.use("/api/listings", listingsRouter);
   app.use("/api/saved", savedRouter);
   app.use("/api/reports", reportsRouter);

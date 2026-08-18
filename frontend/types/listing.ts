@@ -62,6 +62,10 @@ export type LebanonInfrastructure = {
     ampLimit?: number;
     solarBackup?: boolean;
     generatorSpecs?: string;
+    cutsStart?: string | null;
+    cutsEnd?: string | null;
+    hoursOn?: number | null;
+    windows?: { start: string; end: string }[];
   };
   water: {
     status: WaterStatus;
@@ -106,6 +110,10 @@ export type Listing = {
   availableFrom?: string | null;
   paymentModality?: PaymentModality;
   electricity: ElectricityStatus;
+  electricityCutsStart?: string | null;
+  electricityCutsEnd?: string | null;
+  electricityHoursOn?: number | null;
+  electricityCutWindows?: { start: string; end: string }[];
   water: WaterStatus;
   wifiIncluded: boolean;
   routerUps: boolean;
@@ -133,6 +141,14 @@ export type Listing = {
   contactName?: string | null;
   contactPhone?: string | null;
   whatsappNumber?: string | null;
+  contactNumbers?: {
+    kind: "mobile" | "landline";
+    prefix: string;
+    subscriber: string;
+    e164: string;
+    calls: boolean;
+    whatsapp: boolean;
+  }[];
   addressLine?: string | null;
   buildingName?: string | null;
   primaryCampusId?: string | null;

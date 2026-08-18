@@ -14,13 +14,24 @@ import { Ionicons } from "@expo/vector-icons";
 import { useClerk, useOAuth } from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";
 
+import { api } from "@/lib/api";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { UserApiError } from "@/features/auth/userApi";
 import {
+  activateClerkSession,
+  completeOAuthSession,
+  isAlreadySignedInError,
+} from "@/lib/clerkAuth";
+import {
   CLERK_SETUP_MESSAGE,
   useClerkEnabled,
 } from "@/lib/clerkEnabled";
+import {
+  passwordMeetsPolicy,
+  passwordMismatch,
+} from "@/lib/passwordStrength";
 import {
   getLastAuthProvider,
   setLastAuthProvider,
@@ -40,7 +51,7 @@ type Props = {
 };
 
 type AuthMode = "signIn" | "signUp";
-type SignUpStep = "form" | "verify";
+type SignUpStep = "email" | "verify" | "password";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -52,22 +63,8 @@ function clerkErrorMessage(err: unknown, fallback: string): string {
   return anyErr?.errors?.[0]?.message || anyErr?.message || fallback;
 }
 
-function isAlreadySignedInError(err: unknown): boolean {
-  const anyErr = err as {
-    errors?: { message?: string; code?: string }[];
-    message?: string;
-  };
-  const code = anyErr?.errors?.[0]?.code;
-  const msg = (
-    anyErr?.errors?.[0]?.message ||
-    anyErr?.message ||
-    ""
-  ).toLowerCase();
-  return (
-    code === "session_exists" ||
-    msg.includes("already signed in") ||
-    msg.includes("session already exists")
-  );
+function isClerkMinLengthError(err: unknown): boolean {
+  return /15 characters or more/i.test(clerkErrorMessage(err, ""));
 }
 
 function ClerkOAuthSection({
@@ -103,69 +100,38 @@ function ClerkOAuthSection({
     );
   };
 
-  const handleClearStaleSession = async (): Promise<void> => {
-    try {
-      if (clerk?.signOut) {
-        await clerk.signOut();
-      }
-    } catch {
-      // ignore
-    }
-  };
-
   const handleOAuth = async (provider: "google" | "facebook" | "apple") => {
     setLoading(true);
     setError(null);
 
     try {
-      const strategy = `oauth_${provider}` as
-        | "oauth_google"
-        | "oauth_facebook"
-        | "oauth_apple";
-
       await setPendingAuthProvider(provider);
-
-      if (Platform.OS === "web" && clerk?.client?.signIn) {
-        const redirectUrl =
-          typeof window !== "undefined" ? window.location.origin : "/";
-        try {
-          await clerk.client.signIn.authenticateWithRedirect({
-            strategy,
-            redirectUrl,
-            redirectUrlComplete: redirectUrl,
-          });
-          return;
-        } catch (redirectErr: unknown) {
-          if (isAlreadySignedInError(redirectErr)) {
-            await handleClearStaleSession();
-            await clerk.client.signIn.authenticateWithRedirect({
-              strategy,
-              redirectUrl,
-              redirectUrlComplete: redirectUrl,
-            });
-            return;
-          }
-          throw redirectErr;
-        }
-      }
 
       let startFlow = startGoogleOAuth;
       if (provider === "facebook") startFlow = startFacebookOAuth;
       if (provider === "apple") startFlow = startAppleOAuth;
 
-      const res = await startFlow();
-      if (res?.createdSessionId && res?.setActive) {
-        await res.setActive({ session: res.createdSessionId });
-      }
+      const redirectUrl =
+        Platform.OS === "web" && typeof window !== "undefined"
+          ? `${window.location.origin}/oauth-native-callback`
+          : undefined;
 
-      if (clerk?.session) {
+      const res = await startFlow(redirectUrl ? { redirectUrl } : undefined);
+      const activated = await completeOAuthSession(clerk, res);
+
+      if (activated || clerk?.session) {
         await onOAuthComplete(provider);
         return;
       }
+
+      throw new Error(
+        `${provider} authentication did not finish. Try again.`,
+      );
     } catch (err: unknown) {
       console.error("OAuth error:", err);
-      if (isAlreadySignedInError(err) && clerk?.session) {
+      if (isAlreadySignedInError(err)) {
         try {
+          await activateClerkSession(clerk);
           await onOAuthComplete(provider);
           return;
         } catch {
@@ -296,12 +262,11 @@ function SkounAuthModalClerk({
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("signIn");
-  const [signUpStep, setSignUpStep] = useState<SignUpStep>("form");
+  const [signUpStep, setSignUpStep] = useState<SignUpStep>("email");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -325,13 +290,12 @@ function SkounAuthModalClerk({
     setFieldErrors({});
     setLoading(false);
     setPassword("");
+    setPasswordConfirm("");
     setVerificationCode("");
     setShowPassword(false);
     setAuthMode("signIn");
-    setSignUpStep("form");
+    setSignUpStep("email");
     setEmail("");
-    setFirstName("");
-    setLastName("");
     onClose();
   };
 
@@ -369,6 +333,31 @@ function SkounAuthModalClerk({
     }
   };
 
+  const validateEmailOnly = () => {
+    const next: Record<string, string> = {};
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) next.email = "Email is required.";
+    else if (!EMAIL_RE.test(trimmedEmail)) {
+      next.email = "Enter a valid email address.";
+    }
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const validatePasswordStep = () => {
+    const next: Record<string, string> = {};
+    if (!passwordMeetsPolicy(password)) {
+      next.password =
+        "Use 8+ characters with upper, lower, number, and a special character.";
+    }
+    if (!passwordConfirm) next.passwordConfirm = "Confirm your password.";
+    else if (password !== passwordConfirm) {
+      next.passwordConfirm = "Passwords do not match.";
+    }
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
   const validateEmailPassword = () => {
     const next: Record<string, string> = {};
     const trimmedEmail = email.trim().toLowerCase();
@@ -379,6 +368,11 @@ function SkounAuthModalClerk({
     if (!password) next.password = "Password is required.";
     setFieldErrors(next);
     return Object.keys(next).length === 0;
+  };
+
+  const finishExistingSession = async (provider: AuthProvider) => {
+    await activateClerkSession(clerk);
+    await finishAuth(provider);
   };
 
   const handleEmailSignIn = async () => {
@@ -393,12 +387,23 @@ function SkounAuthModalClerk({
         password,
       });
       if (result.status === "complete" && result.createdSessionId) {
-        await clerk.setActive({ session: result.createdSessionId });
+        await activateClerkSession(clerk, result.createdSessionId);
         await finishAuth("email");
       } else {
         setError("Sign-in could not be completed. Try again.");
       }
     } catch (err) {
+      if (isAlreadySignedInError(err)) {
+        try {
+          await finishExistingSession("email");
+          return;
+        } catch (inner) {
+          if (inner instanceof UserApiError) {
+            setError(inner.message);
+            return;
+          }
+        }
+      }
       if (err instanceof UserApiError) {
         setError(err.message);
       } else {
@@ -411,34 +416,20 @@ function SkounAuthModalClerk({
 
   const handleEmailSignUp = async () => {
     if (loading || !clerk.loaded || !clerk.client?.signUp) return;
-    if (!validateEmailPassword()) return;
-
-    const trimmedFirst = firstName.trim();
-    const trimmedLast = lastName.trim();
-    if (!trimmedFirst) {
-      setFieldErrors({ firstName: "First name is required." });
-      return;
-    }
-    if (!trimmedLast) {
-      setFieldErrors({ lastName: "Last name is required." });
-      return;
-    }
+    if (!validateEmailOnly()) return;
 
     setLoading(true);
     setError(null);
     try {
       await clerk.client.signUp.create({
         emailAddress: email.trim().toLowerCase(),
-        password,
-        firstName: trimmedFirst,
-        lastName: trimmedLast,
       });
       await clerk.client.signUp.prepareEmailAddressVerification({
         strategy: "email_code",
       });
       setSignUpStep("verify");
     } catch (err) {
-      setError(clerkErrorMessage(err, "Could not create account."));
+      setError(clerkErrorMessage(err, "Could not start sign-up."));
     } finally {
       setLoading(false);
     }
@@ -459,13 +450,34 @@ function SkounAuthModalClerk({
       const result = await clerk.client.signUp.attemptEmailAddressVerification({
         code,
       });
-      if (result.status === "complete" && result.createdSessionId) {
-        await clerk.setActive({ session: result.createdSessionId });
+      const sessionId = result.createdSessionId;
+      if (result.status === "complete" && sessionId) {
+        await activateClerkSession(clerk, sessionId);
         await finishAuth("email");
-      } else {
-        setError("Verification could not be completed. Try again.");
+        return;
       }
+      if (sessionId) {
+        await activateClerkSession(clerk, sessionId);
+        await finishAuth("email");
+        return;
+      }
+      setPassword("");
+      setPasswordConfirm("");
+      setSignUpStep("password");
     } catch (err) {
+      if (isAlreadySignedInError(err)) {
+        try {
+          await finishExistingSession("email");
+          return;
+        } catch (inner) {
+          setError(
+            inner instanceof UserApiError
+              ? inner.message
+              : clerkErrorMessage(inner, "Could not finish sign-up."),
+          );
+          return;
+        }
+      }
       if (err instanceof UserApiError) {
         setError(err.message);
       } else {
@@ -478,21 +490,149 @@ function SkounAuthModalClerk({
     }
   };
 
+  const handleSetPassword = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signUp) return;
+    if (!validatePasswordStep()) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const signUp = clerk.client.signUp as {
+        update?: (args: { password: string }) => Promise<{
+          status?: string;
+          createdSessionId?: string | null;
+        }>;
+      };
+      if (!signUp.update) {
+        setError("Could not set password. Try again.");
+        return;
+      }
+      const result = await signUp.update({ password });
+      const sessionId = result.createdSessionId;
+      if ((result.status === "complete" || sessionId) && sessionId) {
+        await activateClerkSession(clerk, sessionId);
+        await finishAuth("email");
+        return;
+      }
+      if (result.status === "complete") {
+        await activateClerkSession(clerk);
+        await finishAuth("email");
+        return;
+      }
+      setError("Password saved, but sign-up is not complete. Try again.");
+    } catch (err) {
+      if (isAlreadySignedInError(err)) {
+        try {
+          await finishExistingSession("email");
+          return;
+        } catch (inner) {
+          setError(
+            inner instanceof UserApiError
+              ? inner.message
+              : clerkErrorMessage(inner, "Could not finish sign-up."),
+          );
+          return;
+        }
+      }
+      if (isClerkMinLengthError(err)) {
+        try {
+          await api.post("/api/auth/dev-set-password", {
+            email: email.trim().toLowerCase(),
+            password,
+          });
+          if (!clerk.client?.signIn) {
+            setError("Password saved. Sign in with your new password.");
+            return;
+          }
+          const signedIn = await clerk.client.signIn.create({
+            identifier: email.trim().toLowerCase(),
+            password,
+          });
+          if (signedIn.status === "complete" && signedIn.createdSessionId) {
+            await activateClerkSession(clerk, signedIn.createdSessionId);
+            await finishAuth("email");
+            return;
+          }
+          setError("Password saved. Sign in with your new password.");
+          return;
+        } catch (inner) {
+          const axiosErr = inner as {
+            response?: { data?: { error?: { message?: string } } };
+          };
+          setError(
+            axiosErr.response?.data?.error?.message ||
+              clerkErrorMessage(
+                inner,
+                "Could not set password. Restart the API if this persists.",
+              ),
+          );
+          return;
+        }
+      }
+      setError(clerkErrorMessage(err, "Could not set password."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signUp) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await clerk.client.signUp.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+    } catch (err) {
+      setError(clerkErrorMessage(err, "Could not resend code."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!visible) return null;
 
   const modalTitle =
     authMode === "signUp"
       ? signUpStep === "verify"
         ? "Verify your email"
-        : "Create your account"
+        : signUpStep === "password"
+          ? "Create a password"
+          : "Create your account"
       : title;
 
   const modalSubtitle =
     authMode === "signUp"
       ? signUpStep === "verify"
         ? `Enter the code sent to ${email.trim().toLowerCase()}`
-        : "Sign up with email or continue with a social account"
+        : signUpStep === "password"
+          ? "Choose a strong password to finish signing up"
+          : "Enter your email, then verify it"
       : "Welcome back! Sign in to continue";
+
+  const showOAuth =
+    authMode === "signIn" || (authMode === "signUp" && signUpStep === "email");
+  const passwordReady =
+    passwordMeetsPolicy(password) &&
+    passwordConfirm.length > 0 &&
+    password === passwordConfirm;
+  const primaryDisabled =
+    loading ||
+    (authMode === "signIn" && (!email.trim() || !password)) ||
+    (authMode === "signUp" && signUpStep === "email" && !email.trim()) ||
+    (authMode === "signUp" &&
+      signUpStep === "verify" &&
+      verificationCode.length < 6) ||
+    (authMode === "signUp" && signUpStep === "password" && !passwordReady);
+
+  const primaryLabel =
+    authMode === "signUp"
+      ? signUpStep === "verify"
+        ? "Verify email"
+        : signUpStep === "password"
+          ? "Create account"
+          : "Continue"
+      : "Sign in";
 
   return (
     <Modal
@@ -525,7 +665,7 @@ function SkounAuthModalClerk({
             </View>
 
             <View style={styles.body}>
-                {signUpStep === "form" ? (
+                {showOAuth ? (
                   <ClerkOAuthSection
                     loading={loading}
                     lastUsedProvider={lastUsedProvider}
@@ -535,52 +675,7 @@ function SkounAuthModalClerk({
                   />
                 ) : null}
 
-                {authMode === "signUp" && signUpStep === "form" ? (
-                  <>
-                    <View style={styles.nameRow}>
-                      <View style={[styles.inputGroup, styles.nameField]}>
-                        <Text style={styles.inputLabel}>First name</Text>
-                        <TextInput
-                          value={firstName}
-                          onChangeText={setFirstName}
-                          placeholder="First name"
-                          placeholderTextColor="#A1A1AA"
-                          autoCapitalize="words"
-                          style={[
-                            styles.input,
-                            fieldErrors.firstName ? styles.inputError : null,
-                          ]}
-                        />
-                        {fieldErrors.firstName ? (
-                          <Text style={styles.fieldErrorText}>
-                            {fieldErrors.firstName}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <View style={[styles.inputGroup, styles.nameField]}>
-                        <Text style={styles.inputLabel}>Last name</Text>
-                        <TextInput
-                          value={lastName}
-                          onChangeText={setLastName}
-                          placeholder="Last name"
-                          placeholderTextColor="#A1A1AA"
-                          autoCapitalize="words"
-                          style={[
-                            styles.input,
-                            fieldErrors.lastName ? styles.inputError : null,
-                          ]}
-                        />
-                        {fieldErrors.lastName ? (
-                          <Text style={styles.fieldErrorText}>
-                            {fieldErrors.lastName}
-                          </Text>
-                        ) : null}
-                      </View>
-                    </View>
-                  </>
-                ) : null}
-
-                {signUpStep === "verify" ? (
+                {authMode === "signUp" && signUpStep === "verify" ? (
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Verification code</Text>
                     <TextInput
@@ -601,7 +696,77 @@ function SkounAuthModalClerk({
                       </Text>
                     ) : null}
                   </View>
-                ) : (
+                ) : null}
+
+                {authMode === "signUp" && signUpStep === "password" ? (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <View style={styles.passwordLabelRow}>
+                        <Text style={styles.inputLabel}>Password</Text>
+                        <Pressable
+                          onPress={() => setShowPassword((v) => !v)}
+                          hitSlop={8}
+                        >
+                          <Text style={styles.showHideText}>
+                            {showPassword ? "HIDE" : "SHOW"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <TextInput
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Create a password"
+                        placeholderTextColor="#A1A1AA"
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        textContentType="newPassword"
+                        style={[
+                          styles.input,
+                          fieldErrors.password ? styles.inputError : null,
+                        ]}
+                      />
+                      <PasswordStrengthMeter password={password} />
+                      {fieldErrors.password ? (
+                        <Text style={styles.fieldErrorText}>
+                          {fieldErrors.password}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>Confirm password</Text>
+                      <TextInput
+                        value={passwordConfirm}
+                        onChangeText={setPasswordConfirm}
+                        placeholder="Re-enter your password"
+                        placeholderTextColor="#A1A1AA"
+                        secureTextEntry={!showPassword}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        textContentType="newPassword"
+                        style={[
+                          styles.input,
+                          fieldErrors.passwordConfirm ||
+                          passwordMismatch(password, passwordConfirm)
+                            ? styles.inputError
+                            : null,
+                        ]}
+                      />
+                      {fieldErrors.passwordConfirm ? (
+                        <Text style={styles.fieldErrorText}>
+                          {fieldErrors.passwordConfirm}
+                        </Text>
+                      ) : passwordMismatch(password, passwordConfirm) ? (
+                        <Text style={styles.fieldErrorText}>
+                          Passwords do not match.
+                        </Text>
+                      ) : null}
+                    </View>
+                  </>
+                ) : null}
+
+                {authMode === "signIn" ||
+                (authMode === "signUp" && signUpStep === "email") ? (
                   <>
                     <View style={styles.inputGroup}>
                       <Text style={styles.inputLabel}>Email address</Text>
@@ -625,51 +790,51 @@ function SkounAuthModalClerk({
                       ) : null}
                     </View>
 
-                    <View style={styles.inputGroup}>
-                      <View style={styles.passwordLabelRow}>
-                        <Text style={styles.inputLabel}>Password</Text>
-                        <Pressable
-                          onPress={() => setShowPassword((v) => !v)}
-                          hitSlop={8}
-                        >
-                          <Text style={styles.showHideText}>
-                            {showPassword ? "HIDE" : "SHOW"}
+                    {authMode === "signIn" ? (
+                      <View style={styles.inputGroup}>
+                        <View style={styles.passwordLabelRow}>
+                          <Text style={styles.inputLabel}>Password</Text>
+                          <Pressable
+                            onPress={() => setShowPassword((v) => !v)}
+                            hitSlop={8}
+                          >
+                            <Text style={styles.showHideText}>
+                              {showPassword ? "HIDE" : "SHOW"}
+                            </Text>
+                          </Pressable>
+                        </View>
+                        <TextInput
+                          value={password}
+                          onChangeText={setPassword}
+                          placeholder="Enter your password"
+                          placeholderTextColor="#A1A1AA"
+                          secureTextEntry={!showPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          textContentType="password"
+                          style={[
+                            styles.input,
+                            fieldErrors.password ? styles.inputError : null,
+                          ]}
+                        />
+                        {fieldErrors.password ? (
+                          <Text style={styles.fieldErrorText}>
+                            {fieldErrors.password}
                           </Text>
-                        </Pressable>
+                        ) : null}
                       </View>
-                      <TextInput
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder="Enter your password"
-                        placeholderTextColor="#A1A1AA"
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        textContentType="oneTimeCode"
-                        style={[
-                          styles.input,
-                          fieldErrors.password ? styles.inputError : null,
-                        ]}
-                      />
-                      {fieldErrors.password ? (
-                        <Text style={styles.fieldErrorText}>
-                          {fieldErrors.password}
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    {authMode === "signUp" && signUpStep === "form" ? (
+                    ) : (
                       <View
                         nativeID="clerk-captcha"
                         accessibilityElementsHidden
                         importantForAccessibility="no-hide-descendants"
                         style={styles.captchaMount}
                       />
-                    ) : null}
+                    )}
                   </>
-                )}
+                ) : null}
 
-                {lastUsedProvider === "email" && signUpStep === "form" ? (
+                {lastUsedProvider === "email" && showOAuth ? (
                   <Text style={styles.lastUsedHint}>
                     Email was last used on this device
                   </Text>
@@ -679,8 +844,12 @@ function SkounAuthModalClerk({
 
                 <Pressable
                   onPress={() => {
-                    if (signUpStep === "verify") {
+                    if (authMode === "signUp" && signUpStep === "verify") {
                       void handleVerifySignUp();
+                      return;
+                    }
+                    if (authMode === "signUp" && signUpStep === "password") {
+                      void handleSetPassword();
                       return;
                     }
                     if (authMode === "signUp") {
@@ -689,19 +858,10 @@ function SkounAuthModalClerk({
                     }
                     void handleEmailSignIn();
                   }}
-                  disabled={
-                    loading ||
-                    (signUpStep === "form" && !email.trim()) ||
-                    (signUpStep === "form" && !password) ||
-                    (signUpStep === "verify" && verificationCode.length < 6)
-                  }
+                  disabled={primaryDisabled}
                   style={({ pressed }) => [
                     styles.primaryBtn,
-                    (loading ||
-                      (signUpStep === "form" && (!email.trim() || !password)) ||
-                      (signUpStep === "verify" &&
-                        verificationCode.length < 6)) &&
-                      styles.btnDisabled,
+                    primaryDisabled && styles.btnDisabled,
                     pressed && styles.pressed,
                   ]}
                 >
@@ -709,34 +869,36 @@ function SkounAuthModalClerk({
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <View style={styles.btnRow}>
-                      <Text style={styles.primaryBtnText}>
-                        {signUpStep === "verify"
-                          ? "Verify email"
-                          : authMode === "signUp"
-                            ? "Create account"
-                            : "Sign in"}
-                      </Text>
+                      <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
                       <Text style={styles.btnChevron}>▸</Text>
                     </View>
                   )}
                 </Pressable>
 
-                {signUpStep === "verify" ? (
-                  <Pressable
-                    onPress={() => {
-                      setSignUpStep("form");
-                      setVerificationCode("");
-                      setError(null);
-                    }}
-                    style={styles.backLinkWrap}
-                  >
-                    <Text style={styles.backLink}>Back to sign up</Text>
-                  </Pressable>
+                {authMode === "signUp" && signUpStep === "verify" ? (
+                  <>
+                    <Pressable
+                      onPress={() => void handleResendCode()}
+                      style={styles.backLinkWrap}
+                    >
+                      <Text style={styles.backLink}>Resend code</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        setSignUpStep("email");
+                        setVerificationCode("");
+                        setError(null);
+                      }}
+                      style={styles.backLinkWrap}
+                    >
+                      <Text style={styles.backLink}>Back to email</Text>
+                    </Pressable>
+                  </>
                 ) : null}
               </View>
           </ScrollView>
 
-          {signUpStep === "form" ? (
+          {authMode === "signIn" || signUpStep === "email" ? (
             <View style={styles.footerCard}>
               <Text style={styles.footerText}>
                 {authMode === "signUp"
@@ -749,8 +911,9 @@ function SkounAuthModalClerk({
                     setError(null);
                     setFieldErrors({});
                     setPassword("");
+                    setPasswordConfirm("");
                     setVerificationCode("");
-                    setSignUpStep("form");
+                    setSignUpStep("email");
                   }}
                 >
                   {authMode === "signUp" ? "Sign in" : "Sign up"}

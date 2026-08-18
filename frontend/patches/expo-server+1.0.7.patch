@@ -1,0 +1,104 @@
+diff --git a/node_modules/expo-server/build/cjs/vendor/http.js b/node_modules/expo-server/build/cjs/vendor/http.js
+index 4ffaac4..9de074a 100644
+--- a/node_modules/expo-server/build/cjs/vendor/http.js
++++ b/node_modules/expo-server/build/cjs/vendor/http.js
+@@ -49,6 +49,9 @@ function createRequestHandler(params, setup) {
+             await respond(res, response);
+         }
+         catch (error) {
++            if (res.destroyed || isClientDisconnect(error)) {
++                return;
++            }
+             // http doesn't support async functions, so we have to pass along the
+             // error manually using next().
+             next(error);
+@@ -97,7 +100,20 @@ function convertHeaders(requestHeaders) {
+     }
+     return headers;
+ }
++function isClientDisconnect(error) {
++    if (error == null || typeof error !== 'object') {
++        return false;
++    }
++    const code = error.code;
++    return code === 'ERR_STREAM_PREMATURE_CLOSE'
++        || code === 'ERR_STREAM_UNABLE_TO_PIPE'
++        || code === 'ECONNRESET'
++        || code === 'EPIPE';
++}
+ async function respond(res, expoRes) {
++    if (res.writableEnded || res.destroyed) {
++        return;
++    }
+     res.statusMessage = expoRes.statusText;
+     res.statusCode = expoRes.status;
+     if (typeof res.setHeaders === 'function') {
+@@ -109,7 +125,15 @@ async function respond(res, expoRes) {
+         }
+     }
+     if (expoRes.body) {
+-        await (0, promises_1.pipeline)(node_stream_1.Readable.fromWeb(expoRes.body), res);
++        try {
++            await (0, promises_1.pipeline)(node_stream_1.Readable.fromWeb(expoRes.body), res);
++        }
++        catch (error) {
++            if (res.destroyed || isClientDisconnect(error)) {
++                return;
++            }
++            throw error;
++        }
+     }
+     else {
+         res.end();
+diff --git a/node_modules/expo-server/build/mjs/vendor/http.js b/node_modules/expo-server/build/mjs/vendor/http.js
+index be9397c..20f043c 100644
+--- a/node_modules/expo-server/build/mjs/vendor/http.js
++++ b/node_modules/expo-server/build/mjs/vendor/http.js
+@@ -41,6 +41,9 @@ export function createRequestHandler(params, setup) {
+             await respond(res, response);
+         }
+         catch (error) {
++            if (res.destroyed || isClientDisconnect(error)) {
++                return;
++            }
+             // http doesn't support async functions, so we have to pass along the
+             // error manually using next().
+             next(error);
+@@ -89,7 +92,20 @@ export function convertHeaders(requestHeaders) {
+     }
+     return headers;
+ }
++function isClientDisconnect(error) {
++    if (error == null || typeof error !== 'object') {
++        return false;
++    }
++    const code = error.code;
++    return code === 'ERR_STREAM_PREMATURE_CLOSE'
++        || code === 'ERR_STREAM_UNABLE_TO_PIPE'
++        || code === 'ECONNRESET'
++        || code === 'EPIPE';
++}
+ export async function respond(res, expoRes) {
++    if (res.writableEnded || res.destroyed) {
++        return;
++    }
+     res.statusMessage = expoRes.statusText;
+     res.statusCode = expoRes.status;
+     if (typeof res.setHeaders === 'function') {
+@@ -101,7 +117,15 @@ export async function respond(res, expoRes) {
+         }
+     }
+     if (expoRes.body) {
+-        await pipeline(Readable.fromWeb(expoRes.body), res);
++        try {
++            await pipeline(Readable.fromWeb(expoRes.body), res);
++        }
++        catch (error) {
++            if (res.destroyed || isClientDisconnect(error)) {
++                return;
++            }
++            throw error;
++        }
+     }
+     else {
+         res.end();

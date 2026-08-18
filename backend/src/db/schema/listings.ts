@@ -62,6 +62,13 @@ export const listings = pgTable("listings", {
     .notNull()
     .default("monthly"),
   electricity: electricityStatusEnum("electricity").notNull(),
+  electricityCutsStart: varchar("electricity_cuts_start", { length: 5 }),
+  electricityCutsEnd: varchar("electricity_cuts_end", { length: 5 }),
+  electricityHoursOn: integer("electricity_hours_on"),
+  electricityCutWindows: jsonb("electricity_cut_windows")
+    .$type<{ start: string; end: string }[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   water: waterStatusEnum("water").notNull(),
   wifiIncluded: boolean("wifi_included").notNull().default(false),
   routerUps: boolean("router_ups").notNull().default(false),
@@ -102,6 +109,19 @@ export const listings = pgTable("listings", {
   contactName: varchar("contact_name", { length: 80 }).notNull().default(""),
   contactPhone: varchar("contact_phone", { length: 32 }),
   whatsappNumber: varchar("whatsapp_number", { length: 32 }),
+  contactNumbers: jsonb("contact_numbers")
+    .$type<
+      {
+        kind: "mobile" | "landline";
+        prefix: string;
+        subscriber: string;
+        e164: string;
+        calls: boolean;
+        whatsapp: boolean;
+      }[]
+    >()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   area: varchar("area", { length: 128 }).notNull(),
   landmark: varchar("landmark", { length: 256 }),
   addressLine: varchar("address_line", { length: 256 }),

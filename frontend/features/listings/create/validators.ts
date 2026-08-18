@@ -1,3 +1,8 @@
+import {
+  windowComplete,
+  type CutWindow,
+} from "@/lib/electricityCuts";
+import { numberComplete, numbersFromLegacy } from "@/lib/lebanonPhone";
 import type { CreateListingDraft } from "./draft";
 
 export const COPY_TITLE_MIN = 10;
@@ -32,6 +37,19 @@ export function stepFieldErrors(
     case 3: {
       const errors: string[] = [];
       if (!draft.electricity) errors.push("electricity");
+      if (draft.electricity === "scheduled_cuts") {
+        const windows: CutWindow[] =
+          draft.electricityCutWindows?.length > 0
+            ? draft.electricityCutWindows
+            : [{ start: draft.electricityCutsStart, end: draft.electricityCutsEnd }];
+        const complete = windows.filter(windowComplete);
+        if (complete.length === 0) errors.push("electricityCutWindows");
+        windows.forEach((w, i) => {
+          const blank = !w.start && !w.end;
+          if (blank) return;
+          if (!windowComplete(w)) errors.push(`electricityCutWindows.${i}`);
+        });
+      }
       if (!draft.water) errors.push("water");
       return errors;
     }
@@ -75,8 +93,14 @@ export function stepFieldErrors(
       const errors: string[] = [];
       if (!draft.listingPosterRole) errors.push("listingPosterRole");
       if (draft.contactName.trim().length < 2) errors.push("contactName");
-      const phone = draft.contactPhone.replace(/\D/g, "");
-      if (phone.length < 8) errors.push("contactPhone");
+      const numbers = numbersFromLegacy(draft);
+      const complete = numbers.filter(numberComplete);
+      if (complete.length === 0) errors.push("contactNumbers");
+      numbers.forEach((n, i) => {
+        const blank = !n.subscriber;
+        if (blank && numbers.length > 1) return;
+        if (!numberComplete(n)) errors.push(`contactNumbers.${i}`);
+      });
       return errors;
     }
     default:

@@ -144,8 +144,7 @@ export function ListingDetailWeb({ listingId }: Props) {
     ? selectedRoom.monthlyRentUsd
     : listing.monthlyRentUsd;
 
-  const posterPhone =
-    listing.whatsappNumber || listing.contactPhone || null;
+  const posterPhone = listing.whatsappNumber || null;
   const canContact = hasUsableWhatsAppPhone(posterPhone);
   const distance = formatDistanceMeters(
     listing.distanceMeters,

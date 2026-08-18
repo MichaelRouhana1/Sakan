@@ -45,9 +45,8 @@ import { safeBack } from "@/lib/safeBack";
 /** When listing APIs expose poster phone, pass it here. */
 function listingWhatsApp(listing: {
   whatsappNumber?: string | null;
-  contactPhone?: string | null;
 }): string | null {
-  return listing.whatsappNumber || listing.contactPhone || null;
+  return listing.whatsappNumber || null;
 }
 
 type Props = {

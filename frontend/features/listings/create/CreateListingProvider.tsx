@@ -18,6 +18,8 @@ import {
   INITIAL_DRAFT,
   type CreateListingDraft,
 } from "./draft";
+import { emptyCutWindow } from "@/lib/electricityCuts";
+import { numbersFromLegacy } from "@/lib/lebanonPhone";
 import { WIZARD_STEPS } from "@/constants/listingWizard";
 import { stepFieldErrors } from "./validators";
 
@@ -58,8 +60,21 @@ function persistable(draft: CreateListingDraft): CreateListingDraft {
 }
 
 function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
+  const windows =
+    parsed.electricityCutWindows?.length > 0
+      ? parsed.electricityCutWindows
+      : parsed.electricityCutsStart || parsed.electricityCutsEnd
+        ? [
+            {
+              start: parsed.electricityCutsStart ?? "",
+              end: parsed.electricityCutsEnd ?? "",
+            },
+          ]
+        : [emptyCutWindow()];
   return {
     ...parsed,
+    electricityCutWindows: windows,
+    contactNumbers: numbersFromLegacy(parsed),
     photos: (parsed.photos ?? []).map((p) => {
       if (p.status === "ready" && p.url) {
         return { ...p, uri: p.url };

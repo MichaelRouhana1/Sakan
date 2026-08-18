@@ -30,10 +30,16 @@ export function loadEnv(raw: NodeJS.ProcessEnv = process.env): Env {
     throw new Error(`Invalid environment: ${message}`);
   }
   const env = parsed.data;
-  if (env.NODE_ENV === "production" && !env.CLERK_SECRET_KEY) {
+  if (env.NODE_ENV === "production" && !isUsableClerkSecret(env.CLERK_SECRET_KEY)) {
     throw new Error(
       "Invalid environment: CLERK_SECRET_KEY is required in production",
     );
   }
   return env;
+}
+
+export function isUsableClerkSecret(key: string | undefined): boolean {
+  if (!key) return false;
+  if (key.includes("xxxxxxxx")) return false;
+  return key.startsWith("sk_test_") || key.startsWith("sk_live_");
 }

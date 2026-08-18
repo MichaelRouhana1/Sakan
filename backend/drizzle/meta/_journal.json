@@ -71,6 +71,27 @@
       "when": 1786780800000,
       "tag": "0009_listing_wizard",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786784400000,
+      "tag": "0010_electricity_cuts",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786788000000,
+      "tag": "0011_electricity_cut_windows",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786791600000,
+      "tag": "0012_contact_numbers",
+      "breakpoints": true
     }
   ]
 }
