@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { ForbiddenError, ValidationError } from "../../lib/errors.js";
+import { ValidationError } from "../../lib/errors.js";
 import { listingsService } from "./listings.service.js";
 import {
   listListingsQuerySchema,
@@ -61,7 +61,7 @@ export class ListingsController {
 
   async listMine(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await listingsService.listMine(req.user!.id, req.user!.role);
+      const data = await listingsService.listMine(req.user!.id);
       res.json({ data });
     } catch (err) {
       next(err);
@@ -102,7 +102,6 @@ export class ListingsController {
     try {
       const data = await listingsService.create(
         req.user!.id,
-        req.user!.role,
         req.body as CreateListingInput,
       );
       res.status(201).json({ data });
@@ -115,7 +114,6 @@ export class ListingsController {
     try {
       const data = await listingsService.archive(
         req.user!.id,
-        req.user!.role,
         req.params.id as string,
       );
       res.json({ data });
@@ -126,16 +124,12 @@ export class ListingsController {
 
   async uploadPhotos(req: Request, res: Response, next: NextFunction) {
     try {
-      if (req.user!.role !== "poster") {
-        throw new ForbiddenError("Only posters can upload listing photos");
-      }
-
       const files = req.files as Express.Multer.File[] | undefined;
       if (!files || files.length === 0) {
         throw new ValidationError("At least one image file is required");
       }
-      if (files.length > 8) {
-        throw new ValidationError("Maximum 8 images per upload");
+      if (files.length > 15) {
+        throw new ValidationError("Maximum 15 images per upload");
       }
 
       const host = req.get("host") ?? undefined;

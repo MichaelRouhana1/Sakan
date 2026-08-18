@@ -1,4 +1,7 @@
 import {
+  PlayfairDisplay_700Bold,
+} from "@expo-google-fonts/playfair-display";
+import {
   DMSans_400Regular,
   DMSans_500Medium,
   DMSans_600SemiBold,
@@ -15,6 +18,7 @@ export default function PosterLayout() {
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
+    PlayfairDisplay_700Bold,
   });
 
   if (!loaded) {
@@ -35,6 +39,14 @@ export default function PosterLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen
+        name="create"
+        options={{
+          headerShown: false,
+          animation: "slide_from_bottom",
+          presentation: "fullScreenModal",
+        }}
+      />
       <Stack.Screen
         name="listing/[id]"
         options={{

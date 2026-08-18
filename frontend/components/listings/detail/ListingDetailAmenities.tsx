@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { amenityLabel } from "@/constants/listingWizard";
 import { Skoun } from "@/constants/theme";
 import { labelElectricity, labelWater } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
@@ -48,7 +49,9 @@ function fallbackAmenities(listing: Listing): string[] {
 
 export function ListingDetailAmenities({ listing }: Props) {
   const all = useMemo(() => {
-    const listed = (listing.amenities ?? []).map((s) => s.trim()).filter(Boolean);
+    const listed = (listing.amenities ?? [])
+      .map((s) => amenityLabel(s).trim())
+      .filter(Boolean);
     return listed.length > 0 ? listed : fallbackAmenities(listing);
   }, [listing]);
   const [open, setOpen] = useState(false);

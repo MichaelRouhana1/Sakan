@@ -15,11 +15,6 @@ export default function AuthLayout() {
           color: Lister.color.ink,
         },
       }}
-    >
-      <Stack.Screen
-        name="role-select"
-        options={{ title: "Your role", headerBackVisible: false }}
-      />
-    </Stack>
+    />
   );
 }

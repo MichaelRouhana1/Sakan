@@ -21,6 +21,8 @@ function normalizePhotos(row: Record<string, unknown>): ListingPhoto[] {
       id: String(photo.id ?? `photo-${index}`),
       url,
       sortOrder: Number(photo.sortOrder ?? photo.sort_order ?? index),
+      caption:
+        typeof photo.caption === "string" ? photo.caption : undefined,
       ...(listingIdRaw != null ? { listingId: String(listingIdRaw) } : {}),
     });
   }
@@ -117,32 +119,138 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
   const unitSpecs = isPbsa
     ? undefined
     : {
-        floorLevel: (row.floorLevel ?? row.floor_level) ? String(row.floorLevel ?? row.floor_level) : "3rd Floor (With 24/7 Elevator)",
-        roomCategory: (row.roomCategory ?? row.room_category ?? (listingType === "private_room" ? "private_room" : "entire_apartment")) as StandardUnitSpecs["roomCategory"],
+        floorLevel:
+          row.floorNumber != null || row.floor_number != null
+            ? String(row.floorNumber ?? row.floor_number)
+            : (row.floorLevel ?? row.floor_level)
+              ? String(row.floorLevel ?? row.floor_level)
+              : undefined,
+        roomCategory: (row.roomCategory ??
+          row.room_category ??
+          (listingType === "private_room"
+            ? "private_room"
+            : "entire_apartment")) as StandardUnitSpecs["roomCategory"],
         roommateDetails: {
-          count: Number(row.roommateCount ?? row.roommate_count ?? (listingType === "private_room" ? 2 : 0)),
-          genders: String(row.roommateGenders ?? row.roommate_genders ?? "Mix of University Students"),
-          occupations: String(row.roommateOccupations ?? row.roommate_occupations ?? "AUB & LAU Students"),
+          count: Number(
+            row.maxOccupancy ??
+              row.max_occupancy ??
+              row.roommateCount ??
+              row.roommate_count ??
+              1,
+          ),
+          genders: String(
+            row.roommateGenders ?? row.roommate_genders ?? "",
+          ),
+          occupations: String(
+            row.roommateOccupations ?? row.roommate_occupations ?? "",
+          ),
         },
-        depositUsd: Number(row.depositUsd ?? row.deposit_usd ?? Number(row.monthlyRentUsd ?? row.monthly_rent_usd ?? 400)),
-        minContractMonths: Number(row.minContractMonths ?? row.min_contract_months ?? 6),
+        depositUsd: Number(
+          row.securityDepositUsd ??
+            row.security_deposit_usd ??
+            row.depositUsd ??
+            row.deposit_usd ??
+            0,
+        ),
+        minContractMonths: Number(
+          row.minContractMonths ?? row.min_contract_months ?? 0,
+        ),
       };
+
+  const smoking = String(row.smokingPolicy ?? row.smoking_policy ?? "");
+  const pets = String(row.petsPolicy ?? row.pets_policy ?? "");
+  const guests = String(row.guestsPolicy ?? row.guests_policy ?? "");
+  const quiet = Boolean(row.quietHours ?? row.quiet_hours);
+  const derivedRules: string[] = [];
+  if (smoking) derivedRules.push(`Smoking: ${smoking.split("_").join(" ")}`);
+  if (pets) derivedRules.push(`Pets: ${pets.split("_").join(" ")}`);
+  if (guests) derivedRules.push(`Overnight guests: ${guests.split("_").join(" ")}`);
+  if (quiet) derivedRules.push("Quiet study hours enforced");
+
+  const rawAmenities = Array.isArray(row.amenities)
+    ? (row.amenities as string[])
+    : [];
 
   return {
     id: String(row.id),
     posterId: String(row.posterId ?? row.poster_id),
     status: (row.status as Listing["status"]) ?? "active",
     listingType,
+    spaceType: (row.spaceType ?? row.space_type) as Listing["spaceType"],
+    propertyType: (row.propertyType ??
+      row.property_type) as Listing["propertyType"],
+    priceBasis: (row.priceBasis ?? row.price_basis) as Listing["priceBasis"],
     targetAudience: (row.targetAudience ??
       row.target_audience) as Listing["targetAudience"],
     genderRestriction: ((row.genderRestriction ??
       row.gender_restriction) as Listing["genderRestriction"]) ?? "anyone",
     monthlyRentUsd: Number(row.monthlyRentUsd ?? row.monthly_rent_usd),
+    securityDepositUsd: Number(
+      row.securityDepositUsd ?? row.security_deposit_usd ?? 0,
+    ),
+    leaseTerm: (row.leaseTerm ?? row.lease_term) as Listing["leaseTerm"],
+    availableFrom: (row.availableFrom ?? row.available_from ?? null) as
+      | string
+      | null,
+    paymentModality: (row.paymentModality ??
+      row.payment_modality) as Listing["paymentModality"],
     electricity,
     water,
     wifiIncluded,
     routerUps,
     elevator24_7: Boolean(row.elevator24_7 ?? row.elevator_24_7),
+    hasElevator: Boolean(row.hasElevator ?? row.has_elevator),
+    hasSolar: Boolean(row.hasSolar ?? row.has_solar),
+    generatorAmperes:
+      row.generatorAmperes != null || row.generator_amperes != null
+        ? Number(row.generatorAmperes ?? row.generator_amperes)
+        : null,
+    generatorIncluded: Boolean(
+      row.generatorIncluded ?? row.generator_included,
+    ),
+    conciergeIncluded: Boolean(
+      row.conciergeIncluded ?? row.concierge_included,
+    ),
+    cookingGasIncluded: Boolean(
+      row.cookingGasIncluded ?? row.cooking_gas_included,
+    ),
+    bedrooms: Number(row.bedrooms ?? 0),
+    beds: Number(row.beds ?? 0),
+    bathrooms: Number(row.bathrooms ?? 0),
+    maxOccupancy: Number(row.maxOccupancy ?? row.max_occupancy ?? 0),
+    furnishingType: (row.furnishingType ??
+      row.furnishing_type) as Listing["furnishingType"],
+    floorNumber: Number(row.floorNumber ?? row.floor_number ?? 0),
+    areaSqm:
+      row.areaSqm != null || row.area_sqm != null
+        ? Number(row.areaSqm ?? row.area_sqm)
+        : null,
+    smokingPolicy: (row.smokingPolicy ??
+      row.smoking_policy) as Listing["smokingPolicy"],
+    petsPolicy: (row.petsPolicy ?? row.pets_policy) as Listing["petsPolicy"],
+    guestsPolicy: (row.guestsPolicy ??
+      row.guests_policy) as Listing["guestsPolicy"],
+    quietHours: quiet,
+    title: (row.title as string) || null,
+    highlightTags: Array.isArray(row.highlightTags ?? row.highlight_tags)
+      ? ((row.highlightTags ?? row.highlight_tags) as string[])
+      : [],
+    listingPosterRole: (row.listingPosterRole ??
+      row.listing_poster_role) as Listing["listingPosterRole"],
+    contactName: (row.contactName ?? row.contact_name ?? null) as string | null,
+    contactPhone: (row.contactPhone ?? row.contact_phone ?? null) as
+      | string
+      | null,
+    whatsappNumber: (row.whatsappNumber ?? row.whatsapp_number ?? null) as
+      | string
+      | null,
+    addressLine: (row.addressLine ?? row.address_line ?? null) as string | null,
+    buildingName: (row.buildingName ?? row.building_name ?? null) as
+      | string
+      | null,
+    primaryCampusId: (row.primaryCampusId ??
+      row.primary_campus_id ??
+      null) as string | null,
     area: String(row.area ?? ""),
     landmark: (row.landmark as string | null) ?? null,
     lng: parseCoord(row.lng),
@@ -170,8 +278,11 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     infrastructure,
     unitSpecs,
     description: (row.description as string) || undefined,
-    amenities: Array.isArray(row.amenities) ? (row.amenities as string[]) : undefined,
-    houseRules: Array.isArray(row.houseRules) ? (row.houseRules as string[]) : undefined,
+    amenities: rawAmenities,
+    houseRules:
+      Array.isArray(row.houseRules) && (row.houseRules as string[]).length > 0
+        ? (row.houseRules as string[])
+        : derivedRules,
     cancellationPolicy: (row.cancellationPolicy as string) || undefined,
   };
 }

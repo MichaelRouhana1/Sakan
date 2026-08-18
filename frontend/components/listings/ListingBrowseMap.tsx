@@ -1003,12 +1003,6 @@ export function ListingBrowseMap({
         fillContainer ? styles.rootFill : expanded && styles.rootExpanded,
       ]}
     >
-      {universityMode && campuses.length === 0 ? (
-        <LText variant="caption" tone="muted" style={styles.caption}>
-          Campus pin unavailable — showing listings only.
-        </LText>
-      ) : null}
-
       {/* Map shell — height morphs for immersive expand; preview stays below */}
       <Animated.View
         style={[
@@ -1281,7 +1275,6 @@ const styles = StyleSheet.create({
     gap: 0,
     position: "relative",
   },
-  caption: { marginBottom: 2 },
   mapShell: {
     borderRadius: Skoun.radius.lg,
     overflow: "hidden",

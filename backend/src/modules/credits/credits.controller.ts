@@ -7,7 +7,6 @@ export class CreditsController {
     try {
       const data = await creditsService.initiatePurchase(
         req.user!.id,
-        req.user!.role,
         req.body as CreatePurchaseInput,
       );
       res.status(201).json({ data });

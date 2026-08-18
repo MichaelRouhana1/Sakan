@@ -22,9 +22,69 @@ export const listingTypeEnum = pgEnum("listing_type", [
   "shared_dorm_bed",
 ]);
 
+export const spaceTypeEnum = pgEnum("space_type", [
+  "entire_place",
+  "private_room",
+  "shared_room",
+]);
+
+export const listingPropertyTypeEnum = pgEnum("listing_property_type", [
+  "apartment",
+  "studio",
+  "dormitory",
+  "house",
+]);
+
+export const priceBasisEnum = pgEnum("price_basis", [
+  "per_unit_month",
+  "per_bed_month",
+  "per_room_month",
+]);
+
+export const furnishingTypeEnum = pgEnum("furnishing_type", [
+  "furnished",
+  "semi",
+  "unfurnished",
+]);
+
+export const smokingPolicyEnum = pgEnum("smoking_policy", [
+  "inside",
+  "balcony_only",
+  "no",
+]);
+
+export const petsPolicyEnum = pgEnum("pets_policy", ["yes", "cats_only", "no"]);
+
+export const guestsPolicyEnum = pgEnum("guests_policy", [
+  "yes",
+  "no",
+  "restricted",
+]);
+
+export const leaseTermEnum = pgEnum("lease_term", [
+  "semester",
+  "months_6",
+  "months_9",
+  "year",
+  "flexible",
+]);
+
+export const paymentModalityEnum = pgEnum("payment_modality", [
+  "monthly",
+  "semester",
+  "quarterly",
+]);
+
+export const listingPosterRoleEnum = pgEnum("listing_poster_role", [
+  "landlord",
+  "student_sublet",
+  "agent",
+]);
+
 export const targetAudienceEnum = pgEnum("target_audience", [
   "anyone",
   "students_only",
+  "students_professionals",
 ]);
 
 export const genderRestrictionEnum = pgEnum("gender_restriction", [

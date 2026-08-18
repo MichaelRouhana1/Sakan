@@ -19,6 +19,7 @@ import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { openCreateListing } from "@/features/auth/useEnsureSession";
 import {
   AREA_REGIONS,
   DEMO_LISTINGS,
@@ -118,9 +119,6 @@ function AreaCityCard({
 function goBrowse() {
   router.push("/search" as never);
 }
-function goList() {
-  router.push("/(auth)/role-select" as never);
-}
 function goAuth() {
   router.push("/(auth)/phone" as never);
 }
@@ -167,6 +165,15 @@ function HomeNav({ solid }: { solid: boolean }) {
   const handleLogoutClick = async () => {
     setMenuOpen(false);
     await logout();
+  };
+
+  const handleListPlaceClick = () => {
+    setMenuOpen(false);
+    if (!isSignedIn) {
+      setAuthModalOpen(true);
+      return;
+    }
+    openCreateListing(router);
   };
 
   return (
@@ -282,21 +289,18 @@ function HomeNav({ solid }: { solid: boolean }) {
 
                   <Pressable
                     style={styles.homeMenuItem}
-                    onPress={() => setMenuOpen(false)}
+                    onPress={handleListPlaceClick}
                   >
-                    <Ionicons name="download-outline" size={18} color="#334155" />
-                    <Text style={styles.homeMenuText}>Download App</Text>
+                    <Ionicons name="list-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>List a place</Text>
                   </Pressable>
 
                   <Pressable
                     style={styles.homeMenuItem}
-                    onPress={() => {
-                      setMenuOpen(false);
-                      goList();
-                    }}
+                    onPress={() => setMenuOpen(false)}
                   >
-                    <Ionicons name="list-outline" size={18} color="#334155" />
-                    <Text style={styles.homeMenuText}>List with Us</Text>
+                    <Ionicons name="download-outline" size={18} color="#334155" />
+                    <Text style={styles.homeMenuText}>Download App</Text>
                   </Pressable>
 
                   {isSignedIn ? (
@@ -753,10 +757,7 @@ export function SkounHomePage() {
                   p.tone === "warm" && styles.promoWarm,
                   p.tone === "deep" && styles.promoDeep,
                 ]}
-                onPress={() => {
-                  if (p.action === "list") goList();
-                  else goBrowse();
-                }}
+                onPress={() => goBrowse()}
               >
                 <Text
                   style={[
@@ -825,23 +826,6 @@ export function SkounHomePage() {
             { paddingHorizontal: padX, flexDirection: isNarrow ? "column" : "row", gap: 16 },
           ]}
         >
-          <Pressable style={styles.bannerCard} onPress={goList}>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=70",
-              }}
-              style={StyleSheet.absoluteFillObject}
-              resizeMode="cover"
-            />
-            <View style={styles.bannerOverlay} />
-            <Text style={styles.bannerTitle}>List with us</Text>
-            <Text style={styles.bannerBody}>
-              Post apartments, rooms, and dorms. Reach renters who message on WhatsApp.
-            </Text>
-            <View style={styles.bannerBtn}>
-              <Text style={styles.bannerBtnText}>List properties</Text>
-            </View>
-          </Pressable>
           <Pressable style={styles.bannerCard} onPress={goBrowse}>
             <Image
               source={{
@@ -939,13 +923,6 @@ export function SkounHomePage() {
               <Text style={styles.helpTitle}>Email us</Text>
               <Text style={styles.helpMeta}>hello@skoun.app</Text>
             </Pressable>
-            <Pressable onPress={goList} style={styles.helpCard}>
-              <View style={[styles.helpIcon, { backgroundColor: "#FEE4E2" }]}>
-                <Ionicons name="home-outline" size={24} color={Skoun.color.danger} />
-              </View>
-              <Text style={styles.helpTitle}>List a place</Text>
-              <Text style={styles.helpMeta}>For landlords & brokers</Text>
-            </Pressable>
           </View>
         </View>
 
@@ -964,9 +941,6 @@ export function SkounHomePage() {
                 <Pressable onPress={goBrowse}>
                   <Text style={styles.footerLink}>Find housing</Text>
                 </Pressable>
-                <Pressable onPress={goList}>
-                  <Text style={styles.footerLink}>List a place</Text>
-                </Pressable>
               </View>
               <View>
                 <Text style={styles.footerHead}>Support</Text>
@@ -981,9 +955,6 @@ export function SkounHomePage() {
                 <Text style={styles.footerHead}>Account</Text>
                 <Pressable onPress={goAuth}>
                   <Text style={styles.footerLink}>Sign in</Text>
-                </Pressable>
-                <Pressable onPress={goList}>
-                  <Text style={styles.footerLink}>Get started</Text>
                 </Pressable>
               </View>
             </View>

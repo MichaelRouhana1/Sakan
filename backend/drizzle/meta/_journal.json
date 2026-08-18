@@ -64,6 +64,13 @@
       "when": 1786773600000,
       "tag": "0008_drop_email_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786780800000,
+      "tag": "0009_listing_wizard",
+      "breakpoints": true
     }
   ]
 }

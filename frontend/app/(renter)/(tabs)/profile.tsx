@@ -173,21 +173,6 @@ export default function ProfileScreen() {
 
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => router.push("/(poster)/(tabs)/create" as never)}
-          >
-            <View style={styles.menuLeft}>
-              <View style={styles.menuIconBg}>
-                <Ionicons name="add-circle-outline" size={20} color={Skoun.color.ink} />
-              </View>
-              <Text style={styles.menuLabel}>List Property</Text>
-            </View>
-            <View style={styles.chevronCircle}>
-              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-            </View>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>

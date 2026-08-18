@@ -18,7 +18,7 @@ listingsRouter.get("/mine", requireAuth, (req, res, next) =>
 listingsRouter.post(
   "/photos",
   requireAuth,
-  listingPhotoUpload.array("photos", 8),
+  listingPhotoUpload.array("photos", 15),
   (req, res, next) => listingsController.uploadPhotos(req, res, next),
 );
 

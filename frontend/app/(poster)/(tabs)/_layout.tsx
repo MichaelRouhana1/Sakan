@@ -26,15 +26,8 @@ export default function PosterTabsLayout() {
       <NativeTabs.Trigger name="index">
         <Label>Listings</Label>
         <Icon
-          sf={{ default: "square.grid.2x2", selected: "square.grid.2x2.fill" }}
-          androidSrc={<VectorIcon family={Ionicons} name="grid-outline" />}
-        />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="create">
-        <Label>Create</Label>
-        <Icon
-          sf={{ default: "plus.circle", selected: "plus.circle.fill" }}
-          androidSrc={<VectorIcon family={Ionicons} name="add-circle" />}
+          sf={{ default: "house", selected: "house.fill" }}
+          androidSrc={<VectorIcon family={Ionicons} name="home-outline" />}
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="credits">

@@ -814,12 +814,6 @@ export function ListingBrowseMap({
         fillContainer && styles.rootFill,
       ]}
     >
-      {universityMode && campuses.length === 0 ? (
-        <LText variant="caption" tone="muted" style={styles.caption}>
-          Campus pin unavailable — showing listings only.
-        </LText>
-      ) : null}
-
       <Animated.View
         style={[
           styles.mapShell,
@@ -905,7 +899,6 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
-  caption: { marginBottom: 2 },
   mapShell: {
     borderRadius: Skoun.radius.lg,
     overflow: "hidden",

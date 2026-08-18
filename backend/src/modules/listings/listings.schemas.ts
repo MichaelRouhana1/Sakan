@@ -51,33 +51,84 @@ const locationWktSchema = z
     );
   }, "locationWkt must be within Lebanon");
 
+const amenitySlugSchema = z.string().min(1).max(48);
+const highlightTagSchema = z.string().min(1).max(48);
+
 export const createListingSchema = z.object({
-  listingType: z.enum([
-    "entire_apartment",
-    "studio",
-    "private_room",
-    "shared_dorm_bed",
-  ]),
-  targetAudience: z.enum(["anyone", "students_only"]).default("anyone"),
+  spaceType: z.enum(["entire_place", "private_room", "shared_room"]),
+  propertyType: z.enum(["apartment", "studio", "dormitory", "house"]),
+  priceBasis: z
+    .enum(["per_unit_month", "per_bed_month", "per_room_month"])
+    .default("per_unit_month"),
+  /** Optional; derived from spaceType + propertyType when omitted. */
+  listingType: z
+    .enum([
+      "entire_apartment",
+      "studio",
+      "private_room",
+      "shared_dorm_bed",
+    ])
+    .optional(),
+  targetAudience: z
+    .enum(["anyone", "students_only", "students_professionals"])
+    .default("anyone"),
   genderRestriction: z
     .enum(["anyone", "boys_only", "girls_only"])
     .default("anyone"),
   monthlyRentUsd: z.coerce.number().int().positive(),
+  securityDepositUsd: z.coerce.number().int().min(0).default(0),
+  leaseTerm: z
+    .enum(["semester", "months_6", "months_9", "year", "flexible"])
+    .default("flexible"),
+  availableFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "availableFrom must be YYYY-MM-DD")
+    .nullable()
+    .optional(),
+  paymentModality: z
+    .enum(["monthly", "semester", "quarterly"])
+    .default("monthly"),
   electricity: z.enum(["solar", "generator_24_7", "scheduled_cuts"]),
   water: z.enum(["state_well_24_7", "tank_delivery"]),
   wifiIncluded: z.boolean().default(false),
   routerUps: z.boolean().default(false),
   elevator24_7: z.boolean().default(false),
+  hasElevator: z.boolean().default(false),
+  hasSolar: z.boolean().default(false),
+  generatorAmperes: z.coerce.number().int().positive().nullable().optional(),
+  generatorIncluded: z.boolean().default(false),
+  conciergeIncluded: z.boolean().default(false),
+  cookingGasIncluded: z.boolean().default(false),
+  amenities: z.array(amenitySlugSchema).max(24).default([]),
+  bedrooms: z.coerce.number().int().min(0).max(12),
+  beds: z.coerce.number().int().min(1).max(20),
+  bathrooms: z.coerce.number().min(0.5).max(10),
+  maxOccupancy: z.coerce.number().int().min(1).max(20),
+  furnishingType: z.enum(["furnished", "semi", "unfurnished"]),
+  floorNumber: z.coerce.number().int().min(0).max(80),
+  areaSqm: z.coerce.number().int().positive().nullable().optional(),
+  smokingPolicy: z.enum(["inside", "balcony_only", "no"]).default("no"),
+  petsPolicy: z.enum(["yes", "cats_only", "no"]).default("no"),
+  guestsPolicy: z.enum(["yes", "no", "restricted"]).default("restricted"),
+  quietHours: z.boolean().default(false),
+  title: z.string().trim().min(10).max(60),
+  description: z.string().trim().min(20).max(4000),
+  highlightTags: z.array(highlightTagSchema).max(8).default([]),
+  listingPosterRole: z
+    .enum(["landlord", "student_sublet", "agent"])
+    .default("landlord"),
+  contactName: z.string().trim().min(2).max(80),
+  contactPhone: z.string().trim().min(8).max(32).optional(),
+  whatsappNumber: z.string().trim().min(8).max(32).optional(),
   area: z.string().min(1).max(128),
   landmark: z.string().max(256).optional(),
+  addressLine: z.string().trim().max(256).optional(),
+  buildingName: z.string().trim().max(128).optional(),
+  primaryCampusId: z.string().uuid().nullable().optional(),
   /** WKT POINT(lng lat) — required; must be a real pin inside Lebanon */
   locationWkt: locationWktSchema,
-  /** PRD: minimum 1, maximum 8 compressed images */
-  photoUrls: z.array(photoUrlSchema).min(1).max(8),
-  /**
-   * Temporary: publishing is free (no credit spend).
-   * When true (default), listing goes active for 30 days immediately.
-   */
+  photoUrls: z.array(photoUrlSchema).min(3).max(15),
+  photoCaptions: z.array(z.string().max(48)).max(15).optional(),
   publishNow: z.boolean().default(true),
 });
 
@@ -364,4 +415,5 @@ export type ListingPhotoDto = {
   id: string;
   url: string;
   sortOrder: number;
+  caption: string | null;
 };

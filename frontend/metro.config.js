@@ -5,6 +5,14 @@ const path = require('path');
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
+// Lottie JSON must be a JS module (object), not an asset number.
+config.resolver.assetExts = config.resolver.assetExts.filter(
+  (ext) => ext !== "json",
+);
+if (!config.resolver.sourceExts.includes("json")) {
+  config.resolver.sourceExts.push("json");
+}
+
 // ---------------------------------------------------------------------------
 // Fix: react-native-svg v15 ships a `"react-native": "src/index.ts"` field
 // in its package.json.  Metro follows that entry point and then fails to

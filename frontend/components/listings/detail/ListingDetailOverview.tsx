@@ -21,7 +21,9 @@ type Props = {
 
 export function ListingDetailOverview({ listing, onViewMap }: Props) {
   const title =
-    listing.pbsaBuildingName?.trim() || listing.area;
+    listing.title?.trim() ||
+    listing.pbsaBuildingName?.trim() ||
+    listing.area;
   const hasPin = listing.lat != null && listing.lng != null;
   const distance = formatDistanceMeters(
     listing.distanceMeters,

@@ -144,7 +144,8 @@ export function ListingDetailWeb({ listingId }: Props) {
     ? selectedRoom.monthlyRentUsd
     : listing.monthlyRentUsd;
 
-  const posterPhone = "+96170000000";
+  const posterPhone =
+    listing.whatsappNumber || listing.contactPhone || null;
   const canContact = hasUsableWhatsAppPhone(posterPhone);
   const distance = formatDistanceMeters(
     listing.distanceMeters,
@@ -851,6 +852,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           <Pressable
             style={styles.enquireNowBtn}
             onPress={() => {
+              if (!posterPhone || !canContact) return;
               const url = buildWhatsAppListingUrl({
                 phone: posterPhone,
                 propertyType: selectedRoom ? selectedRoom.name : labelListingType(listing.listingType),
@@ -951,6 +953,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               label="Open WhatsApp Direct Chat"
               icon={<Ionicons name="logo-whatsapp" size={18} color="#fff" />}
               onPress={() => {
+                if (!posterPhone || !canContact) return;
                 setInquiryModalOpen(false);
                 const url = buildWhatsAppListingUrl({
                   phone: posterPhone,

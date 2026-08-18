@@ -43,8 +43,11 @@ import {
 import { safeBack } from "@/lib/safeBack";
 
 /** When listing APIs expose poster phone, pass it here. */
-function getPosterPhone(_listingId: string): string | null {
-  return null;
+function listingWhatsApp(listing: {
+  whatsappNumber?: string | null;
+  contactPhone?: string | null;
+}): string | null {
+  return listing.whatsappNumber || listing.contactPhone || null;
 }
 
 type Props = {
@@ -161,7 +164,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     );
   }
 
-  const posterPhone = getPosterPhone(listing.id);
+  const posterPhone = listingWhatsApp(listing);
 
   return (
     <ListerScreen edges={["left", "right"]}>

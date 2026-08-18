@@ -23,7 +23,7 @@ export function errorHandler(
       err.code === "LIMIT_FILE_SIZE"
         ? "Each photo must be under 8MB"
         : err.code === "LIMIT_FILE_COUNT"
-          ? "Maximum 8 photos per upload"
+          ? "Maximum 15 photos per upload"
           : err.message;
     res.status(400).json({
       error: {

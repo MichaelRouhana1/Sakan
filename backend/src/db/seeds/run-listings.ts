@@ -115,6 +115,8 @@ async function main() {
         elevator24_7: seed.elevator24_7,
         area: seed.area,
         landmark: seed.landmark,
+        title: seed.landmark.slice(0, 60),
+        description: `Student housing in ${seed.area} near ${seed.landmark}. Quiet building, close to campus.`,
         location: sql`ST_GeogFromText(${seed.location})`,
         publishedAt: now,
         expiresAt,

@@ -1,16 +1,17 @@
 import { AppError, ForbiddenError, NotFoundError, ValidationError } from "../../lib/errors.js";
 import { generateReferenceId } from "../../lib/reference-id.js";
+import { usersRepository } from "../users/users.repository.js";
 import { BUNDLE_CATALOG, type CreatePurchaseInput } from "./credits.schemas.js";
 import { creditsRepository } from "./credits.repository.js";
 
 export class CreditsService {
-  async initiatePurchase(
-    userId: string,
-    role: "renter" | "poster",
-    input: CreatePurchaseInput,
-  ) {
-    if (role !== "poster") {
-      throw new ForbiddenError("Only posters can purchase credits");
+  async initiatePurchase(userId: string, input: CreatePurchaseInput) {
+    const user = await usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.role !== "poster") {
+      throw new ForbiddenError("Only hosts can purchase credits");
     }
 
     let postCreditsDelta = 0;

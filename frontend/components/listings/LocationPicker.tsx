@@ -44,6 +44,7 @@ type Props = {
   area: LebanonArea;
   value: ListingPin;
   onChange: (next: ListingPin) => void;
+  invalid?: boolean;
 };
 
 function regionFrom(coord: LatLng, delta = 0.012): Region {
@@ -55,7 +56,7 @@ function regionFrom(coord: LatLng, delta = 0.012): Region {
   };
 }
 
-export function LocationPicker({ area, value, onChange }: Props) {
+export function LocationPicker({ area, value, onChange, invalid }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
@@ -218,7 +219,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
       ) : null}
 
       <View
-        style={styles.mapShell}
+        style={[styles.mapShell, invalid && styles.mapShellInvalid]}
         accessibilityLabel="Map to place listing pin"
       >
         {!mapReady ? (
@@ -525,6 +526,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Lister.color.border,
     backgroundColor: Lister.color.bgWash,
+  },
+  mapShellInvalid: {
+    borderWidth: 2,
+    borderColor: Lister.color.danger,
+    backgroundColor: Lister.color.dangerSoft,
   },
   map: { ...StyleSheet.absoluteFillObject },
   mapLoading: {

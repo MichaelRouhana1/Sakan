@@ -1,4 +1,6 @@
+import type { AxiosRequestHeaders } from "axios";
 import * as ImageManipulator from "expo-image-manipulator";
+import { Platform } from "react-native";
 import { api } from "@/lib/api";
 
 const MAX_EDGE = 1600;
@@ -32,6 +34,45 @@ type UploadResponse = {
   };
 };
 
+function stripMultipartContentType(headers: AxiosRequestHeaders) {
+  if (typeof headers.delete === "function") {
+    headers.delete("Content-Type");
+    return;
+  }
+  delete (headers as Record<string, string>)["Content-Type"];
+}
+
+async function appendPhoto(
+  form: FormData,
+  asset: LocalPhotoAsset,
+  index: number,
+): Promise<void> {
+  const baseName =
+    asset.fileName?.replace(/\.[^.]+$/, "") ?? `photo-${index}`;
+  const filename = `${baseName}.jpg`;
+  const mimeType = asset.mimeType ?? "image/jpeg";
+
+  if (Platform.OS === "web") {
+    const response = await fetch(asset.uri);
+    const blob = await response.blob();
+    const type =
+      blob.type && blob.type !== "application/octet-stream"
+        ? blob.type
+        : mimeType;
+    form.append("photos", new File([blob], filename, { type }));
+    return;
+  }
+
+  form.append(
+    "photos",
+    {
+      uri: asset.uri,
+      name: filename,
+      type: mimeType,
+    } as unknown as Blob,
+  );
+}
+
 /** Upload one or more compressed images; returns public URLs in order. */
 export async function uploadListingPhotos(
   assets: LocalPhotoAsset[],
@@ -40,21 +81,19 @@ export async function uploadListingPhotos(
 
   const form = new FormData();
   for (const [index, asset] of assets.entries()) {
-    const name = asset.fileName?.replace(/\.[^.]+$/, "") ?? `photo-${index}`;
-    form.append("photos", {
-      uri: asset.uri,
-      name: `${name}.jpg`,
-      type: asset.mimeType ?? "image/jpeg",
-    } as unknown as Blob);
+    await appendPhoto(form, asset, index);
   }
 
   const { data } = await api.post<UploadResponse>(
     "/api/listings/photos",
     form,
     {
-      // Override JSON default so RN can set multipart boundary
-      headers: { "Content-Type": "multipart/form-data" },
-      transformRequest: (body) => body as FormData,
+      transformRequest: (body, headers) => {
+        if (body instanceof FormData) {
+          stripMultipartContentType(headers);
+        }
+        return body;
+      },
       timeout: 60_000,
     },
   );

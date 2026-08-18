@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { api } from "@/lib/api";
 import type { User } from "@/types/user";
 import { Skoun } from "@/constants/theme";
@@ -87,6 +88,14 @@ export default function RenterNewHomeScreen() {
     });
   };
 
+  const handleListPlace = () => {
+    if (!isSignedIn) {
+      router.push("/(auth)/phone" as never);
+      return;
+    }
+    openCreateListing(router);
+  };
+
   const fitTileWidth = (width - 40 - 12) / 2; // two column with padding 20 and gap 12
 
   // Styled icons for our Governorates selector (to match Amber's circular flags)
@@ -144,7 +153,7 @@ export default function RenterNewHomeScreen() {
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>skoun</Text>
               <Pressable
-                onPress={() => router.push("/(auth)/role-select" as never)}
+                onPress={handleListPlace}
                 style={styles.listBtn}
               >
                 <Text style={styles.listBtnText}>List Property</Text>
@@ -440,7 +449,7 @@ export default function RenterNewHomeScreen() {
                   ]}
                   onPress={() => {
                     if (p.action === "list") {
-                      router.push("/(auth)/role-select" as never);
+                      handleListPlace();
                     } else {
                       router.push("/search");
                     }
@@ -572,17 +581,6 @@ export default function RenterNewHomeScreen() {
               </View>
               <Text style={styles.helpTileTitle}>Email Us</Text>
               <Text style={styles.helpTileMeta}>hello@skoun.app</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/(auth)/role-select" as never)}
-              style={styles.helpTile}
-            >
-              <View style={[styles.helpTileIconBox, { backgroundColor: "#FEE4E2" }]}>
-                <Ionicons name="home-outline" size={20} color={Skoun.color.danger} />
-              </View>
-              <Text style={styles.helpTileTitle}>List Place</Text>
-              <Text style={styles.helpTileMeta}>For landlords</Text>
             </Pressable>
           </View>
         </View>

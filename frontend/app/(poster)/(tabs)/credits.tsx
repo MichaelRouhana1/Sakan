@@ -48,11 +48,11 @@ export default function CreditsScreen() {
           <GlassSurface intensity="soft" style={styles.banner}>
             <View style={styles.bannerInner}>
               <LText variant="subtitle" tone="primary">
-                Posting is free right now
+                First live listing is free
               </LText>
               <LText variant="body" tone="muted">
-                Credits are for future paid posts and 7‑day boosts. You don’t need
-                them to list a place today.
+                Extra live posts and 7-day boosts use credits. Buy a pack if you
+                already have a listing online.
               </LText>
             </View>
           </GlassSurface>

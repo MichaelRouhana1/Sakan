@@ -17,6 +17,7 @@ import {
 } from "../../constants/mapCoincident.js";
 import { db } from "../../db/index.js";
 import { listingPhotos, listings } from "../../db/schema/index.js";
+import { deriveListingType } from "./deriveListingType.js";
 import type {
   CreateListingInput,
   ListingPhotoDto,
@@ -40,16 +41,51 @@ export const listingPublicColumns = {
   posterId: listings.posterId,
   status: listings.status,
   listingType: listings.listingType,
+  spaceType: listings.spaceType,
+  propertyType: listings.propertyType,
+  priceBasis: listings.priceBasis,
   targetAudience: listings.targetAudience,
   genderRestriction: listings.genderRestriction,
   monthlyRentUsd: listings.monthlyRentUsd,
+  securityDepositUsd: listings.securityDepositUsd,
+  leaseTerm: listings.leaseTerm,
+  availableFrom: listings.availableFrom,
+  paymentModality: listings.paymentModality,
   electricity: listings.electricity,
   water: listings.water,
   wifiIncluded: listings.wifiIncluded,
   routerUps: listings.routerUps,
   elevator24_7: listings.elevator24_7,
+  hasElevator: listings.hasElevator,
+  hasSolar: listings.hasSolar,
+  generatorAmperes: listings.generatorAmperes,
+  generatorIncluded: listings.generatorIncluded,
+  conciergeIncluded: listings.conciergeIncluded,
+  cookingGasIncluded: listings.cookingGasIncluded,
+  amenities: listings.amenities,
+  bedrooms: listings.bedrooms,
+  beds: listings.beds,
+  bathrooms: listings.bathrooms,
+  maxOccupancy: listings.maxOccupancy,
+  furnishingType: listings.furnishingType,
+  floorNumber: listings.floorNumber,
+  areaSqm: listings.areaSqm,
+  smokingPolicy: listings.smokingPolicy,
+  petsPolicy: listings.petsPolicy,
+  guestsPolicy: listings.guestsPolicy,
+  quietHours: listings.quietHours,
+  title: listings.title,
+  description: listings.description,
+  highlightTags: listings.highlightTags,
+  listingPosterRole: listings.listingPosterRole,
+  contactName: listings.contactName,
+  contactPhone: listings.contactPhone,
+  whatsappNumber: listings.whatsappNumber,
   area: listings.area,
   landmark: listings.landmark,
+  addressLine: listings.addressLine,
+  buildingName: listings.buildingName,
+  primaryCampusId: listings.primaryCampusId,
   viewCount: listings.viewCount,
   publishedAt: listings.publishedAt,
   expiresAt: listings.expiresAt,
@@ -64,6 +100,23 @@ function parseCoord(value: unknown): number | null {
   if (value == null || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function parseJsonStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === "string");
+      }
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 /** Drizzle AND fragments for property browse filters. */
@@ -175,6 +228,7 @@ export class ListingsRepository {
         id: listingPhotos.id,
         listingId: listingPhotos.listingId,
         url: listingPhotos.url,
+        caption: listingPhotos.caption,
         sortOrder: listingPhotos.sortOrder,
       })
       .from(listingPhotos)
@@ -187,6 +241,7 @@ export class ListingsRepository {
         id: row.id,
         url: row.url,
         sortOrder: row.sortOrder,
+        caption: row.caption ?? null,
       });
       map.set(row.listingId, list);
     }
@@ -361,16 +416,51 @@ export class ListingsRepository {
         l.poster_id,
         l.status,
         l.listing_type,
+        l.space_type,
+        l.property_type,
+        l.price_basis,
         l.target_audience,
         l.gender_restriction,
         l.monthly_rent_usd,
+        l.security_deposit_usd,
+        l.lease_term,
+        l.available_from,
+        l.payment_modality,
         l.electricity,
         l.water,
         l.wifi_included,
         l.router_ups,
         l.elevator_24_7,
+        l.has_elevator,
+        l.has_solar,
+        l.generator_amperes,
+        l.generator_included,
+        l.concierge_included,
+        l.cooking_gas_included,
+        l.amenities,
+        l.bedrooms,
+        l.beds,
+        l.bathrooms,
+        l.max_occupancy,
+        l.furnishing_type,
+        l.floor_number,
+        l.area_sqm,
+        l.smoking_policy,
+        l.pets_policy,
+        l.guests_policy,
+        l.quiet_hours,
+        l.title,
+        l.description,
+        l.highlight_tags,
+        l.listing_poster_role,
+        l.contact_name,
+        l.contact_phone,
+        l.whatsapp_number,
         l.area,
         l.landmark,
+        l.address_line,
+        l.building_name,
+        l.primary_campus_id,
         l.view_count,
         l.published_at,
         l.expires_at,
@@ -395,16 +485,52 @@ export class ListingsRepository {
       posterId: String(row.poster_id),
       status: row.status as "active",
       listingType: row.listing_type,
+      spaceType: row.space_type,
+      propertyType: row.property_type,
+      priceBasis: row.price_basis,
       targetAudience: row.target_audience,
       genderRestriction: row.gender_restriction,
       monthlyRentUsd: Number(row.monthly_rent_usd),
+      securityDepositUsd: Number(row.security_deposit_usd ?? 0),
+      leaseTerm: row.lease_term,
+      availableFrom: row.available_from ?? null,
+      paymentModality: row.payment_modality,
       electricity: row.electricity,
       water: row.water,
       wifiIncluded: Boolean(row.wifi_included),
       routerUps: Boolean(row.router_ups),
       elevator24_7: Boolean(row.elevator_24_7),
+      hasElevator: Boolean(row.has_elevator),
+      hasSolar: Boolean(row.has_solar),
+      generatorAmperes:
+        row.generator_amperes == null ? null : Number(row.generator_amperes),
+      generatorIncluded: Boolean(row.generator_included),
+      conciergeIncluded: Boolean(row.concierge_included),
+      cookingGasIncluded: Boolean(row.cooking_gas_included),
+      amenities: parseJsonStringArray(row.amenities),
+      bedrooms: Number(row.bedrooms ?? 1),
+      beds: Number(row.beds ?? 1),
+      bathrooms: Number(row.bathrooms ?? 1),
+      maxOccupancy: Number(row.max_occupancy ?? 1),
+      furnishingType: row.furnishing_type,
+      floorNumber: Number(row.floor_number ?? 0),
+      areaSqm: row.area_sqm == null ? null : Number(row.area_sqm),
+      smokingPolicy: row.smoking_policy,
+      petsPolicy: row.pets_policy,
+      guestsPolicy: row.guests_policy,
+      quietHours: Boolean(row.quiet_hours),
+      title: String(row.title ?? ""),
+      description: String(row.description ?? ""),
+      highlightTags: parseJsonStringArray(row.highlight_tags),
+      listingPosterRole: row.listing_poster_role,
+      contactName: String(row.contact_name ?? ""),
+      contactPhone: (row.contact_phone as string | null) ?? null,
+      whatsappNumber: (row.whatsapp_number as string | null) ?? null,
       area: String(row.area),
       landmark: (row.landmark as string | null) ?? null,
+      addressLine: (row.address_line as string | null) ?? null,
+      buildingName: (row.building_name as string | null) ?? null,
+      primaryCampusId: (row.primary_campus_id as string | null) ?? null,
       viewCount: Number(row.view_count ?? 0),
       publishedAt: row.published_at ?? null,
       expiresAt: row.expires_at ?? null,
@@ -444,22 +570,61 @@ export class ListingsRepository {
     const publishNow = input.publishNow !== false;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const listingType =
+      input.listingType ??
+      deriveListingType(input.spaceType, input.propertyType);
+    const captions = input.photoCaptions ?? [];
 
     const [row] = await db
       .insert(listings)
       .values({
         posterId,
-        listingType: input.listingType,
+        listingType,
+        spaceType: input.spaceType,
+        propertyType: input.propertyType,
+        priceBasis: input.priceBasis,
         targetAudience: input.targetAudience,
         genderRestriction: input.genderRestriction,
         monthlyRentUsd: input.monthlyRentUsd,
+        securityDepositUsd: input.securityDepositUsd,
+        leaseTerm: input.leaseTerm,
+        availableFrom: input.availableFrom ?? null,
+        paymentModality: input.paymentModality,
         electricity: input.electricity,
         water: input.water,
         wifiIncluded: input.wifiIncluded,
         routerUps: input.routerUps,
         elevator24_7: input.elevator24_7,
+        hasElevator: input.hasElevator,
+        hasSolar: input.hasSolar,
+        generatorAmperes: input.generatorAmperes ?? null,
+        generatorIncluded: input.generatorIncluded,
+        conciergeIncluded: input.conciergeIncluded,
+        cookingGasIncluded: input.cookingGasIncluded,
+        amenities: input.amenities,
+        bedrooms: input.bedrooms,
+        beds: input.beds,
+        bathrooms: input.bathrooms,
+        maxOccupancy: input.maxOccupancy,
+        furnishingType: input.furnishingType,
+        floorNumber: input.floorNumber,
+        areaSqm: input.areaSqm ?? null,
+        smokingPolicy: input.smokingPolicy,
+        petsPolicy: input.petsPolicy,
+        guestsPolicy: input.guestsPolicy,
+        quietHours: input.quietHours,
+        title: input.title,
+        description: input.description,
+        highlightTags: input.highlightTags,
+        listingPosterRole: input.listingPosterRole,
+        contactName: input.contactName,
+        contactPhone: input.contactPhone ?? null,
+        whatsappNumber: input.whatsappNumber ?? null,
         area: input.area,
         landmark: input.landmark,
+        addressLine: input.addressLine ?? null,
+        buildingName: input.buildingName ?? null,
+        primaryCampusId: input.primaryCampusId ?? null,
         location: sql`ST_GeogFromText(${input.locationWkt})`,
         status: publishNow ? "active" : "draft",
         publishedAt: publishNow ? now : null,
@@ -475,6 +640,7 @@ export class ListingsRepository {
       input.photoUrls.map((url, index) => ({
         listingId: row.id,
         url,
+        caption: captions[index]?.trim() ? captions[index].trim() : null,
         sortOrder: index,
       })),
     );

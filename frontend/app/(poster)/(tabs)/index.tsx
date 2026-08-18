@@ -49,11 +49,11 @@ export default function PosterDashboardScreen() {
           <Enter>
             <View style={styles.header}>
               <LText variant="label" tone="brass">
-                Landlord home
+                Your places
               </LText>
-              <LText variant="display">Skoun</LText>
+              <LText variant="display">Listings</LText>
               <LText variant="body" tone="muted">
-                Your listings — free to post for 30 days.
+                First live listing is free. Extra live posts use one credit.
               </LText>
             </View>
 
@@ -134,7 +134,7 @@ export default function PosterDashboardScreen() {
           ) : (
             <EmptyState
               title="No listings yet"
-              body="Publish your first place — free for 30 days. Renters will see it in Cities and University Hub."
+              body="Publish your first place — first live listing is free."
               ctaLabel="Create a listing"
               onCta={() => router.push("/(poster)/create" as never)}
               icon="add-circle-outline"

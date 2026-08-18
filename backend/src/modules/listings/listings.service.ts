@@ -1,5 +1,4 @@
 import {
-  ForbiddenError,
   InsufficientCreditsError,
   NotFoundError,
   ValidationError,
@@ -128,33 +127,40 @@ export class ListingsService {
     return { data, campuses: [] };
   }
 
-  async listMine(posterId: string, role: "renter" | "poster") {
-    if (role !== "poster") {
-      throw new ForbiddenError("Only posters can view their listings");
-    }
+  async listMine(posterId: string) {
     return listingsRepository.listByPoster(posterId);
+  }
+
+  /** First listing promotes renter → poster (host) in DB. */
+  private async ensurePoster(userId: string) {
+    const user = await usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.role === "poster") {
+      return user;
+    }
+    const updated = await usersRepository.updateRole(userId, "poster");
+    if (!updated) {
+      throw new NotFoundError("User not found");
+    }
+    return updated;
   }
 
   /**
    * Publish rules: 1 live listing free; 2nd+ costs a post credit.
    * Free-slot replacements capped per calendar month.
    */
-  async create(
-    posterId: string,
-    role: "renter" | "poster",
-    input: CreateListingInput,
-  ) {
-    if (role !== "poster") {
-      throw new ForbiddenError("Only posters can create listings");
-    }
+  async create(posterId: string, input: CreateListingInput) {
+    await this.ensurePoster(posterId);
     if (!input.locationWkt) {
       throw new ValidationError("locationWkt is required");
     }
-    if (input.photoUrls.length < 1) {
-      throw new ValidationError("At least one photo is required");
+    if (input.photoUrls.length < 3) {
+      throw new ValidationError("At least 3 photos are required");
     }
-    if (input.photoUrls.length > 8) {
-      throw new ValidationError("Maximum 8 photos allowed");
+    if (input.photoUrls.length > 15) {
+      throw new ValidationError("Maximum 15 photos allowed");
     }
 
     const publishNow = input.publishNow !== false;
@@ -172,10 +178,7 @@ export class ListingsService {
     return created;
   }
 
-  async archive(posterId: string, role: "renter" | "poster", listingId: string) {
-    if (role !== "poster") {
-      throw new ForbiddenError("Only posters can archive listings");
-    }
+  async archive(posterId: string, listingId: string) {
     const row = await listingsRepository.archiveById(listingId, posterId);
     if (!row) {
       throw new NotFoundError("Active listing not found");

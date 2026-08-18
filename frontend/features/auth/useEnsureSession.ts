@@ -1,3 +1,4 @@
+import type { Router } from "expo-router";
 import { api } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { getSession, setSession } from "@/lib/session";
@@ -14,8 +15,8 @@ export class AuthRequiredError extends Error {
 }
 
 /**
- * Switch renter ↔ poster in-app: update DB role + session, clear queries,
- * no full page reload — caller should router.replace to the other shell.
+ * Legacy role switch — prefer shell navigation without changing DB role.
+ * Still used if something must force poster in DB before an action.
  */
 export async function switchToRole(role: UserRole): Promise<User> {
   const session = await getSession();
@@ -33,4 +34,14 @@ export async function switchToRole(role: UserRole): Promise<User> {
   await setSession({ userId: data.data.id, role: data.data.role });
   queryClient.clear();
   return data.data;
+}
+
+/** Open listing wizard — no role switch; publish promotes you to host. */
+export function openCreateListing(router: Pick<Router, "push">): void {
+  router.push("/(poster)/create" as never);
+}
+
+/** @deprecated Use openCreateListing — host role is granted on first publish. */
+export async function enterPosterShell(): Promise<void> {
+  await switchToRole("poster");
 }

@@ -28,6 +28,27 @@ export function ListingDetailUnitSpecs({ listing }: Props) {
           label="Type"
           value={labelListingType(listing.listingType)}
         />
+        {listing.bedrooms != null ? (
+          <Tile
+            icon="bed-outline"
+            label="Bedrooms"
+            value={listing.bedrooms === 0 ? "Studio" : String(listing.bedrooms)}
+          />
+        ) : null}
+        {listing.bathrooms != null && listing.bathrooms > 0 ? (
+          <Tile
+            icon="water-outline"
+            label="Baths"
+            value={String(listing.bathrooms)}
+          />
+        ) : null}
+        {listing.areaSqm != null ? (
+          <Tile
+            icon="resize-outline"
+            label="Size"
+            value={`${listing.areaSqm} m²`}
+          />
+        ) : null}
         {floor != null && String(floor).length > 0 ? (
           <Tile icon="layers-outline" label="Floor" value={String(floor)} />
         ) : null}

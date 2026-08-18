@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
-import { AuthRequiredError, switchToRole } from "@/features/auth/useEnsureSession";
+import { AuthRequiredError } from "@/features/auth/useEnsureSession";
 import { getSession } from "@/lib/session";
 import type { UserRole } from "@/types/user";
 
@@ -14,29 +14,34 @@ type Props = {
 };
 
 /**
- * Role flip for signed-in users — updates DB role and navigates without reload.
+ * Browse ↔ host dashboard — navigation only; DB role updates on first publish.
  */
 export function SwitchRoleControl({ currentRole }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nextRole: UserRole = currentRole === "renter" ? "poster" : "renter";
   const label =
-    nextRole === "poster" ? "Switch to listing a place" : "Switch to finding a place";
+    nextRole === "poster" ? "Host dashboard" : "Browse listings";
 
   async function onSwitch() {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
-      // Ensure headers still send current role until switch completes.
-      await getSession();
-      await switchToRole(nextRole);
-      router.replace((nextRole === "renter" ? "/(renter)" : "/(poster)") as never);
+      const session = await getSession();
+      if (!session) {
+        throw new AuthRequiredError();
+      }
+      if (nextRole === "renter") {
+        router.replace("/(renter)" as never);
+      } else {
+        router.replace("/(poster)/(tabs)" as never);
+      }
     } catch (err) {
       setError(
         err instanceof AuthRequiredError
-          ? "Sign in to switch roles."
-          : "Couldn’t switch roles. Try again.",
+          ? "Sign in to continue."
+          : "Couldn’t switch views. Try again.",
       );
     } finally {
       setBusy(false);

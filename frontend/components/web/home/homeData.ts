@@ -355,14 +355,6 @@ export const VALUE_PROPS = [
 
 export const PROMO_CARDS = [
   {
-    id: "list",
-    title: "List your place",
-    body: "Reach renters who message on WhatsApp. Credits unlock extra live listings.",
-    cta: "Start listing",
-    tone: "warm" as const,
-    action: "list" as const,
-  },
-  {
     id: "browse",
     title: "Browse near campus",
     body: "Pick AUB, LAU, USJ and sort by distance to the gate.",

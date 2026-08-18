@@ -19,6 +19,7 @@ import {
   WEB_NAV_HEIGHT,
 } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { openCreateListing } from "@/features/auth/useEnsureSession";
 
 type Props = {
   showSearch?: boolean;
@@ -48,6 +49,15 @@ export function WebTopNav({ showSearch = false }: Props) {
   const handleLogoutClick = async () => {
     setMenuOpen(false);
     await logout();
+  };
+
+  const handleListPlaceClick = () => {
+    setMenuOpen(false);
+    if (!isSignedIn) {
+      setAuthModalOpen(true);
+      return;
+    }
+    openCreateListing(router);
   };
 
 
@@ -226,6 +236,22 @@ export function WebTopNav({ showSearch = false }: Props) {
                       styles.menuItem,
                       pressed && styles.menuItemHover,
                     ]}
+                    onPress={handleListPlaceClick}
+                  >
+                    <Ionicons
+                      name="list-outline"
+                      size={20}
+                      color="#334155"
+                      style={styles.menuIcon}
+                    />
+                    <Text style={styles.menuText}>List a place</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.menuItem,
+                      pressed && styles.menuItemHover,
+                    ]}
                     onPress={() => {
                       setMenuOpen(false);
                     }}
@@ -237,25 +263,6 @@ export function WebTopNav({ showSearch = false }: Props) {
                       style={styles.menuIcon}
                     />
                     <Text style={styles.menuText}>Download App</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.menuItem,
-                      pressed && styles.menuItemHover,
-                    ]}
-                    onPress={() => {
-                      setMenuOpen(false);
-                      router.push("/(poster)/(tabs)/create");
-                    }}
-                  >
-                    <Ionicons
-                      name="list-outline"
-                      size={20}
-                      color="#334155"
-                      style={styles.menuIcon}
-                    />
-                    <Text style={styles.menuText}>List with Us</Text>
                   </Pressable>
 
                   {/* LOGOUT (WHEN SIGNED IN) */}

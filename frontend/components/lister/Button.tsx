@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import type { ReactNode } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   type StyleProp,
@@ -42,9 +43,13 @@ export function LButton({
       accessibilityHint={accessibilityHint}
       disabled={busy}
       onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
-          () => undefined,
-        );
+        try {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+            () => undefined,
+          );
+        } catch {
+          /* web / unsupported */
+        }
         onPress?.();
       }}
       style={[
@@ -75,6 +80,7 @@ export function LButton({
                 ? "ink"
                 : "inverse"
             }
+            pointerEvents="none"
             style={[
               styles.label,
               (variant === "secondary" || variant === "ghost") &&
@@ -109,6 +115,7 @@ const styles = StyleSheet.create({
   },
   ghost: {
     backgroundColor: "transparent",
+    ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
   },
   danger: {
     backgroundColor: Lister.color.danger,

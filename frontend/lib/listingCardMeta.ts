@@ -10,6 +10,8 @@ export type ListingAmberPill = {
 
 /** Bold Amber-style title — prefer landmark when seeded as a short name. */
 export function listingCardTitle(listing: Listing): string {
+  const title = listing.title?.trim();
+  if (title) return title;
   const landmark = listing.landmark?.trim();
   if (landmark) return landmark;
   return `${labelListingType(listing.listingType)} in ${listing.area}`;
@@ -57,7 +59,13 @@ export function listingAmberPills(listing: Listing): ListingAmberPill[] {
   }
 
   if (listing.targetAudience === "students_only") {
-    pills.push({ key: "students", label: "🎓 Students Only" });
+    pills.push({ key: "students", label: "Students only" });
+  } else if (listing.targetAudience === "students_professionals") {
+    pills.push({ key: "students_pro", label: "Students & professionals" });
+  }
+
+  for (const tag of listing.highlightTags ?? []) {
+    pills.push({ key: `hl-${tag}`, label: tag.split("_").join(" ") });
   }
 
   return pills;
@@ -76,8 +84,12 @@ export function listingAmberPillGroups(listing: Listing): {
 } {
   const pills = listingAmberPills(listing);
   return {
-    highlights: pills.filter((p) => HIGHLIGHT_PILL_KEYS.has(p.key)),
-    amenities: pills.filter((p) => !HIGHLIGHT_PILL_KEYS.has(p.key)),
+    highlights: pills.filter(
+      (p) => HIGHLIGHT_PILL_KEYS.has(p.key) || p.key.startsWith("hl-"),
+    ),
+    amenities: pills.filter(
+      (p) => !HIGHLIGHT_PILL_KEYS.has(p.key) && !p.key.startsWith("hl-"),
+    ),
   };
 }
 

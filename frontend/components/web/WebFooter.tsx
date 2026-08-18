@@ -32,13 +32,6 @@ export function WebFooter() {
               </LText>
             </Pressable>
           </Link>
-          <Link href="/(poster)/(tabs)/create" asChild>
-            <Pressable accessibilityRole="link">
-              <LText variant="caption" style={styles.link}>
-                List a room
-              </LText>
-            </Pressable>
-          </Link>
         </View>
       </View>
       <View style={styles.bottom}>

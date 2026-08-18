@@ -43,7 +43,7 @@ export const listingPhotoUpload = multer({
   storage,
   limits: {
     fileSize: 8 * 1024 * 1024,
-    files: 8,
+    files: 15,
   },
   fileFilter: (_req, file, cb) => {
     if (!ALLOWED_MIME.has(file.mimetype)) {

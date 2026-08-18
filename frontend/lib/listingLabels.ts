@@ -3,6 +3,7 @@ import type {
   GenderRestriction,
   ListingStatus,
   ListingType,
+  PriceBasis,
   TargetAudience,
   WaterStatus,
 } from "@/types/listing";
@@ -23,9 +24,16 @@ export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
   pbsa_building: "Student Building (PBSA)",
 };
 
+export const PRICE_BASIS_LABELS: Record<PriceBasis, string> = {
+  per_unit_month: "Per unit / month",
+  per_bed_month: "Per bed / month",
+  per_room_month: "Per room / month",
+};
+
 export const TARGET_AUDIENCE_LABELS: Record<TargetAudience, string> = {
   anyone: "Open to anyone",
   students_only: "Students only",
+  students_professionals: "Students & professionals",
 };
 
 export const GENDER_RESTRICTION_LABELS: Record<GenderRestriction, string> = {
