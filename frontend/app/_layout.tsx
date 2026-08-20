@@ -101,9 +101,9 @@ function RootLayoutNav() {
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
           <Stack.Screen name="(renter)" />
           <Stack.Screen name="(poster)" />
+          <Stack.Screen name="hosting" />
         </Stack>
       </ThemeProvider>
     </QueryClientProvider>

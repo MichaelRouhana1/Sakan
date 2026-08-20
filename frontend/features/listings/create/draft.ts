@@ -23,7 +23,24 @@ import { emptyCutWindow } from "@/lib/electricityCuts";
 import type { ContactNumber } from "@/lib/lebanonPhone";
 import { emptyContactNumber } from "@/lib/lebanonPhone";
 
+/** @deprecated Legacy full-draft key — migrated to checkpoint on read. */
 export const CREATE_DRAFT_STORAGE_KEY = "skoun.createListing.draft.v4";
+
+export const CREATE_DRAFT_CHECKPOINT_KEY = "skoun.createListing.checkpoint.v1";
+
+export const CREATE_DRAFT_WORKING_KEY = "skoun.createListing.working.v1";
+
+/** Main = resumed primary draft; working = started via + (new listing). */
+export type DraftSlot = "main" | "working";
+
+export type DraftCheckpoint = {
+  /** Last step validated via Next (index). */
+  committedStep: number;
+  /** Step shown when user last used Save & exit; resume uses max(savedStep, committedStep). */
+  savedStep?: number;
+  draft: CreateListingDraft;
+  savedAt: string;
+};
 
 export const EMPTY_PIN: ListingPin = {
   lng: 35.5018,

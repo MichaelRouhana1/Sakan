@@ -1,4 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
   useCallback,
@@ -6,30 +5,40 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
 } from "react";
+import { router } from "expo-router";
 import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
+import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { createListingReducer } from "./createListingReducer";
 import {
-  CREATE_DRAFT_STORAGE_KEY,
-  INITIAL_DRAFT,
-  type CreateListingDraft,
-} from "./draft";
-import { emptyCutWindow } from "@/lib/electricityCuts";
-import { numbersFromLegacy } from "@/lib/lebanonPhone";
+  clearAllDraftStorage,
+  draftHasMeaningfulProgress,
+  parkWorkingDraftBeforeFresh,
+  readCheckpoint,
+  readWorkingCheckpoint,
+  resumeStepFromCheckpoint,
+  setCheckpointCache,
+  writeCheckpoint,
+  writeWorkingCheckpoint,
+} from "./createDraftCheckpoint";
+import { INITIAL_DRAFT, type CreateListingDraft, type DraftSlot } from "./draft";
 import { WIZARD_STEPS } from "@/constants/listingWizard";
 import { stepFieldErrors } from "./validators";
 
 type Ctx = {
   draft: CreateListingDraft;
+  committedStep: number;
   patch: (patch: Partial<CreateListingDraft>) => void;
   setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>;
   setStep: (step: number) => void;
   goNext: () => boolean;
   goBack: () => void;
+  saveAndExit: () => Promise<void>;
   reset: () => void;
   showValidation: boolean;
   fieldErrors: string[];
@@ -38,93 +47,68 @@ type Ctx = {
 
 const CreateListingContext = createContext<Ctx | null>(null);
 
-function persistable(draft: CreateListingDraft): CreateListingDraft {
-  return {
-    ...draft,
-    photos: draft.photos.map((p) => {
-      const status = p.status === "uploading" ? "error" : p.status;
-      const uri =
-        status === "ready" && p.url
-          ? p.url
-          : p.uri.startsWith("blob:")
-            ? ""
-            : p.uri;
-      return {
-        ...p,
-        uri,
-        status: uri ? status : "error",
-        error: uri ? p.error : "Photo expired — remove and add again",
-      };
-    }),
-  };
-}
-
-function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
-  const windows =
-    parsed.electricityCutWindows?.length > 0
-      ? parsed.electricityCutWindows
-      : parsed.electricityCutsStart || parsed.electricityCutsEnd
-        ? [
-            {
-              start: parsed.electricityCutsStart ?? "",
-              end: parsed.electricityCutsEnd ?? "",
-            },
-          ]
-        : [emptyCutWindow()];
-  return {
-    ...parsed,
-    electricityCutWindows: windows,
-    contactNumbers: numbersFromLegacy(parsed),
-    photos: (parsed.photos ?? []).map((p) => {
-      if (p.status === "ready" && p.url) {
-        return { ...p, uri: p.url };
-      }
-      if (!p.uri || p.uri.startsWith("blob:")) {
-        return {
-          ...p,
-          status: "error" as const,
-          error: "Photo expired — remove and add again",
-        };
-      }
-      if (p.status === "uploading") {
-        return { ...p, status: "error" as const, error: "Upload interrupted" };
-      }
-      return p;
-    }),
-  };
-}
-
-export function CreateListingProvider({ children }: { children: ReactNode }) {
+export function CreateListingProvider({
+  children,
+  startFresh = false,
+  draftSlot = "main",
+}: {
+  children: ReactNode;
+  startFresh?: boolean;
+  draftSlot?: DraftSlot;
+}) {
   const [draft, dispatch] = useReducer(createListingReducer, INITIAL_DRAFT);
   const [hydrated, setHydrated] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const committedStepRef = useRef(-1);
+  const draftRef = useRef(draft);
+  const draftSlotRef = useRef(draftSlot);
+
+  useEffect(() => {
+    draftSlotRef.current = draftSlot;
+  }, [draftSlot]);
+
+  useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
 
   useEffect(() => {
     let cancelled = false;
-    void AsyncStorage.getItem(CREATE_DRAFT_STORAGE_KEY).then((raw) => {
+    const slot = draftSlot;
+    const readForSlot = slot === "working" ? readWorkingCheckpoint : readCheckpoint;
+
+    if (startFresh) {
+      void parkWorkingDraftBeforeFresh().then(() => {
+        if (cancelled) return;
+        committedStepRef.current = -1;
+        dispatch({ type: "reset" });
+        setHydrated(true);
+      });
+      return;
+    }
+
+    void readForSlot().then((checkpoint) => {
       if (cancelled) return;
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw) as CreateListingDraft;
-          dispatch({ type: "hydrate", draft: hydrateDraft(parsed) });
-        } catch {
-          /* ignore corrupt draft */
+      if (checkpoint) {
+        committedStepRef.current = checkpoint.committedStep;
+        if (slot === "working") {
+          // working cache updated on write; main cache unchanged
+        } else {
+          setCheckpointCache(checkpoint);
         }
+        const resumeStep = resumeStepFromCheckpoint(checkpoint);
+        dispatch({
+          type: "hydrate",
+          draft: { ...checkpoint.draft, step: resumeStep },
+        });
+      } else if (slot === "main") {
+        setCheckpointCache(null);
       }
       setHydrated(true);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    void AsyncStorage.setItem(
-      CREATE_DRAFT_STORAGE_KEY,
-      JSON.stringify(persistable(draft)),
-    );
-  }, [draft, hydrated]);
+  }, [startFresh, draftSlot]);
 
   const fieldErrors = stepFieldErrors(draft, draft.step);
 
@@ -152,6 +136,21 @@ export function CreateListingProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const persistCheckpoint = useCallback(
+    async (
+      nextDraft: CreateListingDraft,
+      committedStep: number,
+      savedStep?: number,
+    ) => {
+      committedStepRef.current = committedStep;
+      const slot = draftSlotRef.current;
+      const write =
+        slot === "working" ? writeWorkingCheckpoint : writeCheckpoint;
+      await write(nextDraft, committedStep, savedStep);
+    },
+    [],
+  );
+
   const goNext = useCallback(() => {
     const errors = stepFieldErrors(draft, draft.step);
     if (errors.length > 0) {
@@ -159,30 +158,49 @@ export function CreateListingProvider({ children }: { children: ReactNode }) {
       return false;
     }
     setShowValidation(false);
-    dispatch({
-      type: "setStep",
-      step: Math.min(WIZARD_STEPS.length - 1, draft.step + 1),
-    });
+    const committedStep = draft.step;
+    const nextStep = Math.min(WIZARD_STEPS.length - 1, draft.step + 1);
+    const nextDraft = { ...draft, step: nextStep };
+    void persistCheckpoint(nextDraft, committedStep);
+    dispatch({ type: "setStep", step: nextStep });
     return true;
-  }, [draft]);
+  }, [draft, persistCheckpoint]);
 
   const goBack = useCallback(() => {
     dispatch({ type: "prevStep" });
   }, []);
 
+  const saveAndExit = useCallback(async () => {
+    const current = draftRef.current;
+    const committedStep = committedStepRef.current;
+    const hasProgress = draftHasMeaningfulProgress({
+      committedStep,
+      draft: current,
+      savedAt: new Date().toISOString(),
+    });
+    if (hasProgress) {
+      await persistCheckpoint(current, committedStep, current.step);
+    }
+    router.replace(HOST_LISTINGS_PATH as never);
+  }, [persistCheckpoint]);
+
   const reset = useCallback(() => {
     dispatch({ type: "reset" });
-    void AsyncStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
+    committedStepRef.current = -1;
+    setCheckpointCache(null);
+    void clearAllDraftStorage();
   }, []);
 
   const value = useMemo(
     () => ({
       draft,
+      committedStep: committedStepRef.current,
       patch,
       setPhotos,
       setStep,
       goNext,
       goBack,
+      saveAndExit,
       reset,
       showValidation,
       fieldErrors,
@@ -195,6 +213,7 @@ export function CreateListingProvider({ children }: { children: ReactNode }) {
       setStep,
       goNext,
       goBack,
+      saveAndExit,
       reset,
       showValidation,
       fieldErrors,

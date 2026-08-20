@@ -28,11 +28,18 @@ export function FindMapPane({
   fullHeight = false,
   hoveredListingId = null,
 }: Props) {
-  if (!visible) return null;
-
   return (
-    <View style={[styles.pane, fullHeight && styles.paneFull]}>
-      {!fullHeight ? (
+    <View
+      style={[
+        styles.pane,
+        fullHeight && styles.paneFull,
+        !visible && styles.paneHidden,
+      ]}
+      pointerEvents={visible ? "auto" : "none"}
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? "auto" : "no-hide-descendants"}
+    >
+      {visible && !fullHeight ? (
         <View style={styles.header}>
           <LText variant="subtitle" style={styles.title}>
             Map
@@ -52,7 +59,7 @@ export function FindMapPane({
             </LText>
           </Pressable>
         </View>
-      ) : (
+      ) : visible ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close map"
@@ -67,7 +74,7 @@ export function FindMapPane({
           </LText>
           <Ionicons name="close" size={14} color={Skoun.color.ink} />
         </Pressable>
-      )}
+      ) : null}
       <View style={[styles.mapWrap, fullHeight && styles.mapWrapFull]}>
         <ListingBrowseMap
           listings={listings}
@@ -76,6 +83,7 @@ export function FindMapPane({
           loading={loading}
           fillContainer={fullHeight}
           hoveredListingId={hoveredListingId}
+          active={visible}
         />
       </View>
     </View>
@@ -179,5 +187,14 @@ const styles = StyleSheet.create({
     minWidth: 0,
     position: "relative",
     overflow: "hidden",
+  },
+  paneHidden: {
+    position: "absolute",
+    width: 640,
+    height: 800,
+    left: -10000,
+    top: 0,
+    opacity: 0,
+    zIndex: -1,
   },
 });

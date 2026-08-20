@@ -13,7 +13,7 @@ import { universities } from "./universities.js";
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   clerkId: varchar("clerk_id", { length: 255 }).unique(),
-  /** Legacy phone accounts; nullable for email/password registrations. */
+  /** Legacy; unused — auth is Clerk. Drop when safe (see TODO.md). */
   phone: varchar("phone", { length: 32 }).unique(),
   email: varchar("email", { length: 320 }).unique(),
   passwordHash: varchar("password_hash", { length: 255 }),
@@ -32,6 +32,7 @@ export const users = pgTable("users", {
   freeSlotPublishesMonth: integer("free_slot_publishes_month")
     .notNull()
     .default(0),
+  /** Legacy phone-OTP field; unused. Drop when safe (see TODO.md). */
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   gender: userGenderEnum("gender"),
   /** Student study campus, or poster “property near” campus. */

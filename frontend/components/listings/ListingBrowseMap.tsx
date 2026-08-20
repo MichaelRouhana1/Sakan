@@ -65,6 +65,8 @@ type Props = {
   onOpenListing?: (listing: Listing) => void;
   /** Web map split: card hover focus (web-only). */
   hoveredListingId?: string | null;
+  /** Web: pane visible after keep-alive hide (no-op on native). */
+  active?: boolean;
 };
 
 function calculateDistanceMeters(

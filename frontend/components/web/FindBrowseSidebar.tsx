@@ -1,17 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
-import type { Map as LeafletMap } from "leaflet";
+import { Image, Platform, Pressable, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { useState } from "react";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { WEB_SIDEBAR_STICKY_TOP } from "@/constants/webLayout";
-import {
-  createSkounMap,
-  loadLeaflet,
-  type LeafletNS,
-} from "@/lib/skounLeaflet.web";
+import { mapboxStaticImageUrl } from "@/lib/mapboxEnv";
 
-const BEIRUT: [number, number] = [33.8938, 35.5018];
+const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 const SKOUN_BLUE = "#2F6FED";
 const CARD_BORDER = "#E2E8F0";
 const ROW_BORDER = "#F1F5F9";
@@ -55,64 +50,46 @@ type Props = {
   onExploreMap: () => void;
 };
 
-/** Decorative Beirut map tile — same OSM tiles as browse map; not interactive. */
+/** Decorative Beirut static map — no GL session. */
 function MapPreviewBackdrop() {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const leafletRef = useRef<LeafletNS | null>(null);
+  const uri = mapboxStaticImageUrl({
+    lng: BEIRUT.lng,
+    lat: BEIRUT.lat,
+    zoom: 13,
+    width: 600,
+    height: 260,
+  });
 
-  useEffect(() => {
-    const el = hostRef.current;
-    if (!el) return;
-
-    let cancelled = false;
-
-    void (async () => {
-      try {
-        const L = await loadLeaflet();
-        if (cancelled || !hostRef.current) return;
-
-        const map = createSkounMap(L, hostRef.current, BEIRUT, 13);
-        map.dragging.disable();
-        map.touchZoom.disable();
-        map.doubleClickZoom.disable();
-        map.scrollWheelZoom.disable();
-        map.boxZoom.disable();
-        map.keyboard.disable();
-        map.zoomControl?.remove();
-        map.attributionControl?.remove();
-
-        mapRef.current = map;
-        leafletRef.current = L;
-        requestAnimationFrame(() => {
-          map.invalidateSize();
-          map.setView(BEIRUT, 13, { animate: false });
-        });
-      } catch {
-        // Leave wash background if Leaflet fails to load.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      mapRef.current?.remove();
-      mapRef.current = null;
-      leafletRef.current = null;
-    };
-  }, []);
+  if (!uri) {
+    return (
+      <View
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          backgroundColor: Skoun.color.bgWash,
+        }}
+      />
+    );
+  }
 
   return (
-    <div
-      ref={hostRef}
-      className="skoun-leaflet-map"
-      aria-hidden
+    <Image
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+      source={{ uri }}
+      resizeMode="cover"
       style={{
         position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        pointerEvents: "none",
-        zIndex: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        width: "100%" as unknown as number,
+        height: "100%" as unknown as number,
       }}
     />
   );

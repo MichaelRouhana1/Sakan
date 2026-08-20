@@ -16,9 +16,10 @@ import { useMyListings } from "@/features/listings/useMyListings";
 import { formatFreshUsd } from "@/lib/format";
 import { labelListingType } from "@/lib/listingLabels";
 import { deriveListingType } from "@/features/listings/create/deriveListingType";
+import { wizardPublishIssues } from "@/features/listings/create/validators";
 
 export function CreateStepReview() {
-  const { draft, reset } = useCreateListingDraft();
+  const { draft, reset, setStep } = useCreateListingDraft();
   const { refreshUser } = useAuthSession();
   const create = useCreateListing();
   const credits = useCredits();
@@ -43,8 +44,18 @@ export function CreateStepReview() {
     return "Publishing this extra listing costs 1 post credit.";
   }, [needsCredit]);
 
+  const publishIssues = useMemo(() => wizardPublishIssues(draft), [draft]);
+  const canPublish = canAfford && publishIssues.length === 0;
+
   function publish() {
     setErr(null);
+    if (publishIssues.length > 0) {
+      const lines = publishIssues.flatMap((issue) =>
+        issue.messages.map((msg) => `• ${issue.stepTitle}: ${msg}`),
+      );
+      setErr(`Complete these before publishing:\n${lines.join("\n")}`);
+      return;
+    }
     if (!canAfford) {
       setErr("Buy a post credit to publish another live listing.");
       return;
@@ -127,9 +138,31 @@ export function CreateStepReview() {
         </View>
       </Enter>
       {err ? (
-        <LText variant="caption" tone="danger">
+        <LText variant="caption" tone="danger" style={styles.errText}>
           {err}
         </LText>
+      ) : null}
+      {publishIssues.length > 0 ? (
+        <View style={styles.issuesBox}>
+          <LText variant="subtitle">Still needed</LText>
+          {publishIssues.map((issue) => (
+            <View key={issue.step} style={styles.issueBlock}>
+              <LText variant="caption" tone="primary" style={styles.issueStep}>
+                {issue.stepTitle}
+              </LText>
+              {issue.messages.map((msg) => (
+                <LText key={msg} variant="caption" tone="muted">
+                  • {msg}
+                </LText>
+              ))}
+            </View>
+          ))}
+          <LButton
+            label="Go to first step to fix"
+            variant="secondary"
+            onPress={() => setStep(publishIssues[0].step)}
+          />
+        </View>
       ) : null}
       {published ? (
         <LText variant="subtitle">Published</LText>
@@ -138,7 +171,7 @@ export function CreateStepReview() {
           label="Publish listing"
           onPress={publish}
           loading={create.isPending}
-          disabled={!canAfford || create.isPending}
+          disabled={!canPublish || create.isPending}
         />
       )}
     </View>
@@ -161,5 +194,22 @@ const styles = StyleSheet.create({
     backgroundColor: Lister.color.primaryMist,
     borderWidth: 1,
     borderColor: Lister.color.primarySoft,
+  },
+  issuesBox: {
+    gap: 10,
+    padding: 16,
+    borderRadius: Lister.radius.lg,
+    backgroundColor: Lister.color.dangerSoft,
+    borderWidth: 1,
+    borderColor: Lister.color.danger,
+  },
+  issueBlock: {
+    gap: 2,
+  },
+  issueStep: {
+    fontFamily: Lister.type.bodySemi,
+  },
+  errText: {
+    lineHeight: 20,
   },
 });

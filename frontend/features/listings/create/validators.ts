@@ -4,10 +4,56 @@ import {
 } from "@/lib/electricityCuts";
 import { numberComplete, numbersFromLegacy } from "@/lib/lebanonPhone";
 import type { CreateListingDraft } from "./draft";
+import { WIZARD_STEPS } from "@/constants/listingWizard";
 
 export const COPY_TITLE_MIN = 10;
 export const COPY_TITLE_MAX = 60;
 export const COPY_DESCRIPTION_MIN = 20;
+
+const FIELD_MESSAGES: Record<string, string> = {
+  spaceType: "Choose a rental type",
+  propertyType: "Choose a property type",
+  area: "Select an area",
+  pin: "Confirm the map pin",
+  primaryCampusId: "Choose a primary campus",
+  furnishingType: "Select furnishing",
+  beds: "Add at least one bed",
+  maxOccupancy: "Set max occupancy to at least 1",
+  electricity: "Select electricity status",
+  water: "Select water status",
+  photos: "Add at least 3 photos",
+  monthlyRentUsd: "Enter a valid monthly rent",
+  securityDepositUsd: "Enter a valid security deposit",
+  availableFrom: "Pick an available-from date",
+  title: `Title must be ${COPY_TITLE_MIN}–${COPY_TITLE_MAX} characters`,
+  description: `Description must be at least ${COPY_DESCRIPTION_MIN} characters`,
+  listingPosterRole: "Choose your role",
+  contactName: "Enter a contact name",
+  contactPhone: "Enter a valid phone number",
+};
+
+export type WizardValidationIssue = {
+  step: number;
+  stepTitle: string;
+  fields: string[];
+  messages: string[];
+};
+
+export function fieldErrorMessage(field: string): string {
+  return FIELD_MESSAGES[field] ?? `Complete ${field}`;
+}
+
+export function isPhotoReady(
+  photo: CreateListingDraft["photos"][number],
+): boolean {
+  return (
+    photo.status === "ready" && Boolean(photo.url || photo.uri)
+  );
+}
+
+export function countReadyPhotos(draft: CreateListingDraft): number {
+  return draft.photos.filter(isPhotoReady).length;
+}
 
 export function stepFieldErrors(
   draft: CreateListingDraft,
@@ -56,8 +102,8 @@ export function stepFieldErrors(
     case 4:
       return [];
     case 5: {
-      const ready = draft.photos.filter((p) => p.status === "ready" && p.url);
-      if (ready.length < 3 || draft.photos.some((p) => p.status === "uploading")) {
+      const ready = countReadyPhotos(draft);
+      if (ready < 3 || draft.photos.some((p) => p.status === "uploading")) {
         return ["photos"];
       }
       return [];
@@ -110,4 +156,48 @@ export function stepFieldErrors(
 
 export function stepError(draft: CreateListingDraft, step: number): string | null {
   return stepFieldErrors(draft, step).length > 0 ? "invalid" : null;
+}
+
+/** Highest step index whose required fields all pass validation. */
+export function effectiveCommittedStep(
+  draft: CreateListingDraft,
+  storedCommittedStep: number,
+): number {
+  let last = -1;
+  const cap = Math.min(storedCommittedStep, WIZARD_STEPS.length - 2);
+  for (let i = 0; i <= cap; i++) {
+    if (stepFieldErrors(draft, i).length > 0) break;
+    last = i;
+  }
+  return last;
+}
+
+/** First wizard step (0–8) with validation errors, searching up to `throughStep` inclusive. */
+export function firstInvalidStepIndex(
+  draft: CreateListingDraft,
+  throughStep = WIZARD_STEPS.length - 2,
+): number | null {
+  const last = Math.min(throughStep, WIZARD_STEPS.length - 2);
+  for (let i = 0; i <= last; i++) {
+    if (stepFieldErrors(draft, i).length > 0) return i;
+  }
+  return null;
+}
+
+/** All blocking issues across required wizard steps (excludes review). */
+export function wizardPublishIssues(
+  draft: CreateListingDraft,
+): WizardValidationIssue[] {
+  const issues: WizardValidationIssue[] = [];
+  for (let i = 0; i < WIZARD_STEPS.length - 1; i++) {
+    const fields = stepFieldErrors(draft, i);
+    if (fields.length === 0) continue;
+    issues.push({
+      step: i,
+      stepTitle: WIZARD_STEPS[i].title,
+      fields,
+      messages: fields.map(fieldErrorMessage),
+    });
+  }
+  return issues;
 }

@@ -19,7 +19,9 @@ import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
+import { useHostingNavState } from "@/features/listings/useHostingNavState";
 import {
   AREA_REGIONS,
   DEMO_LISTINGS,
@@ -119,9 +121,6 @@ function AreaCityCard({
 function goBrowse() {
   router.push("/search" as never);
 }
-function goAuth() {
-  router.push("/(auth)/phone" as never);
-}
 
 function SectionHeader({
   title,
@@ -143,10 +142,15 @@ function SectionHeader({
   );
 }
 
-function HomeNav({ solid }: { solid: boolean }) {
+function HomeNav({
+  solid,
+  onRequestAuth,
+}: {
+  solid: boolean;
+  onRequestAuth: () => void;
+}) {
   const { isSignedIn, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
       user.email ||
@@ -155,7 +159,7 @@ function HomeNav({ solid }: { solid: boolean }) {
 
   const handleLoginClick = () => {
     setMenuOpen(false);
-    setAuthModalOpen(true);
+    onRequestAuth();
   };
 
   const handleProfileClick = () => {
@@ -167,13 +171,23 @@ function HomeNav({ solid }: { solid: boolean }) {
     await logout();
   };
 
-  const handleListPlaceClick = () => {
-    setMenuOpen(false);
+
+  const { showBecomeAHost, showSwitchToHosting } = useHostingNavState();
+
+  const handleBecomeAHostClick = () => {
     if (!isSignedIn) {
-      setAuthModalOpen(true);
+      onRequestAuth();
       return;
     }
     openCreateListing(router);
+  };
+
+  const handleSwitchToHostingClick = () => {
+    if (!isSignedIn) {
+      onRequestAuth();
+      return;
+    }
+    router.push(HOST_LISTINGS_PATH as never);
   };
 
   return (
@@ -193,6 +207,42 @@ function HomeNav({ solid }: { solid: boolean }) {
 
         <View style={styles.navRight}>
           <DownloadAppButton isDarkNav={!solid} />
+
+          {showBecomeAHost ? (
+            <Pressable
+              onPress={handleBecomeAHostClick}
+              accessibilityRole="button"
+              style={styles.homeHostCta}
+            >
+              <Text
+                style={[
+                  styles.navLink,
+                  solid && styles.navLinkSolid,
+                  styles.homeHostCtaText,
+                ]}
+              >
+                Become a host
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {showSwitchToHosting ? (
+            <Pressable
+              onPress={handleSwitchToHostingClick}
+              accessibilityRole="button"
+              style={styles.homeHostCta}
+            >
+              <Text
+                style={[
+                  styles.navLink,
+                  solid && styles.navLinkSolid,
+                  styles.homeHostCtaText,
+                ]}
+              >
+                Switch to hosting
+              </Text>
+            </Pressable>
+          ) : null}
 
           {!isSignedIn ? (
             <Pressable onPress={handleLoginClick} accessibilityRole="button" style={styles.homeLoginTextBtn}>
@@ -227,7 +277,7 @@ function HomeNav({ solid }: { solid: boolean }) {
                       style={styles.homeLoginBanner}
                       onPress={() => {
                         setMenuOpen(false);
-                        setAuthModalOpen(true);
+                        onRequestAuth();
                       }}
                     >
                       <Text style={styles.homeLoginBannerText}>
@@ -249,7 +299,7 @@ function HomeNav({ solid }: { solid: boolean }) {
                       if (isSignedIn) {
                         router.push("/profile" as never);
                       } else {
-                        setAuthModalOpen(true);
+                        onRequestAuth();
                       }
                     }}
                   >
@@ -264,7 +314,7 @@ function HomeNav({ solid }: { solid: boolean }) {
                       if (isSignedIn) {
                         router.push("/saved" as never);
                       } else {
-                        setAuthModalOpen(true);
+                        onRequestAuth();
                       }
                     }}
                   >
@@ -279,20 +329,12 @@ function HomeNav({ solid }: { solid: boolean }) {
                       if (isSignedIn) {
                         router.push("/saved" as never);
                       } else {
-                        setAuthModalOpen(true);
+                        onRequestAuth();
                       }
                     }}
                   >
                     <Ionicons name="heart-outline" size={18} color="#334155" />
                     <Text style={styles.homeMenuText}>Shortlist</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={styles.homeMenuItem}
-                    onPress={handleListPlaceClick}
-                  >
-                    <Ionicons name="list-outline" size={18} color="#334155" />
-                    <Text style={styles.homeMenuText}>List a place</Text>
                   </Pressable>
 
                   <Pressable
@@ -321,12 +363,6 @@ function HomeNav({ solid }: { solid: boolean }) {
           </View>
         </View>
       </View>
-
-      <SkounAuthModal
-        visible={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        onSuccess={() => setAuthModalOpen(false)}
-      />
     </View>
   );
 }
@@ -377,9 +413,11 @@ function SearchPill() {
 function ListingCard({
   item,
   width = LISTING_CARD_IDEAL,
+  onRequestAuth,
 }: {
   item: DemoListing;
   width?: number;
+  onRequestAuth: () => void;
 }) {
   const [slide, setSlide] = useState(0);
   const img = item.images[slide] ?? item.images[0];
@@ -398,7 +436,11 @@ function ListingCard({
             <Text style={styles.cardTagText}>{item.tag}</Text>
           </View>
         ) : null}
-        <Pressable style={styles.heart} onPress={goAuth} accessibilityLabel="Save">
+        <Pressable
+          style={styles.heart}
+          onPress={onRequestAuth}
+          accessibilityLabel="Save"
+        >
           <Ionicons name="heart-outline" size={18} color="#fff" />
         </Pressable>
         {item.images.length > 1 ? (
@@ -437,9 +479,12 @@ function ListingCard({
 export function SkounHomePage() {
   const { width } = useWindowDimensions();
   const [navSolid, setNavSolid] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [regionId, setRegionId] = useState(AREA_REGIONS[0].id);
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
+
+  const openAuth = () => setAuthModalOpen(true);
 
   const isNarrow = width < 900;
   const padX = isNarrow ? 16 : width < 1200 ? 40 : PAD_X;
@@ -477,7 +522,7 @@ export function SkounHomePage() {
 
   return (
     <View style={styles.root}>
-      <HomeNav solid={navSolid} />
+      <HomeNav solid={navSolid} onRequestAuth={openAuth} />
 
       <ScrollView
         style={styles.scroll}
@@ -674,7 +719,12 @@ export function SkounHomePage() {
               ]}
             >
               {railListings.map((item) => (
-                <ListingCard key={item.id} item={item} width={listingCardW} />
+                <ListingCard
+                  key={item.id}
+                  item={item}
+                  width={listingCardW}
+                  onRequestAuth={openAuth}
+                />
               ))}
             </View>
           ) : (
@@ -687,7 +737,12 @@ export function SkounHomePage() {
               ]}
             >
               {railListings.map((item) => (
-                <ListingCard key={item.id} item={item} width={listingCardW} />
+                <ListingCard
+                  key={item.id}
+                  item={item}
+                  width={listingCardW}
+                  onRequestAuth={openAuth}
+                />
               ))}
             </ScrollView>
           )}
@@ -887,7 +942,7 @@ export function SkounHomePage() {
             subtitle="Questions about browsing or listing."
           />
           <View style={[styles.helpGrid, isNarrow && styles.helpGridNarrow]}>
-            <Pressable onPress={goAuth} style={styles.helpCard}>
+            <Pressable onPress={openAuth} style={styles.helpCard}>
               <View style={[styles.helpIcon, { backgroundColor: "#E8EEF6" }]}>
                 <Ionicons
                   name="chatbubbles-outline"
@@ -944,7 +999,7 @@ export function SkounHomePage() {
               </View>
               <View>
                 <Text style={styles.footerHead}>Support</Text>
-                <Pressable onPress={goAuth}>
+                <Pressable onPress={openAuth}>
                   <Text style={styles.footerLink}>Help</Text>
                 </Pressable>
                 <Pressable onPress={() => Linking.openURL("mailto:hello@skoun.app")}>
@@ -953,7 +1008,7 @@ export function SkounHomePage() {
               </View>
               <View>
                 <Text style={styles.footerHead}>Account</Text>
-                <Pressable onPress={goAuth}>
+                <Pressable onPress={openAuth}>
                   <Text style={styles.footerLink}>Sign in</Text>
                 </Pressable>
               </View>
@@ -965,6 +1020,11 @@ export function SkounHomePage() {
           </View>
         </View>
       </ScrollView>
+      <SkounAuthModal
+        visible={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
+      />
     </View>
   );
 }
@@ -1031,6 +1091,15 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.92)",
   },
   navLinkSolid: { color: Skoun.color.inkMuted },
+  homeHostCta: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    cursor: "pointer",
+  },
+  homeHostCtaText: {
+    fontFamily: Skoun.type.bodySemi,
+    textDecorationLine: "underline",
+  },
   navLogin: {
     width: 36,
     height: 36,

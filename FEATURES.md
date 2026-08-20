@@ -12,7 +12,8 @@
 |--------|--------|--------|
 | Clerk OAuth (Google / Apple / Facebook) | Done | `SkounAuthModal.tsx` |
 | Clerk email + password sign-in / sign-up | Done | `SkounAuthModal.tsx` |
-| Role select (renter vs poster) | Done | `frontend/app/(auth)/role-select.tsx` |
+| Renter-first; poster role on first publish | Done | `users.repository` provision + `listings.service` promote |
+| Browse ↔ host shell switch (nav only) | Done | `SwitchRoleControl.tsx` |
 | Clerk JWT on protected API routes | Done | `backend/src/middleware/auth.ts` |
 | Local session cache (userId + role) | Done | `lib/session.ts` |
 | Campus picker post-login | Done | `InstitutionCampusPicker.tsx`, profile + explore |
@@ -113,7 +114,7 @@
 
 ### Auth
 - `/` → redirect to renter browse (guest OK)
-- `/(auth)/role-select` — requires Clerk sign-in
+- Sign-in / sign-up via `SkounAuthModal` (no role-select screen)
 
 ### Renter
 - `/(renter)/(tabs)/` — Search (list/map)
@@ -143,7 +144,7 @@
 | `ListingSortControl` | Newest / price ascending |
 | `ListingCard` | Feed card (cover, rent, utilities, distance) |
 | `ListingBrowseMap` | Native browse map (pins, campus, polyline, distance badges) |
-| `ListingBrowseMap.web` | Web/Leaflet browse map parity |
+| `ListingBrowseMap.web` | Web/Mapbox browse map parity |
 | `ListingMapPreview` | Bottom preview for selected map pin |
 | `ListingMapPicker` | Sheet when several listings share one pin |
 | `SkounMapPin` | Custom map pin (listing / campus variants) |
@@ -243,7 +244,8 @@
 | `savedListingsLocal.ts` | Legacy local shortlist |
 | `safeBack.ts` | Safe navigation back |
 | `useReducedMotion.ts` | a11y motion preference |
-| `skounLeaflet.web.ts` | Leaflet helpers for web maps |
+| `skounMapbox.web.ts` | Mapbox GL helpers for web maps |
+| `mapboxEnv.ts` | Mapbox token, style, static image URL |
 
 ### `constants/`
 | Module | Role |
@@ -349,8 +351,8 @@
 
 ## Small shared patterns worth knowing
 
-- **Role-gated apps:** separate `(renter)` and `(poster)` tab trees after role select  
-- **Maps:** `react-native-maps` native; Leaflet on web  
+- **Role-gated apps:** separate `(renter)` and `(poster)` / hosting shells; switch is nav-only  
+- **Maps:** `react-native-maps` native; Mapbox GL JS on web  
 - **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
 - **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
 - **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed  
@@ -362,11 +364,10 @@
 - In-app chat  
 - Roommate Finder (removed from product; legacy DB tables may remain)  
 - Card payment gateways  
-- Real OTP/JWT — **done via Clerk JWT** (WhatsApp/SMS OTP still not built)  
+- Real OTP/JWT — N/A; auth is Clerk JWT (email/OAuth), not phone OTP  
 - Working WhatsApp contact (phone exposure)  
 - Report auto-restrict / broker flagging (reports store only)  
 - Admin web UI  
 - Boost spend  
 - Renew / day-25 notifications  
-- WhatsApp Bridge for landlords  
 - Arabic / RTL  

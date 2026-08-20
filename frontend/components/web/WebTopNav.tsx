@@ -13,6 +13,7 @@ import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { Skoun } from "@/constants/theme";
+import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import {
   WEB_CONTENT_MAX,
   WEB_CONTENT_PAD_X,
@@ -20,6 +21,7 @@ import {
 } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
+import { useHostingNavState } from "@/features/listings/useHostingNavState";
 
 type Props = {
   showSearch?: boolean;
@@ -51,13 +53,22 @@ export function WebTopNav({ showSearch = false }: Props) {
     await logout();
   };
 
-  const handleListPlaceClick = () => {
-    setMenuOpen(false);
+  const { showBecomeAHost, showSwitchToHosting } = useHostingNavState();
+
+  const handleBecomeAHostClick = () => {
     if (!isSignedIn) {
       setAuthModalOpen(true);
       return;
     }
     openCreateListing(router);
+  };
+
+  const handleSwitchToHostingClick = () => {
+    if (!isSignedIn) {
+      setAuthModalOpen(true);
+      return;
+    }
+    router.push(HOST_LISTINGS_PATH as never);
   };
 
 
@@ -97,6 +108,32 @@ export function WebTopNav({ showSearch = false }: Props) {
 
         <View style={styles.links}>
           <DownloadAppButton />
+
+          {showBecomeAHost ? (
+            <Pressable
+              onPress={handleBecomeAHostClick}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.hostCta,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.hostCtaText}>Become a host</Text>
+            </Pressable>
+          ) : null}
+
+          {showSwitchToHosting ? (
+            <Pressable
+              onPress={handleSwitchToHostingClick}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.hostCta,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.hostCtaText}>Switch to hosting</Text>
+            </Pressable>
+          ) : null}
 
           {/* PROFILE & LOGIN HEADER CONTAINER */}
           <View style={styles.profileNavWrap}>
@@ -229,22 +266,6 @@ export function WebTopNav({ showSearch = false }: Props) {
                       style={styles.menuIcon}
                     />
                     <Text style={styles.menuText}>Shortlist</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.menuItem,
-                      pressed && styles.menuItemHover,
-                    ]}
-                    onPress={handleListPlaceClick}
-                  >
-                    <Ionicons
-                      name="list-outline"
-                      size={20}
-                      color="#334155"
-                      style={styles.menuIcon}
-                    />
-                    <Text style={styles.menuText}>List a place</Text>
                   </Pressable>
 
                   <Pressable
@@ -389,6 +410,17 @@ const styles = StyleSheet.create({
     gap: 12,
     marginLeft: "auto",
     flexShrink: 0,
+  },
+  hostCta: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    cursor: "pointer",
+  },
+  hostCtaText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 15,
+    color: Skoun.color.ink,
+    textDecorationLine: "underline",
   },
 
   // PROFILE & DROPDOWN STYLES

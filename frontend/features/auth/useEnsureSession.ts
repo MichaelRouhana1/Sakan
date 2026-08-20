@@ -36,9 +36,28 @@ export async function switchToRole(role: UserRole): Promise<User> {
   return data.data;
 }
 
-/** Open listing wizard — no role switch; publish promotes you to host. */
+/** Open listing wizard — resumes local main checkpoint if one exists. */
 export function openCreateListing(router: Pick<Router, "push">): void {
-  router.push("/(poster)/create" as never);
+  router.push({
+    pathname: "/(poster)/create",
+    params: { new: undefined, working: undefined },
+  } as never);
+}
+
+/** Open listing wizard from step 0 without loading an existing local checkpoint. */
+export function openNewCreateListing(router: Pick<Router, "push">): void {
+  router.push({
+    pathname: "/(poster)/create",
+    params: { new: "1", working: undefined },
+  } as never);
+}
+
+/** Resume the in-progress "new listing" working draft. */
+export function openWorkingCreateListing(router: Pick<Router, "push">): void {
+  router.push({
+    pathname: "/(poster)/create",
+    params: { new: undefined, working: "1" },
+  } as never);
 }
 
 /** @deprecated Use openCreateListing — host role is granted on first publish. */

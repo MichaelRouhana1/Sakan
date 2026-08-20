@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,11 +10,13 @@ import {
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { ListingPinMap } from "@/components/listings/detail/ListingPinMap";
 import { PasteLocationLinkField } from "@/components/listings/PasteLocationLinkField";
 import { AREA_COORDINATES } from "@/constants/areaCoordinates";
 import type { LebanonArea } from "@/constants/areas";
 import { landmarksForArea } from "@/constants/landmarks";
 import { Lister } from "@/constants/listerTheme";
+import { MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
 import {
   formatCoordLabel,
   isInLebanon,
@@ -23,10 +24,14 @@ import {
 } from "@/lib/locationWkt";
 import {
   createSkounMap,
-  listingPinIcon,
-  loadLeaflet,
-  type LeafletNS,
-} from "@/lib/skounLeaflet.web";
+  destroySkounMap,
+  listingPinHtml,
+  loadMapbox,
+  makeMarker,
+  toLngLat,
+  type MapboxMap,
+  type Marker,
+} from "@/lib/skounMapbox.web";
 
 export type ListingPin = {
   lng: number;
@@ -44,13 +49,13 @@ type Props = {
 };
 
 /**
- * Web location picker — Leaflet loaded client-side only (Expo SSR safe).
+ * Web location picker — Mapbox GL loaded client-side only (Expo SSR safe).
  */
 export function LocationPicker({ area, value, onChange }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const markerRef = useRef<LeafletMarker | null>(null);
-  const leafletRef = useRef<LeafletNS | null>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
+  const markerRef = useRef<Marker | null>(null);
+  const [tokenMissing, setTokenMissing] = useState(false);
   const onChangeRef = useRef(onChange);
   const labelRef = useRef(value.landmarkLabel);
   const setGpsErrorRef = useRef<(msg: string | null) => void>(() => {});
@@ -95,7 +100,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
     });
   }
 
-  // Init map on client when area changes.
+  // Init map once. Area / pin updates reuse the same Mapbox instance.
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
@@ -104,28 +109,33 @@ export function LocationPicker({ area, value, onChange }: Props) {
 
     void (async () => {
       try {
-        const L = await loadLeaflet();
+        const mapboxgl = await loadMapbox();
         if (cancelled || !hostRef.current) return;
 
-        if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
-          markerRef.current = null;
-        }
-
         const start = AREA_COORDINATES[area];
-        const map = createSkounMap(L, hostRef.current, [start.lat, start.lng], 14);
+        const map = createSkounMap(
+          mapboxgl,
+          hostRef.current,
+          { lat: start.lat, lng: start.lng },
+          14,
+        );
+        if (!map) {
+          if (!cancelled) setTokenMissing(true);
+          return;
+        }
         mapRef.current = map;
-        leafletRef.current = L;
 
-        const marker = L.marker([start.lat, start.lng], {
-          icon: listingPinIcon(L, false),
-          draggable: true,
-        }).addTo(map);
+        const marker = makeMarker(
+          mapboxgl,
+          listingPinHtml(false),
+          { lat: start.lat, lng: start.lng },
+        );
+        marker.setDraggable(true);
+        marker.addTo(map);
         markerRef.current = marker;
 
         map.on("click", (e) => {
-          const { lat, lng } = e.latlng;
+          const { lat, lng } = e.lngLat;
           if (!isInLebanon({ lat, lng })) {
             setGpsErrorRef.current("Pin must be inside Lebanon.");
             return;
@@ -142,7 +152,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
         });
 
         marker.on("dragend", () => {
-          const ll = marker.getLatLng();
+          const ll = marker.getLngLat();
           if (!isInLebanon({ lat: ll.lat, lng: ll.lng })) {
             setGpsErrorRef.current("Pin must be inside Lebanon.");
             return;
@@ -159,7 +169,6 @@ export function LocationPicker({ area, value, onChange }: Props) {
         });
 
         if (!cancelled) setMapReady(true);
-        requestAnimationFrame(() => map.invalidateSize());
       } catch {
         // SSR / missing window
       }
@@ -167,23 +176,33 @@ export function LocationPicker({ area, value, onChange }: Props) {
 
     return () => {
       cancelled = true;
-      mapRef.current?.remove();
-      mapRef.current = null;
+      markerRef.current?.remove();
       markerRef.current = null;
-      leafletRef.current = null;
+      destroySkounMap(mapRef.current);
+      mapRef.current = null;
       setMapReady(false);
     };
-  }, [area]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- create once
+  }, []);
 
-  // Sync marker when value changes externally.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const start = AREA_COORDINATES[area];
+    map.easeTo({
+      center: toLngLat({ lat: start.lat, lng: start.lng }),
+      zoom: 14,
+      duration: 450,
+    });
+  }, [area, mapReady]);
+
   useEffect(() => {
     const map = mapRef.current;
     const marker = markerRef.current;
-    const L = leafletRef.current;
-    if (!map || !marker || !L || !mapReady) return;
-    marker.setLatLng([value.lat, value.lng]);
-    marker.setIcon(listingPinIcon(L, value.confirmed));
-    map.panTo([value.lat, value.lng], { animate: true });
+    if (!map || !marker || !mapReady) return;
+    marker.setLngLat(toLngLat({ lat: value.lat, lng: value.lng }));
+    marker.getElement().innerHTML = listingPinHtml(value.confirmed);
+    map.panTo(toLngLat({ lat: value.lat, lng: value.lng }));
   }, [value.lat, value.lng, value.confirmed, mapReady]);
 
   function onSelectLandmark(id: string) {
@@ -298,7 +317,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
       ) : null}
 
       <View style={styles.mapShell} accessibilityLabel="Map to place listing pin">
-        {!mapReady ? (
+        {!mapReady && !tokenMissing ? (
           <View style={styles.mapLoading}>
             <ActivityIndicator color={Lister.color.primary} />
             <LText variant="caption" tone="muted">
@@ -306,9 +325,16 @@ export function LocationPicker({ area, value, onChange }: Props) {
             </LText>
           </View>
         ) : null}
+        {tokenMissing ? (
+          <View style={styles.mapLoading}>
+            <LText variant="caption" tone="muted">
+              {MAP_TOKEN_MISSING_COPY}
+            </LText>
+          </View>
+        ) : null}
         <div
           ref={hostRef}
-          className="skoun-leaflet-map"
+          className="skoun-mapbox-map"
           style={{ width: "100%", height: "100%" }}
         />
         <View style={styles.mapChrome} pointerEvents="box-none">
@@ -342,7 +368,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
           color={Lister.color.inkMuted}
         />
         <LText variant="caption" tone="muted" style={styles.fallbackText}>
-          Web map uses OpenStreetMap. Landmark presets still set real
+          Web map uses Mapbox. Landmark presets still set real
           coordinates for campus distance.
         </LText>
       </View>
@@ -505,7 +531,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
   );
 }
 
-/** Compact read-only Leaflet map for Review (client-only). */
+/** Compact read-only map for Review (client-only). */
 export function StaticPinMap({
   coord,
   height = 140,
@@ -513,49 +539,13 @@ export function StaticPinMap({
   coord: LatLng;
   height?: number;
 }) {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const el = hostRef.current;
-    if (!el) return;
-
-    let cancelled = false;
-    let map: LeafletMap | null = null;
-
-    void (async () => {
-      try {
-        const L = await loadLeaflet();
-        if (cancelled || !hostRef.current) return;
-        map = createSkounMap(L, hostRef.current, [coord.lat, coord.lng], 15);
-        map.dragging.disable();
-        map.scrollWheelZoom.disable();
-        map.doubleClickZoom.disable();
-        map.boxZoom.disable();
-        map.keyboard.disable();
-        L.marker([coord.lat, coord.lng], {
-          icon: listingPinIcon(L, true),
-          interactive: false,
-        }).addTo(map);
-        requestAnimationFrame(() => map?.invalidateSize());
-      } catch {
-        // ignore SSR
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      map?.remove();
-    };
-  }, [coord.lat, coord.lng]);
-
   return (
-    <View style={[styles.staticMap, { height }]}>
-      <div
-        ref={hostRef}
-        className="skoun-leaflet-map"
-        style={{ width: "100%", height: "100%" }}
-      />
-    </View>
+    <ListingPinMap
+      lat={coord.lat}
+      lng={coord.lng}
+      height={height}
+      interactive={false}
+    />
   );
 }
 

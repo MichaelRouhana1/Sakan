@@ -7,15 +7,6 @@ export class UsersRepository {
     return row ?? null;
   }
 
-  async findByPhone(phone: string) {
-    const [row] = await db
-      .select()
-      .from(users)
-      .where(eq(users.phone, phone))
-      .limit(1);
-    return row ?? null;
-  }
-
   async findByEmail(email: string) {
     const [row] = await db
       .select()
@@ -90,19 +81,6 @@ export class UsersRepository {
         role,
         postCredits,
         freeCreditClaimed,
-        phoneVerifiedAt: existing.phoneVerifiedAt ?? new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, id))
-      .returning();
-    return row ?? null;
-  }
-
-  async markPhoneVerified(id: string) {
-    const [row] = await db
-      .update(users)
-      .set({
-        phoneVerifiedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(users.id, id))

@@ -1,12 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { useState } from "react";
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   useWindowDimensions,
   View,
+  type TextStyle,
   type ViewStyle,
 } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
@@ -56,6 +58,8 @@ type ShellStyles = {
   root: ViewStyle;
   chrome: ViewStyle;
   close: ViewStyle;
+  saveExit?: ViewStyle;
+  saveExitText?: TextStyle;
   stage: ViewStyle;
   left: ViewStyle;
   right: ViewStyle;
@@ -76,7 +80,8 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
   const { width } = useWindowDimensions();
   const split = width >= splitAt;
   const reduce = useReducedMotion();
-  const { draft, goBack, goNext } = useCreateListingDraft();
+  const { draft, goBack, goNext, saveAndExit } = useCreateListingDraft();
+  const [saving, setSaving] = useState(false);
   const scrollContentRef = useWizardScrollContentRef();
   const handleScroll = useWizardScrollHandler();
   const meta = WIZARD_STEPS[draft.step];
@@ -114,17 +119,44 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
     keyboardShouldPersistTaps: "handled" as const,
   };
 
+  const isWeb = Platform.OS === "web";
+
+  async function handleSaveAndExit() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveAndExit();
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <>
       <View style={styles.chrome}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={() => router.back()}
-          style={styles.close}
-        >
-          <Ionicons name="close" size={22} color={Lister.color.ink} />
-        </Pressable>
+        {isWeb ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Save and exit"
+            onPress={() => void handleSaveAndExit()}
+            disabled={saving}
+            style={styles.saveExit}
+          >
+            <Text style={styles.saveExitText}>
+              {saving ? "Saving…" : "Save & exit"}
+            </Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={() => void handleSaveAndExit()}
+            disabled={saving}
+            style={styles.close}
+          >
+            <Ionicons name="close" size={22} color={Lister.color.ink} />
+          </Pressable>
+        )}
         <CreateProgress step={draft.step} />
       </View>
       {split ? (

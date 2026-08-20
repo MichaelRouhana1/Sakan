@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
+import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { api } from "@/lib/api";
@@ -52,6 +53,7 @@ export default function RenterNewHomeScreen() {
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
   const [searchQuery, setSearchQuery] = useState("");
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const [hintIndex, setHintIndex] = useState(0);
   const searchHints = ["Area", "University", "Landmark"];
@@ -90,7 +92,7 @@ export default function RenterNewHomeScreen() {
 
   const handleListPlace = () => {
     if (!isSignedIn) {
-      router.push("/(auth)/phone" as never);
+      setAuthModalOpen(true);
       return;
     }
     openCreateListing(router);
@@ -546,7 +548,7 @@ export default function RenterNewHomeScreen() {
 
           <View style={styles.helpTilesGrid}>
             <Pressable
-              onPress={() => router.push("/(auth)/phone" as never)}
+              onPress={() => setAuthModalOpen(true)}
               style={styles.helpTile}
             >
               <View style={[styles.helpTileIconBox, { backgroundColor: "#E8EEF6" }]}>
@@ -597,6 +599,12 @@ export default function RenterNewHomeScreen() {
         </View>
 
       </ScrollView>
+
+      <SkounAuthModal
+        visible={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
+      />
 
       {isSignedIn && !user?.campusId ? (
         <Modal visible animationType="slide">

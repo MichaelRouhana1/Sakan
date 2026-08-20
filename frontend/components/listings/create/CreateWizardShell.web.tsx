@@ -38,6 +38,17 @@ const styles = StyleSheet.create({
     borderColor: Lister.color.border,
     cursor: "pointer",
   },
+  saveExit: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    cursor: "pointer",
+  },
+  saveExitText: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 15,
+    color: Lister.color.ink,
+    textDecorationLine: "underline",
+  },
   stage: { flex: 1, flexDirection: "row", minHeight: 0, overflow: "hidden" },
   left: {
     width: "46%",

@@ -15,22 +15,22 @@ The app serves strictly as a matchmaking bridge. The platform does not handle le
 
 ### 2. User Personas & Roles
 
-To maintain product simplicity at launch, users must select a single, mutually exclusive role during registration.
+Accounts are dual-capable. Users are not forced into a single role at signup.
 
-- **Renter (General & Student):** Browses, filters, and saves listings for free. Can toggle between standard city searches and student-centric university location views. Connects directly with posters via phone or WhatsApp.
+- **Default (Renter):** New accounts start as renters. They browse, filter, and save listings for free. Can toggle between standard city searches and student-centric university location views. Connects directly with posters via phone or WhatsApp.
     
-- **Landlord / Poster:** Purchases posting credits, creates property listings, selects target audiences, and manages active/expired posts via a personal dashboard.
+- **Landlord / Poster:** Host capabilities unlock when the user publishes their first listing (DB role promoted to poster). Until then, users may open the create-listing flow and host dashboard via navigation only. Switch between browse and host shells is a UI navigation control — it does not change the stored role by itself.
+    
+- **Credits & dashboard:** Posters purchase posting credits, create property listings, select target audiences, and manage active/expired posts via a personal dashboard.
     
 
 ### 3. Core Feature Requirements
 
 #### 3.1 User Authentication & Onboarding
 
-- **Sign-Up/Login Method:** Mobile phone number verification via WhatsApp OTP (preferred due to standard SMS carrier delivery failures in Lebanon) or standard SMS OTP as a fallback.
+- **Sign-Up/Login Method:** Clerk authentication — email + password and OAuth (Google, Apple, Facebook). No phone-number OTP login (WhatsApp or SMS).
     
-- **Role Gate:** Immediately after phone verification, the user must select: "I am looking for a place" OR "I am listing a place." This choice dictates their entire navigation experience.
-    
-- **Landlord Tech-Illiteracy Support:** To accommodate older or less tech-savvy landlords, the system must support a "WhatsApp Bridge" where posters can submit details manually via WhatsApp, allowing the admin team to create and manage accounts via the backend panel.
+- **Roles (no forced pick):** There is no post-verification role gate. Users land in the renter experience after sign-in. Hosting is entered voluntarily (list a place / host dashboard). Poster role is granted on first successful publish.
     
 
 #### 3.2 The Renter Experience (The Buyer Side)
@@ -91,7 +91,7 @@ The backend tracks a simple balance integer for every Poster account called "Cre
     
 - **1 Boost Credit** = Pins an active listing to the top of its respective City or University Hub search feed for 7 consecutive days.
     
-- **Note:** New accounts receive 1 free Post Credit upon registration to stimulate initial database supply (limited strictly to 1 free post per unique phone number to prevent broker spam).
+- **Note:** New accounts receive 1 free Post Credit when they first become a poster (on first publish / role promotion) to stimulate initial supply (limited to 1 free credit claim per account to prevent broker spam).
     
 
 #### 4.2 Local Cash Payment Integration

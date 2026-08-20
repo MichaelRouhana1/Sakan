@@ -31,7 +31,7 @@ export type User = {
   boostCredits: number;
   freeCreditClaimed: boolean;
   accountStatus: UserAccountStatus;
-  phoneVerifiedAt: string | null;
+  phoneVerifiedAt?: string | null; // legacy unused field; auth is Clerk
   gender: UserGender | null;
   createdAt: string;
   updatedAt: string;

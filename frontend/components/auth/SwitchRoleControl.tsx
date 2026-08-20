@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
+import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { AuthRequiredError } from "@/features/auth/useEnsureSession";
 import { getSession } from "@/lib/session";
 import type { UserRole } from "@/types/user";
@@ -34,6 +35,8 @@ export function SwitchRoleControl({ currentRole }: Props) {
       }
       if (nextRole === "renter") {
         router.replace("/(renter)" as never);
+      } else if (Platform.OS === "web") {
+        router.replace(HOST_LISTINGS_PATH as never);
       } else {
         router.replace("/(poster)/(tabs)" as never);
       }

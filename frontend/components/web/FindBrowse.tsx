@@ -92,10 +92,15 @@ export function FindBrowse() {
   const [browseSort, setBrowseSort] = useState<BrowseSortKey>("newest");
   const [resultsLayout, setResultsLayout] = useState<ResultsLayout>("grid");
   const [mapOpen, setMapOpen] = useState(false);
+  const [mapMounted, setMapMounted] = useState(false);
   const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterSection, setFilterSection] = useState<FilterSection>("university");
   const [chipSheet, setChipSheet] = useState<ChipSheet>(null);
+
+  useEffect(() => {
+    if (mapOpen) setMapMounted(true);
+  }, [mapOpen]);
 
   const deferredFilters = useDeferredValue(filters);
   const deferredMode = useDeferredValue(mode);
@@ -301,28 +306,14 @@ export function FindBrowse() {
         hasActiveFilters={hasActiveFilters}
       />
 
+      <View style={isMap ? styles.mapSplit : styles.browseBody}>
       {isMap ? (
-        <View style={styles.mapSplit}>
           <View style={[styles.mapListCol, isXl && styles.mapListColXl]}>
             <View style={styles.mapListContent}>
               {heading}
               {results}
             </View>
           </View>
-          <FindMapPane
-            listings={listings}
-            campuses={campuses}
-            universityMode={effectiveMode === "university"}
-            loading={isLoading}
-            visible
-            fullHeight
-            hoveredListingId={hoveredListingId}
-            onClose={() => {
-              setHoveredListingId(null);
-              setMapOpen(false);
-            }}
-          />
-        </View>
       ) : (
         <View style={styles.content}>
           {heading}
@@ -359,6 +350,27 @@ export function FindBrowse() {
           />
         </View>
       )}
+      {mapMounted ? (
+        <View
+          style={isMap ? styles.mapPaneLive : styles.mapPaneParked}
+          pointerEvents={isMap ? "auto" : "none"}
+        >
+          <FindMapPane
+            listings={listings}
+            campuses={campuses}
+            universityMode={effectiveMode === "university"}
+            loading={isLoading}
+            visible={isMap}
+            fullHeight
+            hoveredListingId={hoveredListingId}
+            onClose={() => {
+              setHoveredListingId(null);
+              setMapOpen(false);
+            }}
+          />
+        </View>
+      ) : null}
+      </View>
 
       {isDesktop ? (
         <FindFiltersDialog
@@ -548,6 +560,22 @@ const styles = StyleSheet.create({
   },
   pageMap: {
     width: "100%",
+  },
+  browseBody: {
+    flexGrow: 1,
+    width: "100%",
+  },
+  mapPaneLive: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    height: "100%" as unknown as number,
+  },
+  mapPaneParked: {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    overflow: "visible",
   },
   content: {
     paddingHorizontal: WEB_CONTENT_PAD_X,
