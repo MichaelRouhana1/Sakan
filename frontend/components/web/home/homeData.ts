@@ -15,13 +15,13 @@ export const POPULAR_SEARCHES = [
 
 export const HERO = {
   /** Short emotional line — Amber's "Home away from home" slot */
-  title: "Home in Lebanon",
+  title: "Student foyers in Lebanon",
   subtitle:
-    "Browse rooms and apartments by neighborhood or campus — then message posters on WhatsApp.",
+    "Find a room, foyer, or shared flat near campus. See solar, ishtirak, and water before you WhatsApp the poster.",
   chips: [
-    { id: "utilities", label: "Utility badges that matter", icon: "flash-outline" as const },
-    { id: "whatsapp", label: "Direct WhatsApp contact", icon: "logo-whatsapp" as const },
-    { id: "campus", label: "Near campus or by area", icon: "school-outline" as const },
+    { id: "utilities", label: "Solar, ishtirak & water", icon: "flash-outline" as const },
+    { id: "whatsapp", label: "WhatsApp the poster", icon: "logo-whatsapp" as const },
+    { id: "campus", label: "Walk time to campus", icon: "school-outline" as const },
   ],
   searchPlaceholder: "Search by area, university, or landmark",
   heroImage:
@@ -33,19 +33,19 @@ export const STATS = [
   {
     id: "listings",
     value: "Live listings",
-    body: "Rooms, studios, and apartments across Lebanon — priced in USD.",
+    body: "Rooms, foyers, and shared flats for students — priced in USD.",
     icon: "home-outline" as const,
   },
   {
     id: "unis",
-    value: "10+ campuses",
-    body: "Sort by distance to AUB, LAU, USJ, and other gates that matter.",
+    value: "70 campuses",
+    body: "Sort by walk to AUB, LAU, USJ, and 30+ other university gates.",
     icon: "school-outline" as const,
   },
   {
     id: "areas",
-    value: "15+ areas",
-    body: "Beirut corridors, coast towns, and student neighborhoods.",
+    value: "15 areas",
+    body: "Beirut, the coast, and student towns you can actually filter on.",
     icon: "map-outline" as const,
   },
 ] as const;

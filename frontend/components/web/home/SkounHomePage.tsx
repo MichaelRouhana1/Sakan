@@ -609,7 +609,7 @@ export function SkounHomePage() {
         <View style={[styles.section, { paddingHorizontal: padX }]}>
           <SectionHeader
             title="Popular areas across Lebanon"
-            subtitle="Browse rooms and apartments near campuses and neighborhoods that matter."
+            subtitle="Browse foyers and rooms near campuses and neighborhoods that matter."
           />
           <View style={styles.countryTabs}>
             {AREA_REGIONS.map((r) => {
