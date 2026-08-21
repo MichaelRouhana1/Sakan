@@ -9,10 +9,15 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Skoun } from "@/constants/theme";
+import {
+  institutionLogoSource,
+  isCircularInstitutionSeal,
+} from "@/lib/institutionLogoSources";
 import { institutionLogoCandidates } from "@/lib/institutionLogos";
 
 type Props = {
   shortName: string;
+  slug?: string | null;
   website?: string | null;
   logoUrl?: string | null;
   size?: number;
@@ -23,6 +28,7 @@ type Props = {
 
 export function InstitutionLogo({
   shortName,
+  slug,
   website,
   logoUrl,
   size = 32,
@@ -30,9 +36,10 @@ export function InstitutionLogo({
   fallbackStyle,
   fallbackTextStyle,
 }: Props) {
+  const local = institutionLogoSource(slug);
   const candidates = useMemo(
-    () => institutionLogoCandidates(website, logoUrl),
-    [website, logoUrl],
+    () => (local ? [] : institutionLogoCandidates(website, logoUrl)),
+    [local, website, logoUrl],
   );
   const [idx, setIdx] = useState(0);
 
@@ -41,31 +48,42 @@ export function InstitutionLogo({
   }, [candidates]);
 
   const uri = idx < candidates.length ? candidates[idx] : null;
-  const radius = Math.round(size * 0.25);
+  const radius = size / 2;
+  const fillCircle = isCircularInstitutionSeal(slug);
+  const inner = fillCircle ? size : Math.round(size * 0.72);
+  const frameStyle = [
+    styles.frame,
+    { width: size, height: size, borderRadius: radius },
+    fallbackStyle,
+  ];
+
+  if (local) {
+    return (
+      <View style={frameStyle}>
+        <Image
+          source={local}
+          style={[{ width: inner, height: inner }, imageStyle]}
+          resizeMode={fillCircle ? "cover" : "contain"}
+        />
+      </View>
+    );
+  }
 
   if (uri) {
     return (
-      <Image
-        source={{ uri }}
-        style={[
-          styles.logo,
-          { width: size, height: size, borderRadius: radius },
-          imageStyle,
-        ]}
-        resizeMode="contain"
-        onError={() => setIdx((i) => i + 1)}
-      />
+      <View style={frameStyle}>
+        <Image
+          source={{ uri }}
+          style={[{ width: inner, height: inner }, imageStyle]}
+          resizeMode="contain"
+          onError={() => setIdx((i) => i + 1)}
+        />
+      </View>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.fallback,
-        { width: size, height: size, borderRadius: radius },
-        fallbackStyle,
-      ]}
-    >
+    <View style={frameStyle}>
       <Text style={[styles.fallbackText, fallbackTextStyle]}>
         {shortName.slice(0, 3)}
       </Text>
@@ -74,15 +92,13 @@ export function InstitutionLogo({
 }
 
 const styles = StyleSheet.create({
-  logo: {
+  frame: {
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: Skoun.color.border,
-  },
-  fallback: {
-    backgroundColor: Skoun.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   fallbackText: {
     fontSize: 10,

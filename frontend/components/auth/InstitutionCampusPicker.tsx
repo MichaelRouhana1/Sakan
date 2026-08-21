@@ -132,6 +132,7 @@ export function InstitutionCampusPicker({
               style={styles.row}
             >
               <InstitutionLogo
+                slug={inst.slug}
                 shortName={inst.shortName}
                 website={inst.website}
                 logoUrl={inst.logoUrl}
@@ -155,6 +156,7 @@ export function InstitutionCampusPicker({
           style={styles.row}
         >
           <InstitutionLogo
+            slug={inst.slug}
             shortName={inst.shortName}
             website={inst.website}
             logoUrl={inst.logoUrl}

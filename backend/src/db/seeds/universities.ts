@@ -667,7 +667,7 @@ export const institutionSeeds: InstitutionSeed[] = [
   },
   {
     name: "Holy Family University",
-    shortName: "HFU",
+    shortName: "USF",
     slug: "hfu",
     website: "https://www.hfu.edu.lb",
     campuses: [

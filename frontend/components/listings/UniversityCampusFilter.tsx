@@ -102,6 +102,7 @@ export function UniversityCampusFilter({
         )}
         <View style={styles.pickedUni}>
           <InstitutionLogo
+            slug={selectedInstitution.slug}
             shortName={selectedInstitution.shortName}
             website={selectedInstitution.website}
             logoUrl={selectedInstitution.logoUrl}
@@ -192,6 +193,7 @@ export function UniversityCampusFilter({
             style={styles.row}
           >
             <InstitutionLogo
+              slug={inst.slug}
               shortName={inst.shortName}
               website={inst.website}
               logoUrl={inst.logoUrl}
