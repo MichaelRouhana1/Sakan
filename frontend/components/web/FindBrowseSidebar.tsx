@@ -1,10 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image, Platform, Pressable, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { WEB_SIDEBAR_STICKY_TOP } from "@/constants/webLayout";
-import { mapboxStaticImageUrl } from "@/lib/mapboxEnv";
+import {
+  createSkounPreviewMap,
+  destroySkounMap,
+  loadMapbox,
+  makeMarker,
+  pricePinHtml,
+  type MapboxGL,
+  type MapboxMap,
+  type Marker,
+} from "@/lib/skounMapbox.web";
+import type { Listing } from "@/types/listing";
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 const SKOUN_BLUE = "#2F6FED";
@@ -48,48 +66,120 @@ const USP_ITEMS = [
 
 type Props = {
   onExploreMap: () => void;
+  listings?: Listing[];
 };
 
-/** Decorative Beirut static map — no GL session. */
-function MapPreviewBackdrop() {
-  const uri = mapboxStaticImageUrl({
-    lng: BEIRUT.lng,
-    lat: BEIRUT.lat,
-    zoom: 13,
-    width: 600,
-    height: 260,
-  });
+type PreviewPin = { lat: number; lng: number; label: string };
 
-  if (!uri) {
-    return (
-      <View
-        aria-hidden
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          left: 0,
-          backgroundColor: Skoun.color.bgWash,
-        }}
-      />
+const SAMPLE_PINS: PreviewPin[] = [
+  { lat: 33.9002, lng: 35.4824, label: "$450" },
+  { lat: 33.8954, lng: 35.4781, label: "$380" },
+  { lat: 33.8991, lng: 35.5062, label: "$620" },
+  { lat: 33.8884, lng: 35.519, label: "$510" },
+];
+
+function shortPrice(amount: number): string {
+  return `$${amount.toLocaleString("en-US")}`;
+}
+
+function pinsFromListings(listings: Listing[]): PreviewPin[] {
+  return listings
+    .filter(
+      (item): item is Listing & { lat: number; lng: number } =>
+        item.lat != null && item.lng != null,
+    )
+    .slice(0, 8)
+    .map((item) => ({
+      lat: item.lat,
+      lng: item.lng,
+      label: shortPrice(item.monthlyRentUsd),
+    }));
+}
+
+/** Live Standard-style preview — same chrome as browse map, no nav. */
+function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
+  const glRef = useRef<MapboxGL | null>(null);
+  const markersRef = useRef<Marker[]>([]);
+  const [ready, setReady] = useState(false);
+
+  const pins = useMemo(() => {
+    const live = pinsFromListings(listings);
+    return live.length > 0 ? live : SAMPLE_PINS;
+  }, [listings]);
+
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const gl = await loadMapbox();
+        if (cancelled || !hostRef.current) return;
+        const map = createSkounPreviewMap(gl, hostRef.current, BEIRUT, 13.2);
+        if (!map) return;
+        glRef.current = gl;
+        mapRef.current = map;
+        if (!cancelled) setReady(true);
+      } catch {
+        // Wash background remains if Mapbox fails.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      setReady(false);
+      for (const marker of markersRef.current) marker.remove();
+      markersRef.current = [];
+      destroySkounMap(mapRef.current);
+      mapRef.current = null;
+      glRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const gl = glRef.current;
+    if (!ready || !map || !gl) return;
+
+    for (const marker of markersRef.current) marker.remove();
+    markersRef.current = pins.map((pin) =>
+      makeMarker(gl, pricePinHtml(pin.label, false), pin, {
+        inert: true,
+      }).addTo(map),
     );
-  }
+
+    if (pins.length < 2) return;
+    const first = pins[0]!;
+    const bounds = pins.reduce(
+      (acc, pin) => acc.extend([pin.lng, pin.lat]),
+      new gl.LngLatBounds(
+        [first.lng, first.lat],
+        [first.lng, first.lat],
+      ),
+    );
+    map.fitBounds(bounds, {
+      padding: 36,
+      maxZoom: 14.2,
+      duration: 0,
+      pitch: 38,
+      bearing: -18,
+    });
+  }, [pins, ready]);
 
   return (
-    <Image
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-      source={{ uri }}
-      resizeMode="cover"
+    <div
+      ref={hostRef}
+      className="skoun-mapbox-map"
+      aria-hidden
       style={{
         position: "absolute",
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-        width: "100%" as unknown as number,
-        height: "100%" as unknown as number,
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
       }}
     />
   );
@@ -99,7 +189,7 @@ function MapPreviewBackdrop() {
  * Amber-style sticky sidebar: one card with edge-to-edge map header
  * + trust accordion flush underneath.
  */
-export function FindBrowseSidebar({ onExploreMap }: Props) {
+export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
@@ -107,7 +197,7 @@ export function FindBrowseSidebar({ onExploreMap }: Props) {
       <View style={styles.card}>
         {/* Edge-to-edge map header */}
         <View style={styles.mapHeader} accessibilityLabel="Map of Beirut">
-          <MapPreviewBackdrop />
+          <MapPreviewBackdrop listings={listings} />
           <View style={styles.mapScrim} pointerEvents="none" />
           <View style={styles.mapCtaWrap} pointerEvents="box-none">
             <Pressable
@@ -213,7 +303,7 @@ const styles = StyleSheet.create({
   },
   mapScrim: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(18, 24, 38, 0.12)",
+    backgroundColor: "rgba(18, 24, 38, 0.04)",
     zIndex: 1,
   },
   mapCtaWrap: {

@@ -10,8 +10,9 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 |----------|---------------|------------|
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_test_...` | `pk_live_...` from [Clerk Dashboard](https://dashboard.clerk.com) → API Keys |
 | `EXPO_PUBLIC_API_URL` | LAN IP, e.g. `http://192.168.x.x:3001` | Public HTTPS API origin, e.g. `https://api.yourdomain.com` |
-| `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public `pk.` from [account.mapbox.com](https://account.mapbox.com/access-tokens/) (local: `frontend/.env`) | Same `pk.` token, URL-restricted in Mapbox dashboard to production origin |
-| `EXPO_PUBLIC_MAPBOX_STYLE` | Optional. Default `mapbox://styles/mapbox/light-v11` | Optional Studio muted style URL |
+| `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public `pk.` from [account.mapbox.com](https://account.mapbox.com/access-tokens/) (local: `frontend/.env`). Alias: `EXPO_PUBLIC_MAPBOX_TOKEN` | Same `pk.` token, URL/bundle-restricted in Mapbox dashboard |
+| `EXPO_PUBLIC_MAPBOX_STYLE` | Optional. Default `mapbox://styles/mapbox/standard` | Optional; satellite only if set to `mapbox://styles/mapbox/standard-satellite` |
+| `MAPBOX_DOWNLOADS_TOKEN` | Optional secret `sk.` for native SDK download (EAS secret / local env). **Never** `EXPO_PUBLIC_*`, never commit. Current `@rnmapbox/maps` plugin says download token often unused — keep if prebuild still requires `.netrc` | Same; EAS secret only |
 
 ---
 
@@ -47,6 +48,7 @@ Before go-live:
 
 - Never commit real `.env` files (already gitignored).
 - `CLERK_SECRET_KEY` and `ADMIN_API_KEY` are server-only — never put them in `EXPO_PUBLIC_*`.
+- `MAPBOX_DOWNLOADS_TOKEN` is a secret `sk.` — never `EXPO_PUBLIC_*`, never commit.
 - Rotate any key that was shared in chat or committed by mistake.
 
 ---
@@ -55,7 +57,8 @@ Before go-live:
 
 | File | Clerk / API vars |
 |------|------------------|
-| `frontend/.env` | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`, `EXPO_PUBLIC_MAPBOX_STYLE` |
+| `frontend/.env` | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` (or `EXPO_PUBLIC_MAPBOX_TOKEN`), `EXPO_PUBLIC_MAPBOX_STYLE` |
+| `EAS / local native secrets` | `MAPBOX_DOWNLOADS_TOKEN` (secret `sk.`, not public) |
 | `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `PUBLIC_BASE_URL` |
 
 Replace all `pk_test_` / `sk_test_` values with **live** keys from Clerk before production.

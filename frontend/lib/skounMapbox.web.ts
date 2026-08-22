@@ -15,6 +15,7 @@ export type { MapboxMap, Marker, Popup };
 declare global {
   interface Window {
     _skounActivePopup?: { remove: () => void } | null;
+    _skounDismissPreview?: (() => void) | null;
   }
 }
 
@@ -23,6 +24,8 @@ const resizeObservers = new WeakMap<MapboxMap, ResizeObserver>();
 
 const CAMPUS_LINE_SOURCE = "skoun-campus-line";
 const CAMPUS_LINE_LAYER = "skoun-campus-line-layer";
+const CAMPUS_LINE_COLOR = "#FF3B30";
+const CAMPUS_LINE_WIDTH = 6;
 
 function installedMapboxGlVersion(): string {
   try {
@@ -59,15 +62,24 @@ export function ensureMapboxCss(): void {
     .skoun-mapbox-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
     .skoun-mapbox-map .mapboxgl-map { width: 100%; height: 100%; }
     .skoun-mapbox-map .mapboxgl-ctrl-attrib { font-size: 10px; }
+    .skoun-mapbox-map--chrome-offset .mapboxgl-ctrl-top-right {
+      top: 64px;
+      right: 16px;
+    }
+    .skoun-pitch-toggle {
+      font: 700 11px/1 "DM Sans", system-ui, sans-serif !important;
+      color: #121826 !important;
+      letter-spacing: 0.02em;
+    }
     .skoun-marker-el { background: transparent; border: none; overflow: visible; cursor: pointer; }
     .skoun-marker-el.inert { pointer-events: none; cursor: default; }
     .skoun-teardrop, .skoun-cluster-bubble { pointer-events: auto; }
-    .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: none; }
+    .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: auto; }
     .skoun-price-pill {
       background: #fff; border: 1px solid #C5CDD8; border-radius: 8px;
       padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #121826;
       box-shadow: 0 1px 3px rgba(18,24,38,0.12); white-space: nowrap;
-      pointer-events: none; transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+      pointer-events: auto; transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
     }
     .skoun-price-pill.on { background: #121826; border-color: #121826; color: #fff; }
     .skoun-price-stack.on { transform: scale(1.06); }
@@ -125,6 +137,7 @@ export function ensureMapboxCss(): void {
     }
     .skoun-cluster-bubble:hover { transform: scale(1.06); }
 
+    .skoun-mapbox-amber-popup { overflow: visible !important; }
     .skoun-mapbox-amber-popup .mapboxgl-popup-content {
       padding: 0 !important;
       border-radius: 16px !important;
@@ -135,6 +148,23 @@ export function ensureMapboxCss(): void {
       width: 240px;
     }
     .skoun-mapbox-amber-popup .mapboxgl-popup-close-button { display: none !important; }
+    .skoun-mapbox-amber-popup .mapboxgl-popup-tip-container { overflow: visible; }
+    .skoun-mapbox-amber-popup.skoun-popup-n .mapboxgl-popup-tip,
+    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+      border-top-color: #ffffff;
+    }
+    .skoun-mapbox-amber-popup.skoun-popup-s .mapboxgl-popup-tip,
+    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+      border-bottom-color: #ffffff;
+    }
+    .skoun-mapbox-amber-popup.skoun-popup-e .mapboxgl-popup-tip,
+    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+      border-right-color: #ffffff;
+    }
+    .skoun-mapbox-amber-popup.skoun-popup-w .mapboxgl-popup-tip,
+    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+      border-left-color: #ffffff;
+    }
     .skoun-amber-popup-card {
       width: 240px;
       background: #ffffff;
@@ -147,17 +177,24 @@ export function ensureMapboxCss(): void {
       color: inherit !important;
       cursor: pointer;
     }
+    .skoun-popup-body-link {
+      display: block;
+      text-decoration: none !important;
+      color: inherit !important;
+      cursor: pointer;
+    }
     .skoun-popup-media {
       width: 100%; height: 130px; position: relative; overflow: hidden; background: #F1F5F9;
     }
     .skoun-popup-img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .skoun-popup-close-btn {
-      position: absolute; top: 8px; right: 8px; z-index: 10;
+      position: absolute; top: 10px; right: 16px; z-index: 10;
       width: 24px; height: 24px; border-radius: 50%;
       background: rgba(255, 255, 255, 0.92); border: none;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
       display: flex; align-items: center; justify-content: center;
       font-size: 11px; font-weight: 700; color: #334155; cursor: pointer; padding: 0;
+      line-height: 1;
     }
     .skoun-popup-close-btn:hover { background: #ffffff; }
     .skoun-popup-body { display: block; padding: 12px; background: #ffffff; }
@@ -176,6 +213,11 @@ export function ensureMapboxCss(): void {
       display: flex; align-items: center; justify-content: space-between;
       font-size: 13px; font-weight: 700; color: #0F172A;
       margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #E2E8F0;
+    }
+    .skoun-popup-group-header .skoun-popup-close-btn {
+      position: static;
+      flex-shrink: 0;
+      margin-left: 8px;
     }
     .skoun-popup-group-list {
       max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
@@ -212,6 +254,72 @@ export async function loadMapbox(): Promise<MapboxGL> {
   return mapboxPromise;
 }
 
+const PITCH_3D = 60;
+
+function createPitchToggleControl(): {
+  onAdd(map: MapboxMap): HTMLElement;
+  onRemove(): void;
+} {
+  let mapRef: MapboxMap | null = null;
+  let btn: HTMLButtonElement | null = null;
+  let onPitch: (() => void) | null = null;
+
+  function sync() {
+    if (!mapRef || !btn) return;
+    const is3d = mapRef.getPitch() > 15;
+    btn.textContent = is3d ? "2D" : "3D";
+    btn.title = is3d ? "2D map" : "3D buildings";
+    btn.setAttribute(
+      "aria-label",
+      is3d ? "Switch to 2D map" : "Switch to 3D map",
+    );
+    btn.setAttribute("aria-pressed", is3d ? "true" : "false");
+  }
+
+  return {
+    onAdd(map) {
+      mapRef = map;
+      const group = document.createElement("div");
+      group.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "skoun-pitch-toggle";
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const is3d = map.getPitch() > 15;
+        map.easeTo({
+          pitch: is3d ? 0 : PITCH_3D,
+          bearing: is3d ? 0 : map.getBearing(),
+          duration: 450,
+        });
+      });
+      onPitch = sync;
+      map.on("pitch", sync);
+      map.on("pitchend", sync);
+      sync();
+      group.appendChild(btn);
+      return group;
+    },
+    onRemove() {
+      if (mapRef && onPitch) {
+        mapRef.off("pitch", onPitch);
+        mapRef.off("pitchend", onPitch);
+      }
+      mapRef = null;
+      btn = null;
+    },
+  };
+}
+
+function attachResizeObserver(el: HTMLElement, map: MapboxMap): void {
+  const observer = new ResizeObserver(() => {
+    map.resize();
+  });
+  observer.observe(el);
+  resizeObservers.set(map, observer);
+}
+
 export function createSkounMap(
   mapboxgl: MapboxGL,
   el: HTMLElement,
@@ -228,24 +336,59 @@ export function createSkounMap(
     style: getMapboxStyle(),
     center: toLngLat(center),
     zoom,
+    pitch: 0,
+    pitchWithRotate: true,
     attributionControl: true,
     fadeDuration: 0,
     cooperativeGestures: false,
     maxTileCacheSize: 50,
   });
   map.addControl(
-    new mapboxgl.NavigationControl({ showCompass: false, visualizePitch: false }),
+    new mapboxgl.NavigationControl({ showCompass: true, visualizePitch: true }),
     "top-right",
   );
+  map.addControl(createPitchToggleControl(), "top-right");
+  map.on("style.load", () => {
+    ensureCampusLineLayer(map);
+    const pending = pendingCampusRoute.get(map);
+    if (pending) paintCampusRoute(map, pending);
+  });
   map.once("load", () => {
     map.resize();
     ensureCampusLineLayer(map);
   });
-  const observer = new ResizeObserver(() => {
+  attachResizeObserver(el, map);
+  return map;
+}
+
+/** Compact Standard-style map for decorative previews — no nav chrome. */
+export function createSkounPreviewMap(
+  mapboxgl: MapboxGL,
+  el: HTMLElement,
+  center: { lat: number; lng: number },
+  zoom = 13,
+): MapboxMap | null {
+  const token = getMapboxToken();
+  if (!token) return null;
+  if (el.querySelector(".mapboxgl-canvas")) return null;
+
+  ensureMapboxCss();
+  const map = new mapboxgl.Map({
+    container: el,
+    style: getMapboxStyle(),
+    center: toLngLat(center),
+    zoom,
+    pitch: 38,
+    bearing: -18,
+    interactive: false,
+    attributionControl: true,
+    fadeDuration: 0,
+    maxTileCacheSize: 20,
+  });
+  map.once("load", () => {
     map.resize();
   });
-  observer.observe(el);
-  resizeObservers.set(map, observer);
+  attachResizeObserver(el, map);
   return map;
 }
 
@@ -274,38 +417,71 @@ function emptyLineFc(): {
   return { type: "FeatureCollection", features: [] };
 }
 
+type PendingRoute = {
+  coords: { lat: number; lng: number }[] | null;
+};
+
+const pendingCampusRoute = new WeakMap<MapboxMap, PendingRoute>();
+
+function addCampusLineLayer(map: MapboxMap): void {
+  if (map.getLayer(CAMPUS_LINE_LAYER)) {
+    map.removeLayer(CAMPUS_LINE_LAYER);
+  }
+  const spec = {
+    id: CAMPUS_LINE_LAYER,
+    type: "line" as const,
+    source: CAMPUS_LINE_SOURCE,
+    layout: {
+      "line-cap": "round" as const,
+      "line-join": "round" as const,
+    },
+    paint: {
+      "line-color": CAMPUS_LINE_COLOR,
+      "line-width": CAMPUS_LINE_WIDTH,
+      "line-opacity": 1,
+    },
+  };
+  try {
+    map.addLayer({ ...spec, slot: "top" });
+  } catch {
+    if (!map.getLayer(CAMPUS_LINE_LAYER)) {
+      map.addLayer(spec);
+    }
+  }
+}
+
 export function ensureCampusLineLayer(map: MapboxMap): void {
   if (!map.isStyleLoaded()) {
     map.once("idle", () => ensureCampusLineLayer(map));
     return;
   }
-  if (map.getSource(CAMPUS_LINE_SOURCE)) return;
-  map.addSource(CAMPUS_LINE_SOURCE, {
-    type: "geojson",
-    data: emptyLineFc(),
-  });
-  map.addLayer({
-    id: CAMPUS_LINE_LAYER,
-    type: "line",
-    source: CAMPUS_LINE_SOURCE,
-    paint: {
-      "line-color": "#C23B2E",
-      "line-width": 2.5,
-      "line-dasharray": [2, 1.6],
-    },
-  });
+  if (!map.getSource(CAMPUS_LINE_SOURCE)) {
+    map.addSource(CAMPUS_LINE_SOURCE, {
+      type: "geojson",
+      data: emptyLineFc(),
+    });
+  }
+  if (!map.getLayer(CAMPUS_LINE_LAYER)) {
+    addCampusLineLayer(map);
+  }
 }
 
-export function setCampusLine(
-  map: MapboxMap,
-  from: { lat: number; lng: number } | null,
-  to: { lat: number; lng: number } | null,
-): void {
+function paintCampusRoute(map: MapboxMap, pending: PendingRoute): void {
   ensureCampusLineLayer(map);
   const src = map.getSource(CAMPUS_LINE_SOURCE) as GeoJSONSource | undefined;
-  if (!src) return;
-  if (!from || !to) {
+  if (!src) {
+    map.once("idle", () => {
+      const next = pendingCampusRoute.get(map);
+      if (next) paintCampusRoute(map, next);
+    });
+    return;
+  }
+  const { coords } = pending;
+  if (!coords || coords.length < 2) {
     src.setData(emptyLineFc());
+    if (map.getLayer(CAMPUS_LINE_LAYER)) {
+      map.setPaintProperty(CAMPUS_LINE_LAYER, "line-opacity", 0);
+    }
     return;
   }
   src.setData({
@@ -313,9 +489,30 @@ export function setCampusLine(
     properties: {},
     geometry: {
       type: "LineString",
-      coordinates: [toLngLat(from), toLngLat(to)],
+      coordinates: coords.map(toLngLat),
     },
   });
+  if (map.getLayer(CAMPUS_LINE_LAYER)) {
+    map.setPaintProperty(CAMPUS_LINE_LAYER, "line-opacity", 1);
+    map.setPaintProperty(CAMPUS_LINE_LAYER, "line-color", CAMPUS_LINE_COLOR);
+    map.setPaintProperty(CAMPUS_LINE_LAYER, "line-width", CAMPUS_LINE_WIDTH);
+  }
+}
+
+export function setCampusRoute(
+  map: MapboxMap,
+  coords: { lat: number; lng: number }[] | null,
+): void {
+  const pending = { coords };
+  pendingCampusRoute.set(map, pending);
+  if (!map.isStyleLoaded()) {
+    map.once("idle", () => {
+      const next = pendingCampusRoute.get(map);
+      if (next) paintCampusRoute(map, next);
+    });
+    return;
+  }
+  paintCampusRoute(map, pending);
 }
 
 export { mapboxStaticImageUrl } from "@/lib/mapboxEnv";
@@ -412,6 +609,7 @@ function distBadgeSize(label: string): [number, number] {
 }
 
 type ScreenPt = { x: number; y: number };
+type LatLngLike = { lat: number; lng: number };
 
 function clipSegmentToRect(
   p0: ScreenPt,
@@ -448,16 +646,6 @@ function clipSegmentToRect(
   return { t0, t1 };
 }
 
-function pointInRect(
-  p: ScreenPt,
-  left: number,
-  top: number,
-  right: number,
-  bottom: number,
-): boolean {
-  return p.x >= left && p.x <= right && p.y >= top && p.y <= bottom;
-}
-
 function rectsOverlap(
   a: { left: number; top: number; right: number; bottom: number },
   b: { left: number; top: number; right: number; bottom: number },
@@ -484,64 +672,74 @@ function badgeRectAt(
   };
 }
 
-function zoomControlExcludeRect(
+function chromeExcludeRects(
   map: MapboxMap,
   pad: number,
-): { left: number; top: number; right: number; bottom: number } | null {
+): Array<{ left: number; top: number; right: number; bottom: number }> {
   const container = map.getContainer();
-  const zoom = container.querySelector(".mapboxgl-ctrl-top-right");
-  if (!zoom) return null;
   const mapBox = container.getBoundingClientRect();
-  const zoomBox = zoom.getBoundingClientRect();
-  return {
-    left: zoomBox.left - mapBox.left - pad,
-    top: zoomBox.top - mapBox.top - pad,
-    right: zoomBox.right - mapBox.left + pad,
-    bottom: zoomBox.bottom - mapBox.top + pad,
+  const out: Array<{
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }> = [];
+  const addEl = (el: Element | null) => {
+    if (!el) return;
+    const box = el.getBoundingClientRect();
+    out.push({
+      left: box.left - mapBox.left - pad,
+      top: box.top - mapBox.top - pad,
+      right: box.right - mapBox.left + pad,
+      bottom: box.bottom - mapBox.top + pad,
+    });
   };
+  addEl(container.querySelector(".mapboxgl-ctrl-top-right"));
+  let root: Element | null = container;
+  let closeEl: Element | null = null;
+  while (root && !closeEl) {
+    closeEl = root.querySelector('[aria-label="Close map"]');
+    root = root.parentElement;
+  }
+  addEl(closeEl);
+  return out;
 }
 
-function nudgeTOffZoomControl(
-  a: ScreenPt,
-  b: ScreenPt,
-  tPreferred: number,
-  tMin: number,
-  tMax: number,
+type ScreenSeg = { a: ScreenPt; b: ScreenPt; len: number };
+
+function pointAlongSegs(segs: ScreenSeg[], dist: number): ScreenPt | null {
+  if (segs.length === 0) return null;
+  let remain = Math.max(0, dist);
+  for (const s of segs) {
+    if (s.len <= 0) continue;
+    if (remain <= s.len) {
+      const t = remain / s.len;
+      return {
+        x: s.a.x + t * (s.b.x - s.a.x),
+        y: s.a.y + t * (s.b.y - s.a.y),
+      };
+    }
+    remain -= s.len;
+  }
+  return segs[segs.length - 1].b;
+}
+
+function badgeHitsChrome(
+  pt: ScreenPt,
   bw: number,
   bh: number,
-  zoomEx: { left: number; top: number; right: number; bottom: number },
-): number {
-  const overlaps = (t: number) =>
-    rectsOverlap(
-      badgeRectAt(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y), bw, bh),
-      zoomEx,
-    );
-  if (!overlaps(tPreferred)) return tPreferred;
-  const steps = 32;
-  for (let i = 1; i <= steps; i++) {
-    const t = tPreferred + ((tMax - tPreferred) * i) / steps;
-    if (!overlaps(t)) return t;
-  }
-  for (let i = 1; i <= steps; i++) {
-    const t = tPreferred - ((tPreferred - tMin) * i) / steps;
-    if (!overlaps(t)) return t;
-  }
-  return tPreferred;
+  rects: Array<{ left: number; top: number; right: number; bottom: number }>,
+): boolean {
+  const badge = badgeRectAt(pt.x, pt.y, bw, bh);
+  return rects.some((r) => rectsOverlap(badge, r));
 }
 
-export function distanceBadgeLngLat(
+export function distanceBadgeOnPath(
   map: MapboxMap,
-  campus: { lat: number; lng: number },
-  listing: { lat: number; lng: number },
+  coords: LatLngLike[],
   label: string,
-): { lat: number; lng: number } {
-  const geoMid = {
-    lat: (campus.lat + listing.lat) / 2,
-    lng: (campus.lng + listing.lng) / 2,
-  };
-  const a = map.project(toLngLat(campus));
-  const b = map.project(toLngLat(listing));
-  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+): { lat: number; lng: number } | null {
+  if (coords.length < 2) return null;
   const [bw, bh] = distBadgeSize(label);
   const el = map.getContainer();
   const size = { x: el.clientWidth, y: el.clientHeight };
@@ -550,26 +748,63 @@ export function distanceBadgeLngLat(
   const right = size.x - bw / 2 - DIST_BADGE_EDGE_PAD;
   const bottom = size.y - bh / 2 - DIST_BADGE_EDGE_PAD;
 
-  let tMin = 0;
-  let tMax = 1;
-  let t = 0.5;
-
-  if (pointInRect(mid, left, top, right, bottom)) {
-    t = 0.5;
-  } else {
-    const clip = clipSegmentToRect(a, b, left, top, right, bottom);
-    if (!clip) return geoMid;
-    tMin = clip.t0;
-    tMax = clip.t1;
-    t = Math.max(tMin, Math.min(tMax, 0.5));
+  const pts = coords.map((c) => {
+    const p = map.project(toLngLat(c));
+    return { x: p.x, y: p.y };
+  });
+  const segs: ScreenSeg[] = [];
+  for (let i = 1; i < pts.length; i++) {
+    const clip = clipSegmentToRect(pts[i - 1], pts[i], left, top, right, bottom);
+    if (!clip) continue;
+    const a = {
+      x: pts[i - 1].x + clip.t0 * (pts[i].x - pts[i - 1].x),
+      y: pts[i - 1].y + clip.t0 * (pts[i].y - pts[i - 1].y),
+    };
+    const b = {
+      x: pts[i - 1].x + clip.t1 * (pts[i].x - pts[i - 1].x),
+      y: pts[i - 1].y + clip.t1 * (pts[i].y - pts[i - 1].y),
+    };
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    if (len < 0.5) continue;
+    segs.push({ a, b, len });
+  }
+  const total = segs.reduce((s, g) => s + g.len, 0);
+  if (total < 0.5) {
+    return null;
   }
 
-  const zoomEx = zoomControlExcludeRect(map, 4);
-  if (zoomEx) {
-    t = nudgeTOffZoomControl(a, b, t, tMin, tMax, bw, bh, zoomEx);
+  let dist = total / 2;
+  const chrome = chromeExcludeRects(map, 4);
+  const steps = 32;
+  const tryDist = (d: number) => {
+    const pt = pointAlongSegs(segs, d);
+    if (!pt) return false;
+    return !badgeHitsChrome(pt, bw, bh, chrome);
+  };
+  if (!tryDist(dist)) {
+    let found: number | null = null;
+    for (let i = 1; i <= steps; i++) {
+      const d = dist + ((total - dist) * i) / steps;
+      if (tryDist(d)) {
+        found = d;
+        break;
+      }
+    }
+    if (found == null) {
+      for (let i = 1; i <= steps; i++) {
+        const d = dist - (dist * i) / steps;
+        if (tryDist(d)) {
+          found = d;
+          break;
+        }
+      }
+    }
+    if (found != null) dist = found;
   }
 
-  const ll = map.unproject([a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)]);
+  const screen = pointAlongSegs(segs, dist);
+  if (!screen) return null;
+  const ll = map.unproject([screen.x, screen.y]);
   return { lat: ll.lat, lng: ll.lng };
 }
 
@@ -583,17 +818,19 @@ export function createAmberPopupHtml(listing: Listing): string {
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80";
   const url = `/listing/${listing.id}`;
 
-  return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-amber-popup-card" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+  return `<div class="skoun-amber-popup-card">
     <div class="skoun-popup-media">
       <img src="${escapeHtml(coverUrl)}" alt="${title}" class="skoun-popup-img" />
-      <button type="button" class="skoun-popup-close-btn" aria-label="Close" onclick="event.stopPropagation(); event.preventDefault(); if (window._skounActivePopup) { window._skounActivePopup.remove(); }">✕</button>
+      <button type="button" class="skoun-popup-close-btn" aria-label="Close">✕</button>
     </div>
-    <div class="skoun-popup-body">
-      <div class="skoun-popup-title">${title}</div>
-      <div class="skoun-popup-subtitle">${subtitle}</div>
-      <div class="skoun-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
-    </div>
-  </a>`;
+    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-popup-body-link" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+      <div class="skoun-popup-body">
+        <div class="skoun-popup-title">${title}</div>
+        <div class="skoun-popup-subtitle">${subtitle}</div>
+        <div class="skoun-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
+      </div>
+    </a>
+  </div>`;
 }
 
 export function createAmberGroupPopupHtml(group: MapPinGroup): string {
@@ -612,7 +849,7 @@ export function createAmberGroupPopupHtml(group: MapPinGroup): string {
   return `<div class="skoun-amber-popup-card skoun-amber-popup-group">
     <div class="skoun-popup-group-header">
       <span>${group.count} places at this pin</span>
-      <button type="button" class="skoun-popup-close-btn" aria-label="Close" onclick="event.stopPropagation(); event.preventDefault(); if (window._skounActivePopup) { window._skounActivePopup.remove(); }">✕</button>
+      <button type="button" class="skoun-popup-close-btn" aria-label="Close">✕</button>
     </div>
     <div class="skoun-popup-group-list">${itemsHtml}</div>
   </div>`;
@@ -626,8 +863,6 @@ const TIP = 20;
 const GAP = 8;
 const CLIP_PAD = 8;
 const DIAGONAL_RATIO = 0.35;
-
-type LatLngLike = { lat: number; lng: number };
 
 function leftoverSpace(
   side: AmberPopupSide,
@@ -658,6 +893,42 @@ function roomierSide(
     : b;
 }
 
+function candidatePairFromAxes(
+  dx: number,
+  dy: number,
+  ax: number,
+  ay: number,
+): [AmberPopupSide, AmberPopupSide] {
+  const longest = Math.max(ax, ay);
+  if (longest < 1) return ["w", "e"];
+  if (Math.min(ax, ay) / longest >= DIAGONAL_RATIO) {
+    return [dx >= 0 ? "w" : "e", dy >= 0 ? "n" : "s"];
+  }
+  return ay >= ax ? ["w", "e"] : ["n", "s"];
+}
+
+/** Hub-relative vector like campus−pin. Axis magnitudes from polyline |segment| sums. */
+function pathHeadingHubVector(
+  map: MapboxMap,
+  coords: LatLngLike[],
+): { dx: number; dy: number; ax: number; ay: number } | null {
+  if (coords.length < 2) return null;
+  const pts = coords.map((c) => map.project(toLngLat(c)));
+  let ax = 0;
+  let ay = 0;
+  let netDx = 0;
+  let netDy = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const sx = pts[i].x - pts[i - 1].x;
+    const sy = pts[i].y - pts[i - 1].y;
+    ax += Math.abs(sx);
+    ay += Math.abs(sy);
+    netDx += sx;
+    netDy += sy;
+  }
+  return { dx: -netDx, dy: -netDy, ax, ay };
+}
+
 function candidatePair(
   map: MapboxMap,
   listing: LatLngLike,
@@ -667,14 +938,7 @@ function candidatePair(
   const hub = map.project(toLngLat(campus));
   const dx = hub.x - pin.x;
   const dy = hub.y - pin.y;
-  const ax = Math.abs(dx);
-  const ay = Math.abs(dy);
-  const longest = Math.max(ax, ay);
-  if (longest < 1) return ["w", "e"];
-  if (Math.min(ax, ay) / longest >= DIAGONAL_RATIO) {
-    return [dx >= 0 ? "w" : "e", dy >= 0 ? "n" : "s"];
-  }
-  return ay >= ax ? ["w", "e"] : ["n", "s"];
+  return candidatePairFromAxes(dx, dy, Math.abs(dx), Math.abs(dy));
 }
 
 function mapSize(map: MapboxMap): { x: number; y: number } {
@@ -686,44 +950,115 @@ export function resolveUniPopupSide(
   map: MapboxMap,
   listing: LatLngLike,
   campus: LatLngLike,
+  pathCoords?: LatLngLike[] | null,
 ): AmberPopupSide {
   const size = mapSize(map);
-  const [a, b] = candidatePair(map, listing, campus);
+  const heading =
+    pathCoords && pathCoords.length >= 2
+      ? pathHeadingHubVector(map, pathCoords)
+      : null;
+  const [a, b] = heading
+    ? candidatePairFromAxes(heading.dx, heading.dy, heading.ax, heading.ay)
+    : candidatePair(map, listing, campus);
   const pin = { x: size.x / 2, y: size.y / 2 };
   return roomierSide(a, b, pin, size);
 }
 
-function offsetForSide(
+function mapboxAnchorForSide(
   side: AmberPopupSide,
-  width: number,
-  height: number,
-): [number, number] {
+): "top" | "bottom" | "left" | "right" {
   switch (side) {
     case "s":
-      return [0, height / 2 + TIP + GAP];
+      return "top";
     case "e":
-      return [width / 2 + TIP + GAP, 0];
+      return "left";
     case "w":
-      return [-(width / 2 + TIP + GAP), 0];
+      return "right";
+    case "n":
+    default:
+      return "bottom";
+  }
+}
+
+function gapOffsetForSide(side: AmberPopupSide): [number, number] {
+  switch (side) {
+    case "s":
+      return [0, GAP];
+    case "e":
+      return [GAP, 0];
+    case "w":
+      return [-GAP, 0];
     case "n":
     default:
       return [0, -GAP];
   }
 }
 
-export function applyAmberPopupSide(popup: Popup, side: AmberPopupSide): void {
-  const el = popup.getElement();
-  const width = el?.offsetWidth || CARD_W;
-  const height = el?.offsetHeight || CARD_H;
-  popup.setOffset(offsetForSide(side, width, height));
+const popupSide = new WeakMap<Popup, AmberPopupSide>();
+const replacingPopups = new WeakSet<Popup>();
+
+function paintPopupSide(popup: Popup, side: AmberPopupSide): void {
+  popup.setOffset(gapOffsetForSide(side));
   const node = popup.getElement();
-  if (node) node.setAttribute("data-skoun-side", side);
+  if (node) {
+    node.classList.remove(
+      "skoun-popup-n",
+      "skoun-popup-s",
+      "skoun-popup-e",
+      "skoun-popup-w",
+    );
+    node.classList.add(`skoun-popup-${side}`);
+    node.setAttribute("data-skoun-side", side);
+  }
+  popupSide.set(popup, side);
 }
 
-export function amberPopupHtml(group: MapPinGroup): string {
-  if (group.count > 1) return createAmberGroupPopupHtml(group);
-  const listing = group.listings[0];
-  return listing ? createAmberPopupHtml(listing) : "";
+function bindPopupCloseButton(popup: Popup): void {
+  const root = popup.getElement();
+  const btn = root?.querySelector(".skoun-popup-close-btn");
+  if (!(btn instanceof HTMLElement) || btn.dataset.skounBound === "1") return;
+  btn.dataset.skounBound = "1";
+  btn.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    popup.remove();
+    window._skounDismissPreview?.();
+  });
+}
+
+function wireAmberPopup(
+  popup: Popup,
+  onOpen?: (popup: Popup) => void,
+  onClose?: () => void,
+): void {
+  popup.on("open", () => {
+    window._skounActivePopup = popup;
+    bindPopupCloseButton(popup);
+    onOpen?.(popup);
+  });
+  popup.on("close", () => {
+    // Keep popup in replacingPopups forever (WeakSet). Mapbox can fire
+    // close twice (remove + setPopup); deleting on first close made the
+    // second fire call onClose and wipe sheet/route while card stayed open.
+    if (replacingPopups.has(popup)) {
+      if (window._skounActivePopup === popup) {
+        window._skounActivePopup = null;
+      }
+      return;
+    }
+    window._skounActivePopup = null;
+    onClose?.();
+  });
+}
+
+/** Force-close every amber popup on the map (outside-click / dismiss). */
+export function dismissAmberPopupsOnMap(map: MapboxMap): void {
+  window._skounActivePopup?.remove();
+  window._skounActivePopup = null;
+  const root = map.getContainer();
+  root.querySelectorAll(".mapboxgl-popup").forEach((node) => {
+    node.remove();
+  });
 }
 
 export function bindAmberPopup(
@@ -732,26 +1067,64 @@ export function bindAmberPopup(
   html: string,
   onOpen?: (popup: Popup) => void,
   onClose?: () => void,
+  side: AmberPopupSide = "n",
 ): Popup {
   const popup = new mapboxgl.Popup({
     closeButton: false,
-    offset: [0, -8],
+    offset: gapOffsetForSide(side),
     maxWidth: "240px",
-    className: "skoun-mapbox-amber-popup",
-    anchor: "bottom",
+    className: `skoun-mapbox-amber-popup skoun-popup-${side}`,
+    anchor: mapboxAnchorForSide(side),
     closeOnClick: false,
   }).setHTML(html);
 
   marker.setPopup(popup);
-  popup.on("open", () => {
-    window._skounActivePopup = popup;
-    onOpen?.(popup);
-  });
-  popup.on("close", () => {
-    window._skounActivePopup = null;
-    onClose?.();
-  });
+  popupSide.set(popup, side);
+  wireAmberPopup(popup, onOpen, onClose);
   return popup;
+}
+
+export function applyAmberPopupSide(
+  ctx: {
+    mapboxgl: MapboxGL;
+    map: MapboxMap;
+    marker: Marker;
+    html: string;
+    onOpen?: (popup: Popup) => void;
+    onClose?: () => void;
+  },
+  popup: Popup,
+  side: AmberPopupSide,
+): Popup {
+  const prev = popupSide.get(popup) ?? "n";
+  if (prev === side) {
+    paintPopupSide(popup, side);
+    return popup;
+  }
+
+  const wasOpen = popup.isOpen();
+  replacingPopups.add(popup);
+  popup.remove();
+  const next = bindAmberPopup(
+    ctx.mapboxgl,
+    ctx.marker,
+    ctx.html,
+    ctx.onOpen,
+    ctx.onClose,
+    side,
+  );
+  if (wasOpen) {
+    next.addTo(ctx.map);
+    window._skounActivePopup = next;
+    bindPopupCloseButton(next);
+  }
+  return next;
+}
+
+export function amberPopupHtml(group: MapPinGroup): string {
+  if (group.count > 1) return createAmberGroupPopupHtml(group);
+  const listing = group.listings[0];
+  return listing ? createAmberPopupHtml(listing) : "";
 }
 
 function escapeHtml(text: string): string {

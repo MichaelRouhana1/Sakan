@@ -15,6 +15,8 @@ type Props = {
   /** Full-height split pane (map mode), not a fixed sidebar card. */
   fullHeight?: boolean;
   hoveredListingId?: string | null;
+  hoverFlyListingId?: string | null;
+  onHoverFlyComplete?: () => void;
 };
 
 /** Amber-style map pane: map fills the column; Close Map floats top-right. */
@@ -27,6 +29,8 @@ export function FindMapPane({
   onClose,
   fullHeight = false,
   hoveredListingId = null,
+  hoverFlyListingId = null,
+  onHoverFlyComplete,
 }: Props) {
   return (
     <View
@@ -83,6 +87,8 @@ export function FindMapPane({
           loading={loading}
           fillContainer={fullHeight}
           hoveredListingId={hoveredListingId}
+          hoverFlyListingId={hoverFlyListingId}
+          onHoverFlyComplete={onHoverFlyComplete}
           active={visible}
         />
       </View>

@@ -1,7 +1,11 @@
-const DEFAULT_STYLE = "mapbox://styles/mapbox/light-v11";
+const DEFAULT_STYLE = "mapbox://styles/mapbox/standard";
+const STATIC_FALLBACK_STYLE = "mapbox://styles/mapbox/light-v11";
 
 export function getMapboxToken(): string | null {
-  const token = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() ?? "";
+  const token =
+    process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() ||
+    process.env.EXPO_PUBLIC_MAPBOX_TOKEN?.trim() ||
+    "";
   return token.length > 0 ? token : null;
 }
 
@@ -23,11 +27,22 @@ export function parseMapboxStyleRef(style = getMapboxStyle()): {
   if (match?.[1] && match[2]) {
     return { owner: match[1], styleId: match[2] };
   }
-  return { owner: "mapbox", styleId: "light-v11" };
+  return { owner: "mapbox", styleId: "standard" };
 }
 
 export const MAP_TOKEN_MISSING_COPY =
   "Map token missing (EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN)";
+
+function staticUrlForStyle(
+  style: string,
+  opts: { lng: number; lat: number; zoom: number; width: number; height: number },
+  token: string,
+): string {
+  const { owner, styleId } = parseMapboxStyleRef(style);
+  const w = Math.max(1, Math.min(1280, Math.round(opts.width)));
+  const h = Math.max(1, Math.min(1280, Math.round(opts.height)));
+  return `https://api.mapbox.com/styles/v1/${owner}/${styleId}/static/${opts.lng},${opts.lat},${opts.zoom},0/${w}x${h}@2x?access_token=${encodeURIComponent(token)}`;
+}
 
 export function mapboxStaticImageUrl(opts: {
   lng: number;
@@ -38,8 +53,9 @@ export function mapboxStaticImageUrl(opts: {
 }): string | null {
   const token = getMapboxToken();
   if (!token) return null;
-  const { owner, styleId } = parseMapboxStyleRef();
-  const w = Math.max(1, Math.min(1280, Math.round(opts.width)));
-  const h = Math.max(1, Math.min(1280, Math.round(opts.height)));
-  return `https://api.mapbox.com/styles/v1/${owner}/${styleId}/static/${opts.lng},${opts.lat},${opts.zoom},0/${w}x${h}@2x?access_token=${encodeURIComponent(token)}`;
+  const style = getMapboxStyle();
+  if (style.includes("/standard")) {
+    return staticUrlForStyle(STATIC_FALLBACK_STYLE, opts, token);
+  }
+  return staticUrlForStyle(style, opts, token);
 }

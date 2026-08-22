@@ -13,7 +13,10 @@ type Props = {
   variant?: "grid" | "list";
   /** Desktop column count for grid mode (1–3). */
   columns?: 1 | 2 | 3;
-  onHoverListing?: (id: string | null) => void;
+  onHoverListing?: (
+    id: string | null,
+    point?: { x: number; y: number },
+  ) => void;
 };
 
 function SkeletonCard({ list }: { list?: boolean }) {

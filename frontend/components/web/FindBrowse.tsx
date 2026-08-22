@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -31,6 +31,10 @@ import {
 } from "@/components/web/FindFiltersDialog";
 import { FindMapPane } from "@/components/web/FindMapPane";
 import { FindResultsGrid } from "@/components/web/FindResultsGrid";
+import {
+  HoverCommitCursor,
+  type HoverPoint,
+} from "@/components/web/HoverCommitCursor";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { LEBANON_AREAS } from "@/constants/areas";
 import { Skoun } from "@/constants/theme";
@@ -40,6 +44,7 @@ import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFi
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
 import { useStableBreakpoint } from "@/lib/breakpoints";
+import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { Listing } from "@/types/listing";
 
 type ResultsLayout = "grid" | "list";
@@ -84,6 +89,7 @@ const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
 export function FindBrowse() {
   const bp = useStableBreakpoint();
   const isDesktop = bp === "desktop";
+  const coarsePointer = useCoarsePointer();
   const { setFullBleed, setHideFooter, setLockScroll } = useWebShellChrome();
 
   const [mode, setMode] = useState<SearchMode>("university");
@@ -94,6 +100,13 @@ export function FindBrowse() {
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
   const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
+  const [hoverFlyListingId, setHoverFlyListingId] = useState<string | null>(
+    null,
+  );
+  const [hoverCursorSeed, setHoverCursorSeed] = useState<HoverPoint | null>(
+    null,
+  );
+  const [hoverRingDone, setHoverRingDone] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterSection, setFilterSection] = useState<FilterSection>("university");
   const [chipSheet, setChipSheet] = useState<ChipSheet>(null);
@@ -266,6 +279,16 @@ export function FindBrowse() {
   const { width: windowWidth } = useWindowDimensions();
   const isXl = windowWidth >= 1280;
 
+  const onHoverListing = useCallback(
+    (id: string | null, point?: HoverPoint) => {
+      setHoveredListingId(id);
+      setHoverRingDone(false);
+      if (!id) setHoverFlyListingId(null);
+      if (point) setHoverCursorSeed(point);
+    },
+    [],
+  );
+
   const results = (
     <FindResultsGrid
       listings={listings}
@@ -284,7 +307,7 @@ export function FindBrowse() {
                 ? 2
                 : 1
       }
-      onHoverListing={isMap ? setHoveredListingId : undefined}
+      onHoverListing={isMap ? onHoverListing : undefined}
     />
   );
 
@@ -320,7 +343,10 @@ export function FindBrowse() {
           <View style={styles.mainRow}>
             <View style={styles.resultsCol}>{results}</View>
             {isDesktop ? (
-              <FindBrowseSidebar onExploreMap={() => setMapOpen(true)} />
+              <FindBrowseSidebar
+                listings={listings}
+                onExploreMap={() => setMapOpen(true)}
+              />
             ) : null}
           </View>
           {!isDesktop ? (
@@ -363,14 +389,26 @@ export function FindBrowse() {
             visible={isMap}
             fullHeight
             hoveredListingId={hoveredListingId}
+            hoverFlyListingId={hoverFlyListingId}
+            onHoverFlyComplete={() => setHoverRingDone(true)}
             onClose={() => {
               setHoveredListingId(null);
+              setHoverFlyListingId(null);
               setMapOpen(false);
             }}
           />
         </View>
       ) : null}
       </View>
+
+      {isMap && effectiveMode === "university" && !coarsePointer ? (
+        <HoverCommitCursor
+          hoverKey={hoverRingDone ? null : hoveredListingId}
+          seed={hoverCursorSeed}
+          durationMs={1000}
+          onCommit={setHoverFlyListingId}
+        />
+      ) : null}
 
       {isDesktop ? (
         <FindFiltersDialog

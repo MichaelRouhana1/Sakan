@@ -34,7 +34,7 @@
 | Property filters (type, rent, utilities, students, gender) | Done | panel + `listListingsQuerySchema` / list repo |
 | Sort (newest / lowest price) | Done (Cities) | `ListingSortControl` |
 | List ↔ map toggle | Done | `BrowseViewToggle` |
-| Renter browse map (pins, campus, dotted line + distance) | Done | `ListingBrowseMap` (+ `.web`) |
+| Renter browse map (pins, campus, walking route + distance) | Done | `ListingBrowseMap` (+ `.web`) |
 | Co-located pin grouping + picker sheet | Done | `mapPinGroups.ts`, `ListingMapPicker` |
 | Map preview card | Done | `ListingMapPreview` |
 | Listing cards + distance | Done | `ListingCard` |
@@ -143,7 +143,7 @@
 | `SearchModeToggle` | Cities ↔ University Hub |
 | `ListingSortControl` | Newest / price ascending |
 | `ListingCard` | Feed card (cover, rent, utilities, distance) |
-| `ListingBrowseMap` | Native browse map (pins, campus, polyline, distance badges) |
+| `ListingBrowseMap` | Native Mapbox Standard browse map (pins, campus, walking route) |
 | `ListingBrowseMap.web` | Web/Mapbox browse map parity |
 | `ListingMapPreview` | Bottom preview for selected map pin |
 | `ListingMapPicker` | Sheet when several listings share one pin |
@@ -245,7 +245,9 @@
 | `safeBack.ts` | Safe navigation back |
 | `useReducedMotion.ts` | a11y motion preference |
 | `skounMapbox.web.ts` | Mapbox GL helpers for web maps |
-| `mapboxEnv.ts` | Mapbox token, style, static image URL |
+| `mapboxEnv.ts` | Mapbox token aliases, Standard style, static image URL |
+| `mapboxWalkingRoute.ts` | Mapbox Directions walking client + cache |
+| `features/listings/useWalkingRoute.ts` | Hook for campus→listing walking polyline |
 
 ### `constants/`
 | Module | Role |
@@ -352,7 +354,7 @@
 ## Small shared patterns worth knowing
 
 - **Role-gated apps:** separate `(renter)` and `(poster)` / hosting shells; switch is nav-only  
-- **Maps:** `react-native-maps` native; Mapbox GL JS on web  
+- **Maps:** Mapbox Standard (`@rnmapbox/maps` native, needs a **dev client**; Mapbox GL JS on web). University mode draws cached walking Directions polylines (straight dashed line if Directions fail).  
 - **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
 - **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
 - **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed  

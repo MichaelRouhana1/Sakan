@@ -1,21 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
+import Mapbox, { type Camera } from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
   View,
 } from "react-native";
-import MapView, {
-  Marker,
-  PROVIDER_DEFAULT,
-  type Region,
-} from "react-native-maps";
 import { LText } from "@/components/lister/Typography";
 import { PasteLocationLinkField } from "@/components/listings/PasteLocationLinkField";
 import { SkounMapPin } from "@/components/listings/SkounMapPin";
@@ -28,6 +23,7 @@ import {
   isInLebanon,
   type LatLng,
 } from "@/lib/locationWkt";
+import { getMapboxStyle, hasMapboxToken, MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 export type ListingPin = {
@@ -47,17 +43,17 @@ type Props = {
   invalid?: boolean;
 };
 
-function regionFrom(coord: LatLng, delta = 0.012): Region {
-  return {
-    latitude: coord.lat,
-    longitude: coord.lng,
-    latitudeDelta: delta,
-    longitudeDelta: delta,
-  };
+function flyTo(camera: Camera | null, coord: LatLng, duration = 280) {
+  camera?.setCamera({
+    centerCoordinate: [coord.lng, coord.lat],
+    zoomLevel: 14,
+    animationDuration: duration,
+    animationMode: "easeTo",
+  });
 }
 
 export function LocationPicker({ area, value, onChange, invalid }: Props) {
-  const mapRef = useRef<MapView | null>(null);
+  const cameraRef = useRef<Camera | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
@@ -103,7 +99,7 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
       confirmed: patch.confirmed,
       source: patch.source,
     });
-    mapRef.current?.animateToRegion(regionFrom(coord), 280);
+    flyTo(cameraRef.current, coord);
   }
 
   function onSelectLandmark(id: string) {
@@ -222,7 +218,7 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
         style={[styles.mapShell, invalid && styles.mapShellInvalid]}
         accessibilityLabel="Map to place listing pin"
       >
-        {!mapReady ? (
+        {!mapReady && hasMapboxToken() ? (
           <View style={styles.mapLoading}>
             <ActivityIndicator color={Lister.color.primary} />
             <LText variant="caption" tone="muted">
@@ -230,38 +226,28 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
             </LText>
           </View>
         ) : null}
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_DEFAULT}
-          initialRegion={regionFrom(center)}
-          onMapReady={() => setMapReady(true)}
-          onPress={(e) => {
-            const { latitude, longitude } = e.nativeEvent.coordinate;
-            setCoord(
-              { lat: latitude, lng: longitude },
-              {
-                confirmed: true,
-                source: "pin",
-                landmarkId: null,
-                landmarkLabel: labelOverride.trim(),
-              },
-            );
-          }}
-          showsUserLocation={false}
-          showsMyLocationButton={false}
-          showsCompass={false}
-          toolbarEnabled={false}
-          mapType={Platform.OS === "ios" ? "mutedStandard" : "standard"}
-          userInterfaceStyle="light"
-        >
-          <Marker
-            coordinate={{ latitude: value.lat, longitude: value.lng }}
-            draggable
-            onDragEnd={(e) => {
-              const { latitude, longitude } = e.nativeEvent.coordinate;
+        {!hasMapboxToken() ? (
+          <View style={styles.mapLoading}>
+            <LText variant="caption" tone="muted">
+              {MAP_TOKEN_MISSING_COPY}
+            </LText>
+          </View>
+        ) : (
+          <Mapbox.MapView
+            style={styles.map}
+            styleURL={getMapboxStyle()}
+            compassEnabled={false}
+            scaleBarEnabled={false}
+            pitchEnabled
+            rotateEnabled
+            onDidFinishLoadingMap={() => setMapReady(true)}
+            onPress={(e) => {
+              const coords = e.geometry.coordinates;
+              const lng = coords[0];
+              const lat = coords[1];
+              if (typeof lng !== "number" || typeof lat !== "number") return;
               setCoord(
-                { lat: latitude, lng: longitude },
+                { lat, lng },
                 {
                   confirmed: true,
                   source: "pin",
@@ -270,12 +256,42 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
                 },
               );
             }}
-            anchor={{ x: 0.5, y: 1 }}
-            accessibilityLabel="Draggable listing pin"
           >
-            <SkounMapPin dropped={value.confirmed} />
-          </Marker>
-        </MapView>
+            <Mapbox.Camera
+              ref={cameraRef}
+              defaultSettings={{
+                centerCoordinate: [center.lng, center.lat],
+                zoomLevel: 14,
+                pitch: 0,
+              }}
+            />
+            <Mapbox.PointAnnotation
+              id="listing-pin"
+              coordinate={[value.lng, value.lat]}
+              draggable
+              anchor={{ x: 0.5, y: 1 }}
+              onDragEnd={(e) => {
+                const coords = e.geometry.coordinates;
+                const lng = coords[0];
+                const lat = coords[1];
+                if (typeof lng !== "number" || typeof lat !== "number") return;
+                setCoord(
+                  { lat, lng },
+                  {
+                    confirmed: true,
+                    source: "pin",
+                    landmarkId: null,
+                    landmarkLabel: labelOverride.trim(),
+                  },
+                );
+              }}
+            >
+              <View accessibilityLabel="Draggable listing pin">
+                <SkounMapPin dropped={value.confirmed} />
+              </View>
+            </Mapbox.PointAnnotation>
+          </Mapbox.MapView>
+        )}
         <View style={styles.mapChrome} pointerEvents="box-none">
           <Pressable
             accessibilityRole="button"
@@ -479,27 +495,45 @@ export function StaticPinMap({
   coord: LatLng;
   height?: number;
 }) {
+  if (!hasMapboxToken()) {
+    return (
+      <View style={[styles.staticMap, { height }]}>
+        <LText variant="caption" tone="muted">
+          {MAP_TOKEN_MISSING_COPY}
+        </LText>
+      </View>
+    );
+  }
   return (
     <View style={[styles.staticMap, { height }]}>
-      <MapView
+      <Mapbox.MapView
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_DEFAULT}
-        region={regionFrom(coord, 0.008)}
+        styleURL={getMapboxStyle()}
         scrollEnabled={false}
         zoomEnabled={false}
         rotateEnabled={false}
         pitchEnabled={false}
-        toolbarEnabled={false}
+        compassEnabled={false}
+        scaleBarEnabled={false}
         pointerEvents="none"
-        mapType={Platform.OS === "ios" ? "mutedStandard" : "standard"}
       >
-        <Marker
-          coordinate={{ latitude: coord.lat, longitude: coord.lng }}
+        <Mapbox.Camera
+          defaultSettings={{
+            centerCoordinate: [coord.lng, coord.lat],
+            zoomLevel: 15,
+            pitch: 0,
+          }}
+          centerCoordinate={[coord.lng, coord.lat]}
+          zoomLevel={15}
+          animationMode="none"
+        />
+        <Mapbox.MarkerView
+          coordinate={[coord.lng, coord.lat]}
           anchor={{ x: 0.5, y: 1 }}
         >
           <SkounMapPin dropped />
-        </Marker>
-      </MapView>
+        </Mapbox.MarkerView>
+      </Mapbox.MapView>
     </View>
   );
 }

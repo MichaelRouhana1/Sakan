@@ -25,11 +25,21 @@ import { labelListingType } from "@/lib/listingLabels";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { Listing } from "@/types/listing";
 
+type HoverPoint = { x: number; y: number };
+
 type Props = {
   listing: Listing;
   variant?: "grid" | "list";
-  onHoverListing?: (id: string | null) => void;
+  onHoverListing?: (id: string | null, point?: HoverPoint) => void;
 };
+
+function hoverPointFromEvent(e: { nativeEvent?: { clientX?: number; clientY?: number }; clientX?: number; clientY?: number }): HoverPoint | undefined {
+  const src = e.nativeEvent ?? e;
+  if (typeof src.clientX !== "number" || typeof src.clientY !== "number") {
+    return undefined;
+  }
+  return { x: src.clientX, y: src.clientY };
+}
 
 const CARD_BORDER = "#E2E8F0";
 const GRID_TAG_LIMIT = 4;
@@ -148,7 +158,8 @@ export function ListingResultCard({
   const mapHoverHandlers =
     onHoverListing && Platform.OS === "web"
       ? {
-          onMouseEnter: () => onHoverListing(listing.id),
+          onMouseEnter: (e: { nativeEvent?: { clientX?: number; clientY?: number }; clientX?: number; clientY?: number }) =>
+            onHoverListing(listing.id, hoverPointFromEvent(e)),
           onMouseLeave: () => onHoverListing(null),
         }
       : {};

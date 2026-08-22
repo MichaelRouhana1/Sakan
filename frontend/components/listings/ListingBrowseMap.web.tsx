@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -25,6 +25,7 @@ import {
   groupListingsByProximity,
   type MapPinGroup,
 } from "@/lib/mapPinGroups";
+import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
 import { MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
 import {
   amberPopupHtml,
@@ -34,14 +35,16 @@ import {
   clusterBubbleHtml,
   createSkounMap,
   destroySkounMap,
+  dismissAmberPopupsOnMap,
   distanceBadgeHtml,
-  distanceBadgeLngLat,
+  distanceBadgeOnPath,
   loadMapbox,
   makeMarker,
   pricePinHtml,
   resolveUniPopupSide,
-  setCampusLine,
+  setCampusRoute,
   toLngLat,
+  type AmberPopupSide,
   type MapboxGL,
   type MapboxMap,
   type Marker,
@@ -61,6 +64,9 @@ type Props = {
   onCarouselOpenChange?: (open: boolean) => void;
   onOpenListing?: (listing: Listing) => void;
   hoveredListingId?: string | null;
+  /** Sidebar hover that passed the commit ring — drives uni-mode camera. */
+  hoverFlyListingId?: string | null;
+  onHoverFlyComplete?: () => void;
   /** When pane is shown after keep-alive hide, trigger resize. */
   active?: boolean;
 };
@@ -72,6 +78,8 @@ type MarkerRec = {
   cluster?: Extract<VisibleMapFeature, { kind: "cluster" }>;
   group?: MapPinGroup;
   popup?: Popup;
+  popupOnOpen?: (popup: Popup) => void;
+  popupOnClose?: () => void;
 };
 
 function calculateDistanceMeters(
@@ -127,6 +135,11 @@ const PIN_SELECT_PAN_MS = 350;
 const CAMPUS_ZOOM_BOOST_START_M = 400;
 const CAMPUS_ZOOM_BOOST_FULL_M = 100;
 const PIN_SELECT_NEAR_ZOOM = 18;
+const HOVER_CAM_LOCK_MS = 600;
+const HOVER_ZOOM_OUT_DELTA = 1.25;
+const HOVER_ZOOM_OUT_MS = 650;
+const HOVER_ZOOM_IN_MS = 700;
+const HOVER_ZOOM_OUT_MIN = 8;
 
 function pinSelectZoomForCampusDistance(meters: number): number {
   if (meters >= CAMPUS_ZOOM_BOOST_START_M) return PIN_SELECT_MIN_ZOOM;
@@ -135,6 +148,28 @@ function pinSelectZoomForCampusDistance(meters: number): number {
     (CAMPUS_ZOOM_BOOST_START_M - meters) /
     (CAMPUS_ZOOM_BOOST_START_M - CAMPUS_ZOOM_BOOST_FULL_M);
   return PIN_SELECT_MIN_ZOOM + t * (PIN_SELECT_NEAR_ZOOM - PIN_SELECT_MIN_ZOOM);
+}
+
+/** Zoom out enough that current view + dest pin both fit; nearby pins still get a small pullback. */
+function hoverOutZoom(
+  map: MapboxMap,
+  gl: MapboxGL,
+  dest: [number, number],
+): number {
+  const current = map.getZoom();
+  const minPullback = current - HOVER_ZOOM_OUT_DELTA;
+  const view = map.getBounds();
+  let fitZoom = current;
+  if (view) {
+    const span = new gl.LngLatBounds(view.getSouthWest(), view.getNorthEast());
+    span.extend(dest);
+    const fitted = map.cameraForBounds(span, {
+      padding: 72,
+      maxZoom: current,
+    });
+    if (typeof fitted?.zoom === "number") fitZoom = fitted.zoom;
+  }
+  return Math.max(HOVER_ZOOM_OUT_MIN, Math.min(minPullback, fitZoom));
 }
 
 function expandedMapHeight(): number {
@@ -161,6 +196,8 @@ export function ListingBrowseMap({
   fillContainer = false,
   onCarouselOpenChange,
   hoveredListingId = null,
+  hoverFlyListingId = null,
+  onHoverFlyComplete,
   active = true,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -170,24 +207,56 @@ export function ListingBrowseMap({
   const listingMarkersRef = useRef<Map<string, MarkerRec>>(new Map());
   const clusterMarkersRef = useRef<Map<number, MarkerRec>>(new Map());
   const overlayBadgeRef = useRef<Marker | null>(null);
-  const ignoreNextMapClick = useRef(false);
+  const ignoreNextMapClickUntil = useRef(0);
+  const stickyPreviewListingIdRef = useRef<string | null>(null);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverCamSeqRef = useRef(0);
   const universityModeRef = useRef(universityMode);
   universityModeRef.current = universityMode;
   const campusesRef = useRef(campuses);
   campusesRef.current = campuses;
+  const walkingPathRef = useRef<{
+    listingId: string;
+    coords: { lat: number; lng: number }[];
+  } | null>(null);
+  const uniCameraRanForListingRef = useRef<string | null>(null);
+  const pathSideAppliedForRef = useRef<string | null>(null);
+  const hoverCamLockUntilRef = useRef(0);
+  const onHoverFlyCompleteRef = useRef(onHoverFlyComplete);
+  onHoverFlyCompleteRef.current = onHoverFlyComplete;
   const reduceMotion = useReducedMotion();
   const reduceMotionRef = useRef(reduceMotion);
   reduceMotionRef.current = reduceMotion;
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
+  /** Survives brief sheet flicker during zoom/popup replace — drives walking route. */
+  const [routeListingId, setRouteListingId] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [tokenMissing, setTokenMissing] = useState(false);
   const [visibleFeatures, setVisibleFeatures] = useState<VisibleMapFeature[]>(
     [],
   );
+  const sheetKindRef = useRef(sheet.kind);
+  sheetKindRef.current = sheet.kind;
+
+  function dismissPreview() {
+    const map = mapRef.current;
+    if (map) dismissAmberPopupsOnMap(map);
+    stickyPreviewListingIdRef.current = null;
+    uniCameraRanForListingRef.current = null;
+    pathSideAppliedForRef.current = null;
+    setRouteListingId(null);
+    setSheet({ kind: "none" });
+  }
+
+  useEffect(() => {
+    window._skounDismissPreview = dismissPreview;
+    return () => {
+      window._skounDismissPreview = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (fillContainer || mapReady) {
@@ -248,19 +317,41 @@ export function ListingBrowseMap({
   }
 
   const selectedListing = useMemo(() => {
-    if (sheet.kind !== "preview") return null;
-    return mappable.find((l) => l.id === sheet.listingId) ?? null;
-  }, [sheet, mappable]);
+    const id =
+      sheet.kind === "preview" ? sheet.listingId : routeListingId;
+    if (!id) return null;
+    return mappable.find((l) => l.id === id) ?? null;
+  }, [sheet, mappable, routeListingId]);
+
+  const walkingCampus = useMemo(
+    () => resolveNearestCampus(selectedListing, campuses),
+    [selectedListing, campuses],
+  );
+
+  const walkingRoute = useWalkingRoute({
+    enabled: Boolean(universityMode && routeListingId),
+    listingId: routeListingId,
+    campusSlug: walkingCampus?.slug ?? null,
+    from: walkingCampus
+      ? { lng: walkingCampus.lng, lat: walkingCampus.lat }
+      : null,
+    to:
+      selectedListing?.lng != null && selectedListing.lat != null
+        ? { lng: selectedListing.lng, lat: selectedListing.lat }
+        : null,
+  });
 
   const activeGroupId = useMemo(() => {
     const listingId =
-      sheet.kind === "preview" ? sheet.listingId : hoveredListingId;
+      routeListingId ??
+      (sheet.kind === "preview" ? sheet.listingId : null) ??
+      hoveredListingId;
     if (!listingId) return null;
     for (const g of groups) {
       if (g.listings.some((l) => l.id === listingId)) return g.id;
     }
     return null;
-  }, [sheet, groups, hoveredListingId]);
+  }, [sheet, groups, hoveredListingId, routeListingId]);
 
   const listingIdsKey = useMemo(
     () => mappable.map((l) => l.id).join(","),
@@ -274,23 +365,117 @@ export function ListingBrowseMap({
 
   useEffect(() => {
     setSheet({ kind: "none" });
+    setRouteListingId(null);
+    stickyPreviewListingIdRef.current = null;
+    uniCameraRanForListingRef.current = null;
+    pathSideAppliedForRef.current = null;
+    walkingPathRef.current = null;
   }, [listingIdsKey, campusesKey, universityMode]);
 
   const sheetOpen = sheet.kind !== "none";
 
   useEffect(() => {
-    onCarouselOpenChange?.(false);
-  }, [onCarouselOpenChange]);
+    onCarouselOpenChange?.(sheetOpen);
+  }, [sheetOpen, onCarouselOpenChange]);
 
   useEffect(() => {
-    if (!mapReady || !hoveredListingId) return;
+    if (!mapReady) return;
+
+    if (universityMode) {
+      if (!hoverFlyListingId) return;
+      const listingId = hoverFlyListingId;
+      const seq = ++hoverCamSeqRef.current;
+      mapRef.current?.stop();
+
+      const runUniHover = () => {
+        if (hoverCamSeqRef.current !== seq) return;
+        const map = mapRef.current;
+        if (!map) return;
+        const listing = mappable.find((l) => l.id === listingId);
+        if (!listing) {
+          onHoverFlyCompleteRef.current?.();
+          return;
+        }
+
+        dismissPreview();
+
+        const campus = resolveNearestCampus(listing, campusesRef.current);
+        let targetZoom = PIN_SELECT_MIN_ZOOM;
+        if (campus && listing.lat != null && listing.lng != null) {
+          const distM =
+            listing.distanceMeters ??
+            calculateDistanceMeters(
+              campus.lat,
+              campus.lng,
+              listing.lat,
+              listing.lng,
+            );
+          targetZoom = pinSelectZoomForCampusDistance(distM);
+        }
+        const center = toLngLat(listing);
+
+        const finishFly = () => {
+          if (hoverCamSeqRef.current !== seq) return;
+          onHoverFlyCompleteRef.current?.();
+        };
+        const failsafe = setTimeout(
+          finishFly,
+          HOVER_ZOOM_OUT_MS + PIN_SELECT_PAN_MS + HOVER_ZOOM_IN_MS + 120,
+        );
+
+        if (reduceMotionRef.current) {
+          clearTimeout(failsafe);
+          map.easeTo({ center, zoom: targetZoom, duration: 0 });
+          finishFly();
+          return;
+        }
+
+        const gl = mapboxRef.current;
+        const outZoom = gl
+          ? hoverOutZoom(map, gl, center)
+          : Math.max(HOVER_ZOOM_OUT_MIN, map.getZoom() - HOVER_ZOOM_OUT_DELTA);
+
+        const ifLive = (fn: () => void) => {
+          if (hoverCamSeqRef.current !== seq) return;
+          fn();
+        };
+
+        map.once("moveend", () => {
+          ifLive(() => {
+            map.once("moveend", () => {
+              ifLive(() => {
+                map.once("moveend", finishFly);
+                map.easeTo({
+                  center,
+                  zoom: targetZoom,
+                  duration: HOVER_ZOOM_IN_MS,
+                });
+              });
+            });
+            map.easeTo({ center, duration: PIN_SELECT_PAN_MS });
+          });
+        });
+        map.easeTo({ zoom: outZoom, duration: HOVER_ZOOM_OUT_MS });
+      };
+
+      runUniHover();
+      return;
+    }
+
+    if (!hoveredListingId) return;
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => {
+
+    const runHover = () => {
       const map = mapRef.current;
       if (!map) return;
-      if (sheet.kind === "preview") {
-        window._skounActivePopup?.remove();
-        setSheet({ kind: "none" });
+      const wait = hoverCamLockUntilRef.current - Date.now();
+      if (wait > 0) {
+        hoverTimerRef.current = setTimeout(runHover, wait);
+        return;
+      }
+      if (sheetKindRef.current === "preview") {
+        // Preview owns selection — don't dismiss on hover/zoom jitter.
+        return;
       }
       const listing = mappable.find((l) => l.id === hoveredListingId);
       if (!listing) return;
@@ -301,11 +486,13 @@ export function ListingBrowseMap({
           duration: reduceMotionRef.current ? 0 : 400,
         });
       }
-    }, 80);
+    };
+
+    hoverTimerRef.current = setTimeout(runHover, 80);
     return () => {
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     };
-  }, [hoveredListingId, mapReady, mappable, sheet.kind]);
+  }, [hoveredListingId, hoverFlyListingId, mapReady, mappable, universityMode]);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -333,13 +520,20 @@ export function ListingBrowseMap({
         mapRef.current = map;
         mapboxRef.current = mapboxgl;
 
-        map.on("click", () => {
-          if (ignoreNextMapClick.current) {
-            ignoreNextMapClick.current = false;
+        map.on("click", (e) => {
+          const target = e.originalEvent?.target;
+          if (
+            target instanceof Element &&
+            target.closest(
+              ".skoun-marker-el, .mapboxgl-ctrl, .skoun-amber-popup-card, .skoun-popup-close-btn",
+            )
+          ) {
             return;
           }
-          window._skounActivePopup?.remove();
-          setSheet({ kind: "none" });
+          if (Date.now() < ignoreNextMapClickUntil.current) {
+            return;
+          }
+          window._skounDismissPreview?.();
         });
 
         const onViewport = () => {
@@ -347,6 +541,14 @@ export function ListingBrowseMap({
           moveTimerRef.current = setTimeout(() => {
             const m = mapRef.current;
             const index = clusterIndexRef.current;
+            const path = walkingPathRef.current;
+            const badge = overlayBadgeRef.current;
+            if (m && path && path.coords.length >= 2 && badge) {
+              const recomputed = distanceBadgeOnPath(m, path.coords, "1.2 km");
+              if (recomputed) {
+                badge.setLngLat([recomputed.lng, recomputed.lat]);
+              }
+            }
             if (!m || !index) {
               setVisibleFeatures([]);
               return;
@@ -411,12 +613,11 @@ export function ListingBrowseMap({
     const seenClusters = new Set<number>();
 
     function openGroup(group: MapPinGroup) {
-      ignoreNextMapClick.current = true;
-      setTimeout(() => {
-        ignoreNextMapClick.current = false;
-      }, 80);
+      ignoreNextMapClickUntil.current = Date.now() + 80;
       const listing = group.listings[0];
       if (!listing) return;
+      stickyPreviewListingIdRef.current = listing.id;
+      setRouteListingId(listing.id);
       setSheet((prev) =>
         prev.kind === "preview" && prev.listingId === listing.id
           ? prev
@@ -427,10 +628,7 @@ export function ListingBrowseMap({
     function expandCluster(
       feature: Extract<VisibleMapFeature, { kind: "cluster" }>,
     ) {
-      ignoreNextMapClick.current = true;
-      setTimeout(() => {
-        ignoreNextMapClick.current = false;
-      }, 80);
+      ignoreNextMapClickUntil.current = Date.now() + 80;
       mapRef.current?.easeTo({
         center: [feature.lng, feature.lat],
         zoom: feature.expansionZoom,
@@ -531,60 +729,120 @@ export function ListingBrowseMap({
       });
       const html = amberPopupHtml(group);
       const rec: MarkerRec = { marker, key: iconKey, html, group };
+      rec.popupOnClose = () => {
+        uniCameraRanForListingRef.current = null;
+        pathSideAppliedForRef.current = null;
+        // Do NOT clear sticky here — false closes during popup replace/zoom
+        // were wiping the walking line. Sticky clears only via dismiss.
+        setSheet({ kind: "none" });
+      };
+      rec.popupOnOpen = (popup) => {
+        const next = rec.group;
+        if (next) openGroup(next);
+        const listing = next?.listings[0];
+        const liveMap = mapRef.current;
+        const liveGl = mapboxRef.current;
+        const liveHtml = rec.html ?? html;
+        if (!liveMap || !liveGl) return;
+        const ctx = {
+          mapboxgl: liveGl,
+          map: liveMap,
+          marker: rec.marker,
+          html: liveHtml,
+          onOpen: rec.popupOnOpen,
+          onClose: rec.popupOnClose,
+        };
+        if (
+          universityModeRef.current &&
+          listing &&
+          listing.lat != null &&
+          listing.lng != null
+        ) {
+          const campus = resolveNearestCampus(listing, campusesRef.current);
+          if (campus) {
+            const path =
+              walkingPathRef.current?.listingId === listing.id
+                ? walkingPathRef.current.coords
+                : null;
+            if (pathSideAppliedForRef.current === listing.id) {
+              // Path-side effect already applied — skip replace during easeTo.
+            } else {
+              const nextPopup = applyAmberPopupSide(
+                ctx,
+                popup,
+                resolveUniPopupSide(liveMap, listing, campus, path),
+              );
+              rec.popup = nextPopup;
+              if (path && path.length >= 2) {
+                pathSideAppliedForRef.current = listing.id;
+              }
+              if (nextPopup !== popup) return;
+            }
+            if (uniCameraRanForListingRef.current === listing.id) return;
+            uniCameraRanForListingRef.current = listing.id;
+            hoverCamLockUntilRef.current = Date.now() + HOVER_CAM_LOCK_MS;
+            const currentZoom = liveMap.getZoom();
+            const distM =
+              listing.distanceMeters ??
+              calculateDistanceMeters(
+                campus.lat,
+                campus.lng,
+                listing.lat,
+                listing.lng,
+              );
+            const targetZoom = pinSelectZoomForCampusDistance(distM);
+            const nextZoom = Math.max(currentZoom, targetZoom);
+            const duration = reduceMotionRef.current
+              ? 0
+              : nextZoom > currentZoom
+                ? PIN_SELECT_ZOOM_IN_MS
+                : PIN_SELECT_PAN_MS;
+            liveMap.easeTo({
+              center: toLngLat(listing),
+              zoom: nextZoom,
+              duration,
+            });
+            return;
+          }
+        }
+        rec.popup = applyAmberPopupSide(ctx, popup, "n");
+      };
+      let bindSide: AmberPopupSide = "n";
+      const bindListing = group.listings[0];
+      const bindMap = mapRef.current;
+      if (
+        universityModeRef.current &&
+        bindMap &&
+        bindListing &&
+        bindListing.lat != null &&
+        bindListing.lng != null
+      ) {
+        const campus = resolveNearestCampus(bindListing, campusesRef.current);
+        if (campus) {
+          const path =
+            walkingPathRef.current?.listingId === bindListing.id
+              ? walkingPathRef.current.coords
+              : null;
+          if (path && path.length >= 2) {
+            pathSideAppliedForRef.current = bindListing.id;
+          }
+          bindSide = resolveUniPopupSide(bindMap, bindListing, campus, path);
+        }
+      }
       rec.popup = bindAmberPopup(
         gl,
         marker,
         html,
-        (popup) => {
-          const next = rec.group;
-          if (next) openGroup(next);
-          const listing = next?.listings[0];
-          const liveMap = mapRef.current;
-          if (
-            universityModeRef.current &&
-            liveMap &&
-            listing &&
-            listing.lat != null &&
-            listing.lng != null
-          ) {
-            const campus = resolveNearestCampus(listing, campusesRef.current);
-            if (campus) {
-              applyAmberPopupSide(
-                popup,
-                resolveUniPopupSide(liveMap, listing, campus),
-              );
-              const currentZoom = liveMap.getZoom();
-              const distM =
-                listing.distanceMeters ??
-                calculateDistanceMeters(
-                  campus.lat,
-                  campus.lng,
-                  listing.lat,
-                  listing.lng,
-                );
-              const targetZoom = pinSelectZoomForCampusDistance(distM);
-              const nextZoom = Math.max(currentZoom, targetZoom);
-              const duration = reduceMotionRef.current
-                ? 0
-                : nextZoom > currentZoom
-                  ? PIN_SELECT_ZOOM_IN_MS
-                  : PIN_SELECT_PAN_MS;
-              liveMap.easeTo({
-                center: toLngLat(listing),
-                zoom: nextZoom,
-                duration,
-              });
-              return;
-            }
-          }
-          applyAmberPopupSide(popup, "n");
-        },
-        () => {
-          setSheet({ kind: "none" });
-        },
+        rec.popupOnOpen,
+        rec.popupOnClose,
+        bindSide,
       );
       marker.getElement().addEventListener("click", (e) => {
         e.stopPropagation();
+        ignoreNextMapClickUntil.current = Date.now() + 250;
+        openGroup(group);
+        const popup = rec.popup;
+        if (popup) popup.addTo(hostMap);
       });
       marker.addTo(hostMap);
       listingMarkers.set(group.id, rec);
@@ -592,6 +850,8 @@ export function ListingBrowseMap({
 
     for (const [id, rec] of listingMarkers) {
       if (seenListings.has(id)) continue;
+      // Never drop the open preview pin — prevents popup close wiping sheet/route mid-zoom.
+      if (activeGroupId && id === activeGroupId) continue;
       rec.marker.remove();
       listingMarkers.delete(id);
     }
@@ -601,44 +861,6 @@ export function ListingBrowseMap({
       clusterMarkers.delete(id);
     }
 
-    overlayBadgeRef.current?.remove();
-    overlayBadgeRef.current = null;
-    const lineCampus = resolveNearestCampus(selectedListing, campuses);
-    if (universityMode && lineCampus && selectedListing) {
-      setCampusLine(hostMap, lineCampus, selectedListing);
-      let distMeters = selectedListing.distanceMeters;
-      if (
-        distMeters == null &&
-        selectedListing.lat != null &&
-        selectedListing.lng != null
-      ) {
-        distMeters = calculateDistanceMeters(
-          lineCampus.lat,
-          lineCampus.lng,
-          selectedListing.lat,
-          selectedListing.lng,
-        );
-      }
-      const distLabel = formatDistanceShort(distMeters);
-      if (distLabel) {
-        const badgePos = distanceBadgeLngLat(
-          hostMap,
-          lineCampus,
-          selectedListing,
-          distLabel,
-        );
-        const badge = makeMarker(
-          gl,
-          distanceBadgeHtml(distLabel),
-          badgePos,
-          { anchor: "center", inert: true },
-        );
-        badge.addTo(hostMap);
-        overlayBadgeRef.current = badge;
-      }
-    } else {
-      setCampusLine(hostMap, null, null);
-    }
   }, [
     mapReady,
     visibleFeatures,
@@ -646,8 +868,142 @@ export function ListingBrowseMap({
     campuses,
     universityMode,
     activeGroupId,
-    selectedListing,
     reduceMotion,
+  ]);
+
+  useEffect(() => {
+    const hostMap = mapRef.current;
+    const gl = mapboxRef.current;
+    if (!hostMap || !gl || !mapReady) return;
+
+    const clearRouteUi = () => {
+      overlayBadgeRef.current?.remove();
+      overlayBadgeRef.current = null;
+      walkingPathRef.current = null;
+      setCampusRoute(hostMap, null);
+    };
+
+    // Sticky listing keeps route through brief sheet/popup churn during zoom.
+    if (!universityMode) {
+      stickyPreviewListingIdRef.current = null;
+      clearRouteUi();
+      return;
+    }
+    if (!stickyPreviewListingIdRef.current) {
+      clearRouteUi();
+      return;
+    }
+
+    const stickyId = stickyPreviewListingIdRef.current;
+    const listingForRoute =
+      selectedListing ??
+      (stickyId ? mappable.find((l) => l.id === stickyId) ?? null : null);
+
+    if (
+      !walkingCampus ||
+      !listingForRoute ||
+      listingForRoute.lat == null ||
+      listingForRoute.lng == null
+    ) {
+      // Keep painted route while sheet flickers.
+      if (
+        stickyId &&
+        walkingPathRef.current?.listingId === stickyId
+      ) {
+        setCampusRoute(hostMap, walkingPathRef.current.coords);
+      }
+      return;
+    }
+
+    const path =
+      walkingRoute?.status === "ok" && walkingRoute.coords.length >= 2
+        ? walkingRoute.coords
+        : null;
+
+    if (!path || walkingRoute?.status !== "ok") {
+      if (walkingPathRef.current?.listingId === listingForRoute.id) {
+        // Re-assert line if a prior clear wiped the layer while preview stayed open.
+        setCampusRoute(hostMap, walkingPathRef.current.coords);
+        return;
+      }
+      clearRouteUi();
+      return;
+    }
+
+    walkingPathRef.current = {
+      listingId: selectedListing.id,
+      coords: path,
+    };
+    setCampusRoute(hostMap, path);
+
+    const distLabel = formatDistanceShort(walkingRoute.distanceM);
+    if (!distLabel) return;
+    const badgePos = distanceBadgeOnPath(hostMap, path, distLabel);
+    if (!badgePos) {
+      overlayBadgeRef.current?.remove();
+      overlayBadgeRef.current = null;
+      return;
+    }
+    if (overlayBadgeRef.current) {
+      overlayBadgeRef.current.setLngLat([badgePos.lng, badgePos.lat]);
+    } else {
+      const badge = makeMarker(gl, distanceBadgeHtml(distLabel), badgePos, {
+        anchor: "center",
+        inert: true,
+      });
+      badge.addTo(hostMap);
+      overlayBadgeRef.current = badge;
+    }
+  }, [
+    mapReady,
+    universityMode,
+    sheet.kind,
+    walkingCampus,
+    selectedListing,
+    walkingRoute,
+  ]);
+
+
+  useEffect(() => {
+    if (sheet.kind !== "preview" || !universityMode) return;
+    if (walkingRoute?.status !== "ok" || walkingRoute.coords.length < 2) return;
+    const listing = selectedListing;
+    if (!listing || listing.lat == null || listing.lng == null) return;
+    if (pathSideAppliedForRef.current === listing.id) return;
+    const campus = walkingCampus;
+    const map = mapRef.current;
+    const gl = mapboxRef.current;
+    if (!campus || !map || !gl) return;
+
+    let rec: MarkerRec | undefined;
+    for (const r of listingMarkersRef.current.values()) {
+      if (r.group?.listings.some((l) => l.id === listing.id)) {
+        rec = r;
+        break;
+      }
+    }
+    if (!rec?.popup || !rec.popupOnOpen || !rec.html) return;
+
+    pathSideAppliedForRef.current = listing.id;
+    rec.popup = applyAmberPopupSide(
+      {
+        mapboxgl: gl,
+        map,
+        marker: rec.marker,
+        html: rec.html,
+        onOpen: rec.popupOnOpen,
+        onClose: rec.popupOnClose,
+      },
+      rec.popup,
+      resolveUniPopupSide(map, listing, campus, walkingRoute.coords),
+    );
+  }, [
+    mapReady,
+    universityMode,
+    walkingRoute,
+    walkingCampus,
+    selectedListing,
+    sheet.kind,
   ]);
 
   useEffect(() => {
@@ -731,7 +1087,11 @@ export function ListingBrowseMap({
         ) : null}
         <div
           ref={hostRef}
-          className="skoun-mapbox-map"
+          className={
+            fillContainer
+              ? "skoun-mapbox-map skoun-mapbox-map--chrome-offset"
+              : "skoun-mapbox-map"
+          }
           style={{ width: "100%", height: "100%" }}
         />
         {canToggleExpand ? (
