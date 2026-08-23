@@ -1,7 +1,9 @@
-import Mapbox from "@rnmapbox/maps";
+import Mapbox, { hasMapboxNative } from "@/lib/rnmapbox";
 import { getMapboxToken } from "@/lib/mapboxEnv";
 
-const token = getMapboxToken();
-if (token) {
-  void Mapbox.setAccessToken(token);
+if (hasMapboxNative()) {
+  const token = getMapboxToken();
+  if (token) {
+    void Mapbox.setAccessToken(token);
+  }
 }

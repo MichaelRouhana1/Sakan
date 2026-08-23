@@ -39,6 +39,16 @@ import {
   type DemoListing,
 } from "@/components/web/home/homeData";
 
+/** NativeTabs + groups: `/search` is unmatched at root (hits +not-found). */
+const SEARCH_PATH = "/(renter)/(tabs)/(explore)/search" as const;
+
+function pushSearch(q?: string) {
+  router.push({
+    pathname: SEARCH_PATH,
+    params: q ? { q } : {},
+  } as never);
+}
+
 export default function RenterNewHomeScreen() {
   const { user, isSignedIn, refreshUser } = useAuthSession();
   const campusLabel = user?.campus
@@ -77,17 +87,11 @@ export default function RenterNewHomeScreen() {
   }, [railPill]);
 
   const handleSearchSubmit = () => {
-    router.push({
-      pathname: "/search",
-      params: { q: searchQuery },
-    });
+    pushSearch(searchQuery);
   };
 
   const handleSearchQuick = (query: string) => {
-    router.push({
-      pathname: "/search",
-      params: { q: query },
-    });
+    pushSearch(query);
   };
 
   const handleListPlace = () => {
@@ -165,12 +169,11 @@ export default function RenterNewHomeScreen() {
             {/* Amber Style Mock Search Input Container */}
             <Pressable
               onPress={() =>
-                router.push({
-                  pathname: "/search",
-                  params: campusLabel && user?.campus?.slug
-                    ? { q: user.campus.slug }
-                    : {},
-                })
+                pushSearch(
+                  campusLabel && user?.campus?.slug
+                    ? user.campus.slug
+                    : undefined,
+                )
               }
               style={styles.searchContainer}
             >
@@ -453,7 +456,7 @@ export default function RenterNewHomeScreen() {
                     if (p.action === "list") {
                       handleListPlace();
                     } else {
-                      router.push("/search");
+                      pushSearch();
                     }
                   }}
                 >

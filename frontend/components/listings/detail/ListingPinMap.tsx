@@ -1,9 +1,9 @@
-import Mapbox from "@rnmapbox/maps";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { SkounMapPin } from "@/components/listings/SkounMapPin";
 import { Skoun } from "@/constants/theme";
 import { getMapboxStyle, hasMapboxToken, MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
+import Mapbox, { hasMapboxNative, MAP_NATIVE_MISSING_COPY } from "@/lib/rnmapbox";
 
 type Props = {
   lat: number;
@@ -19,11 +19,11 @@ export function ListingPinMap({
   height = 220,
   interactive = true,
 }: Props) {
-  if (!hasMapboxToken()) {
+  if (!hasMapboxToken() || !hasMapboxNative()) {
     return (
       <View style={[styles.wrap, { height }]}>
         <LText variant="caption" tone="muted" style={styles.missing}>
-          {MAP_TOKEN_MISSING_COPY}
+          {!hasMapboxNative() ? MAP_NATIVE_MISSING_COPY : MAP_TOKEN_MISSING_COPY}
         </LText>
       </View>
     );

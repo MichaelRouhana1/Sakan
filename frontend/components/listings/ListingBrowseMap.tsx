@@ -1,5 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import Mapbox, { type Camera, type MapState } from "@rnmapbox/maps";
+import Mapbox, {
+  hasMapboxNative,
+  MAP_NATIVE_MISSING_COPY,
+  type Camera,
+  type MapState,
+} from "@/lib/rnmapbox";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -260,7 +265,10 @@ export function ListingBrowseMap({
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
   const [mapReady, setMapReady] = useState(false);
-  const tokenMissing = !hasMapboxToken();
+  const tokenMissing = !hasMapboxToken() || !hasMapboxNative();
+  const mapMissingCopy = !hasMapboxNative()
+    ? MAP_NATIVE_MISSING_COPY
+    : MAP_TOKEN_MISSING_COPY;
 
   useEffect(() => {
     const to = expanded ? expandedMapHeight() : MAP_HEIGHT_COLLAPSED;
@@ -661,7 +669,7 @@ export function ListingBrowseMap({
           <View style={styles.emptyOverlay}>
             <LText variant="subtitle">Map unavailable</LText>
             <LText variant="body" tone="muted" style={styles.emptyBody}>
-              {MAP_TOKEN_MISSING_COPY}
+              {mapMissingCopy}
             </LText>
           </View>
         ) : null}

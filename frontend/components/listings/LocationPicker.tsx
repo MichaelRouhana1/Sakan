@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import Mapbox, { type Camera } from "@rnmapbox/maps";
+import Mapbox, { hasMapboxNative, MAP_NATIVE_MISSING_COPY, type Camera } from "@/lib/rnmapbox";
 import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -218,7 +218,7 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
         style={[styles.mapShell, invalid && styles.mapShellInvalid]}
         accessibilityLabel="Map to place listing pin"
       >
-        {!mapReady && hasMapboxToken() ? (
+        {!mapReady && hasMapboxToken() && hasMapboxNative() ? (
           <View style={styles.mapLoading}>
             <ActivityIndicator color={Lister.color.primary} />
             <LText variant="caption" tone="muted">
@@ -226,10 +226,12 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
             </LText>
           </View>
         ) : null}
-        {!hasMapboxToken() ? (
+        {!hasMapboxToken() || !hasMapboxNative() ? (
           <View style={styles.mapLoading}>
             <LText variant="caption" tone="muted">
-              {MAP_TOKEN_MISSING_COPY}
+              {!hasMapboxNative()
+                ? MAP_NATIVE_MISSING_COPY
+                : MAP_TOKEN_MISSING_COPY}
             </LText>
           </View>
         ) : (
@@ -495,11 +497,13 @@ export function StaticPinMap({
   coord: LatLng;
   height?: number;
 }) {
-  if (!hasMapboxToken()) {
+  if (!hasMapboxToken() || !hasMapboxNative()) {
     return (
       <View style={[styles.staticMap, { height }]}>
         <LText variant="caption" tone="muted">
-          {MAP_TOKEN_MISSING_COPY}
+          {!hasMapboxNative()
+            ? MAP_NATIVE_MISSING_COPY
+            : MAP_TOKEN_MISSING_COPY}
         </LText>
       </View>
     );
