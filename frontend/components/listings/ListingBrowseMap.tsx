@@ -1,22 +1,37 @@
 import { Ionicons } from "@expo/vector-icons";
-import Mapbox, {
-  hasMapboxNative,
-  MAP_NATIVE_MISSING_COPY,
-  type Camera,
-  type MapState,
-} from "@/lib/rnmapbox";
 import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Image,
+  Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
+import MapView, {
+  Marker,
+  Polyline,
+  PROVIDER_GOOGLE,
+  type Region,
+} from "react-native-maps";
+import { captureRef } from "react-native-view-shot";
 import { LText } from "@/components/lister/Typography";
-import { ListingMapCarousel, mapCarouselOverlayHeight } from "@/components/listings/ListingMapCarousel";
+import {
+  ListingMapCarousel,
+  mapCarouselOverlayHeight,
+  MAP_CAROUSEL_CLOSE_H,
+} from "@/components/listings/ListingMapCarousel";
 import { SkounMapPin } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
@@ -24,6 +39,7 @@ import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
 import {
   buildPinClusterIndex,
   clusterBubbleSize,
+  idsInCluster,
   padBBox,
   queryVisibleFeatures,
   regionForExpansion,
@@ -37,11 +53,9 @@ import {
   groupListingsByProximity,
   type MapPinGroup,
 } from "@/lib/mapPinGroups";
-import { MAP_TOKEN_MISSING_COPY, getMapboxStyle, hasMapboxToken } from "@/lib/mapboxEnv";
 import {
   animateRegion,
   fitCoords,
-  mapStateToRegion,
   type MapRegion,
 } from "@/lib/nativeMapCamera";
 import { rentPriceTypeCompact } from "@/lib/rentPriceType";
@@ -62,9 +76,14 @@ type Props = {
   hoveredListingId?: string | null;
   hoverFlyListingId?: string | null;
   onHoverFlyComplete?: () => void;
-  focusCampusSlug?: string | null;
   active?: boolean;
+  /** When set in university mode, frame this campus instead of all pins. */
+  focusCampusSlug?: string | null;
 };
+
+const SETTLE_SLACK = 200;
+const MAP_PROVIDER =
+  Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
 
 function calculateDistanceMeters(
   lat1: number,
@@ -106,12 +125,32 @@ const MARKER_W = 88;
 const MARKER_H = 78;
 const PIN_HEAD_CENTER_Y = 48;
 const DIST_BADGE_W = 72;
+const DIST_BADGE_H = 28;
 const SELECTED_LINE = "#C23B2E";
 const CLUSTER_FILL = "#C23B2E";
-const EMPTY_ROUTE = {
-  type: "FeatureCollection" as const,
-  features: [] as [],
+const ROUTE_COLOR = "#FF3B30";
+const CLEAR_PIN_KEY = "__clear__";
+
+type PinVariant = {
+  amount: number;
+  count: number;
+  selected: boolean;
 };
+
+function pinVariantKey(amount: number, count: number, selected: boolean) {
+  return `${amount}|${count}|${selected ? 1 : 0}`;
+}
+
+/** Same `{ uri }` object for a given file — MapKit treats a new object as reload. */
+const PIN_IMAGE_SRC = new Map<string, { uri: string }>();
+function pinImageSrc(uri: string | undefined): { uri: string } | undefined {
+  if (!uri) return undefined;
+  const hit = PIN_IMAGE_SRC.get(uri);
+  if (hit) return hit;
+  const src = { uri };
+  PIN_IMAGE_SRC.set(uri, src);
+  return src;
+}
 
 function shortPriceLabel(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
@@ -123,12 +162,9 @@ function ClusterBubble({ count }: { count: number }) {
     <View
       style={[
         styles.clusterBubble,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-        },
+        { width: size, height: size, borderRadius: size / 2 },
       ]}
+      collapsable={false}
       accessibilityElementsHidden
     >
       <LText
@@ -136,8 +172,54 @@ function ClusterBubble({ count }: { count: number }) {
         style={[styles.clusterText, size >= 46 && styles.clusterTextLg]}
         numberOfLines={1}
       >
-        {count}
+        {String(count)}
       </LText>
+    </View>
+  );
+}
+
+function ClusterSnapshot({
+  count,
+  onCaptured,
+}: {
+  count: number;
+  onCaptured: (count: number, uri: string) => void;
+}) {
+  const shotRef = useRef<View>(null);
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      if (!shotRef.current) return;
+      captureRef(shotRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      })
+        .then((uri) => {
+          if (!alive) return;
+          onCaptured(count, uri);
+        })
+        .catch(() => {});
+    }, 120);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [count, onCaptured]);
+  const size = clusterBubbleSize(count);
+  return (
+    <View
+      ref={shotRef}
+      collapsable={false}
+      pointerEvents="none"
+      style={{
+        width: size,
+        height: size,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <ClusterBubble count={count} />
     </View>
   );
 }
@@ -161,21 +243,35 @@ function PriceMarker({
     count > 1
       ? `${shortPriceLabel(amount)} · ${count}`
       : shortPriceLabel(amount);
+  // Static views only — SkounMapPin's Animated.View blanks on iOS MapKit markers.
+  const fill = selected ? "#C23B2E" : "#2F6FED";
+  const deep = selected ? "#8E241A" : "#121826";
 
   return (
-    <View style={styles.markerSlot} accessibilityElementsHidden>
-      <View style={styles.markerInner}>
+    <View
+      style={styles.markerSlot}
+      accessibilityElementsHidden
+      collapsable={false}
+    >
+      <View style={styles.markerInner} collapsable={false}>
         <View style={styles.pricePill}>
           <LText variant="caption" style={styles.priceText} numberOfLines={1}>
             {label}
           </LText>
         </View>
-        <SkounMapPin
-          variant="listing"
-          dropped={false}
-          selected={false}
-          accent={selected ? "danger" : "default"}
-        />
+        <View style={styles.staticPinSlot}>
+          <View style={[styles.staticPinHead, { backgroundColor: fill }]}>
+            <View style={styles.staticPinCutout} />
+          </View>
+          <View
+            style={[
+              styles.staticPinTip,
+              {
+                borderTopColor: deep,
+              },
+            ]}
+          />
+        </View>
       </View>
     </View>
   );
@@ -193,13 +289,205 @@ function midpoint(
 
 function DistanceBadge({ label }: { label: string }) {
   return (
-    <View style={styles.distanceBadge} accessibilityElementsHidden>
+    <View
+      style={styles.distanceBadge}
+      accessibilityElementsHidden
+      collapsable={false}
+    >
       <LText variant="caption" style={styles.distanceBadgeText} numberOfLines={1}>
         {label}
       </LText>
     </View>
   );
 }
+
+function DistBadgeSnapshot({
+  label,
+  onCaptured,
+}: {
+  label: string;
+  onCaptured: (label: string, uri: string) => void;
+}) {
+  const shotRef = useRef<View>(null);
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      if (!shotRef.current) return;
+      captureRef(shotRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      })
+        .then((uri) => {
+          if (!alive) return;
+          onCaptured(label, uri);
+        })
+        .catch(() => {});
+    }, 120);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- capture once per label
+  }, [label]);
+  return (
+    <View
+      ref={shotRef}
+      collapsable={false}
+      pointerEvents="none"
+      style={styles.distSnapshotBox}
+    >
+      <DistanceBadge label={label} />
+    </View>
+  );
+}
+
+/**
+ * Offscreen pin → PNG. Markers use native `image` prop so MapKit never syncs
+ * live React views (custom children + animateToRegion = iOS crash).
+ */
+function PinSnapshot({
+  variantKey,
+  variant,
+  onCaptured,
+}: {
+  variantKey: string;
+  variant: PinVariant;
+  onCaptured: (key: string, uri: string) => void;
+}) {
+  const shotRef = useRef<View>(null);
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      if (!shotRef.current) return;
+      captureRef(shotRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      })
+        .then((uri) => {
+          if (!alive) return;
+          onCaptured(variantKey, uri);
+        })
+        .catch(() => {});
+    }, 120);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- capture once per variant
+  }, [variantKey]);
+  return (
+    <View
+      ref={shotRef}
+      collapsable={false}
+      pointerEvents="none"
+      style={styles.snapshotBox}
+    >
+      <PriceMarker
+        amount={variant.amount}
+        count={variant.count}
+        selected={variant.selected}
+      />
+    </View>
+  );
+}
+
+/** Transparent PNG so clustered leaves stay mounted without a visible price pin. */
+function ClearPinSnapshot({
+  onCaptured,
+}: {
+  onCaptured: (key: string, uri: string) => void;
+}) {
+  const shotRef = useRef<View>(null);
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      if (!shotRef.current) return;
+      captureRef(shotRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      })
+        .then((uri) => {
+          if (!alive) return;
+          onCaptured(CLEAR_PIN_KEY, uri);
+        })
+        .catch(() => {});
+    }, 120);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [onCaptured]);
+  return (
+    <View
+      ref={shotRef}
+      collapsable={false}
+      pointerEvents="none"
+      style={styles.snapshotBox}
+    />
+  );
+}
+
+/**
+ * Cluster / campus markers still use children — thaw briefly only.
+ * Listing pins use static images (see PinSnapshot).
+ */
+function useTracksViewChanges(deps: unknown[]): boolean {
+  const [tracks, setTracks] = useState(true);
+  useEffect(() => {
+    setTracks(true);
+    const t = setTimeout(() => setTracks(false), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional deps list
+  }, deps);
+  return tracks;
+}
+
+function TrackedMarker({
+  trackKey,
+  forceTracks = false,
+  freezeTracks = false,
+  children,
+  ...rest
+}: ComponentProps<typeof Marker> & {
+  trackKey: string;
+  forceTracks?: boolean;
+  freezeTracks?: boolean;
+}) {
+  const autoTracks = useTracksViewChanges([trackKey]);
+  const tracksViewChanges = freezeTracks
+    ? false
+    : forceTracks || autoTracks;
+  return (
+    <Marker {...rest} tracksViewChanges={tracksViewChanges}>
+      {children}
+    </Marker>
+  );
+}
+
+/** Stable lat/lng object refs — MapKit dislikes fresh coordinate objects every render. */
+const PIN_COORD = new Map<string, { latitude: number; longitude: number }>();
+function pinCoord(
+  id: string,
+  lat: number,
+  lng: number,
+): { latitude: number; longitude: number } {
+  const prev = PIN_COORD.get(id);
+  if (prev && prev.latitude === lat && prev.longitude === lng) return prev;
+  const next = { latitude: lat, longitude: lng };
+  PIN_COORD.set(id, next);
+  return next;
+}
+
+const PIN_ANCHOR = { x: 0.5, y: PIN_HEAD_CENTER_Y / MARKER_H };
+const PIN_CENTER_OFFSET = {
+  x: 0,
+  y: MARKER_H / 2 - PIN_HEAD_CENTER_Y,
+};
+const CLUSTER_ANCHOR = { x: 0.5, y: 0.5 };
+const CLUSTER_PARK = pinCoord("__cluster_park__", -85, 0);
 
 const MAP_HEIGHT_COLLAPSED = 320;
 
@@ -220,6 +508,21 @@ function pinSelectZoomForCampusDistance(meters: number): number {
 function expandedMapHeight(): number {
   const h = Dimensions.get("window").height;
   return Math.max(360, h - appleTabScrollInset - 148);
+}
+
+function regionAtZoom11(
+  lat: number,
+  lng: number,
+  widthPx: number,
+  heightPx: number,
+): MapRegion {
+  const longitudeDelta = (360 * widthPx) / (Math.pow(2, 11) * 256);
+  return {
+    latitude: lat,
+    longitude: lng,
+    longitudeDelta,
+    latitudeDelta: longitudeDelta * (heightPx / Math.max(widthPx, 1)),
+  };
 }
 
 function CarouselWindowLayer({
@@ -255,20 +558,28 @@ export function ListingBrowseMap({
   onOpenListing,
   focusCampusSlug = null,
 }: Props) {
-  const cameraRef = useRef<Camera | null>(null);
+  const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);
   const flyStepRef = useRef<"idle" | "out" | "pan" | "in">("idle");
   const flyPanRef = useRef<MapRegion | null>(null);
   const flyInRef = useRef<MapRegion | null>(null);
+  const flyTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingRegionRef = useRef<MapRegion | null>(null);
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
   const [mapReady, setMapReady] = useState(false);
-  const tokenMissing = !hasMapboxToken() || !hasMapboxNative();
-  const mapMissingCopy = !hasMapboxNative()
-    ? MAP_NATIVE_MISSING_COPY
-    : MAP_TOKEN_MISSING_COPY;
+  /** True while animateToRegion fly runs — freeze marker tracks/coords churn. */
+  const [cameraBusy, setCameraBusy] = useState(false);
+
+  const win = Dimensions.get("window");
+  const mapWidthPx = win.width;
+  const mapHeightPx = fillContainer
+    ? win.height
+    : expanded
+      ? expandedMapHeight()
+      : MAP_HEIGHT_COLLAPSED;
 
   useEffect(() => {
     const to = expanded ? expandedMapHeight() : MAP_HEIGHT_COLLAPSED;
@@ -279,21 +590,12 @@ export function ListingBrowseMap({
     }).start();
   }, [expanded, reduceMotion, heightAnim]);
 
-  const mappable = useMemo(
-    () => listings.filter(hasCoords),
-    [listings],
-  );
+  const mappable = useMemo(() => listings.filter(hasCoords), [listings]);
 
   const groups = useMemo(
     () => groupListingsByProximity(mappable),
     [mappable],
   );
-
-  const groupsById = useMemo(() => {
-    const map = new Map<string, MapPinGroup>();
-    for (const g of groups) map.set(g.id, g);
-    return map;
-  }, [groups]);
 
   const clusterIndex = useMemo(
     () => (groups.length > 0 ? buildPinClusterIndex(groups) : null),
@@ -301,9 +603,10 @@ export function ListingBrowseMap({
   );
 
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null);
-  const mapWidthPx = Dimensions.get("window").width;
 
   const visibleFeatures = useMemo((): VisibleMapFeature[] => {
+    // Keep Supercluster while carousel open. Forcing all leaves + mass thaw
+    // blanks pins then crashes MapKit on the next camera fly.
     if (!clusterIndex || !mapRegion) {
       return groups.map((g) => ({
         kind: "leaf" as const,
@@ -320,16 +623,6 @@ export function ListingBrowseMap({
     return queryVisibleFeatures(clusterIndex, bbox, zoom);
   }, [clusterIndex, mapRegion, groups, mapWidthPx]);
 
-  const visibleLeaves = useMemo(() => {
-    const leaves: MapPinGroup[] = [];
-    for (const f of visibleFeatures) {
-      if (f.kind !== "leaf") continue;
-      const group = groupsById.get(f.groupId);
-      if (group) leaves.push(group);
-    }
-    return leaves;
-  }, [visibleFeatures, groupsById]);
-
   const visibleClusters = useMemo(
     () =>
       visibleFeatures.filter(
@@ -338,6 +631,41 @@ export function ListingBrowseMap({
       ),
     [visibleFeatures],
   );
+
+  /**
+   * Cluster bubble Markers never unmount. Zoom fly used to drop them while
+   * remounting leaves in one commit — MapKit native crash. Hidden slots park
+   * off-map and stay mounted.
+   */
+  const clusterSlotsRef = useRef<
+    Array<Extract<VisibleMapFeature, { kind: "cluster" }> & { hidden: boolean }>
+  >([]);
+  const clusterSlots = useMemo(() => {
+    const live = visibleClusters.map((c) => ({ ...c, hidden: false }));
+    const prev = clusterSlotsRef.current;
+    const n = Math.max(prev.length, live.length);
+    const next: Array<
+      Extract<VisibleMapFeature, { kind: "cluster" }> & { hidden: boolean }
+    > = [];
+    for (let i = 0; i < n; i++) {
+      if (live[i]) next.push(live[i]);
+      else if (prev[i]) next.push({ ...prev[i], hidden: true });
+    }
+    clusterSlotsRef.current = next;
+    return next;
+  }, [visibleClusters]);
+
+  /** Listing pins stay mounted; hide when covered by a cluster bubble. */
+  const clusteredIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!clusterIndex) return ids;
+    for (const cluster of visibleClusters) {
+      for (const id of idsInCluster(clusterIndex, cluster.clusterId)) {
+        ids.add(id);
+      }
+    }
+    return ids;
+  }, [clusterIndex, visibleClusters]);
 
   const carouselListings = useMemo(
     () =>
@@ -362,10 +690,94 @@ export function ListingBrowseMap({
     return null;
   }, [sheet, groups]);
 
+  const [pinImages, setPinImages] = useState<Record<string, string>>({});
+  const pinVariants = useMemo(() => {
+    const map = new Map<string, PinVariant>();
+    for (const g of groups) {
+      for (const selected of [false, true] as const) {
+        const key = pinVariantKey(g.displayPriceUsd, g.count, selected);
+        if (!map.has(key)) {
+          map.set(key, {
+            amount: g.displayPriceUsd,
+            count: g.count,
+            selected,
+          });
+        }
+      }
+    }
+    return map;
+  }, [groups]);
+
+  const pendingVariants = useMemo(
+    () => [...pinVariants.entries()].filter(([key]) => !pinImages[key]),
+    [pinVariants, pinImages],
+  );
+
+  const pinsReady = useMemo(
+    () =>
+      groups.every(
+        (g) => pinImages[pinVariantKey(g.displayPriceUsd, g.count, false)],
+      ),
+    [groups, pinImages],
+  );
+
   const listingIdsKey = useMemo(
     () => mappable.map((l) => l.id).join(","),
     [mappable],
   );
+
+  const [listingTracks, setListingTracks] = useState(true);
+  useEffect(() => {
+    if (!mapReady || !pinsReady) return;
+    setListingTracks(true);
+    const t = setTimeout(() => setListingTracks(false), 800);
+    return () => clearTimeout(t);
+  }, [mapReady, pinsReady]);
+
+  const [clusterImages, setClusterImages] = useState<Record<number, string>>(
+    {},
+  );
+  const pendingClusterCounts = useMemo(() => {
+    const counts = new Set<number>();
+    for (const c of clusterSlots) counts.add(c.pointCount);
+    return [...counts].filter((n) => !clusterImages[n]);
+  }, [clusterSlots, clusterImages]);
+  const onClusterCaptured = useCallback((count: number, uri: string) => {
+    const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
+    setClusterImages((prev) =>
+      prev[count] ? prev : { ...prev, [count]: normalized },
+    );
+  }, []);
+
+  const [clusterTracks, setClusterTracks] = useState(true);
+  useEffect(() => {
+    if (!mapReady) return;
+    setClusterTracks(true);
+    const t = setTimeout(() => setClusterTracks(false), 600);
+    return () => clearTimeout(t);
+  }, [mapReady]);
+
+  function unlockCamera() {
+    setCameraBusy(false);
+  }
+
+  const flyScheduleTokenRef = useRef(0);
+  const lastFocusRef = useRef<{ id: string; t: number } | null>(null);
+
+  const onPinCaptured = useCallback((key: string, uri: string) => {
+    const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
+    setPinImages((prev) =>
+      prev[key] ? prev : { ...prev, [key]: normalized },
+    );
+  }, []);
+
+  const [distImages, setDistImages] = useState<Record<string, string>>({});
+  const onDistCaptured = useCallback((label: string, uri: string) => {
+    const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
+    setDistImages((prev) =>
+      prev[label] ? prev : { ...prev, [label]: normalized },
+    );
+  }, []);
 
   const campusesKey = useMemo(
     () => campuses.map((c) => c.slug).join(","),
@@ -400,7 +812,7 @@ export function ListingBrowseMap({
         : null,
   });
 
-  const routeShape = useMemo(() => {
+  const routeCoords = useMemo(() => {
     if (
       !universityMode ||
       !focusCampus ||
@@ -408,22 +820,13 @@ export function ListingBrowseMap({
       walkingRoute?.status !== "ok" ||
       walkingRoute.coords.length < 2
     ) {
-      return EMPTY_ROUTE;
+      return null;
     }
-    return {
-      type: "Feature" as const,
-      properties: {},
-      geometry: {
-        type: "LineString" as const,
-        coordinates: walkingRoute.coords.map(
-          (c) => [c.lng, c.lat] as [number, number],
-        ),
-      },
-    };
+    return walkingRoute.coords.map((c) => ({
+      latitude: c.lat,
+      longitude: c.lng,
+    }));
   }, [universityMode, focusCampus, selectedListing, walkingRoute]);
-
-  const routeVisible =
-    walkingRoute?.status === "ok" && walkingRoute.coords.length >= 2;
 
   const midpointCoord = useMemo(() => {
     if (!universityMode || !focusCampus || !selectedListing) return null;
@@ -459,6 +862,70 @@ export function ListingBrowseMap({
     return formatDistanceShort(dist);
   }, [selectedListing, focusCampus, walkingRoute]);
 
+  const pendingDistLabels = useMemo(() => {
+    if (!universityMode || !midpointLabel) return [] as string[];
+    return distImages[midpointLabel] ? [] : [midpointLabel];
+  }, [universityMode, midpointLabel, distImages]);
+
+  const distReadyUri =
+    midpointLabel && midpointCoord ? distImages[midpointLabel] : undefined;
+  const lastDistUri = useRef<string | undefined>(undefined);
+  if (distReadyUri) lastDistUri.current = distReadyUri;
+  const anyDistUri = Object.values(distImages)[0];
+  const distMarkerUri = distReadyUri ?? lastDistUri.current ?? anyDistUri;
+  const distMarkerCoord =
+    distReadyUri && midpointCoord
+      ? midpointCoord
+      : focusCampus
+        ? pinCoord("dist-park-campus", focusCampus.lat, focusCampus.lng)
+        : null;
+  const [distTracks, setDistTracks] = useState(false);
+  const prevDistReady = useRef(false);
+  useEffect(() => {
+    const ready = Boolean(distReadyUri);
+    if (ready && !prevDistReady.current) {
+      setDistTracks(true);
+      const t = setTimeout(() => setDistTracks(false), 700);
+      prevDistReady.current = ready;
+      return () => clearTimeout(t);
+    }
+    prevDistReady.current = ready;
+  }, [distReadyUri]);
+
+  function clearFlyTimers() {
+    for (const t of flyTimersRef.current) clearTimeout(t);
+    flyTimersRef.current = [];
+  }
+
+  function flushPendingRegion() {
+    if (pendingRegionRef.current) {
+      setMapRegion(pendingRegionRef.current);
+      pendingRegionRef.current = null;
+      return;
+    }
+    if (flyInRef.current) {
+      setMapRegion(flyInRef.current);
+    }
+  }
+
+  function cancelFly(opts?: { keepBusy?: boolean }) {
+    clearFlyTimers();
+    const wasFlying = flyStepRef.current !== "idle";
+    flyStepRef.current = "idle";
+    if (wasFlying) flushPendingRegion();
+    flyPanRef.current = null;
+    flyInRef.current = null;
+    if (!opts?.keepBusy) setCameraBusy(false);
+  }
+
+  function scheduleAnim(region: MapRegion, durationMs: number) {
+    animateRegion(mapRef.current, region, durationMs);
+  }
+
+  useEffect(() => {
+    return () => clearFlyTimers();
+  }, []);
+
   useEffect(() => {
     if (!mapReady) return;
     if (focusCampusSlug) return;
@@ -478,16 +945,26 @@ export function ListingBrowseMap({
 
     const delay = expanded ? 320 : 80;
     const t = setTimeout(() => {
+      const duration = expanded ? 0 : 400;
       fitCoords(
-        cameraRef.current,
+        mapRef.current,
         coords,
         { top: 48, right: 36, bottom: 56, left: 36 },
-        expanded ? 0 : 400,
+        duration,
+        mapWidthPx,
+        mapHeightPx,
       );
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid re-fit on sheet / array identity churn
-  }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded]);
+  }, [
+    mapReady,
+    listingIdsKey,
+    campusesKey,
+    universityMode,
+    expanded,
+    focusCampusSlug,
+  ]);
 
   useEffect(() => {
     if (!mapReady || !universityMode || !focusCampusSlug) return;
@@ -510,17 +987,97 @@ export function ListingBrowseMap({
     }, 400);
   }
 
-  function cancelFly() {
-    flyStepRef.current = "idle";
-    flyPanRef.current = null;
-    flyInRef.current = null;
+  function focusCampusOnMap(campus: CampusMeta) {
+    const target = regionForListingFocus(
+      campus.lat,
+      campus.lng,
+      mapWidthPx,
+      mapHeightPx,
+      0,
+      PIN_SELECT_MIN_ZOOM,
+    );
+    const current = mapRegion;
+    const outLat = current
+      ? Math.min(
+          Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2,
+          0.35,
+        )
+      : 0;
+    const outLng = current
+      ? Math.min(
+          Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2,
+          0.35,
+        )
+      : 0;
+
+    cancelFly({ keepBusy: true });
+    setCameraBusy(true);
+    pendingRegionRef.current = null;
+
+    if (reduceMotion || !current) {
+      flyStepRef.current = "in";
+      flyInRef.current = target;
+      scheduleAnim(target, reduceMotion ? 0 : 420);
+      const tOnly = setTimeout(() => {
+        if (flyStepRef.current === "in") {
+          flyStepRef.current = "idle";
+          flushPendingRegion();
+          flyInRef.current = null;
+          const tUnlock = setTimeout(() => setCameraBusy(false), 220);
+          flyTimersRef.current.push(tUnlock);
+        }
+      }, (reduceMotion ? 0 : 420) + SETTLE_SLACK);
+      flyTimersRef.current.push(tOnly);
+      return;
+    }
+
+    const zoomedOut: MapRegion = {
+      latitude: current.latitude,
+      longitude: current.longitude,
+      latitudeDelta: outLat,
+      longitudeDelta: outLng,
+    };
+    flyPanRef.current = {
+      latitude: target.latitude,
+      longitude: target.longitude,
+      latitudeDelta: outLat,
+      longitudeDelta: outLng,
+    };
+    flyInRef.current = target;
+    flyStepRef.current = "out";
+    scheduleAnim(zoomedOut, 320);
+
+    const t1 = setTimeout(() => {
+      if (flyStepRef.current !== "out" || !flyPanRef.current) return;
+      flyStepRef.current = "pan";
+      scheduleAnim(flyPanRef.current, 450);
+      const t2 = setTimeout(() => {
+        if (flyStepRef.current !== "pan" || !flyInRef.current) return;
+        flyStepRef.current = "in";
+        scheduleAnim(flyInRef.current, 380);
+        const t3 = setTimeout(() => {
+          if (flyStepRef.current === "in") {
+            flyStepRef.current = "idle";
+            flushPendingRegion();
+            flyInRef.current = null;
+            const tUnlock = setTimeout(() => setCameraBusy(false), 220);
+            flyTimersRef.current.push(tUnlock);
+          }
+        }, 380 + SETTLE_SLACK);
+        flyTimersRef.current.push(t3);
+      }, 450 + SETTLE_SLACK);
+      flyTimersRef.current.push(t2);
+    }, 320 + SETTLE_SLACK);
+    flyTimersRef.current.push(t1);
   }
 
   function focusListingOnMap(listing: Listing) {
     if (listing.lat == null || listing.lng == null) return;
-    const win = Dimensions.get("window");
     const overlayH =
-      mapCarouselOverlayHeight(win.width) + Math.max(insets.bottom, 12) + 20;
+      mapCarouselOverlayHeight(mapWidthPx) +
+      Math.max(insets.bottom, 12) +
+      MAP_CAROUSEL_CLOSE_H +
+      28;
     let zoom = 16;
     if (universityMode) {
       const campus = resolveNearestCampus(listing, campuses);
@@ -540,71 +1097,55 @@ export function ListingBrowseMap({
       listing.lat,
       listing.lng,
       mapWidthPx,
-      win.height,
+      mapHeightPx,
       overlayH,
       zoom,
     );
     const current = mapRegion;
     const outLat = current
-      ? Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2
+      ? Math.min(
+          Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2,
+          0.35,
+        )
       : 0;
     const outLng = current
-      ? Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2
+      ? Math.min(
+          Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2,
+          0.25,
+        )
       : 0;
-    if (reduceMotion || !current) {
-      cancelFly();
-      animateRegion(
-        cameraRef.current,
-        target,
-        mapWidthPx,
-        reduceMotion ? 0 : 420,
-      );
-      return;
-    }
-    const zoomedOut: MapRegion = {
-      latitude: current.latitude,
-      longitude: current.longitude,
-      latitudeDelta: outLat,
-      longitudeDelta: outLng,
-    };
-    flyPanRef.current = {
-      latitude: target.latitude,
-      longitude: target.longitude,
-      latitudeDelta: outLat,
-      longitudeDelta: outLng,
-    };
-    flyInRef.current = target;
-    flyStepRef.current = "out";
-    animateRegion(cameraRef.current, zoomedOut, mapWidthPx, 320);
-  }
 
-  function focusCampusOnMap(campus: CampusMeta) {
-    const win = Dimensions.get("window");
-    const target = regionForListingFocus(
-      campus.lat,
-      campus.lng,
-      mapWidthPx,
-      win.height,
-      0,
-      PIN_SELECT_MIN_ZOOM,
-    );
-    const current = mapRegion;
-    const outLat = current
-      ? Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2
-      : 0;
-    const outLng = current
-      ? Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2
-      : 0;
-    if (reduceMotion || !current) {
-      cancelFly();
-      animateRegion(
-        cameraRef.current,
-        target,
-        mapWidthPx,
-        reduceMotion ? 0 : 420,
-      );
+    const now = Date.now();
+    if (
+      lastFocusRef.current &&
+      lastFocusRef.current.id === listing.id &&
+      now - lastFocusRef.current.t < 400
+    ) {
       return;
     }
+    lastFocusRef.current = { id: listing.id, t: now };
+
+    cancelFly({ keepBusy: true });
+    setCameraBusy(true);
+
+    if (reduceMotion || !current) {
+      flyStepRef.current = "in";
+      flyInRef.current = target;
+      scheduleAnim(target, reduceMotion ? 0 : 420);
+      const tOnly = setTimeout(() => {
+        if (flyStepRef.current === "in") {
+          flyStepRef.current = "idle";
+          flushPendingRegion();
+          flyInRef.current = null;
+          const tUnlock = setTimeout(() => unlockCamera(), 220);
+          flyTimersRef.current.push(tUnlock);
+        }
+      }, (reduceMotion ? 0 : 420) + SETTLE_SLACK);
+      flyTimersRef.current.push(tOnly);
+      return;
+    }
+
+    // 3-step fly. cameraBusy freezes clustering region until settle.
     const zoomedOut: MapRegion = {
       latitude: current.latitude,
       longitude: current.longitude,
@@ -619,14 +1160,48 @@ export function ListingBrowseMap({
     };
     flyInRef.current = target;
     flyStepRef.current = "out";
-    animateRegion(cameraRef.current, zoomedOut, mapWidthPx, 320);
+    scheduleAnim(zoomedOut, 320);
+
+    const t1 = setTimeout(() => {
+      if (flyStepRef.current !== "out" || !flyPanRef.current) return;
+      flyStepRef.current = "pan";
+      scheduleAnim(flyPanRef.current, 450);
+      const t2 = setTimeout(() => {
+        if (flyStepRef.current !== "pan" || !flyInRef.current) return;
+        flyStepRef.current = "in";
+        scheduleAnim(flyInRef.current, 380);
+        const t3 = setTimeout(() => {
+          if (flyStepRef.current === "in") {
+            flyStepRef.current = "idle";
+            flushPendingRegion();
+            flyPanRef.current = null;
+            flyInRef.current = null;
+            const tUnlock = setTimeout(() => unlockCamera(), 220);
+            flyTimersRef.current.push(tUnlock);
+          }
+        }, 380 + SETTLE_SLACK);
+        flyTimersRef.current.push(t3);
+      }, 450 + SETTLE_SLACK);
+      flyTimersRef.current.push(t2);
+    }, 320 + SETTLE_SLACK);
+    flyTimersRef.current.push(t1);
   }
 
   function openCarousel(listingId: string, fly = true) {
+    if (fly) setCameraBusy(true);
     setSheet({ kind: "carousel", listingId });
     if (!fly) return;
     const listing = mappable.find((l) => l.id === listingId);
-    if (listing) focusListingOnMap(listing);
+    if (!listing) {
+      setCameraBusy(false);
+      return;
+    }
+    const token = ++flyScheduleTokenRef.current;
+    const t = setTimeout(() => {
+      if (flyScheduleTokenRef.current !== token) return;
+      focusListingOnMap(listing);
+    }, 160);
+    flyTimersRef.current.push(t);
   }
 
   function onGroupPress(group: MapPinGroup) {
@@ -651,31 +1226,8 @@ export function ListingBrowseMap({
       mapWidthPx,
       aspect,
     );
-    animateRegion(
-      cameraRef.current,
-      next,
-      mapWidthPx,
-      reduceMotion ? 0 : 400,
-    );
-  }
-
-  function onMapIdle(state: MapState) {
-    const region = mapStateToRegion(state);
-    if (region) setMapRegion(region);
-    const step = flyStepRef.current;
-    if (step === "out" && flyPanRef.current) {
-      flyStepRef.current = "pan";
-      animateRegion(cameraRef.current, flyPanRef.current, mapWidthPx, 450);
-      return;
-    }
-    if (step === "pan" && flyInRef.current) {
-      flyStepRef.current = "in";
-      animateRegion(cameraRef.current, flyInRef.current, mapWidthPx, 380);
-      return;
-    }
-    if (step === "in") {
-      flyStepRef.current = "idle";
-    }
+    cancelFly();
+    scheduleAnim(next, reduceMotion ? 0 : 400);
   }
 
   function dismissCarousel() {
@@ -704,6 +1256,12 @@ export function ListingBrowseMap({
 
   const canToggleExpand = Boolean(onExpandedChange);
   const firstCenter = groups[0] ?? campuses[0];
+  const initialRegion = regionAtZoom11(
+    firstCenter?.lat ?? 33.8938,
+    firstCenter?.lng ?? 35.5018,
+    mapWidthPx,
+    mapHeightPx,
+  );
 
   return (
     <View
@@ -719,19 +1277,11 @@ export function ListingBrowseMap({
         ]}
         collapsable={false}
       >
-        {(!mapReady || loading) && !tokenMissing ? (
+        {!mapReady || loading ? (
           <View style={styles.mapLoading}>
             <ActivityIndicator color={Skoun.color.primary} />
             <LText variant="caption" tone="muted">
               {loading ? "Updating map…" : "Loading map…"}
-            </LText>
-          </View>
-        ) : null}
-        {tokenMissing ? (
-          <View style={styles.emptyOverlay}>
-            <LText variant="subtitle">Map unavailable</LText>
-            <LText variant="body" tone="muted" style={styles.emptyBody}>
-              {mapMissingCopy}
             </LText>
           </View>
         ) : null}
@@ -745,60 +1295,64 @@ export function ListingBrowseMap({
             </LText>
           </View>
         ) : null}
-        {!tokenMissing ? (
-          <Mapbox.MapView
-            style={styles.map}
-            styleURL={getMapboxStyle()}
-            compassEnabled
-            scaleBarEnabled={false}
-            pitchEnabled
-            rotateEnabled
-            onDidFinishLoadingMap={() => setMapReady(true)}
-            onMapLoadingError={() => {
-              console.warn("[skoun] Mapbox failed to load");
-            }}
-            onPress={onMapPress}
-            onMapIdle={onMapIdle}
-            onCameraChanged={(state) => {
-              if (state.gestures.isGestureActive) cancelFly();
-            }}
-          >
-            <Mapbox.Camera
-              ref={cameraRef}
-              defaultSettings={{
-                centerCoordinate: firstCenter
-                  ? [firstCenter.lng, firstCenter.lat]
-                  : [35.5018, 33.8938],
-                zoomLevel: 11,
-                pitch: 0,
-              }}
-            />
-            <Mapbox.ShapeSource id="skoun-campus-route" shape={routeShape}>
-              <Mapbox.LineLayer
-                id="skoun-campus-route-line"
-                slot="top"
-                style={{
-                  lineColor: "#FF3B30",
-                  lineWidth: 6,
-                  lineOpacity: routeVisible ? 1 : 0,
-                  lineCap: "round",
-                  lineJoin: "round",
-                }}
-              />
-            </Mapbox.ShapeSource>
 
-            {universityMode
-              ? campuses.map((campus) => (
-                  <Mapbox.MarkerView
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={MAP_PROVIDER}
+          initialRegion={initialRegion}
+          pitchEnabled
+          rotateEnabled
+          onMapReady={() => {
+            setMapReady(true);
+          }}
+          onPress={onMapPress}
+          onPanDrag={() => cancelFly()}
+          onRegionChangeComplete={(region: Region) => {
+            const next: MapRegion = {
+              latitude: region.latitude,
+              longitude: region.longitude,
+              latitudeDelta: region.latitudeDelta,
+              longitudeDelta: region.longitudeDelta,
+            };
+            // Freeze clustering during camera fly — mid-fly recluster parked every
+            // leaf (leavesHidden→10) and blanked the focus pin on iOS.
+            if (flyStepRef.current !== "idle") {
+              pendingRegionRef.current = next;
+              return;
+            }
+            setMapRegion(next);
+          }}
+        >
+          {routeCoords ? (
+            <Polyline
+              coordinates={routeCoords}
+              strokeColor={ROUTE_COLOR}
+              strokeWidth={6}
+              lineCap="round"
+              lineJoin="round"
+              zIndex={2}
+            />
+          ) : null}
+
+          {universityMode
+            ? campuses.map((campus) => {
+                const selected = campus.slug === focusCampusSlug;
+                return (
+                  <TrackedMarker
                     key={`campus-${campus.slug}`}
-                    coordinate={[campus.lng, campus.lat]}
+                    trackKey={`campus-${campus.slug}-${selected ? "on" : "off"}`}
+                    freezeTracks={cameraBusy}
+                    coordinate={pinCoord(
+                      `campus-${campus.slug}`,
+                      campus.lat,
+                      campus.lng,
+                    )}
                     anchor={{ x: 0.5, y: 1 }}
-                    allowOverlap
+                    zIndex={selected ? 80 : 50}
+                    accessibilityLabel={`${campus.name} campus`}
                   >
-                    <View
-                      style={styles.campusNamed}
-                      accessibilityLabel={`${campus.name} campus`}
-                    >
+                    <View style={styles.campusNamed}>
                       <View style={styles.campusNameChip}>
                         <LText
                           variant="caption"
@@ -811,71 +1365,108 @@ export function ListingBrowseMap({
                       <SkounMapPin
                         variant="campus"
                         dropped
-                        selected={campus.slug === focusCampusSlug}
+                        selected={selected}
                       />
                     </View>
-                  </Mapbox.MarkerView>
-                ))
-              : null}
+                  </TrackedMarker>
+                );
+              })
+            : null}
 
-            {visibleClusters.map((cluster) => (
-              <Mapbox.MarkerView
-                key={`cluster-${cluster.clusterId}`}
-                coordinate={[cluster.lng, cluster.lat]}
-                anchor={{ x: 0.5, y: 0.5 }}
-                allowOverlap
-              >
-                <Pressable
-                  onPressIn={() => markMarkerPress()}
-                  onPress={() => onClusterPress(cluster)}
-                  accessibilityLabel={`${cluster.pointCount} places — tap to zoom`}
-                >
-                  <ClusterBubble count={cluster.pointCount} />
-                </Pressable>
-              </Mapbox.MarkerView>
-            ))}
-
-            {visibleLeaves.map((group) => {
-              const selected = selectedGroupId === group.id;
-              const a11y =
-                group.count > 1
-                  ? `${group.count} listings from ${shortPriceLabel(group.displayPriceUsd)}`
-                  : `${group.listings[0]?.area ?? "Listing"}, ${shortPriceLabel(group.displayPriceUsd)}`;
-              return (
-                <Mapbox.MarkerView
-                  key={group.id}
-                  coordinate={[group.lng, group.lat]}
-                  anchor={{ x: 0.5, y: PIN_HEAD_CENTER_Y / MARKER_H }}
-                  allowOverlap
-                  isSelected={selected}
-                >
-                  <Pressable
-                    onPressIn={() => markMarkerPress()}
-                    onPress={() => onGroupPress(group)}
+          {pinsReady
+            ? groups.map((group) => {
+                const clustered = clusteredIds.has(group.id);
+                const selected = selectedGroupId === group.id;
+                const uri =
+                  (selected
+                    ? pinImages[
+                        pinVariantKey(
+                          group.displayPriceUsd,
+                          group.count,
+                          true,
+                        )
+                      ]
+                    : undefined) ??
+                  pinImages[
+                    pinVariantKey(group.displayPriceUsd, group.count, false)
+                  ];
+                const a11y =
+                  group.count > 1
+                    ? `${group.count} listings from ${shortPriceLabel(group.displayPriceUsd)}`
+                    : `${group.listings[0]?.area ?? "Listing"}, ${shortPriceLabel(group.displayPriceUsd)}`;
+                return (
+                  <Marker
+                    key={group.id}
+                    identifier={group.id}
+                    coordinate={pinCoord(group.id, group.lat, group.lng)}
+                    anchor={PIN_ANCHOR}
+                    centerOffset={PIN_CENTER_OFFSET}
+                    zIndex={1}
+                    opacity={clustered ? 0 : 1}
+                    tappable={!clustered}
+                    tracksViewChanges={listingTracks}
+                    image={pinImageSrc(uri)}
+                    onPress={() => {
+                      if (clustered) return;
+                      onGroupPress(group);
+                    }}
                     accessibilityLabel={a11y}
-                  >
-                    <PriceMarker
-                      amount={group.displayPriceUsd}
-                      count={group.count}
-                      selected={selected}
-                    />
-                  </Pressable>
-                </Mapbox.MarkerView>
-              );
-            })}
+                  />
+                );
+              })
+            : null}
 
-            {universityMode && midpointLabel && midpointCoord ? (
-              <Mapbox.MarkerView
-                coordinate={[midpointCoord.longitude, midpointCoord.latitude]}
-                anchor={{ x: 0.5, y: 0.5 }}
-                allowOverlap
-                pointerEvents="none"
-              >
-                <DistanceBadge label={midpointLabel} />
-              </Mapbox.MarkerView>
-            ) : null}
-          </Mapbox.MapView>
-        ) : null}
+          {clusterSlots.map((cluster, slot) => {
+            const uri = clusterImages[cluster.pointCount];
+            if (!uri) return null;
+            const parked = cluster.hidden;
+            return (
+              <Marker
+                key={`cluster-slot-${slot}`}
+                identifier={`cluster-slot-${slot}`}
+                coordinate={
+                  parked
+                    ? CLUSTER_PARK
+                    : pinCoord(
+                        `cluster-slot-${slot}`,
+                        cluster.lat,
+                        cluster.lng,
+                      )
+                }
+                anchor={CLUSTER_ANCHOR}
+                zIndex={120}
+                tappable={!parked}
+                tracksViewChanges={clusterTracks}
+                image={pinImageSrc(uri)}
+                onPress={() => {
+                  if (parked) return;
+                  onClusterPress(cluster);
+                }}
+                accessibilityLabel={
+                  parked
+                    ? undefined
+                    : `${cluster.pointCount} places — tap to zoom`
+                }
+              />
+            );
+          })}
+
+          {universityMode && distMarkerUri && distMarkerCoord ? (
+            <Marker
+              identifier="campus-distance"
+              coordinate={distMarkerCoord}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={200}
+              opacity={distReadyUri ? 1 : 0}
+              tracksViewChanges={
+                !cameraBusy && (distTracks || Boolean(distReadyUri))
+              }
+              image={pinImageSrc(distMarkerUri)}
+              tappable={false}
+              accessibilityElementsHidden
+            />
+          ) : null}
+        </MapView>
 
         {canToggleExpand ? (
           <Pressable
@@ -893,6 +1484,51 @@ export function ListingBrowseMap({
           </Pressable>
         ) : null}
       </Animated.View>
+
+      {pendingVariants.length > 0 ||
+      pendingDistLabels.length > 0 ||
+      pendingClusterCounts.length > 0 ||
+      !pinImages[CLEAR_PIN_KEY] ? (
+        <View style={styles.snapshotLayer} pointerEvents="none">
+          {!pinImages[CLEAR_PIN_KEY] ? (
+            <ClearPinSnapshot onCaptured={onPinCaptured} />
+          ) : null}
+          {pendingVariants.map(([key, variant]) => (
+            <PinSnapshot
+              key={key}
+              variantKey={key}
+              variant={variant}
+              onCaptured={onPinCaptured}
+            />
+          ))}
+          {pendingClusterCounts.map((count) => (
+            <ClusterSnapshot
+              key={`cluster:${count}`}
+              count={count}
+              onCaptured={onClusterCaptured}
+            />
+          ))}
+          {pendingDistLabels.map((label) => (
+            <DistBadgeSnapshot
+              key={`dist:${label}`}
+              label={label}
+              onCaptured={onDistCaptured}
+            />
+          ))}
+        </View>
+      ) : null}
+
+      {Object.keys(distImages).length > 0 ? (
+        <View style={styles.snapshotLayer} pointerEvents="none">
+          {Object.entries(distImages).map(([label, uri]) => (
+            <Image
+              key={`warm:${label}`}
+              source={{ uri }}
+              style={styles.distSnapshotBox}
+            />
+          ))}
+        </View>
+      ) : null}
 
       {!sheetOpen ? (
         <View
@@ -981,10 +1617,55 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
   },
+  snapshotLayer: {
+    position: "absolute",
+    top: 0,
+    left: -MARKER_W * 20,
+    width: MARKER_W,
+  },
+  snapshotBox: {
+    width: MARKER_W,
+    height: MARKER_H,
+  },
+  distSnapshotBox: {
+    width: DIST_BADGE_W,
+    height: DIST_BADGE_H,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   markerInner: {
     alignItems: "center",
     justifyContent: "flex-end",
     width: MARKER_W,
+  },
+  staticPinSlot: {
+    width: 44,
+    height: 52,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  staticPinHead: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  staticPinCutout: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#FFFFFF",
+  },
+  staticPinTip: {
+    width: 0,
+    height: 0,
+    marginTop: -2,
+    borderLeftWidth: 9,
+    borderRightWidth: 9,
+    borderTopWidth: 14,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
   },
   pricePill: {
     minHeight: 22,

@@ -16,7 +16,6 @@ WebBrowser.maybeCompleteAuthSession();
 
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthSessionProvider } from "@/features/auth/AuthSessionProvider";
-import "@/lib/initMapbox.native";
 import {
   CLERK_PUBLISHABLE_KEY,
   ClerkEnabledProvider,

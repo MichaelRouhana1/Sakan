@@ -175,7 +175,8 @@ const LISTING_FOCUS_ZOOM = 16;
 
 /**
  * Center a listing pin in the visible map above a bottom overlay (carousel).
- * Shifts latitude south so the pin is not hidden under the rail.
+ * Shifts latitude south so the pin sits in the upper visible band — not under
+ * the rail (under-rail looks like a “missing” pin until the camera pans away).
  */
 export function regionForListingFocus(
   lat: number,
@@ -199,9 +200,12 @@ export function regionForListingFocus(
   const latitudeDelta = longitudeDelta * Math.max(aspect, 0.5);
   const overlayFraction =
     viewportHeightPx > 0
-      ? Math.min(0.55, Math.max(0, bottomOverlayPx / viewportHeightPx))
+      ? Math.min(0.72, Math.max(0, bottomOverlayPx / viewportHeightPx))
       : 0;
-  const latShift = (latitudeDelta * overlayFraction) / 2;
+  // Visible band is the top (1 - overlayFraction). Place pin near top of that band.
+  const visibleTop = Math.max(0.2, 1 - overlayFraction);
+  const pinScreenY = visibleTop * 0.22;
+  const latShift = (0.5 - pinScreenY) * latitudeDelta;
   return {
     latitude: lat - latShift,
     longitude: lng,

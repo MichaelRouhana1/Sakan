@@ -1,5 +1,4 @@
-import type { Camera, MapState } from "@rnmapbox/maps";
-import { zoomFromLongitudeDelta } from "@/lib/mapClusters";
+import type MapView from "react-native-maps";
 
 export type MapRegion = {
   latitude: number;
@@ -8,31 +7,30 @@ export type MapRegion = {
   longitudeDelta: number;
 };
 
-export function mapStateToRegion(state: MapState): MapRegion | null {
-  const center = state.properties.center;
-  const bounds = state.properties.bounds;
-  if (!center || center.length < 2 || !bounds?.ne || !bounds?.sw) return null;
-  const lng = center[0];
-  const lat = center[1];
-  if (typeof lng !== "number" || typeof lat !== "number") return null;
-  const ne = bounds.ne;
-  const sw = bounds.sw;
-  if (ne.length < 2 || sw.length < 2) return null;
-  return {
-    latitude: lat,
-    longitude: lng,
-    latitudeDelta: Math.abs(Number(ne[1]) - Number(sw[1])),
-    longitudeDelta: Math.abs(Number(ne[0]) - Number(sw[0])),
-  };
-}
+export type EdgePadding = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
 
-export function fitCoords(
-  camera: Camera | null,
+type MapViewRef = MapView | null;
+
+/** Minimum span when fitting a single point (≈ zoom 14 on a typical phone). */
+const MIN_FIT_ZOOM = 14;
+
+/**
+ * Asymmetric chrome-safe fit: expand bbox by pad fractions of span, then
+ * center = padded bbox midpoint (so bottom pad shifts center north).
+ */
+export function regionForFitCoords(
   coords: { latitude: number; longitude: number }[],
-  padding: { top: number; right: number; bottom: number; left: number },
-  durationMs: number,
-): void {
-  if (!camera || coords.length === 0) return;
+  padding: EdgePadding,
+  viewportWidthPx: number,
+  viewportHeightPx: number,
+): MapRegion | null {
+  if (coords.length === 0) return null;
+
   let minLat = coords[0].latitude;
   let maxLat = minLat;
   let minLng = coords[0].longitude;
@@ -43,25 +41,93 @@ export function fitCoords(
     minLng = Math.min(minLng, c.longitude);
     maxLng = Math.max(maxLng, c.longitude);
   }
-  camera.fitBounds(
-    [maxLng, maxLat],
-    [minLng, minLat],
-    [padding.top, padding.right, padding.bottom, padding.left],
-    durationMs,
+
+  let latSpan = maxLat - minLat;
+  let lngSpan = maxLng - minLng;
+
+  if (latSpan < 1e-8 || lngSpan < 1e-8) {
+    const w = Math.max(viewportWidthPx, 1);
+    const h = Math.max(viewportHeightPx, 1);
+    const longitudeDelta =
+      (360 * w) / (Math.pow(2, MIN_FIT_ZOOM) * 256);
+    const latitudeDelta = longitudeDelta * (h / w);
+    if (latSpan < 1e-8) {
+      const mid = (minLat + maxLat) / 2;
+      minLat = mid - latitudeDelta / 2;
+      maxLat = mid + latitudeDelta / 2;
+      latSpan = maxLat - minLat;
+    }
+    if (lngSpan < 1e-8) {
+      const mid = (minLng + maxLng) / 2;
+      minLng = mid - longitudeDelta / 2;
+      maxLng = mid + longitudeDelta / 2;
+      lngSpan = maxLng - minLng;
+    }
+  }
+
+  const vh = Math.max(viewportHeightPx, 1);
+  const vw = Math.max(viewportWidthPx, 1);
+  const padLatTop = (padding.top / vh) * latSpan;
+  const padLatBottom = (padding.bottom / vh) * latSpan;
+  const padLngLeft = (padding.left / vw) * lngSpan;
+  const padLngRight = (padding.right / vw) * lngSpan;
+
+  const north = maxLat + padLatTop;
+  const south = minLat - padLatBottom;
+  const east = maxLng + padLngRight;
+  const west = minLng - padLngLeft;
+
+  return {
+    latitude: (north + south) / 2,
+    longitude: (east + west) / 2,
+    latitudeDelta: Math.max(north - south, 1e-6),
+    longitudeDelta: Math.max(east - west, 1e-6),
+  };
+}
+
+export function fitCoords(
+  map: MapViewRef,
+  coords: { latitude: number; longitude: number }[],
+  padding: EdgePadding,
+  durationMs: number,
+  viewportWidthPx: number,
+  viewportHeightPx: number,
+): void {
+  if (!map || coords.length === 0) return;
+  const region = regionForFitCoords(
+    coords,
+    padding,
+    viewportWidthPx,
+    viewportHeightPx,
   );
+  if (!region) return;
+  animateRegion(map, region, durationMs);
 }
 
 export function animateRegion(
-  camera: Camera | null,
+  map: MapViewRef,
   region: MapRegion,
-  viewportWidthPx: number,
   durationMs: number,
 ): void {
-  if (!camera) return;
-  camera.setCamera({
-    centerCoordinate: [region.longitude, region.latitude],
-    zoomLevel: zoomFromLongitudeDelta(region.longitudeDelta, viewportWidthPx),
-    animationDuration: durationMs,
-    animationMode: durationMs <= 0 ? "none" : "easeTo",
-  });
+  if (!map) return;
+  map.animateToRegion(region, Math.max(0, durationMs));
+}
+
+/** Region centered at lat/lng for a given mercator-ish zoom. */
+export function regionFromZoom(
+  latitude: number,
+  longitude: number,
+  zoom: number,
+  viewportWidthPx: number,
+  viewportHeightPx: number,
+): MapRegion {
+  const w = Math.max(viewportWidthPx, 1);
+  const h = Math.max(viewportHeightPx, 1);
+  const longitudeDelta = (360 * w) / (Math.pow(2, zoom) * 256);
+  return {
+    latitude,
+    longitude,
+    longitudeDelta,
+    latitudeDelta: longitudeDelta * (h / w),
+  };
 }

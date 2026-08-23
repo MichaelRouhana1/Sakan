@@ -1,9 +1,8 @@
-import { StyleSheet, View } from "react-native";
-import { LText } from "@/components/lister/Typography";
+import { Platform, StyleSheet, View } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { SkounMapPin } from "@/components/listings/SkounMapPin";
 import { Skoun } from "@/constants/theme";
-import { getMapboxStyle, hasMapboxToken, MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
-import Mapbox, { hasMapboxNative, MAP_NATIVE_MISSING_COPY } from "@/lib/rnmapbox";
+import { regionFromZoom } from "@/lib/nativeMapCamera";
 
 type Props = {
   lat: number;
@@ -13,51 +12,43 @@ type Props = {
   interactive?: boolean;
 };
 
+const MAP_PROVIDER =
+  Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
+
+const PIN_HEAD_CENTER_Y = 48;
+const MARKER_H = 78;
+
 export function ListingPinMap({
   lat,
   lng,
   height = 220,
   interactive = true,
 }: Props) {
-  if (!hasMapboxToken() || !hasMapboxNative()) {
-    return (
-      <View style={[styles.wrap, { height }]}>
-        <LText variant="caption" tone="muted" style={styles.missing}>
-          {!hasMapboxNative() ? MAP_NATIVE_MISSING_COPY : MAP_TOKEN_MISSING_COPY}
-        </LText>
-      </View>
-    );
-  }
+  const region = regionFromZoom(lat, lng, 15, 360, height);
 
   return (
     <View
       style={[styles.wrap, { height }]}
       pointerEvents={interactive ? "auto" : "none"}
     >
-      <Mapbox.MapView
+      <MapView
         style={StyleSheet.absoluteFill}
-        styleURL={getMapboxStyle()}
+        provider={MAP_PROVIDER}
+        initialRegion={region}
         scrollEnabled={interactive}
         zoomEnabled={interactive}
         pitchEnabled={interactive}
         rotateEnabled={interactive}
-        compassEnabled={false}
-        scaleBarEnabled={false}
+        toolbarEnabled={false}
       >
-        <Mapbox.Camera
-          defaultSettings={{
-            centerCoordinate: [lng, lat],
-            zoomLevel: 15,
-            pitch: 0,
-          }}
-          centerCoordinate={[lng, lat]}
-          zoomLevel={15}
-          animationMode="none"
-        />
-        <Mapbox.MarkerView coordinate={[lng, lat]} anchor={{ x: 0.5, y: 1 }}>
+        <Marker
+          coordinate={{ latitude: lat, longitude: lng }}
+          anchor={{ x: 0.5, y: PIN_HEAD_CENTER_Y / MARKER_H }}
+          tracksViewChanges={false}
+        >
           <SkounMapPin variant="listing" dropped={false} />
-        </Mapbox.MarkerView>
-      </Mapbox.MapView>
+        </Marker>
+      </MapView>
     </View>
   );
 }
@@ -67,9 +58,5 @@ const styles = StyleSheet.create({
     width: "100%",
     overflow: "hidden",
     backgroundColor: Skoun.color.bgWash,
-  },
-  missing: {
-    padding: 16,
-    textAlign: "center",
   },
 });
