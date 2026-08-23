@@ -402,7 +402,7 @@ export const DIRECTORY_AREAS = [
 export const DIRECTORY_UNIS = [
   "AUB",
   "LAU Beirut",
-  "LAU Byblos",
+  "LAU Jbeil",
   "USJ",
   "LU",
   "NDU",

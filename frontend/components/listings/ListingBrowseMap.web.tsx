@@ -67,6 +67,8 @@ type Props = {
   /** Sidebar hover that passed the commit ring — drives uni-mode camera. */
   hoverFlyListingId?: string | null;
   onHoverFlyComplete?: () => void;
+  /** Picked campus — fly camera here (zoom-out / pan / zoom-in). */
+  focusCampusSlug?: string | null;
   /** When pane is shown after keep-alive hide, trigger resize. */
   active?: boolean;
 };
@@ -172,6 +174,43 @@ function hoverOutZoom(
   return Math.max(HOVER_ZOOM_OUT_MIN, Math.min(minPullback, fitZoom));
 }
 
+function flyZoomOutPanIn(
+  map: MapboxMap,
+  gl: MapboxGL | null,
+  dest: [number, number],
+  targetZoom: number,
+  reduceMotion: boolean,
+  seq: number,
+  seqRef: { current: number },
+): void {
+  if (reduceMotion) {
+    map.easeTo({ center: dest, zoom: targetZoom, duration: 0 });
+    return;
+  }
+  const outZoom = gl
+    ? hoverOutZoom(map, gl, dest)
+    : Math.max(HOVER_ZOOM_OUT_MIN, map.getZoom() - HOVER_ZOOM_OUT_DELTA);
+  const ifLive = (fn: () => void) => {
+    if (seqRef.current !== seq) return;
+    fn();
+  };
+  map.once("moveend", () => {
+    ifLive(() => {
+      map.once("moveend", () => {
+        ifLive(() => {
+          map.easeTo({
+            center: dest,
+            zoom: targetZoom,
+            duration: HOVER_ZOOM_IN_MS,
+          });
+        });
+      });
+      map.easeTo({ center: dest, duration: PIN_SELECT_PAN_MS });
+    });
+  });
+  map.easeTo({ zoom: outZoom, duration: HOVER_ZOOM_OUT_MS });
+}
+
 function expandedMapHeight(): number {
   const h = Dimensions.get("window").height;
   return Math.max(360, h - appleTabScrollInset - 148);
@@ -198,6 +237,7 @@ export function ListingBrowseMap({
   hoveredListingId = null,
   hoverFlyListingId = null,
   onHoverFlyComplete,
+  focusCampusSlug = null,
   active = true,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -212,6 +252,7 @@ export function ListingBrowseMap({
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hoverCamSeqRef = useRef(0);
+  const campusFlySeqRef = useRef(0);
   const universityModeRef = useRef(universityMode);
   universityModeRef.current = universityMode;
   const campusesRef = useRef(campuses);
@@ -494,6 +535,31 @@ export function ListingBrowseMap({
     };
   }, [hoveredListingId, hoverFlyListingId, mapReady, mappable, universityMode]);
 
+  const focusCampus = useMemo(
+    () => campuses.find((c) => c.slug === focusCampusSlug) ?? null,
+    [campuses, focusCampusSlug],
+  );
+  const focusCampusKey = focusCampus
+    ? `${focusCampus.slug}:${focusCampus.lng}:${focusCampus.lat}`
+    : "";
+
+  useEffect(() => {
+    if (!mapReady || !universityMode || !focusCampus) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const seq = ++campusFlySeqRef.current;
+    map.stop();
+    flyZoomOutPanIn(
+      map,
+      mapboxRef.current,
+      toLngLat(focusCampus),
+      PIN_SELECT_MIN_ZOOM,
+      reduceMotion,
+      seq,
+      campusFlySeqRef,
+    );
+  }, [mapReady, universityMode, focusCampusKey, reduceMotion]);
+
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
@@ -640,15 +706,26 @@ export function ListingBrowseMap({
       for (const campus of campuses) {
         const key = `campus:${campus.slug}`;
         seenListings.add(key);
-        if (listingMarkers.has(key)) continue;
-        const campusMarker = makeMarker(
-          gl,
-          campusPinHtml(),
-          campus,
-          { inert: true },
-        );
+        const selected = campus.slug === focusCampusSlug;
+        const html = campusPinHtml(campus.name, selected);
+        const existing = listingMarkers.get(key);
+        if (existing) {
+          existing.marker.setLngLat(toLngLat(campus));
+          if (existing.html !== html) {
+            existing.marker.getElement().innerHTML = html;
+            existing.html = html;
+          }
+          existing.marker.getElement().style.zIndex = selected
+            ? "900"
+            : "2";
+          continue;
+        }
+        const campusMarker = makeMarker(gl, html, campus, {
+          inert: true,
+          zIndex: selected ? 900 : 2,
+        });
         campusMarker.addTo(hostMap);
-        listingMarkers.set(key, { marker: campusMarker, key });
+        listingMarkers.set(key, { marker: campusMarker, key, html });
       }
     }
 
@@ -867,6 +944,7 @@ export function ListingBrowseMap({
     groupsById,
     campuses,
     universityMode,
+    focusCampusSlug,
     activeGroupId,
     reduceMotion,
   ]);
@@ -1008,7 +1086,11 @@ export function ListingBrowseMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || groups.length === 0) return;
+    if (!map || !mapReady) return;
+    if (focusCampusSlug) return;
+    if (groups.length === 0 && !(universityMode && campuses.length > 0)) {
+      return;
+    }
 
     const points: [number, number][] = groups.map((g) => toLngLat(g));
     if (universityMode) {
@@ -1040,7 +1122,7 @@ export function ListingBrowseMap({
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded]);
+  }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded, focusCampusSlug]);
 
   const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
   const showLoading = (!mapReady && !tokenMissing) || loading;

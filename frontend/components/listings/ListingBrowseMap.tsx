@@ -17,7 +17,7 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingMapCarousel, mapCarouselOverlayHeight } from "@/components/listings/ListingMapCarousel";
-import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
+import { SkounMapPin } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
 import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
@@ -62,6 +62,7 @@ type Props = {
   hoveredListingId?: string | null;
   hoverFlyListingId?: string | null;
   onHoverFlyComplete?: () => void;
+  focusCampusSlug?: string | null;
   active?: boolean;
 };
 
@@ -104,8 +105,6 @@ type SheetState =
 const MARKER_W = 88;
 const MARKER_H = 78;
 const PIN_HEAD_CENTER_Y = 48;
-const CAMPUS_PIN_H = SKOUN_CAMPUS_PIN.height;
-const CAMPUS_HEAD_CENTER_Y = SKOUN_CAMPUS_PIN.headCenterY;
 const DIST_BADGE_W = 72;
 const SELECTED_LINE = "#C23B2E";
 const CLUSTER_FILL = "#C23B2E";
@@ -254,6 +253,7 @@ export function ListingBrowseMap({
   fillContainer = false,
   onCarouselOpenChange,
   onOpenListing,
+  focusCampusSlug = null,
 }: Props) {
   const cameraRef = useRef<Camera | null>(null);
   const ignoreNextMapPress = useRef(false);
@@ -460,7 +460,11 @@ export function ListingBrowseMap({
   }, [selectedListing, focusCampus, walkingRoute]);
 
   useEffect(() => {
-    if (!mapReady || groups.length === 0) return;
+    if (!mapReady) return;
+    if (focusCampusSlug) return;
+    if (groups.length === 0 && !(universityMode && campuses.length > 0)) {
+      return;
+    }
     const coords = groups.map((g) => ({
       latitude: g.lat,
       longitude: g.lng,
@@ -484,6 +488,20 @@ export function ListingBrowseMap({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- avoid re-fit on sheet / array identity churn
   }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded]);
+
+  useEffect(() => {
+    if (!mapReady || !universityMode || !focusCampusSlug) return;
+    const campus = campuses.find((c) => c.slug === focusCampusSlug);
+    if (!campus) return;
+    focusCampusOnMap(campus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fly when campus target changes
+  }, [
+    mapReady,
+    universityMode,
+    focusCampusSlug,
+    campuses.find((c) => c.slug === focusCampusSlug)?.lng,
+    campuses.find((c) => c.slug === focusCampusSlug)?.lat,
+  ]);
 
   function markMarkerPress() {
     ignoreNextMapPress.current = true;
@@ -525,6 +543,50 @@ export function ListingBrowseMap({
       win.height,
       overlayH,
       zoom,
+    );
+    const current = mapRegion;
+    const outLat = current
+      ? Math.max(current.latitudeDelta, target.latitudeDelta) * 2.2
+      : 0;
+    const outLng = current
+      ? Math.max(current.longitudeDelta, target.longitudeDelta) * 2.2
+      : 0;
+    if (reduceMotion || !current) {
+      cancelFly();
+      animateRegion(
+        cameraRef.current,
+        target,
+        mapWidthPx,
+        reduceMotion ? 0 : 420,
+      );
+      return;
+    }
+    const zoomedOut: MapRegion = {
+      latitude: current.latitude,
+      longitude: current.longitude,
+      latitudeDelta: outLat,
+      longitudeDelta: outLng,
+    };
+    flyPanRef.current = {
+      latitude: target.latitude,
+      longitude: target.longitude,
+      latitudeDelta: outLat,
+      longitudeDelta: outLng,
+    };
+    flyInRef.current = target;
+    flyStepRef.current = "out";
+    animateRegion(cameraRef.current, zoomedOut, mapWidthPx, 320);
+  }
+
+  function focusCampusOnMap(campus: CampusMeta) {
+    const win = Dimensions.get("window");
+    const target = regionForListingFocus(
+      campus.lat,
+      campus.lng,
+      mapWidthPx,
+      win.height,
+      0,
+      PIN_SELECT_MIN_ZOOM,
     );
     const current = mapRegion;
     const outLat = current
@@ -730,14 +792,27 @@ export function ListingBrowseMap({
                   <Mapbox.MarkerView
                     key={`campus-${campus.slug}`}
                     coordinate={[campus.lng, campus.lat]}
-                    anchor={{
-                      x: 0.5,
-                      y: CAMPUS_HEAD_CENTER_Y / CAMPUS_PIN_H,
-                    }}
+                    anchor={{ x: 0.5, y: 1 }}
                     allowOverlap
                   >
-                    <View accessibilityLabel={`${campus.name} campus`}>
-                      <SkounMapPin variant="campus" dropped />
+                    <View
+                      style={styles.campusNamed}
+                      accessibilityLabel={`${campus.name} campus`}
+                    >
+                      <View style={styles.campusNameChip}>
+                        <LText
+                          variant="caption"
+                          style={styles.campusNameText}
+                          numberOfLines={2}
+                        >
+                          {campus.name}
+                        </LText>
+                      </View>
+                      <SkounMapPin
+                        variant="campus"
+                        dropped
+                        selected={campus.slug === focusCampusSlug}
+                      />
                     </View>
                   </Mapbox.MarkerView>
                 ))
@@ -991,6 +1066,24 @@ const styles = StyleSheet.create({
     color: "#8E241A",
     fontFamily: Skoun.type.bodySemi,
     fontSize: 11,
+  },
+  campusNamed: {
+    alignItems: "center",
+    maxWidth: 176,
+  },
+  campusNameChip: {
+    maxWidth: 176,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    backgroundColor: "#C4A574",
+    marginBottom: 4,
+  },
+  campusNameText: {
+    color: "#2A1F14",
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 11,
+    textAlign: "center",
   },
   mapLoading: {
     ...StyleSheet.absoluteFillObject,

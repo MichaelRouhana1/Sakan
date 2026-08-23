@@ -119,6 +119,20 @@ export function ensureMapboxCss(): void {
     .skoun-campus-pin .base {
       width: 14px; height: 4px; border-radius: 2px; background: #121826; margin-top: -1px;
     }
+    .skoun-campus-stack {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      pointer-events: none;
+    }
+    .skoun-campus-stack.selected { transform: scale(1.06); }
+    .skoun-campus-label {
+      max-width: 176px; padding: 3px 8px; border-radius: 6px;
+      background: #C4A574; color: #2A1F14;
+      font: 700 11px/1.25 "DM Sans", system-ui, sans-serif;
+      text-align: center; box-shadow: 0 1px 3px rgba(18,24,38,0.22);
+    }
+    .skoun-campus-stack.selected .skoun-campus-label {
+      background: #121826; color: #fff;
+    }
     .skoun-dist-badge {
       display: flex; align-items: center; justify-content: center;
       box-sizing: border-box;
@@ -553,8 +567,12 @@ export function clusterBubbleHtml(count: number, size: number): string {
   return `<div class="skoun-cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size >= 46 ? 15 : 13}px">${escapeHtml(String(count))}</div>`;
 }
 
-export function campusPinHtml(): string {
-  return teardropHtml("campus");
+export function campusPinHtml(label?: string, selected = false): string {
+  const pin = teardropHtml("campus");
+  const text = label?.trim();
+  if (!text) return pin;
+  const stack = selected ? "skoun-campus-stack selected" : "skoun-campus-stack";
+  return `<div class="${stack}"><div class="skoun-campus-label">${escapeHtml(text)}</div>${pin}</div>`;
 }
 
 export function listingPinHtml(selected = false): string {

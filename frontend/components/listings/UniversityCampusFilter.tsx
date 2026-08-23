@@ -79,6 +79,10 @@ export function UniversityCampusFilter({
   const pickInstitution = (inst: Institution) => {
     setQuery("");
     setInstitution(inst.slug);
+    if (inst.campuses.length === 1) {
+      onSelectCampusSlug(inst.campuses[0]!.slug);
+      return;
+    }
     const stillValid = inst.campuses.some((c) => c.slug === selectedCampusSlug);
     if (!stillValid) onSelectCampusSlug(null);
   };

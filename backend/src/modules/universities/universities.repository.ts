@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { institutions, universities } from "../../db/schema/index.js";
 
@@ -107,11 +107,14 @@ export class UniversitiesRepository {
       .select(campusPublicColumns)
       .from(universities)
       .leftJoin(institutions, eq(universities.institutionId, institutions.id));
+    const campusOrder = [
+      asc(institutions.name),
+      desc(universities.isMain),
+      asc(universities.name),
+    ] as const;
     const rows = opts?.includeInactive
-      ? await query.orderBy(asc(institutions.name), asc(universities.name))
-      : await query
-          .where(eq(universities.active, true))
-          .orderBy(asc(institutions.name), asc(universities.name));
+      ? await query.orderBy(...campusOrder)
+      : await query.where(eq(universities.active, true)).orderBy(...campusOrder);
     return rows
       .map(toPublicCampus)
       .filter((row) => !isPublicLebaneseUniversity(row));

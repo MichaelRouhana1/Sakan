@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -93,6 +93,7 @@ export function FindFilterRail({
   compact,
 }: Props) {
   const [areaQuery, setAreaQuery] = useState("");
+  const pendingInstSlug = useRef(value.institutionSlug);
 
   const filteredAreas = useMemo(() => {
     const q = areaQuery.trim().toLowerCase();
@@ -110,11 +111,14 @@ export function FindFilterRail({
           hideHeading
           selectedCampusSlug={value.universitySlugs[0] ?? null}
           selectedInstitutionSlug={value.institutionSlug}
-          onSelectInstitutionSlug={(slug) =>
-            patch({ institutionSlug: slug, universitySlugs: [] })
-          }
+          onSelectInstitutionSlug={(slug) => {
+            pendingInstSlug.current = slug;
+            patch({ institutionSlug: slug, universitySlugs: [] });
+          }}
           onSelectCampusSlug={(slug) =>
-            patch({
+            onChange({
+              ...value,
+              institutionSlug: pendingInstSlug.current,
               universitySlugs: slug
                 ? [slug].slice(0, MAX_UNIVERSITY_SLUGS)
                 : [],

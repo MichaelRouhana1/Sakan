@@ -13,6 +13,7 @@ export type University = {
   institutionShortName?: string | null;
   institutionSlug?: string | null;
   logoUrl?: string | null;
+  isMain?: boolean;
   lng: number | null;
   lat: number | null;
 };

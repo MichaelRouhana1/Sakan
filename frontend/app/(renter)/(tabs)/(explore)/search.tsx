@@ -37,6 +37,9 @@ import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import {
   campusFilterLabel,
+  campusPinsFromInstitution,
+  mergeCampusPins,
+  resolveFocusCampusSlug,
   useInstitutions,
 } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
@@ -172,10 +175,19 @@ export default function RenterSearchScreen() {
 
   const listingsQuery = useListings(listFilters);
   const listings = listingsQuery.data?.listings ?? [];
-  const campuses = listingsQuery.data?.campuses ?? [];
+  const campuses = useMemo(
+    () =>
+      mergeCampusPins(
+        listingsQuery.data?.campuses ?? [],
+        campusPinsFromInstitution(activeInst),
+      ),
+    [listingsQuery.data?.campuses, activeInst],
+  );
 
   const isUniversityMode =
-    deferredMode === "university" && deferredFilters.universitySlugs.length > 0;
+    deferredMode === "university" &&
+    (deferredFilters.universitySlugs.length > 0 ||
+      Boolean(deferredFilters.institutionSlug));
 
   // Client side sorting for desc/distance
   const processedListings = useMemo(() => {
@@ -417,6 +429,10 @@ export default function RenterSearchScreen() {
               listings={processedListings}
               campuses={campuses}
               universityMode={isUniversityMode}
+              focusCampusSlug={resolveFocusCampusSlug(
+                activeUniSlug,
+                activeInst,
+              )}
               loading={listingsQuery.isLoading}
               fillContainer
               onCarouselOpenChange={onCarouselOpenChange}

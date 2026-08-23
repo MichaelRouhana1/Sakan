@@ -41,6 +41,12 @@ import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
+import {
+  campusPinsFromInstitution,
+  mergeCampusPins,
+  resolveFocusCampusSlug,
+  useInstitutions,
+} from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
 import { useStableBreakpoint } from "@/lib/breakpoints";
@@ -121,7 +127,8 @@ export function FindBrowse() {
 
   const effectiveMode: SearchMode =
     deferredMode === "university" ||
-    deferredFilters.universitySlugs.length > 0
+    deferredFilters.universitySlugs.length > 0 ||
+    Boolean(deferredFilters.institutionSlug)
       ? "university"
       : "standard";
 
@@ -136,11 +143,26 @@ export function FindBrowse() {
   );
 
   const universities = useUniversities();
+  const institutions = useInstitutions();
   const { data, isLoading, isError, refetch, isFetching } =
     useListings(listFilters);
 
   const rawListings = data?.listings ?? [];
-  const campuses = data?.campuses ?? [];
+  const selectedInst = useMemo(
+    () =>
+      (institutions.data ?? []).find(
+        (inst) => inst.slug === deferredFilters.institutionSlug,
+      ) ?? null,
+    [institutions.data, deferredFilters.institutionSlug],
+  );
+  const campuses = useMemo(
+    () =>
+      mergeCampusPins(
+        data?.campuses ?? [],
+        campusPinsFromInstitution(selectedInst),
+      ),
+    [data?.campuses, selectedInst],
+  );
   const listings = useMemo(
     () => sortListingsClient(rawListings, deferredSort),
     [rawListings, deferredSort],
@@ -391,6 +413,12 @@ export function FindBrowse() {
             hoveredListingId={hoveredListingId}
             hoverFlyListingId={hoverFlyListingId}
             onHoverFlyComplete={() => setHoverRingDone(true)}
+            focusCampusSlug={resolveFocusCampusSlug(
+              filters.universitySlugs[0] ?? null,
+              (institutions.data ?? []).find(
+                (inst) => inst.slug === filters.institutionSlug,
+              ) ?? selectedInst,
+            )}
             onClose={() => {
               setHoveredListingId(null);
               setHoverFlyListingId(null);

@@ -66,7 +66,7 @@ async function main() {
   await db.execute(sql`
     UPDATE universities
     SET active = false, updated_at = now()
-    WHERE slug = 'lu-fanar'
+    WHERE slug IN ('lu-fanar', 'cityu-beirut', 'auce-chhim')
   `);
 
   const campusCount = institutionSeeds.reduce(

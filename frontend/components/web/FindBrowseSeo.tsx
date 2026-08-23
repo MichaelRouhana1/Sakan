@@ -42,7 +42,7 @@ const NEARBY_UNIS = [
   "USJ",
   "NDU",
   "BAU",
-  "LAU Byblos",
+  "LAU Jbeil",
 ] as const;
 
 type Tab = "areas" | "cities" | "universities";
