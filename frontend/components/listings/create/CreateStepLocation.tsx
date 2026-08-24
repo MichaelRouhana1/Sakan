@@ -150,7 +150,7 @@ export function CreateStepLocation() {
         </WizardFieldGroup>
         {walk ? (
           <LText variant="caption" tone="primary" style={{ marginTop: 8 }}>
-            {walk.replace(/[📍🚶]/g, "").trim()}
+            {walk}
           </LText>
         ) : null}
       </Enter>

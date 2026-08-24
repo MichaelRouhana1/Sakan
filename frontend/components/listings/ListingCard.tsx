@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { MapPin } from "lucide-react-native";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   ListingFeatureBadge,
@@ -92,9 +94,12 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
         </Text>
 
         {proximity ? (
-          <Text style={styles.proximity} numberOfLines={2}>
-            {proximity}
-          </Text>
+          <View style={styles.proximityRow}>
+            <MapPin size={11} color={Skoun.color.inkMuted} strokeWidth={2} />
+            <Text style={styles.proximity} numberOfLines={2}>
+              {proximity}
+            </Text>
+          </View>
         ) : null}
 
         <View style={styles.divider} />
@@ -102,9 +107,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
         {highlights.length > 0 ? (
           <View style={styles.tags}>
             {highlights.map((pill) => (
-              <View key={pill.key} style={[styles.tag, styles.tagHighlight]}>
-                <Text style={styles.tagText}>{pill.label}</Text>
-              </View>
+              <ListingAmberPillView key={pill.key} pill={pill} highlight />
             ))}
           </View>
         ) : null}
@@ -112,9 +115,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
         {amenities.length > 0 ? (
           <View style={styles.tags}>
             {amenities.map((pill) => (
-              <View key={pill.key} style={styles.tag}>
-                <Text style={styles.tagText}>{pill.label}</Text>
-              </View>
+              <ListingAmberPillView key={pill.key} pill={pill} />
             ))}
           </View>
         ) : null}
@@ -198,12 +199,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Skoun.color.inkMuted,
   },
+  proximityRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 4,
+    marginTop: 2,
+  },
   proximity: {
+    flex: 1,
     fontFamily: Skoun.type.body,
     fontSize: 11,
     color: Skoun.color.inkMuted,
     lineHeight: 15,
-    marginTop: 2,
   },
   divider: {
     marginTop: 6,
@@ -217,23 +224,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 4,
     marginTop: 2,
-  },
-  tag: {
-    paddingVertical: 3,
-    paddingHorizontal: 7,
-    borderRadius: 999,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
-  },
-  tagHighlight: {
-    backgroundColor: "rgba(47, 111, 237, 0.06)",
-    borderColor: "rgba(47, 111, 237, 0.2)",
-  },
-  tagText: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 11,
-    color: Skoun.color.ink,
   },
   rightCol: {
     backgroundColor: "#FFFFFF",

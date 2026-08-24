@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { Zap } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
 import { LText } from "@/components/lister/Typography";
@@ -399,9 +400,12 @@ export default function RenterSearchScreen() {
               onPress={() => setFiltersOpen(true)}
               style={[styles.filterPill, styles.filterPillActive]}
             >
-              <Text style={[styles.filterPillLabel, styles.filterPillLabelActive]}>
-                ⚡ Utilities Active
-              </Text>
+              <View style={styles.filterPillLabelRow}>
+                <Zap size={13} color="#FFFFFF" strokeWidth={2} />
+                <Text style={[styles.filterPillLabel, styles.filterPillLabelActive]}>
+                  Utilities Active
+                </Text>
+              </View>
             </Pressable>
           ) : null}
 
@@ -858,6 +862,11 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 12,
     color: Skoun.color.inkMuted,
+  },
+  filterPillLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   filterPillLabelActive: {
     color: "#ffffff",

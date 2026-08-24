@@ -1,6 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import {
+  Droplets,
+  Globe,
+  Lightbulb,
+  Shield,
+  Users,
+  Zap,
+} from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -404,22 +412,28 @@ export function ListingDetailWeb({ listingId }: Props) {
             {/* Policy & Perks Track */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.policyPillsScroll}>
               <View style={[styles.policyPill, styles.policyPillHighlight]}>
-                <LText variant="caption" style={styles.policyHighlightText}>⚡ 24/7 Power Guarantee</LText>
+                <Zap size={13} color={Skoun.color.primaryDeep} strokeWidth={2} />
+                <LText variant="caption" style={styles.policyHighlightText}>24/7 Power Guarantee</LText>
               </View>
               <View style={[styles.policyPill, styles.policyPillHighlight]}>
-                <LText variant="caption" style={styles.policyHighlightText}>💧 Artesian Well Water</LText>
+                <Droplets size={13} color={Skoun.color.primaryDeep} strokeWidth={2} />
+                <LText variant="caption" style={styles.policyHighlightText}>Artesian Well Water</LText>
               </View>
               <View style={styles.policyPill}>
-                <LText variant="caption" style={styles.policyPillText}>🌐 Fiber + 8h Router UPS</LText>
+                <Globe size={13} color={Skoun.color.ink} strokeWidth={2} />
+                <LText variant="caption" style={styles.policyPillText}>Fiber + 8h Router UPS</LText>
               </View>
               <View style={styles.policyPill}>
-                <LText variant="caption" style={styles.policyPillText}>🛡️ No Visa No Pay</LText>
+                <Shield size={13} color={Skoun.color.ink} strokeWidth={2} />
+                <LText variant="caption" style={styles.policyPillText}>No Visa No Pay</LText>
               </View>
               <View style={styles.policyPill}>
-                <LText variant="caption" style={styles.policyPillText}>👥 Dual Occupancy</LText>
+                <Users size={13} color={Skoun.color.ink} strokeWidth={2} />
+                <LText variant="caption" style={styles.policyPillText}>Dual Occupancy</LText>
               </View>
               <View style={styles.policyPill}>
-                <LText variant="caption" style={styles.policyPillText}>💡 Bills Included</LText>
+                <Lightbulb size={13} color={Skoun.color.ink} strokeWidth={2} />
+                <LText variant="caption" style={styles.policyPillText}>Bills Included</LText>
               </View>
             </ScrollView>
           </View>
@@ -442,7 +456,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                     {labelElectricity(listing.infrastructure?.electricity.status || listing.electricity)}
                   </LText>
                   <LText variant="caption" tone="muted">
-                    ⚡ {listing.infrastructure?.electricity.ampLimit || 10}A Limit · {listing.infrastructure?.electricity.generatorSpecs || "24/7 Generator Switch"}
+                    {listing.infrastructure?.electricity.ampLimit || 10}A Limit · {listing.infrastructure?.electricity.generatorSpecs || "24/7 Generator Switch"}
                   </LText>
                 </View>
               </View>
@@ -455,7 +469,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                     {labelWater(listing.infrastructure?.water.status || listing.water)}
                   </LText>
                   <LText variant="caption" tone="muted">
-                    💧 {listing.infrastructure?.water.notes || "Artesian Well + Roof Tank UPS Pump"}
+                    {listing.infrastructure?.water.notes || "Artesian Well + Roof Tank UPS Pump"}
                   </LText>
                 </View>
               </View>
@@ -468,7 +482,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                     {listing.infrastructure?.internet.hasFiber ? "Fiber Optic 100Mbps" : "High-Speed Wi-Fi"}
                   </LText>
                   <LText variant="caption" tone="muted">
-                    🔋 {listing.infrastructure?.internet.routerUpsHours || 8}-Hour Router UPS Backup During Blackouts
+                    {listing.infrastructure?.internet.routerUpsHours || 8}-Hour Router UPS Backup During Blackouts
                   </LText>
                 </View>
               </View>
@@ -1247,6 +1261,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   policyPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,

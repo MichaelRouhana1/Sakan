@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   ListingFeatureBadge,
@@ -106,18 +108,14 @@ function PillRow({
   return (
     <View style={[styles.tags, compact && styles.tagsCompact]}>
       {pills.map((pill) => (
-        <View
+        <ListingAmberPillView
           key={pill.key}
-          style={[
-            styles.tag,
-            compact && styles.tagCompact,
-            highlight && styles.tagHighlight,
-          ]}
-        >
-          <Text style={[styles.tagText, compact && styles.tagTextCompact]}>
-            {pill.label}
-          </Text>
-        </View>
+          pill={pill}
+          highlight={highlight}
+          compact={compact}
+          style={compact ? styles.tagCompactOverride : styles.tagOverride}
+          textStyle={compact ? styles.tagTextCompact : styles.tagText}
+        />
       ))}
     </View>
   );
@@ -210,9 +208,12 @@ export function ListingResultCard({
             </Text>
 
             {proximity ? (
-              <Text style={styles.proximityText} numberOfLines={2}>
-                {proximity}
-              </Text>
+              <View style={styles.proximityRow}>
+                <MapPin size={12} color={Skoun.color.inkMuted} strokeWidth={2} />
+                <Text style={styles.proximityText} numberOfLines={2}>
+                  {proximity}
+                </Text>
+              </View>
             ) : null}
 
             <View style={styles.divider} />
@@ -299,17 +300,21 @@ export function ListingResultCard({
         </View>
 
         <View style={styles.gridProximitySlot}>
-          <Text
+          <View
             style={[
-              styles.gridProximity,
+              styles.gridProximityRow,
               !proximity && styles.gridProximityHidden,
             ]}
-            numberOfLines={1}
             accessibilityElementsHidden={!proximity}
             importantForAccessibility={proximity ? "yes" : "no-hide-descendants"}
           >
-            {proximity ?? "\u00A0"}
-          </Text>
+            {proximity ? (
+              <MapPin size={11} color={Skoun.color.inkMuted} strokeWidth={2} />
+            ) : null}
+            <Text style={styles.gridProximity} numberOfLines={1}>
+              {proximity ?? "\u00A0"}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.gridDivider} />
@@ -385,11 +390,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Skoun.color.inkMuted,
   },
+  proximityRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 4,
+    marginTop: 2,
+  },
   proximityText: {
+    flex: 1,
     fontFamily: Skoun.type.body,
     fontSize: 12,
     color: Skoun.color.inkMuted,
-    marginTop: 2,
     lineHeight: 17,
   },
   divider: {
@@ -409,26 +420,16 @@ const styles = StyleSheet.create({
     gap: 5,
     marginTop: 0,
   },
-  tag: {
+  tagOverride: {
     paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
-  tagCompact: {
+  tagCompactOverride: {
     paddingVertical: 3,
     paddingHorizontal: 7,
   },
-  tagHighlight: {
-    backgroundColor: "rgba(47, 111, 237, 0.06)",
-    borderColor: "rgba(47, 111, 237, 0.2)",
-  },
   tagText: {
-    fontFamily: Skoun.type.bodyMedium,
     fontSize: 12,
-    color: Skoun.color.ink,
   },
   tagTextCompact: {
     fontSize: 11,
@@ -595,10 +596,16 @@ const styles = StyleSheet.create({
     color: Skoun.color.inkMuted,
   },
   gridProximity: {
+    flex: 1,
     fontFamily: Skoun.type.body,
     fontSize: 11,
     lineHeight: 15,
     color: Skoun.color.inkMuted,
+  },
+  gridProximityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   gridProximitySlot: {
     height: GRID_PROXIMITY_HEIGHT,
