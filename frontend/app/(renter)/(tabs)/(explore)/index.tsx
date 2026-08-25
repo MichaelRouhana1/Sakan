@@ -12,6 +12,7 @@ import {
   Linking,
   Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -19,6 +20,7 @@ import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPick
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
+import { useHostingNavState } from "@/features/listings/useHostingNavState";
 import { api } from "@/lib/api";
 import type { User } from "@/types/user";
 import { Skoun } from "@/constants/theme";
@@ -50,7 +52,8 @@ function pushSearch(q?: string) {
 }
 
 export default function RenterNewHomeScreen() {
-  const { user, isSignedIn, refreshUser } = useAuthSession();
+  const { user, isSignedIn, isLoading: authLoading, refreshUser } =
+    useAuthSession();
   const campusLabel = user?.campus
     ? user.campus.displayName ||
       `${user.campus.institutionShortName ?? ""} — ${user.campus.name}`.replace(
@@ -64,6 +67,8 @@ export default function RenterNewHomeScreen() {
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
   const [searchQuery, setSearchQuery] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [campusPromptDismissed, setCampusPromptDismissed] = useState(false);
+  const [campusSaving, setCampusSaving] = useState(false);
 
   const [hintIndex, setHintIndex] = useState(0);
   const searchHints = ["Area", "University", "Landmark"];
@@ -94,13 +99,31 @@ export default function RenterNewHomeScreen() {
     pushSearch(query);
   };
 
-  const handleListPlace = () => {
+  const { showSwitchToHosting } = useHostingNavState();
+
+  const handleBecomeAHost = () => {
     if (!isSignedIn) {
       setAuthModalOpen(true);
       return;
     }
     openCreateListing(router);
   };
+
+  const handleSwitchToHosting = () => {
+    if (!isSignedIn) {
+      setAuthModalOpen(true);
+      return;
+    }
+    router.push("/(poster)/(tabs)" as never);
+  };
+
+  /** Always keep header CTA slot filled (old List Property). Label follows desktop host logic. */
+  const hostCtaLabel = showSwitchToHosting
+    ? "Switch to hosting"
+    : "Become a host";
+  const handleHostCta = showSwitchToHosting
+    ? handleSwitchToHosting
+    : handleBecomeAHost;
 
   const fitTileWidth = (width - 40 - 12) / 2; // two column with padding 20 and gap 12
 
@@ -159,10 +182,11 @@ export default function RenterNewHomeScreen() {
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>skoun</Text>
               <Pressable
-                onPress={handleListPlace}
+                onPress={handleHostCta}
                 style={styles.listBtn}
+                accessibilityRole="button"
               >
-                <Text style={styles.listBtnText}>List Property</Text>
+                <Text style={styles.listBtnText}>{hostCtaLabel}</Text>
               </Pressable>
             </View>
 
@@ -609,25 +633,49 @@ export default function RenterNewHomeScreen() {
         onSuccess={() => setAuthModalOpen(false)}
       />
 
-      {isSignedIn && !user?.campusId ? (
-        <Modal visible animationType="slide">
-          <ScrollView
-            contentContainerStyle={{
-              padding: 20,
-              paddingTop: 56,
-              paddingBottom: 40,
-            }}
-          >
-            <InstitutionCampusPicker
-              selectedCampusId={null}
-              onSelectCampus={async (campus) => {
-                await api.patch<{ data: User }>("/api/users/me/campus", {
-                  campusId: campus.id,
-                });
-                await refreshUser();
-              }}
-            />
-          </ScrollView>
+      {!authLoading &&
+      isSignedIn &&
+      !user?.campusId &&
+      !campusPromptDismissed &&
+      !authModalOpen ? (
+        <Modal
+          visible
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setCampusPromptDismissed(true)}
+        >
+          <SafeAreaView style={styles.campusModal}>
+            <ScrollView
+              contentContainerStyle={styles.campusModalScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              <InstitutionCampusPicker
+                selectedCampusId={null}
+                onSelectCampus={async (campus) => {
+                  if (campusSaving) return;
+                  setCampusSaving(true);
+                  try {
+                    await api.patch<{ data: User }>("/api/users/me/campus", {
+                      campusId: campus.id,
+                    });
+                    await refreshUser();
+                  } catch (err) {
+                    console.error("Failed to save campus:", err);
+                  } finally {
+                    setCampusSaving(false);
+                  }
+                }}
+              />
+              <Pressable
+                onPress={() => setCampusPromptDismissed(true)}
+                disabled={campusSaving}
+                style={styles.campusSkipBtn}
+                accessibilityRole="button"
+              >
+                <Text style={styles.campusSkipText}>Skip for now</Text>
+              </Pressable>
+            </ScrollView>
+          </SafeAreaView>
         </Modal>
       ) : null}
     </View>
@@ -638,6 +686,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  campusModal: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  campusModalScroll: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  campusSkipBtn: {
+    marginTop: 24,
+    alignSelf: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  campusSkipText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 15,
+    color: Skoun.color.inkMuted,
   },
   scroll: {
     flex: 1,

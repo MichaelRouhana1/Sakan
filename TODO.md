@@ -32,7 +32,7 @@ Living checklist for setup, integrations, and product work.
 - [ ] WhatsApp contact — expose poster phone on listing detail
 - [ ] Boost spend (credits UI exists; spend path stubbed)
 - [ ] Report auto-restrict / broker flagging
-- [ ] Admin web UI
+- [x] Admin web UI (Phase 0–1: payments inbox + KPI home; stubs for reports/users/listings/unis)
 - [ ] Renew / day-25 listing notifications
 - [ ] Arabic / RTL
 - [ ] In-app chat (out of scope for v1 — track if priority changes)

@@ -76,6 +76,21 @@ export function InstitutionCampusPicker({
     );
   }
 
+  if (catalog.isError) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.sub}>Couldn’t load universities. Try again.</Text>
+        <Pressable
+          onPress={() => void catalog.refetch()}
+          style={styles.retryBtn}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   if (selectedInstitution && selectedInstitution.campuses.length > 1) {
     return (
       <View>
@@ -186,6 +201,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sub: { color: Skoun.color.inkMuted, marginBottom: 12 },
+  retryBtn: {
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Skoun.color.primary,
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
   search: {
     borderWidth: 1,
     borderColor: "#E4E4E7",

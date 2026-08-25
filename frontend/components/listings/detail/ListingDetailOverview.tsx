@@ -12,6 +12,7 @@ import {
   labelWater,
 } from "@/lib/listingLabels";
 import { formatWindowsSummary } from "@/lib/electricityCuts";
+import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
 
 type Props = {

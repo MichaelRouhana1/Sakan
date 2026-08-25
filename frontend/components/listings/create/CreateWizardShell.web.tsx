@@ -20,6 +20,7 @@ const styles = StyleSheet.create({
   chrome: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 16,
     paddingHorizontal: 32,
     paddingTop: 20,
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
     backgroundColor: Lister.color.surface,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 12,
     overflow: "hidden",
   },
   phoneForm: {

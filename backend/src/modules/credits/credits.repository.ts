@@ -1,6 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { creditTransactions, users } from "../../db/schema/index.js";
+import {
+  adminAuditEvents,
+  creditTransactions,
+  users,
+} from "../../db/schema/index.js";
+import type { AdminActor } from "../../middleware/auth.js";
 
 export type InsertCreditTransaction = {
   userId: string;
@@ -10,6 +15,10 @@ export type InsertCreditTransaction = {
   boostCreditsDelta: number;
   amountUsdCents: number;
   channel: "whish" | "omt";
+};
+
+export type AdminReview = AdminActor & {
+  adminNote?: string;
 };
 
 export class CreditsRepository {
@@ -46,10 +55,11 @@ export class CreditsRepository {
     return db
       .select()
       .from(creditTransactions)
-      .where(eq(creditTransactions.status, "pending"));
+      .where(eq(creditTransactions.status, "pending"))
+      .orderBy(desc(creditTransactions.createdAt));
   }
 
-  async approveTransaction(txId: string, adminNote?: string) {
+  async approveTransaction(txId: string, review: AdminReview) {
     return db.transaction(async (tx) => {
       const [pending] = await tx
         .select()
@@ -71,12 +81,14 @@ export class CreditsRepository {
         return null;
       }
 
+      const now = new Date();
+
       await tx
         .update(users)
         .set({
           postCredits: user.postCredits + pending.postCreditsDelta,
           boostCredits: user.boostCredits + pending.boostCreditsDelta,
-          updatedAt: new Date(),
+          updatedAt: now,
         })
         .where(eq(users.id, user.id));
 
@@ -84,28 +96,93 @@ export class CreditsRepository {
         .update(creditTransactions)
         .set({
           status: "approved",
-          approvedAt: new Date(),
-          adminNote,
-          updatedAt: new Date(),
+          approvedAt: now,
+          reviewedAt: now,
+          reviewedByKind: review.kind,
+          reviewedByClerkId: review.clerkId,
+          reviewedByUserId: review.userId,
+          adminNote: review.adminNote,
+          updatedAt: now,
         })
-        .where(eq(creditTransactions.id, txId))
+        .where(
+          and(
+            eq(creditTransactions.id, txId),
+            eq(creditTransactions.status, "pending"),
+          ),
+        )
         .returning();
+
+      if (!updated) return null;
+
+      await tx.insert(adminAuditEvents).values({
+        actorKind: review.kind,
+        actorClerkId: review.clerkId,
+        action: "credit_tx.approve",
+        entityType: "credit_transaction",
+        entityId: updated.id,
+        payload: {
+          adminNote: review.adminNote ?? null,
+          referenceId: pending.referenceId,
+          postCreditsDelta: pending.postCreditsDelta,
+          boostCreditsDelta: pending.boostCreditsDelta,
+          amountUsdCents: pending.amountUsdCents,
+        },
+      });
 
       return updated;
     });
   }
 
-  async rejectTransaction(txId: string, adminNote?: string) {
-    const [updated] = await db
-      .update(creditTransactions)
-      .set({
-        status: "rejected",
-        adminNote,
-        updatedAt: new Date(),
-      })
-      .where(eq(creditTransactions.id, txId))
-      .returning();
-    return updated ?? null;
+  async rejectTransaction(txId: string, review: AdminReview) {
+    return db.transaction(async (tx) => {
+      const [pending] = await tx
+        .select()
+        .from(creditTransactions)
+        .where(eq(creditTransactions.id, txId))
+        .limit(1);
+
+      if (!pending || pending.status !== "pending") {
+        return null;
+      }
+
+      const now = new Date();
+
+      const [updated] = await tx
+        .update(creditTransactions)
+        .set({
+          status: "rejected",
+          reviewedAt: now,
+          reviewedByKind: review.kind,
+          reviewedByClerkId: review.clerkId,
+          reviewedByUserId: review.userId,
+          adminNote: review.adminNote,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(creditTransactions.id, txId),
+            eq(creditTransactions.status, "pending"),
+          ),
+        )
+        .returning();
+
+      if (!updated) return null;
+
+      await tx.insert(adminAuditEvents).values({
+        actorKind: review.kind,
+        actorClerkId: review.clerkId,
+        action: "credit_tx.reject",
+        entityType: "credit_transaction",
+        entityId: updated.id,
+        payload: {
+          adminNote: review.adminNote ?? null,
+          referenceId: pending.referenceId,
+          amountUsdCents: pending.amountUsdCents,
+        },
+      });
+
+      return updated;
+    });
   }
 }
 

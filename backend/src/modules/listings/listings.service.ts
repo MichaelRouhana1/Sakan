@@ -1,4 +1,5 @@
 import {
+  ForbiddenError,
   InsufficientCreditsError,
   NotFoundError,
   ValidationError,
@@ -33,6 +34,10 @@ export class ListingsService {
   async getById(id: string) {
     const listing = await listingsRepository.findById(id);
     if (!listing) {
+      throw new NotFoundError("Listing not found");
+    }
+    const status = String((listing as { status?: string }).status ?? "");
+    if (status === "archived" || status === "removed") {
       throw new NotFoundError("Listing not found");
     }
     return listing;
@@ -189,6 +194,9 @@ export class ListingsService {
   private async assertCanPublish(posterId: string, activeBefore: number) {
     const user = await usersRepository.findById(posterId);
     if (!user) throw new NotFoundError("User not found");
+    if (user.accountStatus === "restricted" || user.accountStatus === "banned") {
+      throw new ForbiddenError("This account cannot publish listings");
+    }
 
     if (activeBefore === 0) {
       const key = monthKey();

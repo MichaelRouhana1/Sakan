@@ -2,7 +2,9 @@ import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +24,7 @@ import {
   HostListingsToolbar,
   type HostListingsLayout,
 } from "@/components/web/host/HostListingsToolbar";
+import { appleTabScrollInset } from "@/components/ui/Glass";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
@@ -29,6 +32,7 @@ import { draftHasMeaningfulProgress } from "@/features/listings/create/createDra
 import { useCreateDraftMeta } from "@/features/listings/useHostingNavState";
 import type { DraftCheckpoint, DraftSlot } from "@/features/listings/create/draft";
 import { useMyListings } from "@/features/listings/useMyListings";
+import { useBreakpoint } from "@/lib/breakpoints";
 import type { Listing } from "@/types/listing";
 
 type GridItem =
@@ -45,6 +49,8 @@ const CARD_WIDTH = 240;
 const GRID_GAP = 16;
 
 export function HostListingsPage() {
+  const bp = useBreakpoint();
+  const compact = bp === "mobile" || Platform.OS !== "web";
   const { checkpoint, workingCheckpoint, refresh } = useCreateDraftMeta();
   const { data, isLoading, isError, refetch, isFetching } = useMyListings();
   const [layout, setLayout] = useState<HostListingsLayout>("grid");
@@ -117,10 +123,7 @@ export function HostListingsPage() {
     });
   }, [items]);
 
-  function openLocalDraftModal(
-    slot: DraftSlot,
-    cp: DraftCheckpoint,
-  ) {
+  function openLocalDraftModal(slot: DraftSlot, cp: DraftCheckpoint) {
     setDraftModal({ kind: "local", checkpoint: cp, slot });
   }
 
@@ -146,21 +149,37 @@ export function HostListingsPage() {
   return (
     <>
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        refreshControl={undefined}
+        contentContainerStyle={[
+          styles.scroll,
+          compact && styles.scrollCompact,
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={() => void refetch()}
+            tintColor={Skoun.color.primary}
+            colors={[Skoun.color.primary]}
+          />
+        }
       >
-        <View style={styles.page}>
+        <View style={[styles.page, compact && styles.pageCompact]}>
           <HostListingsToolbar layout={layout} onLayoutChange={setLayout} />
 
           {isLoading ? (
-            <ActivityIndicator color={Skoun.color.primary} style={styles.loader} />
+            <ActivityIndicator
+              color={Skoun.color.primary}
+              style={styles.loader}
+            />
           ) : isError ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Couldn’t load listings</Text>
               <Text style={styles.emptyBody}>
                 Check that the API is reachable, then try again.
               </Text>
-              <Pressable onPress={() => void refetch()} style={styles.retryBtn}>
+              <Pressable
+                onPress={() => void refetch()}
+                style={styles.retryBtn}
+              >
                 <Text style={styles.retryText}>Retry</Text>
               </Pressable>
             </View>
@@ -180,6 +199,7 @@ export function HostListingsPage() {
           ) : layout === "list" ? (
             <HostListingListView
               rows={listRows}
+              compact={compact}
               onDraftPress={(row) => {
                 if (row.kind === "local-draft") {
                   openLocalDraftModal(row.slot, row.checkpoint);
@@ -190,10 +210,13 @@ export function HostListingsPage() {
               onListingPress={handleListingPress}
             />
           ) : (
-            <View style={styles.grid}>
+            <View style={[styles.grid, compact && styles.gridCompact]}>
               {items.map((item) =>
                 item.kind === "draft" ? (
-                  <View key={item.key} style={styles.cell}>
+                  <View
+                    key={item.key}
+                    style={[styles.cell, compact && styles.cellCompact]}
+                  >
                     <HostDraftGridCard
                       checkpoint={item.checkpoint}
                       onPress={() =>
@@ -202,7 +225,10 @@ export function HostListingsPage() {
                     />
                   </View>
                 ) : item.kind === "listing" ? (
-                  <View key={item.key} style={styles.cell}>
+                  <View
+                    key={item.key}
+                    style={[styles.cell, compact && styles.cellCompact]}
+                  >
                     <HostListingGridCard
                       listing={item.listing}
                       onPress={() => handleListingPress(item.listing)}
@@ -233,24 +259,40 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 64,
   },
+  scrollCompact: {
+    paddingBottom: appleTabScrollInset + 24,
+  },
   page: {
     width: "100%",
     maxWidth: WEB_CONTENT_MAX,
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 32,
-    boxSizing: "border-box",
+    ...(Platform.OS === "web" ? { boxSizing: "border-box" as const } : null),
+  },
+  pageCompact: {
+    maxWidth: "100%",
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: GRID_GAP,
   },
+  gridCompact: {
+    flexDirection: "column",
+    gap: 20,
+  },
   cell: {
     width: CARD_WIDTH,
     flexShrink: 0,
     paddingBottom: 8,
-    boxSizing: "border-box",
+    ...(Platform.OS === "web" ? { boxSizing: "border-box" as const } : null),
+  },
+  cellCompact: {
+    width: "100%",
+    paddingBottom: 0,
   },
   loader: {
     marginTop: 48,
@@ -278,7 +320,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     backgroundColor: Skoun.color.primary,
-    cursor: "pointer",
+    ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
   },
   retryText: {
     fontFamily: Skoun.type.bodySemi,

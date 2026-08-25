@@ -127,3 +127,14 @@ export const listingReportReasonEnum = pgEnum("listing_report_reason", [
   "inaccurate_utilities",
   "already_rented",
 ]);
+
+export const listingReportStatusEnum = pgEnum("listing_report_status", [
+  "open",
+  "dismissed",
+  "actioned",
+]);
+
+export const adminActorKindEnum = pgEnum("admin_actor_kind", [
+  "clerk",
+  "api_key",
+]);

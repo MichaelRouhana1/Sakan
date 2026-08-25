@@ -87,8 +87,8 @@
 | Buy credits screen | Done | `(poster)/(tabs)/credits.tsx` |
 | Pending purchase + reference ID | Done | `POST /api/credits/purchase` |
 | WhatsApp support CTA for receipt | Done | `PendingPaymentCard` |
-| Admin approve/reject APIs | Done (API only) | `/api/admin/transactions/*` |
-| Admin console UI | Missing | — |
+| Admin approve/reject APIs | Done | `/api/admin/transactions/*` (Clerk staff or `x-admin-key`) |
+| Admin console UI | Done (web Phase 2) | `/admin` — payments, reports inbox, listing review, users/listings search |
 | Payment reminders / push | Missing | — |
 
 ### Universities & distance
@@ -105,6 +105,7 @@
 | Photo local disk storage | Done | `photos.storage.ts` |
 | Archive expired listings job | Done (CLI) | `npm run job:archive-expired` |
 | Design tokens (Skoun / Lister) | Done | `constants/theme.ts`, `listerTheme.ts` |
+| Admin ops tokens | Done | `constants/adminTheme.ts`, `design-system/skoun-admin/` |
 | Reduced-motion support | Done | `lib/useReducedMotion.ts` |
 | Glass / Apple tab chrome | Done | `components/ui/Glass.tsx` |
 
@@ -126,6 +127,16 @@
 - `/(poster)/(tabs)/create` — New listing
 - `/(poster)/(tabs)/credits` — Buy credits
 - `/(poster)/listing/[id]` — Own listing detail
+
+### Admin (web)
+- `/admin` — KPI home (payments + open-reports queues)
+- `/admin/payments` — Inbox + history
+- `/admin/reports` — Grouped open-report inbox
+- `/admin/listings` — Search + archive/remove
+- `/admin/listings/[id]` — Listing review (dismiss / archive / remove / restrict / ban)
+- `/admin/users` — Search + restrict / unrestrict / ban
+- `/admin/universities` — Institution Registry (demo)
+- `/admin/zoning` — Geographic Zoning (demo)
 
 ### Misc
 - `+not-found`
@@ -315,12 +326,24 @@
 | POST | `/purchase` | Create pending Whish/OMT tx |
 | GET | `/:referenceId` | Lookup transaction |
 
-### Admin — `/api/admin` (`x-admin-key`)
+### Admin — `/api/admin` (Clerk staff JWT or `x-admin-key` for scripts)
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/transactions/pending` | Pending payments |
-| POST | `/transactions/:txId/approve` | Allocate credits |
-| POST | `/transactions/:txId/reject` | Reject |
+| GET | `/overview` | KPI counts |
+| GET | `/transactions` | Enriched list (`status`, `referenceId`, `history=1`) |
+| GET | `/transactions/pending` | Alias: pending + user join |
+| POST | `/transactions/:txId/approve` | Allocate credits; audit actor |
+| POST | `/transactions/:txId/reject` | `adminNote` required |
+| GET | `/reports?status=open` | Grouped by listing |
+| POST | `/reports/listings/:listingId/dismiss` | `adminNote` required |
+| GET | `/listings?q=&status=` | Search (limit 50) |
+| GET | `/listings/:id` | Photos, reports, poster |
+| POST | `/listings/:id/archive` | Active → archived |
+| POST | `/listings/:id/remove` | `adminNote` required; no refund |
+| POST | `/listings/:id/restore` | Archived → active only |
+| GET | `/users?q=` | Search (limit 50) |
+| PATCH | `/users/:id/status` | `active` / `restricted` / `banned`; ban removes live listings |
+| GET/POST/PATCH | `/institutions`, `/campuses` | University catalog |
 
 ### Other
 - `GET /health`
@@ -335,19 +358,20 @@
 | `users` | Register, me, free credit on poster signup |
 | `listings` | CRUD-ish browse/create, photos, views, archive |
 | `saved` | Account shortlist |
-| `reports` | Listing integrity reports (store only) |
+| `reports` | Listing integrity reports + review status |
 | `universities` | Campus catalog + meta |
 | `credits` | Purchase / reference lookup |
-| `admin` | Approve/reject credit transactions |
+| `admin` | Payments, reports, listings, users, university catalog |
 
 ### Schema tables
 - `users`
 - `listings` + `listing_photos`
 - `universities`
 - `credit_transactions`
+- `admin_audit_events`
 - `saved_listings`
 - `listing_reports`
-- Enums: roles, listing types, utilities, statuses, report reasons, etc.
+- Enums: roles, listing types, utilities, statuses, report reasons, report review status, etc.
 
 ---
 
@@ -357,7 +381,8 @@
 - **Maps:** Mapbox Standard (`@rnmapbox/maps` native, needs a **dev client**; Mapbox GL JS on web). University mode draws cached walking Directions polylines (straight dashed line if Directions fail).  
 - **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
 - **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
-- **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed  
+- **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed
+- **Admin:** web `/admin` (Clerk staff) + `x-admin-key` for scripts; reports/listings/users + payments inbox  
 
 ---
 
@@ -369,7 +394,7 @@
 - Real OTP/JWT — N/A; auth is Clerk JWT (email/OAuth), not phone OTP  
 - Working WhatsApp contact (phone exposure)  
 - Report auto-restrict / broker flagging (reports store only)  
-- Admin web UI  
+- Admin Phase 2+ (reports queue, user restrict, listing takedown, campus map UI)  
 - Boost spend  
 - Renew / day-25 notifications  
 - Arabic / RTL  

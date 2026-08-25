@@ -13,6 +13,9 @@ export class CreditsService {
     if (user.role !== "poster") {
       throw new ForbiddenError("Only hosts can purchase credits");
     }
+    if (user.accountStatus === "restricted" || user.accountStatus === "banned") {
+      throw new ForbiddenError("This account cannot purchase credits");
+    }
 
     let postCreditsDelta = 0;
     let boostCreditsDelta = 0;
@@ -58,7 +61,12 @@ export class CreditsService {
   }
 
   async approve(txId: string, adminNote?: string) {
-    const updated = await creditsRepository.approveTransaction(txId, adminNote);
+    const updated = await creditsRepository.approveTransaction(txId, {
+      kind: "api_key",
+      clerkId: null,
+      userId: null,
+      adminNote,
+    });
     if (!updated) {
       throw new AppError(409, "Transaction not pending or not found", "TX_NOT_PENDING");
     }
@@ -66,9 +74,14 @@ export class CreditsService {
   }
 
   async reject(txId: string, adminNote?: string) {
-    const updated = await creditsRepository.rejectTransaction(txId, adminNote);
+    const updated = await creditsRepository.rejectTransaction(txId, {
+      kind: "api_key",
+      clerkId: null,
+      userId: null,
+      adminNote,
+    });
     if (!updated) {
-      throw new NotFoundError("Transaction not found");
+      throw new AppError(409, "Transaction not pending or not found", "TX_NOT_PENDING");
     }
     return updated;
   }

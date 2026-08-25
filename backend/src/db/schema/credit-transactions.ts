@@ -7,6 +7,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import {
+  adminActorKindEnum,
   creditBundleTypeEnum,
   creditTxStatusEnum,
   paymentChannelEnum,
@@ -27,6 +28,12 @@ export const creditTransactions = pgTable("credit_transactions", {
   channel: paymentChannelEnum("channel").notNull(),
   adminNote: text("admin_note"),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
+  reviewedByKind: adminActorKindEnum("reviewed_by_kind"),
+  reviewedByClerkId: varchar("reviewed_by_clerk_id", { length: 255 }),
+  reviewedByUserId: uuid("reviewed_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

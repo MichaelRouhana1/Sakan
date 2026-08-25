@@ -136,6 +136,18 @@ export class UsersRepository {
       .returning();
     return row ?? null;
   }
+
+  async setAccountStatus(
+    id: string,
+    accountStatus: "active" | "restricted" | "banned",
+  ) {
+    const [row] = await db
+      .update(users)
+      .set({ accountStatus, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return row ?? null;
+  }
 }
 
 export const usersRepository = new UsersRepository();

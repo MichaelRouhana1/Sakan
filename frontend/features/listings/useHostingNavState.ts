@@ -64,10 +64,10 @@ export function useHostingNavState(): HostingNavState {
     draftHasMeaningfulProgress(checkpoint) &&
     (checkpoint?.committedStep ?? -1) >= 0;
 
-  const showBecomeAHost =
-    isSignedIn && !hasAnyListing && !hasWizardPastStep0 && !loading;
   const showSwitchToHosting =
-    isSignedIn && (hasAnyListing || hasWizardPastStep0) && !loading;
+    isSignedIn && (hasAnyListing || hasWizardPastStep0);
+  const showBecomeAHost =
+    isSignedIn && !showSwitchToHosting && !loading;
 
   return {
     loading,

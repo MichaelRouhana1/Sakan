@@ -12,6 +12,7 @@ import {
   type SetStateAction,
 } from "react";
 import { router } from "expo-router";
+import { Platform } from "react-native";
 import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { createListingReducer } from "./createListingReducer";
@@ -181,7 +182,11 @@ export function CreateListingProvider({
     if (hasProgress) {
       await persistCheckpoint(current, committedStep, current.step);
     }
-    router.replace(HOST_LISTINGS_PATH as never);
+    if (Platform.OS === "web") {
+      router.replace(HOST_LISTINGS_PATH as never);
+    } else {
+      router.replace("/(poster)/(tabs)" as never);
+    }
   }, [persistCheckpoint]);
 
   const reset = useCallback(() => {

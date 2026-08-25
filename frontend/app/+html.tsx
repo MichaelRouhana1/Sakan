@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ADMIN_CSS } from "@/styles/adminCssText";
 
 const BG = "#EEF1F6";
 
@@ -182,7 +183,10 @@ export default function Root({ children }: { children: ReactNode }) {
           name="description"
           content="Skoun — Lebanon rental classifieds. Find rooms and apartments by area or university, then connect on WhatsApp."
         />
-        <title>Skoun — Housing in Lebanon</title>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Outfit:wght@400;500;600;700&display=swap"
+        />
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -230,6 +234,7 @@ button, [role="button"], [role="link"] { cursor: pointer; }
   }
 }
 ${SKOUN_HOME_CSS}
+${ADMIN_CSS}
 `,
           }}
         />

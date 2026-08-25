@@ -7,6 +7,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   ADMIN_API_KEY: z.string().optional(),
+  /** Comma-separated Clerk user ids allowed to use /api/admin from the web UI. */
+  ADMIN_CLERK_IDS: z.string().optional(),
   /**
    * Public origin used in uploaded photo URLs (must be reachable from phones).
    * Example: http://192.168.10.249:3001
@@ -38,7 +40,7 @@ export function loadEnv(raw: NodeJS.ProcessEnv = process.env): Env {
   return env;
 }
 
-export function isUsableClerkSecret(key: string | undefined): boolean {
+export function isUsableClerkSecret(key: string | undefined): key is string {
   if (!key) return false;
   if (key.includes("xxxxxxxx")) return false;
   return key.startsWith("sk_test_") || key.startsWith("sk_live_");

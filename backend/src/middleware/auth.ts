@@ -1,7 +1,7 @@
 import { verifyToken } from "@clerk/backend";
 import type { NextFunction, Request, Response } from "express";
 import { isUsableClerkSecret, loadEnv } from "../config/env.js";
-import { AppError, UnauthorizedError } from "../lib/errors.js";
+import { AppError, ForbiddenError, UnauthorizedError } from "../lib/errors.js";
 import { getClerkClient, getClerkSecretKey } from "../lib/clerk.js";
 import { usersRepository } from "../modules/users/users.repository.js";
 
@@ -9,12 +9,20 @@ import { usersRepository } from "../modules/users/users.repository.js";
 export type AuthUser = {
   id: string;
   role: "renter" | "poster";
+  clerkId: string;
+};
+
+export type AdminActor = {
+  kind: "clerk" | "api_key";
+  clerkId: string | null;
+  userId: string | null;
 };
 
 declare global {
   namespace Express {
     interface Request {
       user?: AuthUser;
+      admin?: AdminActor;
     }
   }
 }
@@ -24,6 +32,32 @@ function bearerToken(req: Request): string | null {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice("Bearer ".length).trim();
   return token || null;
+}
+
+function adminApiKeyValid(req: Request): boolean {
+  const key = req.header("x-admin-key");
+  const expected = loadEnv().ADMIN_API_KEY;
+  return Boolean(expected && key && key === expected);
+}
+
+function parseAdminClerkIds(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
+async function isStaffAdmin(clerkId: string): Promise<boolean> {
+  const allow = parseAdminClerkIds(loadEnv().ADMIN_CLERK_IDS);
+  if (allow.includes(clerkId)) return true;
+
+  try {
+    const clerkUser = await getClerkClient().users.getUser(clerkId);
+    return clerkUser.publicMetadata?.skounAdmin === true;
+  } catch {
+    return false;
+  }
 }
 
 type ClerkVerifyResult = {
@@ -77,7 +111,7 @@ async function resolveAuthUser(req: Request): Promise<AuthUser | null> {
     });
   }
 
-  return { id: user.id, role: user.role };
+  return { id: user.id, role: user.role, clerkId: clerkUserId };
 }
 
 /**
@@ -116,18 +150,42 @@ export async function optionalAuth(
   }
 }
 
-export function requireAdmin(
+/**
+ * Admin: Clerk staff JWT (allowlist or publicMetadata.skounAdmin) or x-admin-key.
+ * If both sent, staff Clerk identity wins for audit.
+ */
+export async function requireAdmin(
   req: Request,
   _res: Response,
   next: NextFunction,
-): void {
-  const key = req.header("x-admin-key");
-  const expected = process.env.ADMIN_API_KEY;
+): Promise<void> {
+  try {
+    const user = await resolveAuthUser(req);
+    if (user) {
+      req.user = user;
+      if (await isStaffAdmin(user.clerkId)) {
+        req.admin = {
+          kind: "clerk",
+          clerkId: user.clerkId,
+          userId: user.id,
+        };
+        next();
+        return;
+      }
+      if (!adminApiKeyValid(req)) {
+        next(new ForbiddenError("Admin access required"));
+        return;
+      }
+    }
 
-  if (!expected || key !== expected) {
+    if (adminApiKeyValid(req)) {
+      req.admin = { kind: "api_key", clerkId: null, userId: null };
+      next();
+      return;
+    }
+
     next(new UnauthorizedError("Admin access required"));
-    return;
+  } catch (err) {
+    next(err);
   }
-
-  next();
 }

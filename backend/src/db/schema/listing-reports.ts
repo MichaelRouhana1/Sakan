@@ -1,5 +1,8 @@
 import { pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
-import { listingReportReasonEnum } from "./enums.js";
+import {
+  listingReportReasonEnum,
+  listingReportStatusEnum,
+} from "./enums.js";
 import { listings } from "./listings.js";
 import { users } from "./users.js";
 
@@ -14,6 +17,8 @@ export const listingReports = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     reason: listingReportReasonEnum("reason").notNull(),
+    status: listingReportStatusEnum("status").notNull().default("open"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

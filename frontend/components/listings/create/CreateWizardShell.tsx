@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
   chrome: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 12,
     paddingHorizontal: Lister.space.lg,
     paddingBottom: 12,
@@ -48,15 +49,15 @@ const styles = StyleSheet.create({
   rightInner: { paddingHorizontal: 28, paddingTop: 24, paddingBottom: 48 },
   stack: { paddingBottom: 32 },
   artBand: {
-    height: 200,
+    height: 220,
     backgroundColor: Lister.color.surface,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 4,
     overflow: "hidden",
   },
   phoneForm: {
     paddingHorizontal: Lister.space.lg,
-    paddingTop: 16,
+    paddingTop: 8,
   },
 });

@@ -737,6 +737,40 @@ export class ListingsRepository {
       )
       .returning({ id: listings.id });
   }
+
+  async adminSetStatus(
+    id: string,
+    next: "archived" | "removed" | "active",
+  ) {
+    const [existing] = await db
+      .select({ id: listings.id, status: listings.status })
+      .from(listings)
+      .where(eq(listings.id, id))
+      .limit(1);
+    if (!existing) return null;
+
+    if (next === "archived" && existing.status !== "active") return null;
+    if (next === "removed" && existing.status === "removed") return existing;
+    if (next === "removed" && existing.status === "draft") return null;
+    if (next === "active" && existing.status !== "archived") return null;
+
+    const [row] = await db
+      .update(listings)
+      .set({ status: next, updatedAt: new Date() })
+      .where(eq(listings.id, id))
+      .returning({ id: listings.id, status: listings.status });
+    return row ?? null;
+  }
+
+  async adminRemoveActiveByPoster(posterId: string) {
+    return db
+      .update(listings)
+      .set({ status: "removed", updatedAt: new Date() })
+      .where(
+        and(eq(listings.posterId, posterId), eq(listings.status, "active")),
+      )
+      .returning({ id: listings.id });
+  }
 }
 
 export const listingsRepository = new ListingsRepository();

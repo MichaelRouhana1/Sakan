@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -53,6 +55,7 @@ const STEPS = [
 ];
 
 const UTILITIES_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "utilities");
+const SCROLL_BORDER_THRESHOLD = 8;
 
 type ShellStyles = {
   root: ViewStyle;
@@ -82,6 +85,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
   const reduce = useReducedMotion();
   const { draft, goBack, goNext, saveAndExit } = useCreateListingDraft();
   const [saving, setSaving] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const scrollContentRef = useWizardScrollContentRef();
   const handleScroll = useWizardScrollHandler();
   const meta = WIZARD_STEPS[draft.step];
@@ -89,6 +93,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
   const last = draft.step === WIZARD_STEPS.length - 1;
   const lottieAsset = useWizardLottieAsset(meta.id);
   const lottieFrame = wizardLottieFrame(lottieAsset, width, split);
+  const isWeb = Platform.OS === "web";
 
   const art = (
     <Animated.View
@@ -113,14 +118,6 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
     </Animated.View>
   );
 
-  const scrollProps = {
-    onScroll: handleScroll,
-    scrollEventThrottle: 16 as const,
-    keyboardShouldPersistTaps: "handled" as const,
-  };
-
-  const isWeb = Platform.OS === "web";
-
   async function handleSaveAndExit() {
     if (saving) return;
     setSaving(true);
@@ -131,34 +128,91 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
     }
   }
 
+  function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    handleScroll(e);
+    const y = e.nativeEvent.contentOffset.y;
+    setScrolled(y > SCROLL_BORDER_THRESHOLD);
+  }
+
+  const scrollProps = {
+    onScroll,
+    scrollEventThrottle: 16 as const,
+    keyboardShouldPersistTaps: "handled" as const,
+  };
+
+  const saveExitLabel = saving ? "Saving…" : "Save & exit";
+
+  const chrome = split ? (
+    <View style={styles.chrome}>
+      {isWeb ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Save and exit"
+          onPress={() => void handleSaveAndExit()}
+          disabled={saving}
+          style={styles.saveExit}
+        >
+          <Text style={styles.saveExitText}>{saveExitLabel}</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={() => void handleSaveAndExit()}
+          disabled={saving}
+          style={styles.close}
+        >
+          <Ionicons name="close" size={22} color={Lister.color.ink} />
+        </Pressable>
+      )}
+      <CreateProgress step={draft.step} />
+    </View>
+  ) : (
+    <View
+      style={[
+        styles.chrome,
+        sharedStyles.mobileChrome,
+        scrolled && sharedStyles.mobileChromeScrolled,
+      ]}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Save and exit"
+        onPress={() => void handleSaveAndExit()}
+        disabled={saving}
+        style={sharedStyles.pillBtn}
+      >
+        <Text style={sharedStyles.pillBtnText}>{saveExitLabel}</Text>
+      </Pressable>
+    </View>
+  );
+
+  const footer = (
+    <View
+      style={[
+        sharedStyles.footerShell,
+        footerInsetBottom ? { paddingBottom: footerInsetBottom } : null,
+      ]}
+    >
+      {!split ? (
+        <View style={sharedStyles.progressSlot}>
+          <CreateProgress step={draft.step} variant="footer" />
+        </View>
+      ) : null}
+      <CreateFooter
+        hideBack={draft.step === 0}
+        hideNext={last}
+        onBack={goBack}
+        onNext={() => goNext()}
+        nextLabel="Next"
+        borderless={!split}
+      />
+    </View>
+  );
+
   return (
     <>
-      <View style={styles.chrome}>
-        {isWeb ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Save and exit"
-            onPress={() => void handleSaveAndExit()}
-            disabled={saving}
-            style={styles.saveExit}
-          >
-            <Text style={styles.saveExitText}>
-              {saving ? "Saving…" : "Save & exit"}
-            </Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={() => void handleSaveAndExit()}
-            disabled={saving}
-            style={styles.close}
-          >
-            <Ionicons name="close" size={22} color={Lister.color.ink} />
-          </Pressable>
-        )}
-        <CreateProgress step={draft.step} />
-      </View>
+      {chrome}
       {split ? (
         <View style={styles.stage}>
           <View style={styles.left}>
@@ -166,13 +220,21 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
             {art}
           </View>
           <ScrollView style={styles.right} {...scrollProps}>
-            <View ref={scrollContentRef} collapsable={false} style={styles.rightInner}>
+            <View
+              ref={scrollContentRef}
+              collapsable={false}
+              style={styles.rightInner}
+            >
               {form}
             </View>
           </ScrollView>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.stack} {...scrollProps}>
+        <ScrollView
+          style={sharedStyles.mobileScroll}
+          contentContainerStyle={styles.stack}
+          {...scrollProps}
+        >
           <View ref={scrollContentRef} collapsable={false}>
             <View style={styles.artBand}>
               <WizardGrain />
@@ -182,15 +244,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
           </View>
         </ScrollView>
       )}
-      <View style={footerInsetBottom ? { paddingBottom: footerInsetBottom } : undefined}>
-        <CreateFooter
-          hideBack={draft.step === 0}
-          hideNext={last}
-          onBack={goBack}
-          onNext={() => goNext()}
-          nextLabel="Next"
-        />
-      </View>
+      {footer}
     </>
   );
 }
@@ -214,7 +268,9 @@ export function CreateWizardShellWithArt({
       <View
         style={[styles.root, rootStyle]}
         onLayout={(e) =>
-          setScrollViewportHeight(e.nativeEvent.layout.height * viewportHeightScale)
+          setScrollViewportHeight(
+            e.nativeEvent.layout.height * viewportHeightScale,
+          )
         }
       >
         <ShellFrame
@@ -226,3 +282,42 @@ export function CreateWizardShellWithArt({
     </WizardArtProvider>
   );
 }
+
+const sharedStyles = StyleSheet.create({
+  mobileChrome: {
+    backgroundColor: "transparent",
+    borderBottomWidth: 0,
+    borderBottomColor: "transparent",
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  mobileChromeScrolled: {
+    backgroundColor: Lister.color.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#DDDDDD",
+  },
+  mobileScroll: {
+    flex: 1,
+  },
+  pillBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#B0B0B0",
+    backgroundColor: Lister.color.surface,
+    ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
+  },
+  pillBtnText: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 14,
+    color: Lister.color.ink,
+  },
+  footerShell: {
+    backgroundColor: Lister.color.surface,
+  },
+  progressSlot: {
+    paddingHorizontal: Lister.space.lg,
+    paddingTop: 12,
+  },
+});
