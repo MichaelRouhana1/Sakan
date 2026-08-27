@@ -1,25 +1,36 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import {
-  packageLabel,
+  maxAmountOff,
+  packLabel,
   suggestCode,
-  type PackageId,
+  type CatalogType,
+  type CreditPackage,
   type PromoDraft,
 } from "./types";
 
 type Props = {
   open: boolean;
   draft: PromoDraft;
+  packages: CreditPackage[];
+  busy?: boolean;
   onDraft: (draft: PromoDraft) => void;
   onCancel: () => void;
   onConfirm: () => void;
 };
 
-const PACKS: ("all" | PackageId)[] = ["all", "basic", "bulk", "pro"];
+const PACKS: ("all" | CatalogType)[] = [
+  "all",
+  "starter",
+  "bundle_5",
+  "boost_pack",
+];
 
 export function PromoGeneratorDialog({
   open,
   draft,
+  packages,
+  busy,
   onDraft,
   onCancel,
   onConfirm,
@@ -28,12 +39,17 @@ export function PromoGeneratorDialog({
 
   const value = Number(draft.value);
   const cap = Number(draft.usageLimit);
+  const amountCap = maxAmountOff(packages, draft.appliesTo);
+  const amountOk =
+    draft.kind === "percent" ? true : Number.isFinite(value) && value <= amountCap;
   const canSubmit =
+    !busy &&
     draft.name.trim().length >= 3 &&
     draft.code.trim().length >= 4 &&
     Number.isFinite(value) &&
     value > 0 &&
     (draft.kind === "percent" ? value <= 80 : true) &&
+    amountOk &&
     Number.isFinite(cap) &&
     cap >= 1 &&
     draft.startsAt.length > 0 &&
@@ -41,11 +57,11 @@ export function PromoGeneratorDialog({
     draft.expiresAt >= draft.startsAt;
 
   function setName(name: string) {
-    onDraft({
-      ...draft,
-      name,
-      code: suggestCode(name),
-    });
+    const suggested = suggestCode(name);
+    const prevSuggested = suggestCode(draft.name);
+    const code =
+      !draft.code.trim() || draft.code === prevSuggested ? suggested : draft.code;
+    onDraft({ ...draft, name, code });
   }
 
   return (
@@ -66,7 +82,7 @@ export function PromoGeneratorDialog({
         </H>
         <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
           Seasonal discount for Whish and OMT checkouts. Code stamps on the
-          cash quote. Demo until API wiring.
+          cash quote.
         </H>
 
         <H className="mt-4 space-y-3">
@@ -124,6 +140,11 @@ export function PromoGeneratorDialog({
               onChange={(usageLimit) => onDraft({ ...draft, usageLimit })}
             />
           </H>
+          {draft.kind === "amount" ? (
+            <H as="p" className="text-[11px] text-clay-500">
+              Max {amountCap > 0 ? `$${amountCap}` : "—"} vs in-scope pack price
+            </H>
+          ) : null}
 
           <H className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <DateField
@@ -151,7 +172,7 @@ export function PromoGeneratorDialog({
                 <TypeTab
                   key={id}
                   selected={draft.appliesTo === id}
-                  label={id === "all" ? "All packs" : packageLabel(id)}
+                  label={id === "all" ? "All packs" : packLabel(id)}
                   onSelect={() => onDraft({ ...draft, appliesTo: id })}
                 />
               ))}
@@ -160,9 +181,15 @@ export function PromoGeneratorDialog({
         </H>
 
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
-          <NeuButton tone="moss" disabled={!canSubmit} onClick={onConfirm}>
-            Issue code
+          <NeuButton onClick={onCancel} disabled={busy}>
+            Cancel
+          </NeuButton>
+          <NeuButton
+            tone="moss"
+            disabled={!canSubmit}
+            onClick={onConfirm}
+          >
+            {busy ? "Issuing…" : "Issue code"}
           </NeuButton>
         </H>
       </NeuSurface>

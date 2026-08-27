@@ -9,37 +9,38 @@ export const DEFAULT_ENGINE: PricingEngine = {
   roundTo: 50000,
 };
 
+/** Matches live BUNDLE_CATALOG / CREDIT_BUNDLES. bonusPct is a future catalog field. */
 export const MOCK_PACKAGES: CreditPackage[] = [
   {
-    id: "basic",
-    catalogType: "starter",
-    name: "Basic",
-    tagline: "One live listing, 30 days. First paid post after the free slot.",
+    id: "starter",
+    name: "Starter",
+    tagline: "1 post credit — 30 days live",
     basePostCredits: 1,
     baseBoostCredits: 0,
     bonusPct: 0,
     priceUsd: 10,
+    active: true,
   },
   {
-    id: "bulk",
-    catalogType: "bundle_5",
-    name: "Bulk",
-    tagline: "Five post credits. House rate for landlords with a few units.",
+    id: "bundle_5",
+    name: "$15 for 5",
+    tagline: "5 post credits",
     basePostCredits: 5,
     baseBoostCredits: 0,
     bonusPct: 0,
     priceUsd: 15,
+    active: true,
     featured: true,
   },
   {
-    id: "pro",
-    catalogType: "boost_pack",
-    name: "Pro Manager",
-    tagline: "Posts plus pin boosts for brokers running a street of stock.",
-    basePostCredits: 2,
+    id: "boost_pack",
+    name: "Boost Pack",
+    tagline: "3 boost credits — 7 days pin each",
+    basePostCredits: 0,
     baseBoostCredits: 3,
-    bonusPct: 50,
-    priceUsd: 22,
+    bonusPct: 0,
+    priceUsd: 10,
+    active: true,
   },
 ];
 
@@ -55,7 +56,7 @@ export const MOCK_PROMOS: PromoCode[] = [
     startsAt: "2026-08-18",
     expiresAt: "2026-09-12",
     status: "active",
-    appliesTo: "basic",
+    appliesTo: "starter",
   },
   {
     id: "promo-2",
@@ -68,7 +69,7 @@ export const MOCK_PROMOS: PromoCode[] = [
     startsAt: "2026-08-01",
     expiresAt: "2026-10-31",
     status: "active",
-    appliesTo: "bulk",
+    appliesTo: "bundle_5",
   },
   {
     id: "promo-3",
@@ -81,7 +82,7 @@ export const MOCK_PROMOS: PromoCode[] = [
     startsAt: "2026-08-01",
     expiresAt: "2026-09-30",
     status: "paused",
-    appliesTo: "pro",
+    appliesTo: "boost_pack",
   },
   {
     id: "promo-4",
@@ -107,7 +108,7 @@ export const MOCK_PROMOS: PromoCode[] = [
     startsAt: "2026-06-01",
     expiresAt: "2026-07-15",
     status: "expired",
-    appliesTo: "bulk",
+    appliesTo: "bundle_5",
   },
   {
     id: "promo-6",

@@ -11,14 +11,16 @@ type Props = {
 
 export function UserModerationActions({ status, compact, onAction }: Props) {
   const canRestore = status !== "active";
-
-  const iconBtn = compact ? "h-9 w-9 shrink-0 px-0 py-0" : "";
+  const iconSize = compact ? 20 : 18;
+  const iconBtn = compact
+    ? "h-10 w-10 shrink-0 !px-0 !py-0"
+    : "";
 
   return (
     <H
       className={
         compact
-          ? "grid w-[10.5rem] grid-cols-4 justify-items-center gap-1.5"
+          ? "grid w-[11.5rem] grid-cols-4 justify-items-center gap-1.5"
           : "flex flex-wrap gap-2"
       }
       onClick={(event: { stopPropagation: () => void }) => event.stopPropagation()}
@@ -29,7 +31,7 @@ export function UserModerationActions({ status, compact, onAction }: Props) {
         className={iconBtn}
         onClick={() => onAction("warn")}
       >
-        <Megaphone size={compact ? 14 : 16} strokeWidth={1.75} />
+        <Megaphone size={iconSize} strokeWidth={2} />
         {compact ? null : "Warn"}
       </NeuButton>
       <NeuButton
@@ -39,7 +41,7 @@ export function UserModerationActions({ status, compact, onAction }: Props) {
         className={iconBtn}
         onClick={() => onAction("restrict")}
       >
-        <TriangleAlert size={compact ? 14 : 16} strokeWidth={1.75} />
+        <TriangleAlert size={iconSize} strokeWidth={2} />
         {compact ? null : "Suspend"}
       </NeuButton>
       <NeuButton
@@ -49,7 +51,7 @@ export function UserModerationActions({ status, compact, onAction }: Props) {
         className={iconBtn}
         onClick={() => onAction("ban")}
       >
-        <Ban size={compact ? 14 : 16} strokeWidth={1.75} />
+        <Ban size={iconSize} strokeWidth={2} />
         {compact ? null : "Ban"}
       </NeuButton>
       {canRestore ? (
@@ -59,11 +61,11 @@ export function UserModerationActions({ status, compact, onAction }: Props) {
           className={iconBtn}
           onClick={() => onAction("restore")}
         >
-          <RotateCcw size={compact ? 14 : 16} strokeWidth={1.75} />
+          <RotateCcw size={iconSize} strokeWidth={2} />
           {compact ? null : "Restore"}
         </NeuButton>
       ) : (
-        compact ? <H aria-hidden className="h-9 w-9" /> : null
+        compact ? <H aria-hidden className="h-10 w-10" /> : null
       )}
     </H>
   );

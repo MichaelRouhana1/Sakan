@@ -15,10 +15,47 @@ type Props = {
 };
 
 export function DocumentPreview({ document, person }: Props) {
+  if (document.url) {
+    return <PhotoCard document={document} person={person} />;
+  }
   if (document.kind === "property_deed") {
     return <DeedCard document={document} person={person} />;
   }
   return <IdCard document={document} person={person} />;
+}
+
+function PhotoCard({ document, person }: Props) {
+  return (
+    <NeuSurface inset className="overflow-hidden p-3 sm:p-4">
+      <H className="overflow-hidden rounded-neu-md bg-clay-100 shadow-neu-sm">
+        <H
+          as="img"
+          src={document.url}
+          alt={`${docKindLabel(document.kind)} ${docSideLabel(document.side)} for ${personName(person)}`}
+          className="h-48 w-full object-cover sm:h-56"
+        />
+        <H className="flex items-start justify-between gap-3 px-4 py-3">
+          <H>
+            <H
+              as="p"
+              className="font-display text-[10px] font-semibold uppercase tracking-[0.22em] text-moss"
+            >
+              {docKindLabel(document.kind)}
+            </H>
+            <H as="p" className="mt-1 text-xs text-clay-500">
+              {docSideLabel(document.side)} · {document.numberMasked} · issued{" "}
+              {formatIssued(document.issuedOn)}
+            </H>
+            {document.extra ? (
+              <H as="p" className="mt-1 text-xs leading-relaxed text-clay-700">
+                {document.extra}
+              </H>
+            ) : null}
+          </H>
+        </H>
+      </H>
+    </NeuSurface>
+  );
 }
 
 function IdCard({ document, person }: Props) {
@@ -113,7 +150,7 @@ function DeedCard({ document, person }: Props) {
           <Field kicker="Issued" value={formatIssued(document.issuedOn)} />
         </H>
         <H as="p" className="mt-4 text-xs leading-relaxed text-clay-500">
-          Demo extract. Compare name to Clerk account and listing address before
+          Demo extract. Compare name to the account and listing address before
           granting a badge.
         </H>
       </H>

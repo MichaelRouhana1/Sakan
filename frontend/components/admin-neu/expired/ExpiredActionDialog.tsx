@@ -1,12 +1,54 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
-import type { ExpiredActionKind, ExpiredAsset, ExpiredQueue } from "./types";
-import { posterName } from "./types";
+import {
+  archiveButtonLabel,
+  posterName,
+  type ExpiredActionKind,
+  type ExpiredAsset,
+} from "./types";
 
 function copyFor(
   kind: ExpiredActionKind,
-  queue: ExpiredQueue,
+  asset: ExpiredAsset | null,
+  bulkCount?: number,
 ): { title: string; body: string; confirm: string } {
+  const bulk = (bulkCount ?? 0) > 1;
+
+  if (bulk) {
+    if (kind === "nudge") {
+      return {
+        title: `Send nudge (${bulkCount})`,
+        body: "Sends the same renew reminder to each selected poster that can be nudged.",
+        confirm: "Send nudges",
+      };
+    }
+    if (kind === "archive") {
+      return {
+        title: `Archive (${bulkCount})`,
+        body: "Archives selected rows that are recent or pending deletion.",
+        confirm: "Archive",
+      };
+    }
+    if (kind === "queue_delete") {
+      return {
+        title: `Queue for deletion (${bulkCount})`,
+        body: "Stages selected recent/archived rows for hard delete.",
+        confirm: "Queue for deletion",
+      };
+    }
+    if (kind === "purge") {
+      return {
+        title: `Permanently delete (${bulkCount})`,
+        body: "Purges selected pending-deletion rows from the demo store.",
+        confirm: "Permanently delete",
+      };
+    }
+  }
+
+  if (!asset) {
+    return { title: "Confirm", body: "", confirm: "Confirm" };
+  }
+
   if (kind === "nudge") {
     return {
       title: "Send reactivation nudge",
@@ -16,50 +58,67 @@ function copyFor(
   }
   if (kind === "archive") {
     return {
-      title: "Keep this listing archived",
+      title: archiveButtonLabel(asset),
       body:
-        queue === "pending_deletion"
-          ? "Pulls it off the deletion queue. Stays off browse."
+        asset.queue === "pending_deletion"
+          ? "Pulls it off the deletion queue. Stays off browse as archived."
           : "Takes the expired post off browse. Poster can still see it as archived.",
-      confirm: "Keep archived",
+      confirm: archiveButtonLabel(asset),
     };
   }
-  if (queue === "pending_deletion") {
+  if (kind === "queue_delete") {
+    return {
+      title: "Queue for permanent deletion",
+      body: "Moves the listing to Pending deletion. Hard delete happens from that queue only.",
+      confirm: "Queue for deletion",
+    };
+  }
+  if (kind === "purge") {
     return {
       title: "Permanently delete this listing",
-      body: "Hard removal. No credit refund. This cannot be undone in the demo queue.",
+      body: "Hard removal from the demo store. No credit refund. Cannot be undone here.",
       confirm: "Permanently delete",
     };
   }
   return {
-    title: "Queue for permanent deletion",
-    body: "Moves the listing to Pending deletion. Hard delete happens from that queue.",
-    confirm: "Move to pending deletion",
+    title: "Mark listing renewed",
+    body: "Mock renew: extends expiry +30 days from the demo clock and removes it from Expired. Live API would spend a post credit.",
+    confirm: "Mark renewed",
   };
 }
 
 type Props = {
   kind: ExpiredActionKind | null;
   asset: ExpiredAsset | null;
+  bulkCount?: number;
   note: string;
   onNote: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  busy?: boolean;
 };
 
 export function ExpiredActionDialog({
   kind,
   asset,
+  bulkCount,
   note,
   onNote,
   onCancel,
   onConfirm,
+  busy,
 }: Props) {
-  if (!kind || !asset) return null;
-  const copy = copyFor(kind, asset.queue);
-  const canSubmit = note.trim().length > 0;
-  const danger = kind === "remove";
-  const target = kind === "nudge" ? posterName(asset) : asset.title;
+  if (!kind) return null;
+  const bulk = (bulkCount ?? 0) > 1;
+  if (!asset && !bulk) return null;
+
+  const copy = copyFor(kind, asset, bulkCount);
+  const canSubmit = note.trim().length > 0 && !busy;
+  const danger = kind === "purge" || kind === "queue_delete";
+  const target =
+    kind === "nudge" && asset
+      ? posterName(asset)
+      : asset?.title ?? `${bulkCount} listings`;
 
   return (
     <H className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
@@ -75,7 +134,8 @@ export function ExpiredActionDialog({
           {copy.title}
         </H>
         <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
-          {copy.body} Target: {target}.
+          {copy.body}{" "}
+          {bulk ? `Targets: ${bulkCount} listings.` : `Target: ${target}.`}
         </H>
         <H as="label" className="mt-4 block">
           <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
@@ -97,13 +157,21 @@ export function ExpiredActionDialog({
           />
         </H>
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
+          <NeuButton onClick={onCancel} disabled={busy}>
+            Cancel
+          </NeuButton>
           <NeuButton
-            tone={danger ? "ember" : kind === "nudge" ? "moss" : "ochre"}
+            tone={
+              danger
+                ? "ember"
+                : kind === "nudge" || kind === "renew"
+                  ? "moss"
+                  : "ochre"
+            }
             disabled={!canSubmit}
             onClick={onConfirm}
           >
-            {copy.confirm}
+            {busy ? "Working…" : copy.confirm}
           </NeuButton>
         </H>
       </NeuSurface>

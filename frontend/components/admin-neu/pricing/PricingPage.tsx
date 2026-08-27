@@ -1,150 +1,27 @@
-import { Plus } from "lucide-react-native";
-import { useDeferredValue, useMemo, useState } from "react";
+import { Plus, Save } from "lucide-react-native";
+import { Link, type Href } from "expo-router";
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { PackageCards } from "./PackageCards";
-import { type PromoActionKind } from "./PromoActions";
+import { PromoActionDialog } from "./PromoActionDialog";
 import { PromoGeneratorDialog } from "./PromoGeneratorDialog";
 import { PromoTable } from "./PromoTable";
 import { PromoToolbar } from "./PromoToolbar";
 import { PricingControls } from "./PricingControls";
-import { DEFAULT_ENGINE, MOCK_PACKAGES, MOCK_PROMOS } from "./mockPricing";
+import { useAdminPricing } from "./useAdminPricing";
 import {
-  EMPTY_PROMO_DRAFT,
-  deriveStatus,
   formatLbp,
   formatUsd,
   lbpQuote,
-  usdPerCredit,
-  type CreditPackage,
-  type PromoCode,
-  type PromoDraft,
-  type PromoFilter,
+  starterPack,
 } from "./types";
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function defaultDraft(): PromoDraft {
-  const start = todayIso();
-  const end = new Date();
-  end.setDate(end.getDate() + 21);
-  return {
-    ...EMPTY_PROMO_DRAFT,
-    startsAt: start,
-    expiresAt: end.toISOString().slice(0, 10),
-  };
-}
-
 export function PricingPage() {
-  const [engine, setEngine] = useState(DEFAULT_ENGINE);
-  const [packages, setPackages] = useState(MOCK_PACKAGES);
-  const [promos, setPromos] = useState(MOCK_PROMOS);
-  const [status, setStatus] = useState<PromoFilter>("all");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<PromoDraft>(defaultDraft);
-  const [liveNote, setLiveNote] = useState("");
-
-  const counts = useMemo(() => {
-    const rows = promos.map((row) => ({
-      ...row,
-      status: deriveStatus(row),
-    }));
-    return {
-      all: rows.length,
-      active: rows.filter((row) => row.status === "active").length,
-      scheduled: rows.filter((row) => row.status === "scheduled").length,
-      paused: rows.filter((row) => row.status === "paused").length,
-      expired: rows.filter((row) => row.status === "expired").length,
-    };
-  }, [promos]);
-
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return promos
-      .map((row) => ({ ...row, status: deriveStatus(row) }))
-      .filter((row) => (status === "all" ? true : row.status === status))
-      .filter((row) => {
-        if (!needle) return true;
-        const hay = `${row.code} ${row.name}`.toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.expiresAt < b.expiresAt ? -1 : 1));
-  }, [promos, status, deferredQuery]);
-
-  const cheapest = packages.reduce((best, pack) => {
-    const unit = usdPerCredit(pack);
-    return unit > 0 && unit < best ? unit : best;
-  }, Number.POSITIVE_INFINITY);
-
-  function patchPack(id: CreditPackage["id"], patch: Partial<CreditPackage>) {
-    setPackages((current) =>
-      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    );
-  }
-
-  function applyPromo(promo: PromoCode, kind: PromoActionKind) {
-    if (kind === "copy") {
-      if (typeof navigator === "undefined" || !navigator.clipboard) {
-        setLiveNote(`Code is ${promo.code}`);
-        return;
-      }
-      void navigator.clipboard.writeText(promo.code).then(
-        () => setLiveNote(`Copied ${promo.code}`),
-        () => setLiveNote(`Code is ${promo.code}`),
-      );
-      return;
-    }
-    setPromos((current) =>
-      current.map((row) => {
-        if (row.id !== promo.id) return row;
-        if (kind === "pause") return { ...row, status: "paused" };
-        if (kind === "resume") return { ...row, status: "active" };
-        return { ...row, status: "expired", expiresAt: todayIso() };
-      }),
-    );
-    setLiveNote(
-      kind === "pause"
-        ? `Paused ${promo.code}`
-        : kind === "resume"
-          ? `Resumed ${promo.code}`
-          : `Ended ${promo.code}`,
-    );
-  }
-
-  function issuePromo() {
-    const value = Number(draft.value);
-    const cap = Math.floor(Number(draft.usageLimit));
-    const next: PromoCode = {
-      id: `promo-${Date.now()}`,
-      code: draft.code.trim().toUpperCase(),
-      name: draft.name.trim(),
-      kind: draft.kind,
-      value,
-      usageLimit: cap,
-      usageCount: 0,
-      startsAt: draft.startsAt,
-      expiresAt: draft.expiresAt,
-      status: "active",
-      appliesTo: draft.appliesTo,
-    };
-    setPromos((current) => [next, ...current]);
-    setOpen(false);
-    setDraft(defaultDraft());
-    setStatus("all");
-    setLiveNote(`Issued ${next.code}`);
-  }
-
-  function openGenerator() {
-    setDraft(defaultDraft());
-    setOpen(true);
-  }
+  const state = useAdminPricing();
+  const starter = starterPack(state.packages);
 
   return (
-    <H className="relative mx-auto flex w-full max-w-[1400px] flex-col gap-6 pb-24">
+    <H className="relative mx-auto flex w-full max-w-[1400px] flex-col gap-6">
       <H className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <H>
           <H
@@ -154,113 +31,194 @@ export function PricingPage() {
             Credit economics
           </H>
           <H as="h1" className="mt-1 font-display text-3xl font-semibold tracking-tight md:text-4xl">
-            Monetization
+            Pricing
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
             Set USD pack prices, the LBP cash quote, bonus credit ratios, and
-            seasonal codes. Ledger stays on Payments.
+            seasonal codes. Ledger stays on{" "}
+            <Link
+              href={"/admin/payments" as Href}
+              className="font-medium text-moss underline decoration-moss/40 underline-offset-2"
+            >
+              Payments
+            </Link>
+            .
           </H>
         </H>
         <H
           as="span"
           className="inline-flex w-fit rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
         >
-          Demo data
+          Demo data · API-ready
         </H>
       </H>
 
-      <H className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
-          label="Quoted LBP"
-          value={formatLbp(engine.marketLbp * (1 + engine.bufferPct / 100))}
-          hint="Per USD, with buffer"
-        />
-        <Kpi
-          label="Basic at branch"
-          value={formatLbp(lbpQuote(packages[0]?.priceUsd ?? 0, engine))}
-          hint="Rounded collect"
-        />
-        <Kpi
-          label="Cheapest / credit"
-          value={Number.isFinite(cheapest) ? formatUsd(cheapest) : "—"}
-          hint="After bonus credits"
-        />
-        <Kpi
-          label="Live campaigns"
-          value={String(counts.active)}
-          hint={`${counts.scheduled} scheduled`}
-        />
-      </H>
-
-      {liveNote ? (
+      {state.flash ? (
         <H
           as="p"
           role="status"
           aria-live="polite"
           className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
         >
-          {liveNote}
+          {state.flash}
         </H>
       ) : null}
 
-      <PricingControls engine={engine} onEngine={setEngine} />
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading pricing…
+        </NeuSurface>
+      ) : null}
 
-      <H>
-        <H as="h2" className="font-display text-lg font-semibold text-clay-900">
-          Tiered packages
-        </H>
-        <H as="p" className="mt-1 mb-4 max-w-2xl text-sm leading-relaxed text-clay-700">
-          Bonus ratio adds free credits on top of the base allotment. Price
-          stays the USD charge; LBP follows the quote engine.
-        </H>
-        <PackageCards packages={packages} engine={engine} onPackage={patchPack} />
-      </H>
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load pricing
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
 
-      <H>
-        <H className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {state.status === "ready" ? (
+        <>
+          {state.dirty ? (
+            <H className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-3 rounded-neu-md bg-clay-100 px-4 py-3 shadow-neu">
+              <H as="p" className="text-sm font-medium text-clay-900">
+                Unsaved pricing changes
+              </H>
+              <H className="flex flex-wrap gap-2">
+                <NeuButton
+                  inset
+                  disabled={state.busy}
+                  onClick={state.discardConfig}
+                >
+                  Discard
+                </NeuButton>
+                <NeuButton
+                  tone="moss"
+                  disabled={state.busy}
+                  onClick={() => {
+                    void state.saveConfig();
+                  }}
+                >
+                  <Save size={16} strokeWidth={1.75} />
+                  {state.busy ? "Saving…" : "Save"}
+                </NeuButton>
+              </H>
+            </H>
+          ) : null}
+
+          <H className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi
+              label="Quoted LBP"
+              value={formatLbp(
+                state.engine.marketLbp * (1 + state.engine.bufferPct / 100),
+              )}
+              hint="Per USD, with buffer"
+            />
+            <Kpi
+              label="Starter at branch"
+              value={formatLbp(lbpQuote(starter?.priceUsd ?? 0, state.engine))}
+              hint="Rounded collect"
+            />
+            <Kpi
+              label="Cheapest post / credit"
+              value={
+                Number.isFinite(state.cheapestPost)
+                  ? formatUsd(state.cheapestPost)
+                  : "—"
+              }
+              hint="Post packs, after bonus"
+            />
+            <Kpi
+              label="Live campaigns"
+              value={String(state.counts.active)}
+              hint={`${state.counts.scheduled} scheduled`}
+            />
+          </H>
+
+          <PricingControls
+            engine={state.engineDraft}
+            onEngine={state.patchEngine}
+          />
+
           <H>
             <H as="h2" className="font-display text-lg font-semibold text-clay-900">
-              Promotional campaigns
+              Tiered packages
             </H>
-            <H as="p" className="mt-1 text-sm leading-relaxed text-clay-700">
-              Discount codes on checkout. Pause mid-run, or end early when the
-              season closes.
+            <H as="p" className="mt-1 mb-4 max-w-2xl text-sm leading-relaxed text-clay-700">
+              Bonus ratio adds free credits on top of the base allotment. Price
+              stays the USD charge; LBP follows the quote engine. Save to persist.
+            </H>
+            <PackageCards
+              packages={state.packagesDraft}
+              engine={state.engineDraft}
+              onPackage={state.patchPack}
+            />
+          </H>
+
+          <H>
+            <H className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <H>
+                <H as="h2" className="font-display text-lg font-semibold text-clay-900">
+                  Promotional campaigns
+                </H>
+                <H as="p" className="mt-1 text-sm leading-relaxed text-clay-700">
+                  Discount codes on checkout. Pause mid-run, or end early when the
+                  season closes.
+                </H>
+              </H>
+              <NeuButton tone="moss" onClick={state.openGenerator}>
+                <Plus size={16} strokeWidth={1.75} />
+                New promo
+              </NeuButton>
+            </H>
+            <PromoToolbar
+              query={state.query}
+              onQuery={state.setQuery}
+              status={state.filter}
+              onStatus={state.setFilter}
+              counts={state.counts}
+            />
+            <H className="mt-4">
+              <PromoTable
+                promos={state.visible}
+                filter={state.filter}
+                busy={state.busy}
+                onAction={state.requestPromoAction}
+              />
             </H>
           </H>
-          <NeuButton tone="moss" onClick={openGenerator}>
-            <Plus size={16} strokeWidth={1.75} />
-            New promo
-          </NeuButton>
-        </H>
-        <PromoToolbar
-          query={query}
-          onQuery={setQuery}
-          status={status}
-          onStatus={setStatus}
-          counts={counts}
-        />
-        <H className="mt-4">
-          <PromoTable promos={visible} filter={status} onAction={applyPromo} />
-        </H>
-      </H>
-
-      <H
-        as="button"
-        type="button"
-        onClick={openGenerator}
-        className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 z-30 inline-flex cursor-pointer items-center gap-2 rounded-full bg-clay-100 px-4 py-3.5 text-sm font-semibold text-moss shadow-neu transition-shadow duration-press hover:shadow-neu-sm active:shadow-press focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss md:right-8"
-        aria-label="Generate promo code"
-      >
-        <Plus size={18} strokeWidth={1.75} />
-        New promo
-      </H>
+        </>
+      ) : null}
 
       <PromoGeneratorDialog
-        open={open}
-        draft={draft}
-        onDraft={setDraft}
-        onCancel={() => setOpen(false)}
-        onConfirm={issuePromo}
+        open={state.generatorOpen}
+        draft={state.draft}
+        packages={state.packages}
+        busy={state.busy}
+        onDraft={state.setDraft}
+        onCancel={state.closeGenerator}
+        onConfirm={() => {
+          void state.issuePromo();
+        }}
+      />
+
+      <PromoActionDialog
+        kind={state.pending?.mode ?? null}
+        promo={state.pendingPromo}
+        busy={state.busy}
+        onCancel={state.cancelPending}
+        onConfirm={() => {
+          void state.confirmPending();
+        }}
       />
     </H>
   );

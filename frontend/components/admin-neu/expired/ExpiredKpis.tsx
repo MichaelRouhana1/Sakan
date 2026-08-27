@@ -1,4 +1,10 @@
-import { Clock, RotateCcw, Trash2, type LucideIcon } from "lucide-react-native";
+import {
+  Bell,
+  Clock,
+  RotateCcw,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react-native";
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
 import { ADMIN_MUTED } from "../theme";
@@ -13,37 +19,61 @@ export type ExpiredKpi = {
 
 export function buildExpiredKpis(input: {
   total: number;
+  recent: number;
   pending: number;
-  rate: string;
+  nudged: number;
+  renewedSession: number;
+  onPage: number;
 }): ExpiredKpi[] {
   return [
     {
       id: "total",
-      label: "Total expired listings",
+      label: "Total",
       value: String(input.total),
-      hint: "Past the 30-day timer",
+      hint: "In expired ops store",
+      icon: Clock,
+    },
+    {
+      id: "recent",
+      label: "Recently expired",
+      value: String(input.recent),
+      hint: "Still rescuable",
       icon: Clock,
     },
     {
       id: "pending",
-      label: "Pending cleanups",
+      label: "Pending purge",
       value: String(input.pending),
       hint: "Queued for hard delete",
       icon: Trash2,
     },
     {
-      id: "rate",
-      label: "Reactivation rate",
-      value: input.rate,
-      hint: "Nudges that led to a renew",
+      id: "nudged",
+      label: "Nudged",
+      value: String(input.nudged),
+      hint: "At least one renew nudge",
+      icon: Bell,
+    },
+    {
+      id: "renewed",
+      label: "Renewed (session)",
+      value: String(input.renewedSession),
+      hint: "Marked renewed this session",
       icon: RotateCcw,
+    },
+    {
+      id: "page",
+      label: "On page",
+      value: String(input.onPage),
+      hint: "After filters",
+      icon: Clock,
     },
   ];
 }
 
 export function ExpiredKpis({ items }: { items: ExpiredKpi[] }) {
   return (
-    <H className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <H className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {items.map((item) => (
         <Kpi key={item.id} item={item} />
       ))}

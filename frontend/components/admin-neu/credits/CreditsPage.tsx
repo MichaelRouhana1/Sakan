@@ -1,126 +1,38 @@
-import { Plus } from "lucide-react-native";
-import { useDeferredValue, useMemo, useState } from "react";
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { CreditReviewDialog } from "./CreditReviewDialog";
 import { CreditsTable } from "./CreditsTable";
 import { CreditsToolbar } from "./CreditsToolbar";
-import { GrantCreditsDialog, type GrantDraft } from "./GrantCreditsDialog";
-import { GRANT_TARGETS, MOCK_TRANSACTIONS } from "./mockTransactions";
-import {
-  formatUsd,
-  personName,
-  type LedgerTx,
-  type TxKind,
-  type TxStatus,
-} from "./types";
-
-type StatusFilter = TxStatus | "all";
-
-const EMPTY_GRANT: GrantDraft = {
-  userId: "",
-  postCredits: "1",
-  boostCredits: "0",
-  note: "",
-};
+import { GrantCreditsDialog } from "./GrantCreditsDialog";
+import { useAdminPayments } from "./useAdminPayments";
+import { formatUsd } from "./types";
 
 export function CreditsPage() {
-  const [rows, setRows] = useState(MOCK_TRANSACTIONS);
-  const [kind, setKind] = useState<TxKind>("purchased");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [grantOpen, setGrantOpen] = useState(false);
-  const [grant, setGrant] = useState(EMPTY_GRANT);
-  const [review, setReview] = useState<{
-    txId: string;
-    kind: "approve" | "reject";
-  } | null>(null);
-  const [note, setNote] = useState("");
+  const state = useAdminPayments();
 
-  const purchased = rows.filter((row) => row.kind === "purchased");
-  const granted = rows.filter((row) => row.kind === "granted");
-  const revenueCents = purchased
-    .filter((row) => row.status === "success")
-    .reduce((sum, row) => sum + row.amountUsdCents, 0);
-  const creditsBought = purchased
-    .filter((row) => row.status === "success")
-    .reduce((sum, row) => sum + row.postCredits + row.boostCredits, 0);
-  const creditsGranted = granted.reduce(
-    (sum, row) => sum + row.postCredits + row.boostCredits,
-    0,
-  );
-
-  const kindRows = kind === "purchased" ? purchased : granted;
-  const statusCounts = {
-    all: kindRows.length,
-    success: kindRows.filter((row) => row.status === "success").length,
-    pending: kindRows.filter((row) => row.status === "pending").length,
-    failed: kindRows.filter((row) => row.status === "failed").length,
-  };
-
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return rows
-      .filter((row) => row.kind === kind)
-      .filter((row) => (status === "all" ? true : row.status === status))
-      .filter((row) => {
-        if (!needle) return true;
-        const hay =
-          `${personName(row.user)} ${row.user.email} ${row.referenceId}`.toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [rows, kind, status, deferredQuery]);
-
-  const reviewTx = rows.find((row) => row.id === review?.txId) ?? null;
-
-  function applyReview(txId: string, next: TxStatus, staffNote: string) {
-    setRows((current) =>
-      current.map((row) =>
-        row.id === txId
-          ? { ...row, status: next, note: staffNote.trim() || row.note }
-          : row,
-      ),
-    );
-  }
-
-  function applyGrant() {
-    const user = GRANT_TARGETS.find((item) => item.id === grant.userId);
-    if (!user) return;
-    const post = Math.max(0, Math.floor(Number(grant.postCredits)) || 0);
-    const boost = Math.max(0, Math.floor(Number(grant.boostCredits)) || 0);
-    const next: LedgerTx = {
-      id: `tx-${Date.now()}`,
-      referenceId: `GR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      kind: "granted",
-      status: "success",
-      channel: "staff",
-      bundleType: "custom",
-      amountUsdCents: 0,
-      postCredits: post,
-      boostCredits: boost,
-      createdAt: new Date().toISOString(),
-      note: grant.note.trim(),
-      user,
-    };
-    setRows((current) => [next, ...current]);
-    setKind("granted");
-    setStatus("all");
-    setGrantOpen(false);
-    setGrant(EMPTY_GRANT);
-  }
+  const reviewKind =
+    state.pending?.mode === "refund"
+      ? "refund"
+      : state.pending?.mode === "detail"
+        ? "detail"
+        : null;
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
       <H className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <H>
-          <H as="h1" className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
-            Financial Ledger
+          <H
+            as="p"
+            className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-moss"
+          >
+            Finance desk
+          </H>
+          <H as="h1" className="mt-1 font-display text-3xl font-semibold tracking-tight md:text-4xl">
+            Payments & ledger
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
-            Track Whish and OMT credit buys. Approve slips, reject misses, and
-            grant promo credits by hand.
+            Audit purchases, listing spend, refunds, and staff adjustments.
+            Not an approval queue. Demo gateway settles checkout instantly.
           </H>
         </H>
         <H className="flex flex-wrap items-center gap-2">
@@ -128,76 +40,123 @@ export function CreditsPage() {
             as="span"
             className="inline-flex rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
           >
-            Demo data
+            Demo data · API-ready
           </H>
-          <NeuButton tone="moss" onClick={() => setGrantOpen(true)}>
-            <Plus size={16} strokeWidth={1.75} />
-            Grant credits
+          <NeuButton tone="moss" onClick={state.requestAdjust}>
+            Manual adjustment
           </NeuButton>
         </H>
       </H>
 
-      <H className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Kpi label="Total revenue" value={formatUsd(revenueCents)} hint="Approved purchases" />
-        <Kpi label="Credits purchased" value={String(creditsBought)} hint="Post + boost, settled" />
-        <Kpi label="Credits granted" value={String(creditsGranted)} hint="Staff promo / compensation" />
+      <H className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi
+          label="Total revenue"
+          value={formatUsd(state.overview.revenueCents)}
+          hint="Completed purchases"
+        />
+        <Kpi
+          label="Credits purchased"
+          value={String(state.overview.creditsPurchased)}
+          hint="Post + boost, settled"
+        />
+        <Kpi
+          label="Credits spent"
+          value={String(state.overview.creditsSpent)}
+          hint="On listings"
+        />
+        <Kpi
+          label="Completed / failed"
+          value={`${state.overview.completed} / ${state.overview.failed}`}
+          hint={`${state.overview.refunded} refunded · ${state.overview.disputed} disputed`}
+        />
       </H>
 
-      <CreditsToolbar
-        query={query}
-        onQuery={setQuery}
-        kind={kind}
-        onKind={(next) => {
-          setKind(next);
-          setStatus("all");
-        }}
-        status={status}
-        onStatus={setStatus}
-        purchasedCount={purchased.length}
-        grantedCount={granted.length}
-        statusCounts={statusCounts}
-      />
+      {state.flash ? (
+        <H
+          as="p"
+          role="status"
+          aria-live="polite"
+          className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
+        >
+          {state.flash}
+        </H>
+      ) : null}
 
-      <CreditsTable
-        transactions={visible}
-        onApprove={(tx) => {
-          setReview({ txId: tx.id, kind: "approve" });
-          setNote("");
-        }}
-        onReject={(tx) => {
-          setReview({ txId: tx.id, kind: "reject" });
-          setNote("");
-        }}
-      />
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading ledger…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load payments
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" ? (
+        <>
+          <CreditsToolbar
+            query={state.query}
+            onQuery={state.setQuery}
+            kind={state.kind}
+            onKind={state.setKind}
+            status={state.txStatus}
+            onStatus={state.setTxStatus}
+            channel={state.channel}
+            onChannel={state.setChannel}
+            range={state.range}
+            onRange={state.setRange}
+          />
+          <CreditsTable
+            transactions={state.items}
+            hasQuery={state.hasQuery}
+            page={state.page}
+            pageCount={state.pageCount}
+            total={state.total}
+            onPage={state.setPage}
+            onDetail={state.requestDetail}
+            onRefund={state.requestRefund}
+          />
+        </>
+      ) : null}
 
       <GrantCreditsDialog
-        open={grantOpen}
-        users={GRANT_TARGETS}
-        draft={grant}
-        onDraft={setGrant}
-        onCancel={() => {
-          setGrantOpen(false);
-          setGrant(EMPTY_GRANT);
+        open={state.pending?.mode === "adjust"}
+        users={state.targets}
+        draft={state.adjust}
+        onDraft={state.setAdjust}
+        onCancel={state.cancelPending}
+        onConfirm={() => {
+          void state.confirmPending();
         }}
-        onConfirm={applyGrant}
+        busy={state.busy}
       />
 
       <CreditReviewDialog
-        kind={review?.kind ?? null}
-        tx={reviewTx}
-        note={note}
-        onNote={setNote}
-        onCancel={() => setReview(null)}
+        kind={reviewKind}
+        tx={
+          state.pending?.mode === "refund" || state.pending?.mode === "detail"
+            ? state.pendingTx
+            : null
+        }
+        note={state.note}
+        onNote={state.setNote}
+        onCancel={state.cancelPending}
         onConfirm={() => {
-          if (!review) return;
-          applyReview(
-            review.txId,
-            review.kind === "approve" ? "success" : "failed",
-            note,
-          );
-          setReview(null);
-          setNote("");
+          void state.confirmPending();
         }}
+        busy={state.busy}
       />
     </H>
   );

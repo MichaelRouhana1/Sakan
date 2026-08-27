@@ -1,14 +1,21 @@
-import { H } from "../h";
 import { queueLabel, type ReportQueue } from "./types";
+import { H } from "../h";
 
-const TONE: Record<ReportQueue, { text: string; dot: string }> = {
+const TONE: Record<
+  Exclude<ReportQueue, "all">,
+  { text: string; dot: string }
+> = {
   pending: { text: "text-ochre", dot: "bg-ochre" },
   in_review: { text: "text-moss", dot: "bg-moss" },
   resolved: { text: "text-clay-700", dot: "bg-clay-500" },
   dismissed: { text: "text-clay-500", dot: "bg-clay-500" },
 };
 
-export function ReportStatusPill({ queue }: { queue: ReportQueue }) {
+export function ReportStatusPill({
+  queue,
+}: {
+  queue: Exclude<ReportQueue, "all">;
+}) {
   const tone = TONE[queue];
   return (
     <H

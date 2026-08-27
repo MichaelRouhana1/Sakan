@@ -1,4 +1,4 @@
-import { Archive, Pencil, RotateCcw, Trash2 } from "lucide-react-native";
+import { Archive, Flag, Pencil, RotateCcw, Trash2 } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
 import type { AdminListing, ListingActionKind } from "./types";
@@ -11,27 +11,40 @@ type Props = {
 };
 
 export function ListingActions({ listing, compact, onEdit, onAction }: Props) {
+  const canEdit = listing.status !== "removed";
   const canArchive = listing.status === "active";
   const canRemove = listing.status === "active" || listing.status === "archived";
   const canRestore = listing.status === "archived";
+  const canDismiss = listing.openReports.length > 0 && listing.status !== "removed";
 
   return (
     <H
       className={
         compact
-          ? "flex items-center justify-end gap-1.5"
+          ? "flex flex-wrap items-center justify-end gap-1.5"
           : "flex flex-wrap gap-2"
       }
       onClick={(event: { stopPropagation: () => void }) => event.stopPropagation()}
     >
       <NeuButton
         ariaLabel="Edit listing details"
+        disabled={!canEdit}
         className={compact ? "px-2.5 py-1.5 text-xs" : ""}
         onClick={onEdit}
       >
         <Pencil size={compact ? 14 : 16} strokeWidth={1.75} />
         {compact ? null : "Edit"}
       </NeuButton>
+      {canDismiss ? (
+        <NeuButton
+          ariaLabel="Dismiss open reports"
+          className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          onClick={() => onAction("dismiss_reports")}
+        >
+          <Flag size={compact ? 14 : 16} strokeWidth={1.75} />
+          {compact ? null : "Dismiss flags"}
+        </NeuButton>
+      ) : null}
       <NeuButton
         tone="ochre"
         disabled={!canArchive}

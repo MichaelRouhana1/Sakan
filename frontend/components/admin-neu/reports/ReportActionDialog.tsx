@@ -4,13 +4,18 @@ import type { AdminReport, ReportActionKind } from "./types";
 import { personName } from "./types";
 
 const COPY: Record<
-  Exclude<ReportActionKind, "claim">,
+  Exclude<ReportActionKind, "claim" | "unclaim">,
   { title: string; body: string; confirm: string }
 > = {
   dismiss: {
     title: "Dismiss this report",
-    body: "Closes the ticket. The listing stays live.",
+    body: "Closes this ticket only. Sibling open reports on the listing stay open. Listing stays live.",
     confirm: "Dismiss",
+  },
+  dismiss_listing: {
+    title: "Dismiss all open reports",
+    body: "Closes every open ticket on this listing (matches current dismiss API). Listing stays live.",
+    confirm: "Dismiss all",
   },
   remove: {
     title: "Take down this listing",
@@ -19,13 +24,23 @@ const COPY: Record<
   },
   warn: {
     title: "Warn this poster",
-    body: "A warning stays on the poster record. The listing stays live unless you take it down separately.",
+    body: "Warning stays on the poster record. Ticket resolves. Listing stays live unless you take it down separately.",
     confirm: "Send warning",
   },
   restrict: {
     title: "Suspend this poster",
     body: "Suspended posters cannot publish. Live listings stay until you take them down.",
     confirm: "Suspend",
+  },
+  ban: {
+    title: "Ban this poster",
+    body: "Banned posters lose access. Live listings stay until you take them down.",
+    confirm: "Ban",
+  },
+  reopen: {
+    title: "Reopen this ticket",
+    body: "Returns the ticket to pending. Prior history stays.",
+    confirm: "Reopen",
   },
 };
 
@@ -36,7 +51,28 @@ type Props = {
   onNote: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  busy?: boolean;
+  bulkCount?: number;
+  bulkKind?: Extract<ReportActionKind, "dismiss" | "remove"> | null;
 };
+
+function bulkCopy(
+  kind: Extract<ReportActionKind, "dismiss" | "remove">,
+  count: number,
+) {
+  if (kind === "dismiss") {
+    return {
+      title: `Dismiss (${count})`,
+      body: "Closes each selected open ticket. Listings stay live.",
+      confirm: "Dismiss",
+    };
+  }
+  return {
+    title: `Take down (${count})`,
+    body: "Takes down unique listings for the selection. Open reports on those listings resolve.",
+    confirm: "Take down",
+  };
+}
 
 export function ReportActionDialog({
   kind,
@@ -45,15 +81,32 @@ export function ReportActionDialog({
   onNote,
   onCancel,
   onConfirm,
+  busy,
+  bulkCount,
+  bulkKind,
 }: Props) {
-  if (!kind || kind === "claim" || !report) return null;
-  const copy = COPY[kind];
-  const canSubmit = note.trim().length > 0;
-  const danger = kind === "remove" || kind === "restrict";
-  const target =
-    kind === "warn" || kind === "restrict"
-      ? personName(report.poster)
-      : report.listing.title;
+  const bulk = (bulkCount ?? 0) > 0 && bulkKind != null;
+  if (!bulk && (!kind || kind === "claim" || kind === "unclaim" || !report)) {
+    return null;
+  }
+
+  const copy = bulk
+    ? bulkCopy(bulkKind!, bulkCount!)
+    : COPY[kind as Exclude<ReportActionKind, "claim" | "unclaim">];
+
+  const canSubmit = note.trim().length > 0 && !busy;
+  const effectiveKind = bulk ? bulkKind! : kind!;
+  const danger =
+    effectiveKind === "remove" ||
+    effectiveKind === "restrict" ||
+    effectiveKind === "ban";
+  const target = bulk
+    ? `${bulkCount} tickets`
+    : effectiveKind === "warn" ||
+        effectiveKind === "restrict" ||
+        effectiveKind === "ban"
+      ? personName(report!.poster)
+      : report!.listing.title;
 
   return (
     <H className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
@@ -87,13 +140,17 @@ export function ReportActionDialog({
           />
         </H>
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
+          <NeuButton onClick={onCancel} disabled={busy}>
+            Cancel
+          </NeuButton>
           <NeuButton
-            tone={danger ? "ember" : kind === "dismiss" ? "plain" : "ochre"}
+            tone={
+              danger ? "ember" : effectiveKind === "dismiss" || effectiveKind === "dismiss_listing" ? "plain" : "ochre"
+            }
             disabled={!canSubmit}
             onClick={onConfirm}
           >
-            {copy.confirm}
+            {busy ? "Working…" : copy.confirm}
           </NeuButton>
         </H>
       </NeuSurface>

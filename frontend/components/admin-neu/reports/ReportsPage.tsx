@@ -1,143 +1,72 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { ReportActionDialog } from "./ReportActionDialog";
 import { ReportDetailPane } from "./ReportDetailPane";
 import { ReportsInbox } from "./ReportsInbox";
 import { ReportsToolbar } from "./ReportsToolbar";
-import { MOCK_REPORTS } from "./mockReports";
-import {
-  personName,
-  type AdminReport,
-  type ListingStatus,
-  type ReportActionKind,
-  type ReportQueue,
-} from "./types";
+import { findReportByListing, getAdminReport } from "./reportsSource";
+import { useAdminReports } from "./useAdminReports";
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value) && value[0]?.trim()) return value[0].trim();
+  return null;
+}
 
 export function ReportsPage() {
+  const params = useLocalSearchParams<{
+    listing?: string | string[];
+    id?: string | string[];
+  }>();
   const bp = useBreakpoint();
   const compact = bp === "mobile";
-  const [reports, setReports] = useState(MOCK_REPORTS);
-  const [queue, setQueue] = useState<ReportQueue>("pending");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pending, setPending] = useState<{
-    reportId: string;
-    kind: ReportActionKind;
-  } | null>(null);
-  const [note, setNote] = useState("");
+  const state = useAdminReports();
 
-  const counts = useMemo(
-    () => ({
-      pending: reports.filter((row) => row.queue === "pending").length,
-      in_review: reports.filter((row) => row.queue === "in_review").length,
-      resolved: reports.filter((row) => row.queue === "resolved").length,
-      dismissed: reports.filter((row) => row.queue === "dismissed").length,
-    }),
-    [reports],
-  );
+  useEffect(() => {
+    const reportId = firstParam(params.id);
+    const listingId = firstParam(params.listing);
+    if (!reportId && !listingId) return;
 
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return reports
-      .filter((row) => row.queue === queue)
-      .filter((row) => {
-        if (!needle) return true;
-        const hay =
-          `${row.listing.title} ${row.listing.area} ${personName(row.reporter)} ${row.reporter.email} ${personName(row.poster)}`.toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [reports, queue, deferredQuery]);
-
-  const resolvedId = compact
-    ? selectedId
-    : visible.some((row) => row.id === selectedId)
-      ? selectedId
-      : (visible[0]?.id ?? null);
-
-  const selected = reports.find((row) => row.id === resolvedId) ?? null;
-  const pendingReport = reports.find((row) => row.id === pending?.reportId) ?? null;
-  const related = selected
-    ? reports.filter(
-        (row) => row.listing.id === selected.listing.id && row.id !== selected.id,
-      )
-    : [];
-
-  function applyAction(reportId: string, kind: ReportActionKind, staffNote: string) {
-    const now = new Date().toISOString();
-    setReports((current) => {
-      const target = current.find((row) => row.id === reportId);
-      if (!target) return current;
-      return current.map((row) => {
-        const sameListing = row.listing.id === target.listing.id;
-        if (kind === "claim") {
-          if (row.id !== reportId) return row;
-          return {
-            ...row,
-            queue: "in_review",
-            reviewer: "You",
-            reviewedAt: now,
-          };
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (reportId) {
+          const row = await getAdminReport(reportId);
+          if (cancelled) return;
+          state.setQueue("all");
+          state.setQuery("");
+          state.setSelectedId(row.id);
+          return;
         }
-        if (kind === "dismiss") {
-          if (row.id !== reportId) return row;
-          return {
-            ...row,
-            queue: "dismissed",
-            reviewer: "You",
-            reviewedAt: now,
-            note: staffNote,
-          };
+        if (listingId) {
+          const row = await findReportByListing(listingId);
+          if (cancelled || !row) return;
+          state.setQueue("all");
+          state.setQuery(row.listing.title);
+          state.setSelectedId(row.id);
         }
-        if (kind === "remove") {
-          if (!sameListing) return row;
-          const listing = {
-            ...row.listing,
-            status: "removed" as ListingStatus,
-          };
-          if (row.queue === "pending" || row.queue === "in_review") {
-            return {
-              ...row,
-              listing,
-              queue: "resolved" as ReportQueue,
-              reviewer: row.id === reportId ? "You" : row.reviewer ?? "You",
-              reviewedAt: now,
-              note: row.id === reportId ? staffNote : row.note,
-            };
-          }
-          return { ...row, listing };
-        }
-        if (row.id !== reportId) return row;
-        return {
-          ...row,
-          queue: "resolved" as ReportQueue,
-          reviewer: "You",
-          reviewedAt: now,
-          note: staffNote,
-          poster:
-            kind === "restrict"
-              ? { ...row.poster, accountStatus: "restricted" as const }
-              : row.poster,
-        };
-      });
-    });
-    if (kind === "claim") setQueue("in_review");
-  }
+      } catch {
+        // deep-link miss — ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link once per param
+  }, [params.id, params.listing]);
 
-  function requestAction(report: AdminReport, kind: ReportActionKind) {
-    if (kind === "claim") {
-      applyAction(report.id, "claim", "");
-      setSelectedId(report.id);
-      return;
-    }
-    setPending({ reportId: report.id, kind });
-    setNote("");
-  }
+  const pendingKind =
+    state.pending?.mode === "single" ? state.pending.kind : null;
+  const bulkCount =
+    state.pending?.mode === "bulk" ? state.pending.reportIds.length : undefined;
+  const bulkKind =
+    state.pending?.mode === "bulk" ? state.pending.kind : null;
 
-  const openCount = counts.pending + counts.in_review;
+  const showDetail = compact && state.selected;
+  const showInbox = !showDetail;
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -155,83 +84,189 @@ export function ReportsPage() {
           as="span"
           className="inline-flex w-fit rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
         >
-          Demo data
+          Demo data · API-ready
         </H>
       </H>
 
-      <H className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Kpi label="Open tickets" value={String(openCount)} />
-        <Kpi label="Pending" value={String(counts.pending)} />
-        <Kpi label="In review" value={String(counts.in_review)} />
+      <H className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Kpi label="Open tickets" value={String(state.openCount)} />
+        <Kpi label="Pending" value={String(state.counts.pending)} />
+        <Kpi label="In review" value={String(state.counts.in_review)} />
+        <Kpi label="Resolved" value={String(state.counts.resolved)} />
       </H>
 
       <ReportsToolbar
-        query={query}
-        onQuery={setQuery}
-        queue={queue}
+        query={state.query}
+        onQuery={state.setQuery}
+        queue={state.queue}
         onQueue={(next) => {
-          setQueue(next);
-          setSelectedId(null);
+          state.setQueue(next);
+          state.setSelectedId(null);
         }}
-        counts={counts}
+        counts={state.counts}
+        sort={state.sort}
+        onSort={state.setSort}
+        pageSize={state.pageSize}
+        onPageSize={state.setPageSize}
       />
 
-      {compact && selected ? (
-        <ReportDetailPane
-          report={selected}
-          related={related}
-          showBack
-          onBack={() => setSelectedId(null)}
-          onAction={(kind) => requestAction(selected, kind)}
-          onOpenRelated={(item) => {
-            setQueue(item.queue);
-            setSelectedId(item.id);
-          }}
-        />
-      ) : compact ? (
-        <ReportsInbox
-          reports={visible}
-          selectedId={resolvedId}
-          onSelect={(report) => setSelectedId(report.id)}
-          onAction={requestAction}
-        />
-      ) : (
+      {state.flash ? (
+        <H
+          as="p"
+          role="status"
+          aria-live="polite"
+          className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
+        >
+          {state.flash}
+        </H>
+      ) : null}
+
+      {state.selectedIds.size > 0 ? (
+        <NeuSurface className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <H as="p" className="text-sm font-medium text-clay-900">
+            {state.selectedIds.size} selected
+          </H>
+          <H className="flex flex-wrap gap-2">
+            <NeuButton
+              tone="moss"
+              className="text-xs"
+              onClick={() => state.requestBulk("claim")}
+            >
+              Claim
+            </NeuButton>
+            <NeuButton
+              className="text-xs"
+              onClick={() => state.requestBulk("dismiss")}
+            >
+              Dismiss
+            </NeuButton>
+            <NeuButton
+              tone="ember"
+              className="text-xs"
+              onClick={() => state.requestBulk("remove")}
+            >
+              Take down
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading reports…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load reports
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" && compact ? (
+        showDetail && state.selected ? (
+          <ReportDetailPane
+            report={state.selected}
+            related={state.related}
+            showBack
+            onBack={() => state.setSelectedId(null)}
+            onAction={(kind) => state.requestAction(state.selected!, kind)}
+            onOpenRelated={(item) => {
+              state.setQueue(item.queue);
+              state.setSelectedId(item.id);
+            }}
+          />
+        ) : showInbox ? (
+          <ReportsInbox
+            reports={state.items}
+            queue={state.queue}
+            selectedId={state.selectedId}
+            selectedIds={state.selectedIds}
+            hasQuery={state.hasQuery}
+            page={state.page}
+            pageCount={state.pageCount}
+            total={state.total}
+            onPage={state.setPage}
+            onSelect={(report) => state.setSelectedId(report.id)}
+            onToggleSelect={state.toggleSelect}
+            onToggleSelectAll={state.toggleSelectAllVisible}
+            onAction={state.requestAction}
+          />
+        ) : null
+      ) : null}
+
+      {state.status === "ready" && !compact ? (
         <H className="grid items-start gap-4 lg:grid-cols-[minmax(340px,0.92fr)_minmax(0,1.08fr)]">
           <ReportsInbox
-            reports={visible}
-            selectedId={resolvedId}
-            onSelect={(report) => setSelectedId(report.id)}
-            onAction={requestAction}
+            reports={state.items}
+            queue={state.queue}
+            selectedId={
+              state.items.some((row) => row.id === state.selectedId)
+                ? state.selectedId
+                : null
+            }
+            selectedIds={state.selectedIds}
+            hasQuery={state.hasQuery}
+            page={state.page}
+            pageCount={state.pageCount}
+            total={state.total}
+            onPage={state.setPage}
+            onSelect={(report) => state.setSelectedId(report.id)}
+            onToggleSelect={state.toggleSelect}
+            onToggleSelectAll={state.toggleSelectAllVisible}
+            onAction={state.requestAction}
           />
           <H className="lg:sticky lg:top-6">
             <ReportDetailPane
-              report={selected}
-              related={related}
+              report={
+                state.selected &&
+                state.items.some((row) => row.id === state.selected.id)
+                  ? state.selected
+                  : null
+              }
+              related={state.related}
               onAction={(kind) => {
-                if (!selected) return;
-                requestAction(selected, kind);
+                if (!state.selected) return;
+                if (!state.items.some((row) => row.id === state.selected!.id)) {
+                  return;
+                }
+                state.requestAction(state.selected, kind);
               }}
               onOpenRelated={(item) => {
-                setQueue(item.queue);
-                setSelectedId(item.id);
+                state.setQueue(item.queue);
+                state.setSelectedId(item.id);
               }}
             />
           </H>
         </H>
-      )}
+      ) : null}
 
       <ReportActionDialog
-        kind={pending?.kind ?? null}
-        report={pendingReport}
-        note={note}
-        onNote={setNote}
-        onCancel={() => setPending(null)}
-        onConfirm={() => {
-          if (!pending) return;
-          applyAction(pending.reportId, pending.kind, note.trim());
-          setPending(null);
-          setNote("");
-        }}
+        kind={pendingKind}
+        report={state.pendingReport}
+        note={state.note}
+        onNote={state.setNote}
+        onCancel={state.cancelPending}
+        onConfirm={state.confirmPending}
+        busy={state.busy}
+        bulkCount={
+          bulkKind === "dismiss" || bulkKind === "remove"
+            ? bulkCount
+            : undefined
+        }
+        bulkKind={
+          bulkKind === "dismiss" || bulkKind === "remove" ? bulkKind : null
+        }
       />
     </H>
   );

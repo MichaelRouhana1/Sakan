@@ -1,11 +1,15 @@
-import type { BroadcastAudience, FeedbackItem, LifecycleNudge } from "./types";
+import type {
+  BroadcastJob,
+  FeedbackItem,
+  LifecycleNudge,
+} from "./types";
 
 export const MOCK_NUDGES: LifecycleNudge[] = [
   {
     id: "n-welcome",
     title: "Welcome to the platform",
     trigger: "Fires once, 20 minutes after first sign-in.",
-    channel: "both",
+    channels: ["in_app", "whatsapp"],
     audience: "New accounts",
     enabled: true,
     lastFiredAt: "2026-08-25T08:12:00.000Z",
@@ -13,19 +17,22 @@ export const MOCK_NUDGES: LifecycleNudge[] = [
   },
   {
     id: "n-expiry",
-    title: "Listing expiring in 3 days",
-    trigger: "Poster has a live listing with 72 hours left.",
-    channel: "in_app",
+    title: "Listing still live on day 25",
+    trigger:
+      "Day 25 of the 30-day live window. Post-expiry staff nudges live on Expired.",
+    channels: ["whatsapp", "in_app"],
     audience: "Posters",
     enabled: true,
     lastFiredAt: "2026-08-25T06:40:00.000Z",
     sent30d: 86,
+    overlapHref: "/admin/expired",
+    overlapLabel: "Expired",
   },
   {
     id: "n-profile",
-    title: "Finish your profile",
-    trigger: "Campus or photo still empty 24 hours after signup.",
-    channel: "in_app",
+    title: "Finish your campus",
+    trigger: "Campus still empty 24 hours after signup.",
+    channels: ["in_app"],
     audience: "Incomplete profiles",
     enabled: true,
     lastFiredAt: "2026-08-24T19:05:00.000Z",
@@ -35,17 +42,19 @@ export const MOCK_NUDGES: LifecycleNudge[] = [
     id: "n-draft",
     title: "Draft listing sitting idle",
     trigger: "Create wizard abandoned for 48 hours.",
-    channel: "email",
+    channels: ["email"],
     audience: "Posters",
     enabled: false,
     lastFiredAt: "2026-08-11T11:20:00.000Z",
     sent30d: 0,
+    overlapHref: "/admin/conversion",
+    overlapLabel: "Conversion",
   },
   {
     id: "n-saved",
     title: "Saved listing still live",
     trigger: "Renter shortlisted a room that is still active after 7 days.",
-    channel: "in_app",
+    channels: ["in_app"],
     audience: "Renters",
     enabled: true,
     lastFiredAt: "2026-08-25T07:55:00.000Z",
@@ -55,27 +64,31 @@ export const MOCK_NUDGES: LifecycleNudge[] = [
     id: "n-credit",
     title: "Cash credit still pending",
     trigger: "Whish / OMT slip started, no confirm after 2 hours.",
-    channel: "both",
+    channels: ["whatsapp", "email"],
     audience: "Posters",
     enabled: true,
     lastFiredAt: "2026-08-25T09:02:00.000Z",
     sent30d: 19,
+    overlapHref: "/admin/payments",
+    overlapLabel: "Payments",
   },
   {
     id: "n-verify",
     title: "Verify student email",
     trigger: "Campus domain unconfirmed for 3 days.",
-    channel: "email",
+    channels: ["email"],
     audience: "Unverified",
     enabled: true,
     lastFiredAt: "2026-08-24T21:30:00.000Z",
     sent30d: 37,
+    overlapHref: "/admin/trust?tab=domains",
+    overlapLabel: "Trust domains",
   },
   {
     id: "n-dormant",
     title: "Quiet poster with live stock",
-    trigger: "No login in 21 days, at least one live listing.",
-    channel: "email",
+    trigger: "No listing update in 21 days, at least one live listing.",
+    channels: ["email", "whatsapp"],
     audience: "Posters",
     enabled: false,
     lastFiredAt: null,
@@ -91,7 +104,10 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Map clustering on Hamra is noisy at exam week. Let me filter by walking minutes to Main Gate instead of a radius pin.",
     createdAt: "2026-08-25T10:18:00.000Z",
-    repliedAt: null,
+    replies: [],
+    history: [],
+    listing: null,
+    device: null,
     user: {
       id: "u-01",
       firstName: "Nour",
@@ -107,7 +123,10 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Listing photos stall on 3G in Ras Beirut. Spinner never dies. Had to jump on campus Wi-Fi to finish the foyer post.",
     createdAt: "2026-08-25T09:41:00.000Z",
-    repliedAt: null,
+    replies: [],
+    history: [],
+    listing: { id: "l-02", title: "Quiet private room off Bliss" },
+    device: "iPhone Safari · 3G",
     user: {
       id: "u-07",
       firstName: "Rita",
@@ -123,7 +142,10 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Campus picker listed USEK Kaslik twice and missed NDU Zouk on first load. Refresh fixed it. Still reporting in case it is cache.",
     createdAt: "2026-08-24T22:05:00.000Z",
-    repliedAt: null,
+    replies: [],
+    history: [],
+    listing: null,
+    device: "Chrome Android",
     user: {
       id: "u-09",
       firstName: "Layal",
@@ -139,7 +161,10 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Arabic UI for my parents. They pay the OMT slip and cannot read the English receipt screen.",
     createdAt: "2026-08-24T16:12:00.000Z",
-    repliedAt: null,
+    replies: [],
+    history: [],
+    listing: null,
+    device: null,
     user: {
       id: "u-11",
       firstName: "Tala",
@@ -155,7 +180,31 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Electricity hours on the Fanar studio showed 24h EDL after I logged a 18:00–22:00 cut. Renters keep asking if the generator is a lie.",
     createdAt: "2026-08-23T14:28:00.000Z",
-    repliedAt: "2026-08-23T18:02:00.000Z",
+    replies: [
+      {
+        at: "2026-08-23T18:02:00.000Z",
+        body: "Cut windows now win over the 24h flag. Refresh the listing and the hours should match 18:00–22:00.",
+        actor: "Lina A.",
+      },
+    ],
+    history: [
+      {
+        id: "h-f05-1",
+        kind: "reply",
+        note: "Replied about cut windows.",
+        at: "2026-08-23T18:02:00.000Z",
+        actor: "Lina A.",
+      },
+      {
+        id: "h-f05-2",
+        kind: "read",
+        note: "Moved to read after reply.",
+        at: "2026-08-23T18:02:00.000Z",
+        actor: "Lina A.",
+      },
+    ],
+    listing: { id: "l-09", title: "Compact studio near LU Fanar" },
+    device: "Android Chrome",
     user: {
       id: "u-10",
       firstName: "Jad",
@@ -171,7 +220,18 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "WhatsApp deep link from the listing. Students will not email. A wa.me button with the listing title prefilled would close more rooms.",
     createdAt: "2026-08-22T11:09:00.000Z",
-    repliedAt: null,
+    replies: [],
+    history: [
+      {
+        id: "h-f06-1",
+        kind: "read",
+        note: "Logged as product ask.",
+        at: "2026-08-22T15:40:00.000Z",
+        actor: "You",
+      },
+    ],
+    listing: null,
+    device: null,
     user: {
       id: "u-12",
       firstName: "Fadi",
@@ -187,7 +247,24 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Hamra walk-to-campus filter is the reason I stayed. Keep that. The rest of Beirut can wait.",
     createdAt: "2026-08-21T19:44:00.000Z",
-    repliedAt: "2026-08-22T08:15:00.000Z",
+    replies: [
+      {
+        at: "2026-08-22T08:15:00.000Z",
+        body: "Glad it helped. Walk-to-campus stays first-class — not burying it.",
+        actor: "You",
+      },
+    ],
+    history: [
+      {
+        id: "h-f07-1",
+        kind: "reply",
+        note: "Thanked and confirmed the filter stays.",
+        at: "2026-08-22T08:15:00.000Z",
+        actor: "You",
+      },
+    ],
+    listing: null,
+    device: null,
     user: {
       id: "u-05",
       firstName: "Sara",
@@ -203,7 +280,31 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Boost toggle on iPhone Safari did nothing. Cleared after the 7-day pin actually applied — leaving this so you can close it.",
     createdAt: "2026-08-18T08:33:00.000Z",
-    repliedAt: "2026-08-18T12:50:00.000Z",
+    replies: [
+      {
+        at: "2026-08-18T12:50:00.000Z",
+        body: "Safari cache was serving a stale boost flag. Fix shipped; closing this.",
+        actor: "Lina A.",
+      },
+    ],
+    history: [
+      {
+        id: "h-f08-1",
+        kind: "reply",
+        note: "Confirmed Safari cache bug.",
+        at: "2026-08-18T12:50:00.000Z",
+        actor: "Lina A.",
+      },
+      {
+        id: "h-f08-2",
+        kind: "archive",
+        note: "Fix shipped. Closing loop.",
+        at: "2026-08-18T13:10:00.000Z",
+        actor: "Lina A.",
+      },
+    ],
+    listing: { id: "l-01", title: "Bliss Studio near Main Gate" },
+    device: "iPhone Safari",
     user: {
       id: "u-02",
       firstName: "Karim",
@@ -219,7 +320,31 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
     message:
       "Girls-only foyer filter as a first-class chip, not buried in more filters. My mother checks the app for me.",
     createdAt: "2026-08-12T15:20:00.000Z",
-    repliedAt: "2026-08-13T09:04:00.000Z",
+    replies: [
+      {
+        at: "2026-08-13T09:04:00.000Z",
+        body: "Logged. Gender restriction already exists on listings — we'll surface it as a chip on Explore.",
+        actor: "You",
+      },
+    ],
+    history: [
+      {
+        id: "h-f09-1",
+        kind: "reply",
+        note: "Product logged the chip ask.",
+        at: "2026-08-13T09:04:00.000Z",
+        actor: "You",
+      },
+      {
+        id: "h-f09-2",
+        kind: "archive",
+        note: "On the Explore chip backlog.",
+        at: "2026-08-13T09:20:00.000Z",
+        actor: "You",
+      },
+    ],
+    listing: { id: "l-03", title: "Girls foyer bed near AUB" },
+    device: null,
     user: {
       id: "u-01",
       firstName: "Nour",
@@ -230,9 +355,38 @@ export const MOCK_FEEDBACK: FeedbackItem[] = [
   },
 ];
 
-export const REACH: Record<BroadcastAudience, number> = {
-  all: 12840,
-  renters: 9120,
-  posters: 3720,
-  unverified: 840,
-};
+export const MOCK_BROADCASTS: BroadcastJob[] = [
+  {
+    id: "b-03",
+    subject: "Exam-week quiet hours on Hamra listings",
+    body: "If you host near Main Gate, keep generator notes honest this week. Renters are filtering hard on walk minutes.",
+    channels: ["in_app", "whatsapp"],
+    audience: ["posters"],
+    campusIds: ["aub-hamra"],
+    reach: 928,
+    queuedAt: "2026-08-24T09:10:00.000Z",
+    status: "queued",
+  },
+  {
+    id: "b-02",
+    subject: "Credits land as soon as you check out",
+    body: "Whish and OMT checkout now grants post credits immediately. No receipt photo. Extra live listings still cost one post credit.",
+    channels: ["email", "whatsapp"],
+    audience: ["posters"],
+    campusIds: [],
+    reach: 3720,
+    queuedAt: "2026-08-21T14:02:00.000Z",
+    status: "queued",
+  },
+  {
+    id: "b-01",
+    subject: "New walk-to-campus chip on Explore",
+    body: "Filter rooms by walking minutes to your gate. Start with Hamra and Bliss.",
+    channels: ["in_app", "email"],
+    audience: ["renters"],
+    campusIds: ["aub-hamra", "lau-beirut"],
+    reach: 4262,
+    queuedAt: "2026-08-18T11:30:00.000Z",
+    status: "queued",
+  },
+];

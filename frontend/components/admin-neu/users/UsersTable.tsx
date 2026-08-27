@@ -14,7 +14,7 @@ import {
 } from "./types";
 
 const DESKTOP_ROW =
-  "grid w-full min-w-0 grid-cols-[minmax(0,20rem)_6.5rem_8rem_7.25rem_10.5rem] items-center justify-start gap-x-3";
+  "grid w-full min-w-0 grid-cols-[minmax(0,20rem)_6.5rem_8rem_7.25rem_11.5rem] items-center justify-start gap-x-3";
 
 type Props = {
   users: AdminUser[];
@@ -31,10 +31,10 @@ export function UsersTable({ users, selectedId, onSelect, onAction }: Props) {
     return (
       <NeuSurface inset className="px-6 py-16 text-center">
         <H as="p" className="font-display text-lg font-semibold text-clay-900">
-          No matches in this roster
+          No matches in this view
         </H>
         <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
-          Try another name, or switch Renters and Posters.
+          Try another name, clear Needs review, or switch All / Renters / Posters.
         </H>
       </NeuSurface>
     );

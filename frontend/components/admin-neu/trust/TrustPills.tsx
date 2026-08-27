@@ -15,6 +15,7 @@ const QUEUE_TONE: Record<KycQueue, { text: string; dot: string }> = {
   pending: { text: "text-ochre", dot: "bg-ochre" },
   verified: { text: "text-moss", dot: "bg-moss" },
   rejected: { text: "text-ember", dot: "bg-ember" },
+  revoked: { text: "text-ember", dot: "bg-ember" },
 };
 
 export function KycQueuePill({ queue }: { queue: KycQueue }) {
@@ -53,7 +54,10 @@ export function BadgePill({ badge }: { badge: BadgeState }) {
   );
 }
 
-const SEVERITY_TONE: Record<AlertSeverity, { text: string; dot: string; glow: string }> = {
+const SEVERITY_TONE: Record<
+  AlertSeverity,
+  { text: string; dot: string; glow: string }
+> = {
   watch: { text: "text-clay-700", dot: "bg-clay-500", glow: "" },
   high: { text: "text-ochre", dot: "bg-ochre", glow: "shadow-dot-ochre" },
   critical: { text: "text-ember", dot: "bg-ember", glow: "shadow-dot-ember" },
@@ -132,7 +136,10 @@ export function DomainChip({
           as="button"
           type="button"
           aria-label={`Remove ${domain}`}
-          onClick={(event: { stopPropagation: () => void; preventDefault: () => void }) => {
+          onClick={(event: {
+            stopPropagation: () => void;
+            preventDefault: () => void;
+          }) => {
             event.preventDefault();
             event.stopPropagation();
             onRemove();

@@ -1,17 +1,25 @@
-import { BadgeCheck, ShieldOff, X } from "lucide-react-native";
+import { BadgeCheck, RotateCcw, ShieldOff, X } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
-import type { KycCase, TrustActionKind } from "./types";
+import {
+  canGrant,
+  canReject,
+  canReopen,
+  canRevoke,
+  type KycActionKind,
+  type KycCase,
+} from "./types";
 
 type Props = {
   kyc: KycCase;
-  onAction: (kind: Extract<TrustActionKind, "grant_badge" | "revoke_badge" | "reject_kyc">) => void;
+  onAction: (kind: KycActionKind) => void;
 };
 
 export function VerificationActions({ kyc, onAction }: Props) {
-  const canGrant = kyc.badge !== "verified" && kyc.poster.accountStatus !== "banned";
-  const canRevoke = kyc.badge === "verified";
-  const canReject = kyc.queue === "pending";
+  const grant = canGrant(kyc);
+  const revoke = canRevoke(kyc);
+  const reject = canReject(kyc);
+  const reopen = canReopen(kyc);
 
   return (
     <H
@@ -20,9 +28,9 @@ export function VerificationActions({ kyc, onAction }: Props) {
     >
       <NeuButton
         tone="moss"
-        disabled={!canGrant}
+        disabled={!grant}
         ariaLabel="Grant Verified Poster badge"
-        className={canGrant ? "shadow-glow-moss" : ""}
+        className={grant ? "shadow-glow-moss" : ""}
         onClick={() => onAction("grant_badge")}
       >
         <BadgeCheck size={16} strokeWidth={1.75} />
@@ -30,7 +38,7 @@ export function VerificationActions({ kyc, onAction }: Props) {
       </NeuButton>
       <NeuButton
         tone="ochre"
-        disabled={!canRevoke}
+        disabled={!revoke}
         ariaLabel="Revoke Verified Poster badge"
         onClick={() => onAction("revoke_badge")}
       >
@@ -39,12 +47,20 @@ export function VerificationActions({ kyc, onAction }: Props) {
       </NeuButton>
       <NeuButton
         tone="ember"
-        disabled={!canReject}
+        disabled={!reject}
         ariaLabel="Reject verification"
         onClick={() => onAction("reject_kyc")}
       >
         <X size={16} strokeWidth={1.75} />
         Reject
+      </NeuButton>
+      <NeuButton
+        disabled={!reopen}
+        ariaLabel="Reopen verification"
+        onClick={() => onAction("reopen")}
+      >
+        <RotateCcw size={16} strokeWidth={1.75} />
+        Reopen
       </NeuButton>
     </H>
   );

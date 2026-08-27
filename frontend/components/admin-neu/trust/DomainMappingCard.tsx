@@ -1,4 +1,5 @@
-import { GraduationCap, Plus } from "lucide-react-native";
+import { ExternalLink, GraduationCap, Plus } from "lucide-react-native";
+import { Link, type Href } from "expo-router";
 import { useState } from "react";
 import { H } from "../h";
 import { ADMIN_MUTED } from "../theme";
@@ -8,23 +9,28 @@ import { parseDomain, type AcademicDomain } from "./types";
 
 type Props = {
   domains: AcademicDomain[];
-  onAdd: (domain: string) => boolean;
-  onRemove: (id: string) => void;
+  busy?: boolean;
+  onAdd: (domain: string) => Promise<boolean>;
+  onRemove: (domain: AcademicDomain) => void;
 };
 
-export function DomainMappingCard({ domains, onAdd, onRemove }: Props) {
+export function DomainMappingCard({ domains, busy, onAdd, onRemove }: Props) {
   const [raw, setRaw] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function submit() {
+  async function submit() {
     const parsed = parseDomain(raw);
     if (!parsed) {
       setError("Use a domain like edu.lb or aub.edu.lb");
       return;
     }
-    const ok = onAdd(parsed);
-    if (!ok) {
+    if (domains.some((row) => row.domain === parsed)) {
       setError("That domain is already mapped");
+      return;
+    }
+    const ok = await onAdd(parsed);
+    if (!ok) {
+      setError("Could not add domain");
       return;
     }
     setRaw("");
@@ -47,10 +53,28 @@ export function DomainMappingCard({ domains, onAdd, onRemove }: Props) {
             Academic domain mapping
           </H>
           <H as="p" className="mt-1 text-sm leading-relaxed text-clay-700">
-            Clerk grants Verified Student when the sign-up email matches a mapped
-            domain.
+            Demo only. Clerk student-domain grant is not wired. Mapping here
+            does not write Institutions.
           </H>
         </H>
+      </H>
+
+      <H className="mt-4 rounded-neu-md bg-clay-100 px-3 py-2.5 shadow-neu-in-sm">
+        <H as="p" className="text-xs leading-relaxed text-clay-700">
+          Institutions already lists campus{" "}
+          <H as="span" className="font-medium text-clay-900">
+            emailDomains
+          </H>
+          . This tray is a separate demo map — keep both in mind until one API
+          owns student email.
+        </H>
+        <Link
+          href={"/admin/universities" as Href}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-moss"
+        >
+          <ExternalLink size={12} strokeWidth={1.75} />
+          Open Institutions
+        </Link>
       </H>
 
       <H as="label" className="mt-5 block">
@@ -72,14 +96,14 @@ export function DomainMappingCard({ domains, onAdd, onRemove }: Props) {
               onKeyDown={(event: { key: string; preventDefault: () => void }) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
-                  submit();
+                  void submit();
                 }
               }}
               placeholder="edu.lb"
               className="min-w-0 flex-1 border-0 bg-transparent text-sm text-clay-900 shadow-none outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0"
             />
           </H>
-          <NeuButton ariaLabel="Add domain" onClick={submit}>
+          <NeuButton ariaLabel="Add domain" onClick={() => void submit()} disabled={busy}>
             <Plus size={16} strokeWidth={1.75} />
             Add
           </NeuButton>
@@ -100,7 +124,7 @@ export function DomainMappingCard({ domains, onAdd, onRemove }: Props) {
           <DomainChip
             key={row.id}
             domain={row.domain}
-            onRemove={() => onRemove(row.id)}
+            onRemove={() => onRemove(row)}
           />
         ))}
       </H>

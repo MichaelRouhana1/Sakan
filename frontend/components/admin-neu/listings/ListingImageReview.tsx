@@ -1,14 +1,22 @@
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Flag } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { H } from "../h";
-import { NeuIconButton, NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuIconButton, NeuSurface } from "../NeuPrimitives";
 import type { AdminListing } from "./types";
 
 type Props = {
   listing: AdminListing;
+  canModerate: boolean;
+  busy?: boolean;
+  onTogglePhotoFlag: (photoId: string, flagged: boolean) => void;
 };
 
-export function ListingImageReview({ listing }: Props) {
+export function ListingImageReview({
+  listing,
+  canModerate,
+  busy,
+  onTogglePhotoFlag,
+}: Props) {
   const [index, setIndex] = useState(0);
   const photos = listing.photos;
   const current = photos[index] ?? photos[0];
@@ -49,6 +57,7 @@ export function ListingImageReview({ listing }: Props) {
         </H>
         <H as="p" className="text-[11px] font-medium text-clay-500">
           {index + 1} / {photos.length}
+          {current.flagged ? " · Flagged" : ""}
         </H>
       </H>
 
@@ -57,12 +66,28 @@ export function ListingImageReview({ listing }: Props) {
           as="img"
           src={current.url}
           alt={`${listing.title}, ${current.caption}`}
-          className="h-52 w-full rounded-neu-md object-cover sm:h-64"
+          className={[
+            "h-52 w-full rounded-neu-md object-cover sm:h-64",
+            current.flagged ? "opacity-80 ring-2 ring-ember" : "",
+          ].join(" ")}
         />
       </NeuSurface>
 
-      <H as="p" className="mt-2 text-sm text-clay-700">
-        {current.caption}
+      <H className="mt-2 flex items-start justify-between gap-3">
+        <H as="p" className="text-sm text-clay-700">
+          {current.caption}
+        </H>
+        {canModerate ? (
+          <NeuButton
+            tone={current.flagged ? "moss" : "ember"}
+            disabled={busy}
+            className="shrink-0 px-2.5 py-1.5 text-xs"
+            onClick={() => onTogglePhotoFlag(current.id, !current.flagged)}
+          >
+            <Flag size={14} strokeWidth={1.75} />
+            {current.flagged ? "Clear flag" : "Flag photo"}
+          </NeuButton>
+        ) : null}
       </H>
 
       <H className="mt-3 flex items-center gap-2">
@@ -88,7 +113,7 @@ export function ListingImageReview({ listing }: Props) {
                 aria-current={selected ? "true" : undefined}
                 onClick={() => setIndex(photoIndex)}
                 className={[
-                  "h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-neu-md bg-clay-100 p-0.5 transition-shadow duration-press",
+                  "relative h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-neu-md bg-clay-100 p-0.5 transition-shadow duration-press",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss",
                   selected ? "shadow-press" : "shadow-neu-sm",
                 ].join(" ")}
@@ -100,6 +125,13 @@ export function ListingImageReview({ listing }: Props) {
                   className="h-full w-full rounded-[10px] object-cover"
                   loading="lazy"
                 />
+                {photo.flagged ? (
+                  <H
+                    as="span"
+                    className="absolute right-1 top-1 h-2 w-2 rounded-full bg-ember"
+                    aria-hidden
+                  />
+                ) : null}
               </H>
             );
           })}

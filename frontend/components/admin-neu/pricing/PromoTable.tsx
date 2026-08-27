@@ -1,14 +1,16 @@
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
-import { PromoActions, type PromoActionKind } from "./PromoActions";
+import { PromoActions } from "./PromoActions";
 import { PromoCodeChip, PromoStatusPill } from "./PromoPills";
 import {
   appliesLabel,
   discountLabel,
   formatDay,
+  isUsageCapped,
   statusLabel,
   usageRatio,
+  type PromoActionKind,
   type PromoCode,
   type PromoFilter,
 } from "./types";
@@ -19,10 +21,11 @@ const DESKTOP_ROW =
 type Props = {
   promos: PromoCode[];
   filter: PromoFilter;
+  busy?: boolean;
   onAction: (promo: PromoCode, kind: PromoActionKind) => void;
 };
 
-export function PromoTable({ promos, filter, onAction }: Props) {
+export function PromoTable({ promos, filter, busy, onAction }: Props) {
   const bp = useBreakpoint();
   const compact = bp === "mobile";
 
@@ -46,6 +49,7 @@ export function PromoTable({ promos, filter, onAction }: Props) {
           <PromoCard
             key={promo.id}
             promo={promo}
+            busy={busy}
             onAction={(kind) => onAction(promo, kind)}
           />
         ))}
@@ -107,6 +111,7 @@ export function PromoTable({ promos, filter, onAction }: Props) {
               <H className="flex justify-end">
                 <PromoActions
                   compact
+                  busy={busy}
                   promo={promo}
                   onAction={(kind) => onAction(promo, kind)}
                 />
@@ -121,9 +126,11 @@ export function PromoTable({ promos, filter, onAction }: Props) {
 
 function PromoCard({
   promo,
+  busy,
   onAction,
 }: {
   promo: PromoCode;
+  busy?: boolean;
   onAction: (kind: PromoActionKind) => void;
 }) {
   return (
@@ -147,7 +154,7 @@ function PromoCard({
         {formatDay(promo.startsAt)} → {formatDay(promo.expiresAt)}
       </H>
       <H className="mt-3">
-        <PromoActions promo={promo} onAction={onAction} />
+        <PromoActions promo={promo} busy={busy} onAction={onAction} />
       </H>
     </NeuSurface>
   );
@@ -155,7 +162,7 @@ function PromoCard({
 
 function UsageMeter({ promo }: { promo: PromoCode }) {
   const ratio = usageRatio(promo);
-  const full = promo.usageCount >= promo.usageLimit && promo.usageLimit > 0;
+  const full = isUsageCapped(promo);
   return (
     <H className="min-w-[96px]">
       <H as="p" className="text-sm font-medium tabular-nums text-clay-900">
@@ -178,6 +185,7 @@ function UsageMeter({ promo }: { promo: PromoCode }) {
       </H>
       <H as="span" className="sr-only">
         {promo.usageCount} of {promo.usageLimit} redemptions
+        {full ? ", cap reached" : ""}
       </H>
     </H>
   );

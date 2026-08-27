@@ -1,17 +1,16 @@
 import { Copy, Pause, Play, TimerOff } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
-import type { PromoCode } from "./types";
-
-export type PromoActionKind = "copy" | "pause" | "resume" | "expire";
+import type { PromoActionKind, PromoCode } from "./types";
 
 type Props = {
   promo: PromoCode;
   compact?: boolean;
+  busy?: boolean;
   onAction: (kind: PromoActionKind) => void;
 };
 
-export function PromoActions({ promo, compact, onAction }: Props) {
+export function PromoActions({ promo, compact, busy, onAction }: Props) {
   const icon = compact ? 14 : 16;
   const live = promo.status === "active" || promo.status === "scheduled";
   const paused = promo.status === "paused";
@@ -28,6 +27,7 @@ export function PromoActions({ promo, compact, onAction }: Props) {
       <NeuButton
         ariaLabel="Copy code"
         className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+        disabled={busy}
         onClick={() => onAction("copy")}
       >
         <Copy size={icon} strokeWidth={1.75} />
@@ -38,6 +38,7 @@ export function PromoActions({ promo, compact, onAction }: Props) {
           tone="ochre"
           ariaLabel="Pause campaign"
           className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          disabled={busy}
           onClick={() => onAction("pause")}
         >
           <Pause size={icon} strokeWidth={1.75} />
@@ -49,6 +50,7 @@ export function PromoActions({ promo, compact, onAction }: Props) {
           tone="moss"
           ariaLabel="Resume campaign"
           className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          disabled={busy}
           onClick={() => onAction("resume")}
         >
           <Play size={icon} strokeWidth={1.75} />
@@ -60,6 +62,7 @@ export function PromoActions({ promo, compact, onAction }: Props) {
           tone="ember"
           ariaLabel="End campaign"
           className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          disabled={busy}
           onClick={() => onAction("expire")}
         >
           <TimerOff size={icon} strokeWidth={1.75} />

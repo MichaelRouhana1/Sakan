@@ -22,6 +22,7 @@ export function useCreatePurchase() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["credits"] });
+      void queryClient.invalidateQueries({ queryKey: ["credits", "me"] });
     },
   });
 }

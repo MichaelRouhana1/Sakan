@@ -1,112 +1,121 @@
-import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { FeedbackActions } from "./FeedbackActions";
-import { CategoryPill } from "./FeedbackPills";
+import { CategoryPill, QueuePill } from "./FeedbackPills";
 import {
-  formatDay,
+  formatStamp,
+  initials,
   personName,
   previewText,
+  queueLabel,
   type FeedbackActionKind,
   type FeedbackItem,
+  type FeedbackQueue,
 } from "./types";
-
-const DESKTOP_ROW =
-  "grid grid-cols-[minmax(160px,1.1fr)_110px_minmax(220px,1.8fr)_110px_minmax(220px,1.15fr)] items-center gap-3";
 
 type Props = {
   items: FeedbackItem[];
+  queue: FeedbackQueue;
   selectedId: string | null;
+  hasQuery: boolean;
+  page: number;
+  pageCount: number;
+  total: number;
+  onPage: (page: number) => void;
   onSelect: (item: FeedbackItem) => void;
   onAction: (item: FeedbackItem, kind: FeedbackActionKind) => void;
 };
 
-export function FeedbackInbox({ items, selectedId, onSelect, onAction }: Props) {
-  const bp = useBreakpoint();
-  const compact = bp === "mobile";
-
+export function FeedbackInbox({
+  items,
+  queue,
+  selectedId,
+  hasQuery,
+  page,
+  pageCount,
+  total,
+  onPage,
+  onSelect,
+  onAction,
+}: Props) {
   if (items.length === 0) {
     return (
       <NeuSurface inset className="px-6 py-16 text-center">
         <H as="p" className="font-display text-lg font-semibold text-clay-900">
-          Inbox is clear
+          {hasQuery ? "No matches" : "Inbox is clear"}
         </H>
         <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
-          No notes in this slice. Try another status or category.
+          {hasQuery
+            ? "Try another name, campus, or listing — or clear search."
+            : `No notes in ${queueLabel(queue)}. Try another status or category.`}
         </H>
       </NeuSurface>
     );
   }
 
-  if (compact) {
-    return (
-      <H className="grid gap-3">
-        {items.map((item) => (
-          <FeedbackCard
-            key={item.id}
-            item={item}
-            selected={selectedId === item.id}
-            onSelect={() => onSelect(item)}
-            onAction={(kind) => onAction(item, kind)}
-          />
-        ))}
-      </H>
-    );
-  }
-
   return (
-    <NeuSurface inset className="overflow-hidden">
-      <H className="neu-scroll overflow-x-auto">
-        <H className="min-w-[920px]">
-          <H
-            className={[
-              DESKTOP_ROW,
-              "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-            ].join(" ")}
-          >
-            <H as="span">User</H>
-            <H as="span">Category</H>
-            <H as="span">Message</H>
-            <H as="span">Date</H>
-            <H as="span" className="text-right">
-              Actions
-            </H>
-          </H>
+    <H className="flex flex-col gap-3">
+      <H className="flex items-center justify-between px-1">
+        <H as="span" className="text-xs text-clay-500">
+          {total} total
+        </H>
+      </H>
 
+      <NeuSurface inset className="overflow-hidden">
+        <H
+          className="neu-scroll max-h-[min(85vh,900px)] overflow-y-auto"
+          role="listbox"
+          aria-label="Feedback notes"
+        >
           {items.map((item) => {
             const selected = selectedId === item.id;
             return (
               <H
                 key={item.id}
-                role="button"
+                role="option"
+                aria-selected={selected}
                 tabIndex={0}
                 onClick={() => onSelect(item)}
                 onKeyDown={(event: { key: string }) => {
                   if (event.key === "Enter" || event.key === " ") onSelect(item);
                 }}
                 className={[
-                  DESKTOP_ROW,
-                  "cursor-pointer border-t border-clay-200/80 px-5 py-3.5 text-sm transition-colors duration-press",
+                  "cursor-pointer border-t border-clay-200/80 px-4 py-3.5 transition-colors duration-press first:border-t-0",
                   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss",
                   selected ? "bg-moss-soft/40" : "hover:bg-clay-50/60",
                 ].join(" ")}
               >
-                <H className="min-w-0">
-                  <H as="p" className="truncate font-display font-semibold text-clay-900">
-                    {personName(item)}
+                <H className="flex items-start gap-3">
+                  <H
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-clay-100 font-display text-xs font-semibold text-moss shadow-neu-in-sm"
+                    aria-hidden
+                  >
+                    {initials(item.user)}
                   </H>
-                  <H as="p" className="truncate text-[11px] text-clay-500">
-                    {item.user.campus}
+                  <H className="min-w-0 flex-1">
+                    <H className="flex flex-wrap items-center gap-2">
+                      <CategoryPill category={item.category} />
+                      <QueuePill queue={item.queue} />
+                      <H as="span" className="ml-auto text-[11px] text-clay-500">
+                        {formatStamp(item.createdAt)}
+                      </H>
+                    </H>
+                    <H
+                      as="p"
+                      className="mt-1.5 truncate font-display text-sm font-semibold text-clay-900"
+                    >
+                      {personName(item.user)}
+                    </H>
+                    <H as="p" className="truncate text-xs text-clay-700">
+                      {item.user.campus}
+                      {item.listing ? ` · ${item.listing.title}` : ""}
+                    </H>
+                    <H as="p" className="mt-1 truncate text-sm text-clay-700">
+                      {previewText(item.message, 88)}
+                    </H>
                   </H>
                 </H>
-                <CategoryPill category={item.category} />
-                <H as="p" className="truncate text-clay-700">
-                  {previewText(item.message, 88)}
-                </H>
-                <H as="p" className="text-xs tabular-nums text-clay-700">
-                  {formatDay(item.createdAt)}
-                </H>
-                <H className="justify-self-end">
+                <H className="mt-3 pl-14">
                   <FeedbackActions
                     compact
                     item={item}
@@ -117,55 +126,29 @@ export function FeedbackInbox({ items, selectedId, onSelect, onAction }: Props) 
             );
           })}
         </H>
-      </H>
-    </NeuSurface>
-  );
-}
+      </NeuSurface>
 
-function FeedbackCard({
-  item,
-  selected,
-  onSelect,
-  onAction,
-}: {
-  item: FeedbackItem;
-  selected: boolean;
-  onSelect: () => void;
-  onAction: (kind: FeedbackActionKind) => void;
-}) {
-  return (
-    <NeuSurface
-      className={[
-        "cursor-pointer p-4 transition-shadow duration-press",
-        selected ? "shadow-press" : "",
-      ].join(" ")}
-    >
-      <H
-        role="button"
-        tabIndex={0}
-        onClick={onSelect}
-        onKeyDown={(event: { key: string }) => {
-          if (event.key === "Enter" || event.key === " ") onSelect();
-        }}
-      >
-        <H className="flex items-start justify-between gap-3">
-          <H className="min-w-0">
-            <H as="p" className="font-display text-sm font-semibold text-clay-900">
-              {personName(item)}
-            </H>
-            <H as="p" className="mt-0.5 text-[11px] text-clay-500">
-              {item.user.campus} · {formatDay(item.createdAt)}
-            </H>
+      {pageCount > 1 ? (
+        <H className="flex items-center justify-between gap-3 px-1">
+          <NeuButton
+            disabled={page <= 1}
+            className="text-xs"
+            onClick={() => onPage(page - 1)}
+          >
+            Previous
+          </NeuButton>
+          <H as="span" className="text-xs text-clay-700">
+            Page {page} / {pageCount}
           </H>
-          <CategoryPill category={item.category} />
+          <NeuButton
+            disabled={page >= pageCount}
+            className="text-xs"
+            onClick={() => onPage(page + 1)}
+          >
+            Next
+          </NeuButton>
         </H>
-        <H as="p" className="mt-3 text-sm leading-relaxed text-clay-700">
-          {previewText(item.message, 140)}
-        </H>
-      </H>
-      <H className="mt-3">
-        <FeedbackActions compact item={item} onAction={onAction} />
-      </H>
-    </NeuSurface>
+      ) : null}
+    </H>
   );
 }

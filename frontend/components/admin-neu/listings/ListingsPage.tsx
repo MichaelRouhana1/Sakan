@@ -1,84 +1,68 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { ListingActionDialog } from "./ListingActionDialog";
 import { ListingDetailDrawer } from "./ListingDetailDrawer";
-import { ListingEditDialog } from "./ListingEditDialog";
+import {
+  ListingEditDialog,
+  listingToEditPatch,
+} from "./ListingEditDialog";
 import { ListingsTable } from "./ListingsTable";
 import { ListingsToolbar } from "./ListingsToolbar";
-import { MOCK_LISTINGS } from "./mockListings";
-import {
-  listingQueue,
-  posterName,
-  type AdminListing,
-  type ListingActionKind,
-  type ListingQueue,
-  type ListingStatus,
-} from "./types";
+import { getAdminListing } from "./listingsSource";
+import { useAdminListings } from "./useAdminListings";
+import { listingQueue, type ListingEditPatch } from "./types";
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value) && value[0]?.trim()) return value[0].trim();
+  return null;
+}
 
 export function ListingsPage() {
-  const [listings, setListings] = useState(MOCK_LISTINGS);
-  const [queue, setQueue] = useState<ListingQueue>("active");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pending, setPending] = useState<{
-    listingId: string;
-    kind: ListingActionKind;
-  } | null>(null);
-  const [note, setNote] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({
-    title: "",
-    area: "",
-    monthlyRentUsd: "",
-  });
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const state = useAdminListings();
+  const [draft, setDraft] = useState<ListingEditPatch | null>(null);
 
-  const activeCount = listings.filter((row) => listingQueue(row) === "active").length;
-  const flaggedCount = listings.filter((row) => listingQueue(row) === "flagged").length;
-  const expiredCount = listings.filter((row) => listingQueue(row) === "expired").length;
+  useEffect(() => {
+    const listingId = firstParam(params.id);
+    if (!listingId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await getAdminListing(listingId);
+        if (cancelled) return;
+        state.setQueue(listingQueue(row));
+        state.setQuery("");
+        state.setSelectedId(row.id);
+      } catch {
+        // deep-link miss
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link once per id
+  }, [params.id]);
 
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return listings.filter((row) => {
-      if (listingQueue(row) !== queue) return false;
-      if (!needle) return true;
-      const hay = `${row.title} ${row.area} ${posterName(row)} ${row.poster.email}`.toLowerCase();
-      return hay.includes(needle);
-    });
-  }, [listings, queue, deferredQuery]);
+  useEffect(() => {
+    if (state.editing) {
+      setDraft(listingToEditPatch(state.editing));
+    } else {
+      setDraft(null);
+    }
+  }, [state.editing]);
 
-  const selected = listings.find((row) => row.id === selectedId) ?? null;
-  const pendingListing = listings.find((row) => row.id === pending?.listingId) ?? null;
-  const editing = listings.find((row) => row.id === editingId) ?? null;
+  useEffect(() => {
+    if (!state.flash) return;
+    const timer = window.setTimeout(() => state.clearFlash(), 4000);
+    return () => window.clearTimeout(timer);
+  }, [state.flash, state.clearFlash]);
 
-  function openEdit(listing: AdminListing) {
-    setEditingId(listing.id);
-    setDraft({
-      title: listing.title,
-      area: listing.area,
-      monthlyRentUsd: String(listing.monthlyRentUsd),
-    });
-  }
-
-  function applyAction(listingId: string, kind: ListingActionKind) {
-    setListings((current) =>
-      current.map((row) => {
-        if (row.id !== listingId) return row;
-        const nextStatus: ListingStatus =
-          kind === "archive"
-            ? "archived"
-            : kind === "remove"
-              ? "removed"
-              : "active";
-        return {
-          ...row,
-          status: nextStatus,
-          openReports: kind === "restore" ? row.openReports : [],
-        };
-      }),
-    );
-  }
+  const pendingKind = state.pending?.kind ?? null;
+  const bulkCount =
+    state.pending?.mode === "bulk" ? state.pending.listingIds.length : undefined;
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -88,94 +72,159 @@ export function ListingsPage() {
             Listings
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
-            Review property posts. Check photos, archive expired ads, and take
-            down listings that break the rules.
+            Review property posts. Check photos, dismiss bad flags, archive or take
+            down rule breaks. Past-due renew work lives on Expired.
           </H>
         </H>
         <H
           as="span"
           className="inline-flex w-fit rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
         >
-          Demo data
+          Demo data · API-ready
         </H>
       </H>
 
-      <H className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Kpi label="In this queue" value={String(visible.length)} />
-        <Kpi label="Flagged" value={String(flaggedCount)} />
-        <Kpi label="Expired / archived" value={String(expiredCount)} />
+      <H className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        <Kpi label="Total" value={String(state.counts.all)} />
+        <Kpi label="Active" value={String(state.counts.active)} />
+        <Kpi label="Flagged" value={String(state.counts.flagged)} />
+        <Kpi label="Draft" value={String(state.counts.draft)} />
+        <Kpi label="Archived" value={String(state.counts.archived)} />
+        <Kpi label="Removed" value={String(state.counts.removed)} />
+        <Kpi label="On page" value={String(state.items.length)} />
       </H>
 
       <ListingsToolbar
-        query={query}
-        onQuery={setQuery}
-        queue={queue}
-        onQueue={setQueue}
-        activeCount={activeCount}
-        flaggedCount={flaggedCount}
-        expiredCount={expiredCount}
+        query={state.query}
+        onQuery={state.setQuery}
+        queue={state.queue}
+        onQueue={state.setQueue}
+        counts={state.counts}
+        sort={state.sort}
+        onSort={state.setSort}
+        pageSize={state.pageSize}
+        onPageSize={state.setPageSize}
       />
 
-      <ListingsTable
-        listings={visible}
-        selectedId={selectedId}
-        onSelect={(listing) => setSelectedId(listing.id)}
-        onEdit={openEdit}
-        onAction={(listing, kind) => {
-          setPending({ listingId: listing.id, kind });
-          setNote("");
-        }}
-      />
+      {state.flash ? (
+        <H
+          as="p"
+          role="status"
+          aria-live="polite"
+          className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
+        >
+          {state.flash}
+        </H>
+      ) : null}
+
+      {state.selectedIds.size > 0 ? (
+        <NeuSurface className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <H as="p" className="text-sm font-medium text-clay-900">
+            {state.selectedIds.size} selected
+          </H>
+          <H className="flex flex-wrap gap-2">
+            <NeuButton
+              tone="ochre"
+              className="text-xs"
+              onClick={() => state.requestBulk("archive")}
+            >
+              Archive
+            </NeuButton>
+            <NeuButton
+              tone="ember"
+              className="text-xs"
+              onClick={() => state.requestBulk("remove")}
+            >
+              Take down
+            </NeuButton>
+            <NeuButton
+              className="text-xs"
+              onClick={() => state.requestBulk("dismiss_reports")}
+            >
+              Dismiss flags
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading listings…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load listings
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" ? (
+        <ListingsTable
+          listings={state.items}
+          selectedId={state.selectedId}
+          selectedIds={state.selectedIds}
+          hasQuery={state.hasQuery}
+          page={state.page}
+          pageCount={state.pageCount}
+          total={state.total}
+          onPage={state.setPage}
+          onSelect={(listing) => state.setSelectedId(listing.id)}
+          onToggleSelect={state.toggleSelect}
+          onToggleSelectAll={state.toggleSelectAllVisible}
+          onEdit={state.openEdit}
+          onAction={state.requestAction}
+        />
+      ) : null}
 
       <ListingDetailDrawer
-        listing={selected}
-        onClose={() => setSelectedId(null)}
+        listing={state.selected}
+        busy={state.busy}
+        onClose={() => state.setSelectedId(null)}
         onEdit={() => {
-          if (selected) openEdit(selected);
+          if (state.selected) state.openEdit(state.selected);
         }}
         onAction={(kind) => {
-          if (!selected) return;
-          setPending({ listingId: selected.id, kind });
-          setNote("");
+          if (!state.selected) return;
+          state.requestAction(state.selected, kind);
+        }}
+        onTogglePhotoFlag={(photoId, flagged) => {
+          if (!state.selected) return;
+          void state.togglePhotoFlag(state.selected.id, photoId, flagged);
         }}
       />
 
       <ListingActionDialog
-        kind={pending?.kind ?? null}
-        title={pendingListing?.title ?? ""}
-        note={note}
-        onNote={setNote}
-        onCancel={() => setPending(null)}
-        onConfirm={() => {
-          if (!pending) return;
-          applyAction(pending.listingId, pending.kind);
-          setPending(null);
-          setNote("");
-        }}
+        kind={pendingKind}
+        title={state.pendingListing?.title ?? ""}
+        bulkCount={bulkCount}
+        note={state.note}
+        onNote={state.setNote}
+        onCancel={state.cancelPending}
+        onConfirm={() => void state.confirmPending()}
+        busy={state.busy}
       />
 
       <ListingEditDialog
-        listing={editing}
+        listing={state.editing}
         draft={draft}
         onDraft={setDraft}
-        onCancel={() => setEditingId(null)}
+        onCancel={state.closeEdit}
         onConfirm={() => {
-          if (!editing) return;
-          const rent = Number(draft.monthlyRentUsd);
-          setListings((current) =>
-            current.map((row) =>
-              row.id === editing.id
-                ? {
-                    ...row,
-                    title: draft.title.trim(),
-                    area: draft.area.trim(),
-                    monthlyRentUsd: rent,
-                  }
-                : row,
-            ),
-          );
-          setEditingId(null);
+          if (!draft) return;
+          void state.confirmEdit(draft);
         }}
+        busy={state.busy}
       />
     </H>
   );

@@ -1,329 +1,325 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import { AlertsToolbar } from "./AlertsToolbar";
 import { DomainMappingCard } from "./DomainMappingCard";
 import { ScamAlertsFeed } from "./ScamAlertsFeed";
 import { TrustActionDialog } from "./TrustActionDialog";
+import { TrustSwitcher, useTrustTab } from "./TrustSwitcher";
 import { TrustToolbar } from "./TrustToolbar";
 import { VerificationDetail } from "./VerificationDetail";
 import { VerificationQueue } from "./VerificationQueue";
-import { MOCK_ALERTS, MOCK_DOMAINS, MOCK_KYC } from "./mockTrust";
-import {
-  severityRank,
-  type AcademicDomain,
-  type AlertStatus,
-  type KycCase,
-  type KycQueue,
-  type ScamAlert,
-  type TrustActionKind,
-} from "./types";
+import { getAdminAlert, getAdminKyc } from "./trustSource";
+import { useAdminTrust } from "./useAdminTrust";
+import type { TrustActionKind } from "./types";
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value) && value[0]?.trim()) return value[0].trim();
+  return null;
+}
 
 export function TrustPage() {
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    alert?: string | string[];
+    tab?: string | string[];
+  }>();
+  const tab = useTrustTab();
   const bp = useBreakpoint();
   const compact = bp === "mobile";
-  const [cases, setCases] = useState(MOCK_KYC);
-  const [alerts, setAlerts] = useState(MOCK_ALERTS);
-  const [domains, setDomains] = useState(MOCK_DOMAINS);
-  const [queue, setQueue] = useState<KycQueue>("pending");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pending, setPending] = useState<{
-    kind: TrustActionKind;
-    kycId?: string;
-    alertId?: string;
-  } | null>(null);
-  const [note, setNote] = useState("");
+  const state = useAdminTrust();
 
-  const counts = useMemo(
-    () => ({
-      pending: cases.filter((row) => row.queue === "pending").length,
-      verified: cases.filter((row) => row.queue === "verified").length,
-      rejected: cases.filter((row) => row.queue === "rejected").length,
-    }),
-    [cases],
-  );
-
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return cases
-      .filter((row) => row.queue === queue)
-      .filter((row) => {
-        if (!needle) return true;
-        const hay =
-          `${row.poster.firstName} ${row.poster.lastName} ${row.poster.email} ${row.poster.phone} ${row.poster.area}`.toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1));
-  }, [cases, queue, deferredQuery]);
-
-  const resolvedId = compact
-    ? selectedId
-    : visible.some((row) => row.id === selectedId)
-      ? selectedId
-      : (visible[0]?.id ?? null);
-
-  const selected = cases.find((row) => row.id === resolvedId) ?? null;
-  const pendingKyc = cases.find((row) => row.id === pending?.kycId) ?? null;
-  const pendingAlert = alerts.find((row) => row.id === pending?.alertId) ?? null;
-
-  const openAlerts = alerts.filter(
-    (row) => row.status === "open" || row.status === "reviewing",
-  ).length;
-  const verifiedBadges = cases.filter((row) => row.badge === "verified").length;
-
-  const sortedAlerts = useMemo(
-    () =>
-      [...alerts].sort((a, b) => {
-        const statusWeight = (status: AlertStatus) =>
-          status === "open" ? 0 : status === "reviewing" ? 1 : 2;
-        const byStatus = statusWeight(a.status) - statusWeight(b.status);
-        if (byStatus !== 0) return byStatus;
-        const bySev = severityRank(a.severity) - severityRank(b.severity);
-        if (bySev !== 0) return bySev;
-        return a.createdAt < b.createdAt ? 1 : -1;
-      }),
-    [alerts],
-  );
-
-  function applyKyc(kycId: string, kind: TrustActionKind, staffNote: string) {
-    const now = new Date().toISOString();
-    setCases((current) =>
-      current.map((row) => {
-        if (row.id !== kycId) return row;
-        if (kind === "grant_badge") {
-          return {
-            ...row,
-            queue: "verified",
-            badge: "verified",
-            reviewer: "You",
-            reviewedAt: now,
-            note: staffNote,
-          };
-        }
-        if (kind === "revoke_badge") {
-          return {
-            ...row,
-            badge: "revoked",
-            reviewer: "You",
-            reviewedAt: now,
-            note: staffNote,
-          };
-        }
-        return {
-          ...row,
-          queue: "rejected",
-          badge: row.badge === "verified" ? "revoked" : "none",
-          reviewer: "You",
-          reviewedAt: now,
-          note: staffNote,
-        };
-      }),
-    );
-    if (kind === "grant_badge") setQueue("verified");
-    if (kind === "reject_kyc") setQueue("rejected");
-  }
-
-  function applyAlert(alertId: string, kind: TrustActionKind, staffNote: string) {
-    setAlerts((current) =>
-      current.map((row) => {
-        if (row.id !== alertId) return row;
-        const nextStatus: AlertStatus =
-          kind === "restrict"
-            ? "suspended"
-            : kind === "warn"
-              ? "warned"
-              : "reviewing";
-        const nextAccounts =
-          kind === "restrict"
-            ? row.accounts.map((account) => ({
-                ...account,
-                accountStatus: "restricted" as const,
-              }))
-            : row.accounts;
-        return { ...row, status: nextStatus, accounts: nextAccounts };
-      }),
-    );
-    if (kind === "restrict" || kind === "warn") {
-      const target = alerts.find((row) => row.id === alertId);
-      if (!target) return;
-      const ids = new Set(target.accounts.map((account) => account.id));
-      setCases((current) =>
-        current.map((row) =>
-          ids.has(row.poster.id)
-            ? {
-                ...row,
-                poster: {
-                  ...row.poster,
-                  accountStatus:
-                    kind === "restrict" ? "restricted" : row.poster.accountStatus,
-                },
-                note: staffNote || row.note,
-              }
-            : row,
-        ),
-      );
-    }
-  }
-
-  function requestKyc(
-    kyc: KycCase,
-    kind: Extract<TrustActionKind, "grant_badge" | "revoke_badge" | "reject_kyc">,
-  ) {
-    setPending({ kind, kycId: kyc.id });
-    setNote("");
-  }
-
-  function requestAlert(
-    alert: ScamAlert,
-    kind: Extract<TrustActionKind, "warn" | "restrict" | "review">,
-  ) {
-    if (kind === "review") {
-      applyAlert(alert.id, "review", "");
-      return;
-    }
-    setPending({ kind, alertId: alert.id });
-    setNote("");
-  }
-
-  function addDomain(domain: string): boolean {
-    if (domains.some((row) => row.domain === domain)) return false;
-    const next: AcademicDomain = {
-      id: `dom-${Date.now()}`,
-      domain,
-      institution: institutionGuess(domain),
-      studentCount: 0,
+  useEffect(() => {
+    const kycId = firstParam(params.id);
+    if (!kycId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await getAdminKyc(kycId);
+        if (cancelled) return;
+        state.setQueue(row.queue);
+        state.setQuery("");
+        state.setSelectedId(row.id);
+      } catch {
+        // deep-link miss
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-    setDomains((current) => [...current, next]);
-    return true;
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link once per id
+  }, [params.id]);
+
+  useEffect(() => {
+    const alertId = firstParam(params.alert);
+    if (!alertId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await getAdminAlert(alertId);
+        if (cancelled) return;
+        state.setAlertQuery("");
+        state.setAlertSeverity("all");
+        state.setAlertStatus("all");
+        state.setSelectedAlertId(row.id);
+      } catch {
+        // deep-link miss
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link once per alert
+  }, [params.alert]);
+
+  const showKyc = tab === "kyc";
+  const showDetail = compact && showKyc && state.selected;
+  const showList = showKyc && !showDetail;
+
+  const pendingKind: Exclude<TrustActionKind, "review"> | null =
+    state.pending?.mode === "kyc"
+      ? state.pending.kind
+      : state.pending?.mode === "alert"
+        ? state.pending.kind
+        : state.pending?.mode === "domain"
+          ? "remove_domain"
+          : null;
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
       <H className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <H>
-          <H as="h1" className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
+          <H
+            as="p"
+            className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-moss"
+          >
+            Safety desk
+          </H>
+          <H as="h1" className="mt-1 font-display text-3xl font-semibold tracking-tight md:text-4xl">
             Trust Center
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
-            Review poster IDs, catch shared IPs and phones, map student domains
-            for Clerk.
+            Manual poster badge, scam clusters, and a demo student-domain map.
+            Not Veriff. Not wired to Clerk.
           </H>
         </H>
         <H
           as="span"
           className="inline-flex w-fit rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
         >
-          Demo data
+          Demo data · API-ready
         </H>
       </H>
 
       <H className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Pending KYC" value={String(counts.pending)} />
-        <Kpi label="Open alerts" value={String(openAlerts)} />
-        <Kpi label="Verified posters" value={String(verifiedBadges)} />
-        <Kpi label="Mapped domains" value={String(domains.length)} />
+        <Kpi
+          label="Pending KYC"
+          value={String(state.overview.pending)}
+          hint="Waiting on staff"
+        />
+        <Kpi
+          label="Open alerts"
+          value={String(state.overview.openAlerts)}
+          hint="Open + in review"
+        />
+        <Kpi
+          label="Verified posters"
+          value={String(state.overview.verifiedBadges)}
+          hint="Badge on listings"
+        />
+        <Kpi
+          label="Mapped domains"
+          value={String(state.overview.domainCount)}
+          hint="Demo student map"
+        />
       </H>
 
-      <H>
-        <H as="h2" className="font-display text-lg font-semibold">
-          Poster verification
-        </H>
-        <H as="p" className="mt-1 text-sm text-clay-700">
-          Government ID or deed in the tray. Grant or revoke the badge from here.
-        </H>
-      </H>
+      <TrustSwitcher />
 
-      <TrustToolbar
-        query={query}
-        onQuery={setQuery}
-        queue={queue}
-        onQueue={(next) => {
-          setQueue(next);
-          setSelectedId(null);
-        }}
-        counts={counts}
-      />
+      {state.flash ? (
+        <H
+          as="p"
+          role="status"
+          aria-live="polite"
+          className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
+        >
+          {state.flash}
+        </H>
+      ) : null}
 
-      {compact && selected ? (
-        <VerificationDetail
-          kyc={selected}
-          showBack
-          onBack={() => setSelectedId(null)}
-          onAction={(kind) => requestKyc(selected, kind)}
-        />
-      ) : compact ? (
-        <VerificationQueue
-          cases={visible}
-          selectedId={resolvedId}
-          onSelect={(row) => setSelectedId(row.id)}
-        />
-      ) : (
-        <H className="grid items-start gap-4 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)]">
-          <VerificationQueue
-            cases={visible}
-            selectedId={resolvedId}
-            onSelect={(row) => setSelectedId(row.id)}
-          />
-          <H className="lg:sticky lg:top-6">
-            <VerificationDetail
-              kyc={selected}
-              onAction={(kind) => {
-                if (!selected) return;
-                requestKyc(selected, kind);
-              }}
-            />
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading trust…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load trust
           </H>
-        </H>
-      )}
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
 
-      <H className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
-        <ScamAlertsFeed alerts={sortedAlerts} onAction={requestAlert} />
-        <H className="lg:sticky lg:top-6">
-          <DomainMappingCard
-            domains={domains}
-            onAdd={addDomain}
-            onRemove={(id) =>
-              setDomains((current) => current.filter((row) => row.id !== id))
-            }
+      {state.status === "ready" && showKyc ? (
+        <>
+          {showList || !compact ? (
+            <TrustToolbar
+              query={state.query}
+              onQuery={state.setQuery}
+              queue={state.queue}
+              onQueue={(next) => {
+                state.setQueue(next);
+                state.setSelectedId(null);
+              }}
+              counts={state.counts}
+              pageSize={state.pageSize}
+              onPageSize={state.setPageSize}
+            />
+          ) : null}
+
+          {compact ? (
+            showDetail && state.selected ? (
+              <VerificationDetail
+                kyc={state.selected}
+                showBack
+                onBack={() => state.setSelectedId(null)}
+                onAction={(kind) => state.requestKycAction(state.selected!, kind)}
+              />
+            ) : showList ? (
+              <VerificationQueue
+                cases={state.items}
+                queue={state.queue}
+                selectedId={state.selectedId}
+                hasQuery={state.hasQuery}
+                page={state.page}
+                pageCount={state.pageCount}
+                total={state.total}
+                onPage={state.setPage}
+                onSelect={(row) => state.setSelectedId(row.id)}
+              />
+            ) : null
+          ) : (
+            <H className="grid items-start gap-4 lg:grid-cols-[minmax(340px,0.92fr)_minmax(0,1.08fr)]">
+              <VerificationQueue
+                cases={state.items}
+                queue={state.queue}
+                selectedId={
+                  state.items.some((row) => row.id === state.selectedId)
+                    ? state.selectedId
+                    : null
+                }
+                hasQuery={state.hasQuery}
+                page={state.page}
+                pageCount={state.pageCount}
+                total={state.total}
+                onPage={state.setPage}
+                onSelect={(row) => state.setSelectedId(row.id)}
+              />
+              <H className="lg:sticky lg:top-6">
+                <VerificationDetail
+                  kyc={
+                    state.selected &&
+                    state.items.some((row) => row.id === state.selected?.id)
+                      ? state.selected
+                      : null
+                  }
+                  onAction={(kind) => {
+                    const focus = state.selected;
+                    if (!focus) return;
+                    if (!state.items.some((row) => row.id === focus.id)) return;
+                    state.requestKycAction(focus, kind);
+                  }}
+                />
+              </H>
+            </H>
+          )}
+        </>
+      ) : null}
+
+      {state.status === "ready" && tab === "alerts" ? (
+        <>
+          <AlertsToolbar
+            query={state.alertQuery}
+            onQuery={state.setAlertQuery}
+            severity={state.alertSeverity}
+            onSeverity={state.setAlertSeverity}
+            status={state.alertStatus}
+            onStatus={state.setAlertStatus}
+            pageSize={state.alertPageSize}
+            onPageSize={state.setAlertPageSize}
           />
-        </H>
-      </H>
+          <ScamAlertsFeed
+            alerts={state.alerts}
+            selectedId={state.selectedAlertId}
+            hasFilters={state.hasAlertFilters}
+            page={state.alertPage}
+            pageCount={state.alertPageCount}
+            total={state.alertTotal}
+            onPage={state.setAlertPage}
+            onSelect={(row) => state.setSelectedAlertId(row.id)}
+            onAction={state.requestAlertAction}
+          />
+        </>
+      ) : null}
+
+      {state.status === "ready" && tab === "domains" ? (
+        <DomainMappingCard
+          domains={state.domains}
+          busy={state.busy}
+          onAdd={state.addDomain}
+          onRemove={state.requestDomainRemove}
+        />
+      ) : null}
 
       <TrustActionDialog
-        kind={pending?.kind ?? null}
-        kyc={pendingKyc}
-        alert={pendingAlert}
-        note={note}
-        onNote={setNote}
-        onCancel={() => setPending(null)}
+        kind={pendingKind}
+        kyc={state.pending?.mode === "kyc" ? state.pendingKyc : null}
+        alert={state.pending?.mode === "alert" ? state.pendingAlert : null}
+        domain={state.pending?.mode === "domain" ? state.pendingDomain : null}
+        note={state.note}
+        onNote={state.setNote}
+        onCancel={state.cancelPending}
         onConfirm={() => {
-          if (!pending) return;
-          if (pending.kycId) applyKyc(pending.kycId, pending.kind, note.trim());
-          if (pending.alertId) applyAlert(pending.alertId, pending.kind, note.trim());
-          setPending(null);
-          setNote("");
+          void state.confirmPending();
         }}
+        busy={state.busy}
       />
     </H>
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
+function Kpi({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+}) {
   return (
     <NeuSurface inset className="px-4 py-4">
       <H as="p" className="text-xs font-medium text-clay-700">
         {label}
       </H>
-      <H as="p" className="mt-1 font-display text-2xl font-semibold text-clay-900">
+      <H as="p" className="mt-1 font-display text-2xl font-semibold tabular-nums text-clay-900">
         {value}
+      </H>
+      <H as="p" className="mt-1 text-[11px] text-clay-500">
+        {hint}
       </H>
     </NeuSurface>
   );
-}
-
-function institutionGuess(domain: string): string {
-  const host = domain.replace(/^mail\./, "").split(".")[0] ?? domain;
-  return host.toUpperCase();
 }

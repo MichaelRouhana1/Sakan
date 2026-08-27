@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { PendingPaymentCard } from "@/components/credits/PendingPaymentCard";
 import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { Enter } from "@/components/lister/Enter";
 import { LButton } from "@/components/lister/Button";
@@ -12,13 +11,21 @@ import {
 } from "@/components/ui/Glass";
 import { CREDIT_BUNDLES } from "@/constants/bundles";
 import { Lister } from "@/constants/listerTheme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useCreatePurchase } from "@/features/credits/useCreatePurchase";
+import { useCredits } from "@/features/credits/useCredits";
+import { formatUsdFromCents } from "@/lib/format";
 import type { CreditTransaction, PaymentChannel } from "@/types/credits";
 
 export default function CreditsScreen() {
   const purchase = useCreatePurchase();
-  const [pending, setPending] = useState<CreditTransaction | null>(null);
+  const credits = useCredits();
+  const { refreshUser } = useAuthSession();
+  const [lastBuy, setLastBuy] = useState<CreditTransaction | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const postCredits = credits.data?.postCredits ?? 0;
+  const boostCredits = credits.data?.boostCredits ?? 0;
 
   function buy(
     bundleType: (typeof CREDIT_BUNDLES)[number]["type"],
@@ -28,9 +35,12 @@ export default function CreditsScreen() {
     purchase.mutate(
       { bundleType, channel },
       {
-        onSuccess: (tx) => setPending(tx),
+        onSuccess: async (tx) => {
+          setLastBuy(tx);
+          await refreshUser();
+        },
         onError: () =>
-          setError("Could not start purchase. Is the API running?"),
+          setError("Could not complete purchase. Is the API running?"),
       },
     );
   }
@@ -51,8 +61,11 @@ export default function CreditsScreen() {
                 First live listing is free
               </LText>
               <LText variant="body" tone="muted">
-                Extra live posts and 7-day boosts use credits. Buy a pack if you
-                already have a listing online.
+                Extra live posts and 7-day boosts use credits. Checkout grants
+                them immediately (demo gateway — not a cash slip).
+              </LText>
+              <LText variant="caption" tone="muted">
+                Balance: {postCredits} post · {boostCredits} boost
               </LText>
             </View>
           </GlassSurface>
@@ -98,12 +111,19 @@ export default function CreditsScreen() {
           </LText>
         ) : null}
 
-        {pending ? (
+        {lastBuy ? (
           <Enter delay={40}>
-            <LText variant="subtitle" style={styles.section}>
-              Next step
-            </LText>
-            <PendingPaymentCard transaction={pending} />
+            <GlassSurface intensity="soft" style={styles.success}>
+              <View style={styles.bannerInner}>
+                <LText variant="subtitle" tone="primary">
+                  Credits added
+                </LText>
+                <LText variant="body" tone="muted">
+                  {formatUsdFromCents(lastBuy.amountUsdCents)} via{" "}
+                  {lastBuy.channel.toUpperCase()}. Reference {lastBuy.referenceId}.
+                </LText>
+              </View>
+            </GlassSurface>
           </Enter>
         ) : null}
 
@@ -147,6 +167,11 @@ const styles = StyleSheet.create({
   bundleActions: { flexDirection: "row", gap: 8 },
   half: { flex: 1 },
   error: { marginTop: 8 },
+  success: {
+    borderRadius: Lister.radius.lg,
+    marginTop: 8,
+    overflow: "hidden",
+  },
   switchWrap: {
     marginTop: 24,
     alignItems: "flex-start",

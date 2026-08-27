@@ -2,8 +2,9 @@ import { H } from "../h";
 import { kindLabel, statusLabel, type TxKind, type TxStatus } from "./types";
 
 const STATUS_TONE: Record<TxStatus, { text: string; dot: string }> = {
-  success: { text: "text-moss", dot: "bg-moss" },
-  pending: { text: "text-ochre", dot: "bg-ochre" },
+  completed: { text: "text-moss", dot: "bg-moss" },
+  refunded: { text: "text-ochre", dot: "bg-ochre" },
+  disputed: { text: "text-ember", dot: "bg-ember" },
   failed: { text: "text-ember", dot: "bg-ember" },
 };
 

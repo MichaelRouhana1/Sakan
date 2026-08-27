@@ -1,7 +1,15 @@
-import { Archive, Check, Reply } from "lucide-react-native";
+import { Archive, ArchiveRestore, Check, MailOpen, Reply } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
-import type { FeedbackActionKind, FeedbackItem } from "./types";
+import {
+  canArchive,
+  canRead,
+  canReply,
+  canUnarchive,
+  canUnread,
+  type FeedbackActionKind,
+  type FeedbackItem,
+} from "./types";
 
 type Props = {
   item: FeedbackItem;
@@ -10,8 +18,8 @@ type Props = {
 };
 
 export function FeedbackActions({ item, compact, onAction }: Props) {
-  const unread = item.queue === "unread";
-  const archived = item.queue === "archived";
+  const btn = compact ? "px-2.5 py-1.5 text-xs" : "";
+  const icon = compact ? 14 : 16;
 
   return (
     <H
@@ -24,32 +32,55 @@ export function FeedbackActions({ item, compact, onAction }: Props) {
     >
       <NeuButton
         tone="moss"
+        disabled={!canReply(item)}
         ariaLabel="Reply to feedback"
-        className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+        className={btn}
         onClick={() => onAction("reply")}
       >
-        <Reply size={compact ? 14 : 16} strokeWidth={1.75} />
+        <Reply size={icon} strokeWidth={1.75} />
         {compact ? null : "Reply"}
       </NeuButton>
-      <NeuButton
-        disabled={!unread}
-        ariaLabel="Mark as read"
-        className={compact ? "px-2.5 py-1.5 text-xs" : ""}
-        onClick={() => onAction("read")}
-      >
-        <Check size={compact ? 14 : 16} strokeWidth={1.75} />
-        {compact ? null : "Mark as read"}
-      </NeuButton>
-      <NeuButton
-        tone="ochre"
-        disabled={archived}
-        ariaLabel="Archive feedback"
-        className={compact ? "px-2.5 py-1.5 text-xs" : ""}
-        onClick={() => onAction("archive")}
-      >
-        <Archive size={compact ? 14 : 16} strokeWidth={1.75} />
-        {compact ? null : "Archive"}
-      </NeuButton>
+      {canRead(item) ? (
+        <NeuButton
+          ariaLabel="Mark as read"
+          className={btn}
+          onClick={() => onAction("read")}
+        >
+          <Check size={icon} strokeWidth={1.75} />
+          {compact ? null : "Mark as read"}
+        </NeuButton>
+      ) : null}
+      {canUnread(item) ? (
+        <NeuButton
+          ariaLabel="Mark as unread"
+          className={btn}
+          onClick={() => onAction("unread")}
+        >
+          <MailOpen size={icon} strokeWidth={1.75} />
+          {compact ? null : "Mark unread"}
+        </NeuButton>
+      ) : null}
+      {canArchive(item) ? (
+        <NeuButton
+          tone="ochre"
+          ariaLabel="Archive feedback"
+          className={btn}
+          onClick={() => onAction("archive")}
+        >
+          <Archive size={icon} strokeWidth={1.75} />
+          {compact ? null : "Archive"}
+        </NeuButton>
+      ) : null}
+      {canUnarchive(item) ? (
+        <NeuButton
+          ariaLabel="Unarchive feedback"
+          className={btn}
+          onClick={() => onAction("unarchive")}
+        >
+          <ArchiveRestore size={icon} strokeWidth={1.75} />
+          {compact ? null : "Unarchive"}
+        </NeuButton>
+      ) : null}
     </H>
   );
 }

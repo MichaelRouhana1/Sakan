@@ -6,13 +6,20 @@ import {
   type ExpiredQueue,
 } from "./types";
 
-const QUEUE_TONE: Record<ExpiredQueue, { text: string; dot: string }> = {
+const QUEUE_TONE: Record<
+  Exclude<ExpiredQueue, "all">,
+  { text: string; dot: string }
+> = {
   recent: { text: "text-ochre", dot: "bg-ochre" },
   archived: { text: "text-clay-700", dot: "bg-clay-500" },
   pending_deletion: { text: "text-ember", dot: "bg-ember" },
 };
 
-export function ExpiredQueuePill({ queue }: { queue: ExpiredQueue }) {
+export function ExpiredQueuePill({
+  queue,
+}: {
+  queue: Exclude<ExpiredQueue, "all">;
+}) {
   const tone = QUEUE_TONE[queue];
   return (
     <H

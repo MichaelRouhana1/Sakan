@@ -70,7 +70,7 @@ export function CreateStepReview() {
             pathname: "/(poster)/listing/[id]",
             params: { id: listing.id },
           });
-        }, 900);
+        }, 400);
       },
       onError: (error) => {
         if (axios.isAxiosError(error)) {
@@ -165,7 +165,7 @@ export function CreateStepReview() {
         </View>
       ) : null}
       {published ? (
-        <LText variant="subtitle">Published</LText>
+        <LText variant="subtitle">Listing published successfully!</LText>
       ) : (
         <LButton
           label="Publish listing"

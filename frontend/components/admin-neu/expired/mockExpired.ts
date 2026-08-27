@@ -4,17 +4,23 @@ function photo(id: string, w = 900): string {
   return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
 }
 
+/**
+ * Seed for admin expired mock.
+ * Shared l-* IDs with Listings where possible (past-due, archived, removed).
+ */
 export const MOCK_EXPIRED: ExpiredAsset[] = [
   {
-    id: "e-01",
+    id: "l-01-expired-twin",
     title: "Bright 1BR above Barbar",
     listingType: "entire_apartment",
     area: "Hamra",
     monthlyRentUsd: 780,
     expiresAt: "2026-08-24T09:00:00.000Z",
+    listingStatus: "active",
     queue: "recent",
     nudgeCount: 0,
     nudgedAt: null,
+    lastNudgeMessage: null,
     poster: {
       id: "u-10",
       firstName: "Jad",
@@ -24,6 +30,7 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-01-1", url: photo("photo-1522708323590-d24dbb6b0267"), caption: "Living room" },
     ],
+    moderationHistory: [],
   },
   {
     id: "e-02",
@@ -32,9 +39,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Hamra",
     monthlyRentUsd: 620,
     expiresAt: "2026-08-23T11:30:00.000Z",
+    listingStatus: "active",
     queue: "recent",
     nudgeCount: 0,
     nudgedAt: null,
+    lastNudgeMessage: null,
     poster: {
       id: "u-06",
       firstName: "Hassan",
@@ -44,6 +53,7 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-02-1", url: photo("photo-1502672260266-1c1ef2d93688"), caption: "Studio" },
     ],
+    moderationHistory: [],
   },
   {
     id: "e-03",
@@ -52,9 +62,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Hamra",
     monthlyRentUsd: 390,
     expiresAt: "2026-08-21T08:00:00.000Z",
+    listingStatus: "active",
     queue: "recent",
     nudgeCount: 0,
     nudgedAt: null,
+    lastNudgeMessage: null,
     poster: {
       id: "u-07",
       firstName: "Rita",
@@ -64,6 +76,7 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-03-1", url: photo("photo-1493809842364-78817add7ffb"), caption: "Bedroom" },
     ],
+    moderationHistory: [],
   },
   {
     id: "e-04",
@@ -72,9 +85,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Ras Beirut",
     monthlyRentUsd: 260,
     expiresAt: "2026-08-19T10:00:00.000Z",
+    listingStatus: "active",
     queue: "recent",
     nudgeCount: 1,
     nudgedAt: "2026-08-22T09:10:00.000Z",
+    lastNudgeMessage: "Your listing expired — renew to stay on browse.",
     poster: {
       id: "u-02",
       firstName: "Karim",
@@ -84,17 +99,28 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-04-1", url: photo("photo-1555854877-bab0e564b8d5"), caption: "Foyer bunk" },
     ],
+    moderationHistory: [
+      {
+        id: "h-e04-1",
+        kind: "nudge",
+        note: "Your listing expired — renew to stay on browse.",
+        at: "2026-08-22T09:10:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
-    id: "e-05",
+    id: "l-10",
     title: "Affordable room in Dekwaneh",
     listingType: "private_room",
     area: "Dekwaneh",
     monthlyRentUsd: 320,
     expiresAt: "2026-08-18T13:00:00.000Z",
+    listingStatus: "active",
     queue: "recent",
     nudgeCount: 1,
     nudgedAt: "2026-08-20T16:40:00.000Z",
+    lastNudgeMessage: "Timer ran out. Renew with a post credit to go live again.",
     poster: {
       id: "u-02",
       firstName: "Karim",
@@ -104,17 +130,28 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-05-1", url: photo("photo-1595526114035-0d45ed16cfbf"), caption: "Room" },
     ],
+    moderationHistory: [
+      {
+        id: "h-l10-1",
+        kind: "nudge",
+        note: "Timer ran out. Renew with a post credit to go live again.",
+        at: "2026-08-20T16:40:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
-    id: "e-06",
+    id: "l-06",
     title: "Boys foyer near LAU Byblos",
     listingType: "shared_dorm_bed",
     area: "Byblos",
     monthlyRentUsd: 250,
     expiresAt: "2026-08-12T10:00:00.000Z",
-    queue: "archived",
+    listingStatus: "active",
+    queue: "recent",
     nudgeCount: 1,
     nudgedAt: "2026-08-14T08:20:00.000Z",
+    lastNudgeMessage: "Please renew — students still search Byblos.",
     poster: {
       id: "u-02",
       firstName: "Karim",
@@ -124,6 +161,15 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-06-1", url: photo("photo-1738168279272-c08d6dd22002"), caption: "Bed" },
     ],
+    moderationHistory: [
+      {
+        id: "h-l06-1",
+        kind: "nudge",
+        note: "Please renew — students still search Byblos.",
+        at: "2026-08-14T08:20:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
     id: "e-07",
@@ -132,9 +178,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Fanar",
     monthlyRentUsd: 480,
     expiresAt: "2026-08-08T06:00:00.000Z",
+    listingStatus: "archived",
     queue: "archived",
     nudgeCount: 2,
     nudgedAt: "2026-08-16T12:00:00.000Z",
+    lastNudgeMessage: "Second reminder before we keep this archived.",
     poster: {
       id: "u-10",
       firstName: "Jad",
@@ -144,17 +192,42 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-07-1", url: photo("photo-1631049307264-da0ec9d70304"), caption: "Studio" },
     ],
+    moderationHistory: [
+      {
+        id: "h-e07-1",
+        kind: "nudge",
+        note: "First renew reminder.",
+        at: "2026-08-10T09:00:00.000Z",
+        actor: "Ops",
+      },
+      {
+        id: "h-e07-2",
+        kind: "archive",
+        note: "No renew — archived off browse.",
+        at: "2026-08-12T10:00:00.000Z",
+        actor: "Ops",
+      },
+      {
+        id: "h-e07-3",
+        kind: "nudge",
+        note: "Second reminder before we keep this archived.",
+        at: "2026-08-16T12:00:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
-    id: "e-08",
+    id: "l-07",
     title: "Huvelin flat near USJ campus",
     listingType: "entire_apartment",
     area: "Achrafieh",
     monthlyRentUsd: 950,
     expiresAt: "2026-08-01T09:00:00.000Z",
+    listingStatus: "archived",
     queue: "archived",
     nudgeCount: 1,
     nudgedAt: "2026-08-04T11:15:00.000Z",
+    lastNudgeMessage: "Expired — renew if you still want renters.",
     poster: {
       id: "u-12",
       firstName: "Fadi",
@@ -164,6 +237,22 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-08-1", url: photo("photo-1613575831056-0acd5da8f085"), caption: "Living room" },
     ],
+    moderationHistory: [
+      {
+        id: "h-l07-1",
+        kind: "archive",
+        note: "Expired listing archived after no renew.",
+        at: "2026-08-02T10:00:00.000Z",
+        actor: "Ops",
+      },
+      {
+        id: "h-l07-2",
+        kind: "nudge",
+        note: "Expired — renew if you still want renters.",
+        at: "2026-08-04T11:15:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
     id: "e-09",
@@ -172,9 +261,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Mar Mikhael",
     monthlyRentUsd: 1100,
     expiresAt: "2026-07-30T15:00:00.000Z",
+    listingStatus: "archived",
     queue: "archived",
     nudgeCount: 0,
     nudgedAt: null,
+    lastNudgeMessage: null,
     poster: {
       id: "u-07",
       firstName: "Rita",
@@ -184,17 +275,28 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-09-1", url: photo("photo-1616486338812-3dadae4b4ace"), caption: "Loft" },
     ],
+    moderationHistory: [
+      {
+        id: "h-e09-1",
+        kind: "archive",
+        note: "Poster asked to keep offline.",
+        at: "2026-08-01T09:00:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
-    id: "e-10",
+    id: "l-11",
     title: "Catalog loft off Huvelin",
     listingType: "entire_apartment",
     area: "Achrafieh",
     monthlyRentUsd: 890,
     expiresAt: "2026-07-20T10:00:00.000Z",
+    listingStatus: "removed",
     queue: "pending_deletion",
     nudgeCount: 2,
     nudgedAt: "2026-08-01T09:00:00.000Z",
+    lastNudgeMessage: "Final notice before purge.",
     poster: {
       id: "u-04",
       firstName: "Elie",
@@ -204,6 +306,22 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-10-1", url: photo("photo-1560448204-e02f11c3d0e2"), caption: "Stock kitchen" },
     ],
+    moderationHistory: [
+      {
+        id: "h-l11-1",
+        kind: "queue_delete",
+        note: "Stock photos — stage for purge.",
+        at: "2026-07-28T10:00:00.000Z",
+        actor: "Ops",
+      },
+      {
+        id: "h-l11-2",
+        kind: "nudge",
+        note: "Final notice before purge.",
+        at: "2026-08-01T09:00:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
     id: "e-11",
@@ -212,9 +330,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Jnah",
     monthlyRentUsd: 410,
     expiresAt: "2026-07-05T08:30:00.000Z",
+    listingStatus: "removed",
     queue: "pending_deletion",
     nudgeCount: 1,
     nudgedAt: "2026-07-20T14:00:00.000Z",
+    lastNudgeMessage: "Last chance to renew before delete.",
     poster: {
       id: "u-02",
       firstName: "Karim",
@@ -224,6 +344,15 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     photos: [
       { id: "ep-11-1", url: photo("photo-1564078516393-cf04bd966897"), caption: "Room" },
     ],
+    moderationHistory: [
+      {
+        id: "h-e11-1",
+        kind: "queue_delete",
+        note: "No renew after two weeks.",
+        at: "2026-07-18T09:00:00.000Z",
+        actor: "Ops",
+      },
+    ],
   },
   {
     id: "e-12",
@@ -232,9 +361,11 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     area: "Ras El Nabeh",
     monthlyRentUsd: 700,
     expiresAt: "2026-06-28T12:00:00.000Z",
+    listingStatus: "removed",
     queue: "pending_deletion",
     nudgeCount: 1,
     nudgedAt: "2026-07-08T10:45:00.000Z",
+    lastNudgeMessage: null,
     poster: {
       id: "u-06",
       firstName: "Hassan",
@@ -243,6 +374,15 @@ export const MOCK_EXPIRED: ExpiredAsset[] = [
     },
     photos: [
       { id: "ep-12-1", url: photo("photo-1665249934445-1de680641f50"), caption: "Kitchen" },
+    ],
+    moderationHistory: [
+      {
+        id: "h-e12-1",
+        kind: "queue_delete",
+        note: "Dead inventory — ready to purge.",
+        at: "2026-07-10T11:00:00.000Z",
+        actor: "Ops",
+      },
     ],
   },
 ];

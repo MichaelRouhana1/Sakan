@@ -1,21 +1,33 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
 import { UserDetailDrawer } from "./UserDetailDrawer";
 import { UserModerationDialog } from "./UserModerationDialog";
 import { UsersTable } from "./UsersTable";
-import { UsersToolbar } from "./UsersToolbar";
+import { UsersToolbar, type RoleFilter } from "./UsersToolbar";
 import { MOCK_USERS } from "./mockUsers";
 import {
   displayName,
   type AccountStatus,
+  type AdminUser,
   type ModerationKind,
-  type UserRole,
 } from "./types";
 
+function needsReview(user: AdminUser): boolean {
+  return user.accountStatus !== "active" || user.history.length > 0;
+}
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value) && value[0]?.trim()) return value[0].trim();
+  return null;
+}
+
 export function UsersPage() {
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
   const [users, setUsers] = useState(MOCK_USERS);
-  const [role, setRole] = useState<UserRole>("renter");
+  const [role, setRole] = useState<RoleFilter>("all");
+  const [reviewOnly, setReviewOnly] = useState(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -25,23 +37,37 @@ export function UsersPage() {
   } | null>(null);
   const [note, setNote] = useState("");
 
+  useEffect(() => {
+    const deepId = firstParam(params.id);
+    if (!deepId) return;
+    const match = MOCK_USERS.find((user) => user.id === deepId);
+    if (!match) return;
+    setSelectedId(match.id);
+    if (match.role === "renter" || match.role === "poster") {
+      setRole(match.role);
+    }
+  }, [params.id]);
+
+  const allCount = users.length;
   const renterCount = users.filter((user) => user.role === "renter").length;
   const posterCount = users.filter((user) => user.role === "poster").length;
-  const reviewCount = users.filter(
-    (user) =>
-      user.role === role &&
-      (user.accountStatus !== "active" || user.history.length > 0),
-  ).length;
+
+  const roleScoped = useMemo(() => {
+    if (role === "all") return users;
+    return users.filter((user) => user.role === role);
+  }, [users, role]);
+
+  const reviewCount = roleScoped.filter(needsReview).length;
 
   const visible = useMemo(() => {
     const needle = deferredQuery.trim().toLowerCase();
-    return users.filter((user) => {
-      if (user.role !== role) return false;
+    return roleScoped.filter((user) => {
+      if (reviewOnly && !needsReview(user)) return false;
       if (!needle) return true;
       const hay = `${displayName(user)} ${user.email}`.toLowerCase();
       return hay.includes(needle);
     });
-  }, [users, role, deferredQuery]);
+  }, [roleScoped, reviewOnly, deferredQuery]);
 
   const selected = users.find((user) => user.id === selectedId) ?? null;
   const pendingUser = users.find((user) => user.id === pending?.userId) ?? null;
@@ -61,8 +87,7 @@ export function UsersPage() {
         return {
           ...user,
           accountStatus: nextStatus,
-          activeListingCount:
-            kind === "ban" ? 0 : user.activeListingCount,
+          activeListingCount: kind === "ban" ? 0 : user.activeListingCount,
           history: [
             ...user.history,
             {
@@ -82,7 +107,10 @@ export function UsersPage() {
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
       <H className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <H>
-          <H as="h1" className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
+          <H
+            as="h1"
+            className="font-display text-3xl font-semibold tracking-tight md:text-4xl"
+          >
             Users
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
@@ -98,19 +126,18 @@ export function UsersPage() {
         </H>
       </H>
 
-      <H className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Kpi label={role === "renter" ? "Renters shown" : "Posters shown"} value={String(visible.length)} />
-        <Kpi label="Needs review" value={String(reviewCount)} />
-        <Kpi label="Roster" value={String(role === "renter" ? renterCount : posterCount)} />
-      </H>
-
       <UsersToolbar
         query={query}
         onQuery={setQuery}
         role={role}
         onRole={setRole}
+        allCount={allCount}
         renterCount={renterCount}
         posterCount={posterCount}
+        reviewCount={reviewCount}
+        needsReview={reviewOnly}
+        onNeedsReview={setReviewOnly}
+        resultCount={visible.length}
       />
 
       <UsersTable
@@ -147,18 +174,5 @@ export function UsersPage() {
         }}
       />
     </H>
-  );
-}
-
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <NeuSurface inset className="px-4 py-4">
-      <H as="p" className="text-xs font-medium text-clay-700">
-        {label}
-      </H>
-      <H as="p" className="mt-1 font-display text-2xl font-semibold text-clay-900">
-        {value}
-      </H>
-    </NeuSurface>
   );
 }

@@ -1,12 +1,14 @@
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import {
   awardedCredits,
   bonusCredits,
   formatLbp,
   formatUsd,
   lbpQuote,
+  skuChip,
   usdPerCredit,
+  type CatalogType,
   type CreditPackage,
   type PricingEngine,
 } from "./types";
@@ -14,7 +16,7 @@ import {
 type Props = {
   packages: CreditPackage[];
   engine: PricingEngine;
-  onPackage: (id: CreditPackage["id"], patch: Partial<CreditPackage>) => void;
+  onPackage: (id: CatalogType, patch: Partial<CreditPackage>) => void;
 };
 
 export function PackageCards({ packages, engine, onPackage }: Props) {
@@ -50,15 +52,16 @@ function PackageCard({
   const off = list > 0 ? Math.max(0, (1 - pack.priceUsd / list) * 100) : 0;
 
   return (
-    <NeuSurface className="flex flex-col p-5">
+    <NeuSurface
+      className={[
+        "flex flex-col p-5",
+        pack.active ? "" : "opacity-60",
+      ].join(" ")}
+    >
       <H className="flex items-start justify-between gap-3">
         <H>
           <H as="p" className="font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-moss">
-            {pack.catalogType === "starter"
-              ? "Starter SKU"
-              : pack.catalogType === "bundle_5"
-                ? "Volume SKU"
-                : "Broker SKU"}
+            {skuChip(pack.id)}
           </H>
           <H as="h3" className="mt-1 font-display text-2xl font-semibold text-clay-900">
             {pack.name}
@@ -77,6 +80,15 @@ function PackageCard({
       <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
         {pack.tagline}
       </H>
+
+      {!pack.active ? (
+        <H
+          as="p"
+          className="mt-2 text-xs font-semibold uppercase tracking-wide text-ember"
+        >
+          Off sale
+        </H>
+      ) : null}
 
       <H className="mt-4 rounded-neu-md bg-clay-100 px-4 py-3 shadow-neu-in-sm">
         <H className="flex items-baseline justify-between gap-2">
@@ -120,6 +132,23 @@ function PackageCard({
           }
           onChange={(bonusPct) => onPatch({ bonusPct })}
         />
+      </H>
+
+      <H className="mt-5 flex flex-wrap gap-2">
+        <NeuButton
+          inset={!pack.active}
+          tone={pack.active ? "moss" : "plain"}
+          onClick={() => onPatch({ active: !pack.active })}
+        >
+          {pack.active ? "On sale" : "Off sale"}
+        </NeuButton>
+        <NeuButton
+          inset={!pack.featured}
+          tone={pack.featured ? "moss" : "plain"}
+          onClick={() => onPatch({ featured: !pack.featured })}
+        >
+          Most bought
+        </NeuButton>
       </H>
     </NeuSurface>
   );

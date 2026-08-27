@@ -1,102 +1,56 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { H } from "../h";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { ExpiredActionDialog } from "./ExpiredActionDialog";
+import { ExpiredDetailDrawer } from "./ExpiredDetailDrawer";
 import { ExpiredKpis, buildExpiredKpis } from "./ExpiredKpis";
 import { ExpiredTable } from "./ExpiredTable";
 import { ExpiredToolbar } from "./ExpiredToolbar";
-import { MOCK_EXPIRED } from "./mockExpired";
-import {
-  ANCHOR_ISO,
-  actionLabel,
-  formatPct,
-  posterName,
-  reactivationRate,
-  type ExpiredActionKind,
-  type ExpiredQueue,
-} from "./types";
+import { useAdminExpired } from "./useAdminExpired";
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value) && value[0]?.trim()) return value[0].trim();
+  return null;
+}
 
 export function ExpiredPage() {
-  const [assets, setAssets] = useState(MOCK_EXPIRED);
-  const [queue, setQueue] = useState<ExpiredQueue>("recent");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [pending, setPending] = useState<{
-    assetId: string;
-    kind: ExpiredActionKind;
-  } | null>(null);
-  const [note, setNote] = useState("");
-  const [flash, setFlash] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const state = useAdminExpired();
 
-  const counts = useMemo(
-    () => ({
-      recent: assets.filter((row) => row.queue === "recent").length,
-      archived: assets.filter((row) => row.queue === "archived").length,
-      pending_deletion: assets.filter((row) => row.queue === "pending_deletion")
-        .length,
-    }),
-    [assets],
-  );
-
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return assets
-      .filter((row) => row.queue === queue)
-      .filter((row) => {
-        if (!needle) return true;
-        const hay =
-          `${row.title} ${row.area} ${posterName(row)} ${row.poster.email}`.toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.expiresAt < b.expiresAt ? -1 : 1));
-  }, [assets, queue, deferredQuery]);
-
-  const pendingAsset = assets.find((row) => row.id === pending?.assetId) ?? null;
+  useEffect(() => {
+    const deepId = firstParam(params.id);
+    if (!deepId) return;
+    state.setQueue("all");
+    state.setQuery("");
+    state.setSelectedId(deepId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link once per param
+  }, [params.id]);
 
   const kpis = useMemo(
     () =>
       buildExpiredKpis({
-        total: assets.length,
-        pending: counts.pending_deletion,
-        rate: formatPct(reactivationRate(assets)),
+        total: state.counts.all,
+        recent: state.counts.recent,
+        pending: state.counts.pending_deletion,
+        nudged: state.nudgedCount,
+        renewedSession: state.renewedSession,
+        onPage: state.items.length,
       }),
-    [assets, counts.pending_deletion],
+    [
+      state.counts.all,
+      state.counts.recent,
+      state.counts.pending_deletion,
+      state.nudgedCount,
+      state.renewedSession,
+      state.items.length,
+    ],
   );
 
-  function applyAction(assetId: string, kind: ExpiredActionKind) {
-    const target = assets.find((row) => row.id === assetId);
-    if (!target) return;
-
-    if (kind === "remove" && target.queue === "pending_deletion") {
-      setAssets((current) => current.filter((row) => row.id !== assetId));
-      setFlash(`${actionLabel(kind)}: ${target.title}.`);
-      return;
-    }
-
-    setAssets((current) =>
-      current.map((row) => {
-        if (row.id !== assetId) return row;
-        if (kind === "nudge") {
-          return {
-            ...row,
-            nudgeCount: row.nudgeCount + 1,
-            nudgedAt: ANCHOR_ISO,
-          };
-        }
-        if (kind === "archive") {
-          return { ...row, queue: "archived" };
-        }
-        return { ...row, queue: "pending_deletion" };
-      }),
-    );
-
-    if (kind === "nudge") {
-      setFlash(`${actionLabel(kind)} to ${posterName(target)}.`);
-    } else if (kind === "archive") {
-      setFlash(`${actionLabel(kind)}: ${target.title}.`);
-    } else {
-      setFlash(`Moved to pending deletion: ${target.title}.`);
-    }
-  }
+  const pendingKind = state.pending?.kind ?? null;
+  const bulkCount =
+    state.pending?.mode === "bulk" ? state.pending.assetIds.length : undefined;
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -115,60 +69,140 @@ export function ExpiredPage() {
             Expired Assets
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
-            Track listings past the 30-day timer. Nudge posters to renew, keep
-            the archive, or purge dead inventory.
+            Track listings past the 30-day timer. Nudge posters to renew, archive,
+            or purge dead inventory.
           </H>
         </H>
         <H
           as="span"
           className="inline-flex w-fit rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
         >
-          Demo data
+          Demo data · API-ready
         </H>
       </H>
 
       <ExpiredKpis items={kpis} />
 
       <ExpiredToolbar
-        query={query}
-        onQuery={setQuery}
-        queue={queue}
-        onQueue={setQueue}
-        counts={counts}
+        query={state.query}
+        onQuery={state.setQuery}
+        queue={state.queue}
+        onQueue={state.setQueue}
+        counts={state.counts}
+        sort={state.sort}
+        onSort={state.setSort}
+        pageSize={state.pageSize}
+        onPageSize={state.setPageSize}
       />
 
-      {flash ? (
+      {state.flash ? (
         <H
           as="p"
           role="status"
           aria-live="polite"
           className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
         >
-          {flash}
+          {state.flash}
         </H>
       ) : null}
 
-      <ExpiredTable
-        assets={visible}
-        queue={queue}
-        onAction={(asset, kind) => {
-          setPending({ assetId: asset.id, kind });
-          setNote("");
+      {state.selectedIds.size > 0 ? (
+        <NeuSurface className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <H as="p" className="text-sm font-medium text-clay-900">
+            {state.selectedIds.size} selected
+          </H>
+          <H className="flex flex-wrap gap-2">
+            <NeuButton
+              tone="moss"
+              className="text-xs"
+              onClick={() => state.requestBulk("nudge")}
+            >
+              Nudge
+            </NeuButton>
+            <NeuButton
+              tone="ochre"
+              className="text-xs"
+              onClick={() => state.requestBulk("archive")}
+            >
+              Archive
+            </NeuButton>
+            <NeuButton
+              tone="ember"
+              className="text-xs"
+              onClick={() => state.requestBulk("queue_delete")}
+            >
+              Queue for deletion
+            </NeuButton>
+            <NeuButton
+              tone="ember"
+              className="text-xs"
+              onClick={() => state.requestBulk("purge")}
+            >
+              Purge
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading expired assets…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load expired assets
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" ? (
+        <ExpiredTable
+          assets={state.items}
+          queue={state.queue}
+          selectedId={state.selectedId}
+          selectedIds={state.selectedIds}
+          highlightId={firstParam(params.id)}
+          hasQuery={state.hasQuery}
+          page={state.page}
+          pageCount={state.pageCount}
+          total={state.total}
+          onPage={state.setPage}
+          onSelect={(asset) => state.setSelectedId(asset.id)}
+          onToggleSelect={state.toggleSelect}
+          onToggleSelectAll={state.toggleSelectAllVisible}
+          onAction={state.requestAction}
+        />
+      ) : null}
+
+      <ExpiredDetailDrawer
+        asset={state.selected}
+        onClose={() => state.setSelectedId(null)}
+        onAction={(kind) => {
+          if (!state.selected) return;
+          state.requestAction(state.selected, kind);
         }}
       />
 
       <ExpiredActionDialog
-        kind={pending?.kind ?? null}
-        asset={pendingAsset}
-        note={note}
-        onNote={setNote}
-        onCancel={() => setPending(null)}
-        onConfirm={() => {
-          if (!pending) return;
-          applyAction(pending.assetId, pending.kind);
-          setPending(null);
-          setNote("");
-        }}
+        kind={pendingKind}
+        asset={state.pendingAsset}
+        bulkCount={bulkCount}
+        note={state.note}
+        onNote={state.setNote}
+        onCancel={state.cancelPending}
+        onConfirm={() => void state.confirmPending()}
+        busy={state.busy}
       />
     </H>
   );

@@ -1,7 +1,17 @@
-import type { AdminReport } from "./types";
+import type { AdminReport, ModerationHistoryEntry, ReportPoster } from "./types";
 
 function photo(id: string, w = 800): string {
   return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70`;
+}
+
+function hist(
+  id: string,
+  kind: ModerationHistoryEntry["kind"],
+  note: string,
+  at: string,
+  actor: string,
+): ModerationHistoryEntry {
+  return { id, kind, note, at, actor };
 }
 
 const L = {
@@ -13,8 +23,16 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1689043528099-2ba014dd7c64"),
     photos: [
-      { id: "p-03-1", url: photo("photo-1689043528099-2ba014dd7c64"), caption: "Dorm bunks" },
-      { id: "p-03-2", url: photo("photo-1555854877-bab0e564b8d5"), caption: "Corridor" },
+      {
+        id: "p-03-1",
+        url: photo("photo-1689043528099-2ba014dd7c64"),
+        caption: "Dorm bunks",
+      },
+      {
+        id: "p-03-2",
+        url: photo("photo-1555854877-bab0e564b8d5"),
+        caption: "Corridor",
+      },
     ],
   },
   souk: {
@@ -25,8 +43,16 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1606074280798-2dabb75ce10c"),
     photos: [
-      { id: "p-05-1", url: photo("photo-1606074280798-2dabb75ce10c"), caption: "Studio interior" },
-      { id: "p-05-2", url: photo("photo-1675279200694-8529c73b1fd0"), caption: "Kitchenette" },
+      {
+        id: "p-05-1",
+        url: photo("photo-1606074280798-2dabb75ce10c"),
+        caption: "Studio interior",
+      },
+      {
+        id: "p-05-2",
+        url: photo("photo-1675279200694-8529c73b1fd0"),
+        caption: "Kitchenette",
+      },
     ],
   },
   fanar: {
@@ -37,7 +63,11 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1631049307264-da0ec9d70304"),
     photos: [
-      { id: "p-09-1", url: photo("photo-1631049307264-da0ec9d70304"), caption: "Studio" },
+      {
+        id: "p-09-1",
+        url: photo("photo-1631049307264-da0ec9d70304"),
+        caption: "Studio",
+      },
     ],
   },
   bliss: {
@@ -48,7 +78,11 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1522708323590-d24dbb6b0267"),
     photos: [
-      { id: "p-01-1", url: photo("photo-1522708323590-d24dbb6b0267"), caption: "Living room facing Bliss" },
+      {
+        id: "p-01-1",
+        url: photo("photo-1522708323590-d24dbb6b0267"),
+        caption: "Living room facing Bliss",
+      },
     ],
   },
   hamra: {
@@ -59,7 +93,11 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1560448204-e02f11c3d0e2"),
     photos: [
-      { id: "p-04-1", url: photo("photo-1560448204-e02f11c3d0e2"), caption: "Living room" },
+      {
+        id: "p-04-1",
+        url: photo("photo-1560448204-e02f11c3d0e2"),
+        caption: "Living room",
+      },
     ],
   },
   quiet: {
@@ -70,7 +108,11 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1493809842364-78817add7ffb"),
     photos: [
-      { id: "p-02-1", url: photo("photo-1493809842364-78817add7ffb"), caption: "Bedroom" },
+      {
+        id: "p-02-1",
+        url: photo("photo-1493809842364-78817add7ffb"),
+        caption: "Bedroom",
+      },
     ],
   },
   loft: {
@@ -81,7 +123,11 @@ const L = {
     status: "removed" as const,
     coverUrl: photo("photo-1613575831056-0acd5da8f085"),
     photos: [
-      { id: "p-11-1", url: photo("photo-1613575831056-0acd5da8f085"), caption: "Stock living room" },
+      {
+        id: "p-11-1",
+        url: photo("photo-1613575831056-0acd5da8f085"),
+        caption: "Stock living room",
+      },
     ],
   },
   dekwaneh: {
@@ -92,7 +138,11 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1595526114035-0d45ed16cfbf"),
     photos: [
-      { id: "p-10-1", url: photo("photo-1595526114035-0d45ed16cfbf"), caption: "Room" },
+      {
+        id: "p-10-1",
+        url: photo("photo-1595526114035-0d45ed16cfbf"),
+        caption: "Room",
+      },
     ],
   },
   huvelin: {
@@ -103,7 +153,11 @@ const L = {
     status: "archived" as const,
     coverUrl: photo("photo-1613575831056-0acd5da8f085"),
     photos: [
-      { id: "p-07-1", url: photo("photo-1613575831056-0acd5da8f085"), caption: "Living room" },
+      {
+        id: "p-07-1",
+        url: photo("photo-1613575831056-0acd5da8f085"),
+        caption: "Living room",
+      },
     ],
   },
   sassine: {
@@ -114,56 +168,70 @@ const L = {
     status: "active" as const,
     coverUrl: photo("photo-1564078516393-cf04bd966897"),
     photos: [
-      { id: "p-08-1", url: photo("photo-1564078516393-cf04bd966897"), caption: "Room" },
+      {
+        id: "p-08-1",
+        url: photo("photo-1564078516393-cf04bd966897"),
+        caption: "Room",
+      },
     ],
   },
 };
 
-const P = {
+const P: Record<string, ReportPoster> = {
   hassan: {
     id: "u-06",
     firstName: "Hassan",
     lastName: "Fares",
     email: "hassan.fares@skoun.dev",
-    accountStatus: "restricted" as const,
+    accountStatus: "restricted",
+    warningCount: 1,
   },
   jad: {
     id: "u-10",
     firstName: "Jad",
     lastName: "Karam",
     email: "jad.karam@hotmail.com",
-    accountStatus: "active" as const,
+    accountStatus: "active",
+    warningCount: 0,
   },
   karim: {
     id: "u-02",
     firstName: "Karim",
     lastName: "Mansour",
     email: "karim.mansour@gmail.com",
-    accountStatus: "active" as const,
+    accountStatus: "active",
+    warningCount: 1,
   },
   fadi: {
     id: "u-12",
     firstName: "Fadi",
     lastName: "Abou Jaoude",
     email: "fadi.aj@gmail.com",
-    accountStatus: "active" as const,
+    accountStatus: "active",
+    warningCount: 0,
   },
   rita: {
     id: "u-07",
     firstName: "Rita",
     lastName: "Bazzi",
     email: "rita.bazzi@gmail.com",
-    accountStatus: "active" as const,
+    accountStatus: "active",
+    warningCount: 0,
   },
   elie: {
     id: "u-04",
     firstName: "Elie",
     lastName: "Saad",
     email: "elie.saad@outlook.com",
-    accountStatus: "banned" as const,
+    accountStatus: "banned",
+    warningCount: 2,
   },
 };
 
+/**
+ * Shared listing IDs with Listings/Expired (l-01…l-11).
+ * Multi-ticket demo: foyer l-03 → rp-01 + rp-06.
+ */
 export const MOCK_REPORTS: AdminReport[] = [
   {
     id: "rp-01",
@@ -173,6 +241,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: null,
     reviewer: null,
     note: null,
+    reporterNote: "Photos look stock. Friends say nobody lives there.",
     reporter: {
       id: "u-01",
       firstName: "Nour",
@@ -182,6 +251,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.foyer,
     poster: P.hassan,
+    moderationHistory: [],
   },
   {
     id: "rp-02",
@@ -191,6 +261,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: null,
     reviewer: null,
     note: null,
+    reporterNote: "Ad says 24/7 generator. Building cuts at 10pm.",
     reporter: {
       id: "u-09",
       firstName: "Layal",
@@ -200,6 +271,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.souk,
     poster: P.jad,
+    moderationHistory: [],
   },
   {
     id: "rp-03",
@@ -209,6 +281,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: null,
     reviewer: null,
     note: null,
+    reporterNote: "Poster said unit taken when I messaged.",
     reporter: {
       id: "u-05",
       firstName: "Sara",
@@ -218,6 +291,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.fanar,
     poster: P.jad,
+    moderationHistory: [],
   },
   {
     id: "rp-04",
@@ -227,6 +301,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: null,
     reviewer: null,
     note: null,
+    reporterNote: "Same photos as another Bliss listing last semester.",
     reporter: {
       id: "u-11",
       firstName: "Tala",
@@ -236,6 +311,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.bliss,
     poster: P.karim,
+    moderationHistory: [],
   },
   {
     id: "rp-05",
@@ -245,6 +321,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-25T10:02:00.000Z",
     reviewer: "You",
     note: null,
+    reporterNote: "WhatsApp reply: already have a tenant.",
     reporter: {
       id: "u-03",
       firstName: "Maya",
@@ -254,6 +331,15 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.quiet,
     poster: P.rita,
+    moderationHistory: [
+      hist(
+        "h-05-1",
+        "claim",
+        "Picked up for review",
+        "2026-08-25T10:02:00.000Z",
+        "You",
+      ),
+    ],
   },
   {
     id: "rp-06",
@@ -263,6 +349,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-25T11:15:00.000Z",
     reviewer: "Lina A.",
     note: null,
+    reporterNote: "Address does not match the foyer entrance.",
     reporter: {
       id: "u-09",
       firstName: "Layal",
@@ -272,6 +359,15 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.foyer,
     poster: P.hassan,
+    moderationHistory: [
+      hist(
+        "h-06-1",
+        "claim",
+        "Claimed while checking sibling fake report",
+        "2026-08-25T11:15:00.000Z",
+        "Lina A.",
+      ),
+    ],
   },
   {
     id: "rp-07",
@@ -281,6 +377,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-01T09:41:00.000Z",
     reviewer: "Rami K.",
     note: "Catalog photos. Listing taken down with poster ban.",
+    reporterNote: "Reverse image search hits furniture catalogs.",
     reporter: {
       id: "u-08",
       firstName: "Omar",
@@ -290,6 +387,29 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.loft,
     poster: P.elie,
+    moderationHistory: [
+      hist(
+        "h-07-1",
+        "claim",
+        "Claimed after Trust flag",
+        "2026-07-30T10:00:00.000Z",
+        "Rami K.",
+      ),
+      hist(
+        "h-07-2",
+        "remove",
+        "Catalog photos. Listing taken down with poster ban.",
+        "2026-08-01T09:40:00.000Z",
+        "Rami K.",
+      ),
+      hist(
+        "h-07-3",
+        "ban",
+        "Repeat fake inventory.",
+        "2026-08-01T09:41:00.000Z",
+        "Rami K.",
+      ),
+    ],
   },
   {
     id: "rp-08",
@@ -299,6 +419,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-19T13:05:00.000Z",
     reviewer: "Lina A.",
     note: "Poster confirmed tenant already in. Warning issued.",
+    reporterNote: "Visited — current tenant answered the door.",
     reporter: {
       id: "u-05",
       firstName: "Sara",
@@ -308,6 +429,15 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.dekwaneh,
     poster: P.karim,
+    moderationHistory: [
+      hist(
+        "h-08-1",
+        "warn",
+        "Poster confirmed tenant already in. Warning issued.",
+        "2026-08-19T13:05:00.000Z",
+        "Lina A.",
+      ),
+    ],
   },
   {
     id: "rp-09",
@@ -317,6 +447,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-01T09:00:00.000Z",
     reviewer: "Rami K.",
     note: "Generator hours did not match copy. Archived on expiry.",
+    reporterNote: "Electricity schedule wrong by several hours.",
     reporter: {
       id: "u-01",
       firstName: "Nour",
@@ -326,6 +457,15 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.huvelin,
     poster: P.fadi,
+    moderationHistory: [
+      hist(
+        "h-09-1",
+        "warn",
+        "Generator hours did not match copy. Archived on expiry.",
+        "2026-08-01T09:00:00.000Z",
+        "Rami K.",
+      ),
+    ],
   },
   {
     id: "rp-10",
@@ -335,6 +475,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-17T11:20:00.000Z",
     reviewer: "Lina A.",
     note: "Photos match a prior verified visit. Report closed.",
+    reporterNote: "Looks too polished for the rent.",
     reporter: {
       id: "u-11",
       firstName: "Tala",
@@ -344,6 +485,15 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.hamra,
     poster: P.fadi,
+    moderationHistory: [
+      hist(
+        "h-10-1",
+        "dismiss",
+        "Photos match a prior verified visit. Report closed.",
+        "2026-08-17T11:20:00.000Z",
+        "Lina A.",
+      ),
+    ],
   },
   {
     id: "rp-11",
@@ -353,6 +503,7 @@ export const MOCK_REPORTS: AdminReport[] = [
     reviewedAt: "2026-08-20T09:10:00.000Z",
     reviewer: "Rami K.",
     note: "Poster still showing the room. Renter had the wrong unit.",
+    reporterNote: "Thought it was already taken after a tour mix-up.",
     reporter: {
       id: "u-01",
       firstName: "Nour",
@@ -362,5 +513,14 @@ export const MOCK_REPORTS: AdminReport[] = [
     },
     listing: L.sassine,
     poster: P.rita,
+    moderationHistory: [
+      hist(
+        "h-11-1",
+        "dismiss",
+        "Poster still showing the room. Renter had the wrong unit.",
+        "2026-08-20T09:10:00.000Z",
+        "Rami K.",
+      ),
+    ],
   },
 ];

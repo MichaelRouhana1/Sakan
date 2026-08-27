@@ -1,16 +1,26 @@
-import { Megaphone, ScanSearch, TriangleAlert } from "lucide-react-native";
+import { Check, CircleOff, Megaphone, ScanSearch, TriangleAlert } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
-import type { ScamAlert, TrustActionKind } from "./types";
+import {
+  canClear,
+  canRestrict,
+  canReview,
+  canWarn,
+  type AlertActionKind,
+  type ScamAlert,
+} from "./types";
 
 type Props = {
   alert: ScamAlert;
   compact?: boolean;
-  onAction: (kind: Extract<TrustActionKind, "warn" | "restrict" | "review">) => void;
+  onAction: (kind: AlertActionKind) => void;
 };
 
 export function AlertActions({ alert, compact, onAction }: Props) {
-  const settled = alert.status === "suspended" || alert.status === "cleared";
+  const warn = canWarn(alert);
+  const restrict = canRestrict(alert);
+  const review = canReview(alert);
+  const clear = canClear(alert);
   const iconBtn = compact ? "h-9 w-9 shrink-0 px-0 py-0" : "";
 
   return (
@@ -20,7 +30,7 @@ export function AlertActions({ alert, compact, onAction }: Props) {
     >
       <NeuButton
         tone="ochre"
-        disabled={settled}
+        disabled={!warn}
         ariaLabel="Warn accounts"
         className={iconBtn}
         onClick={() => onAction("warn")}
@@ -30,7 +40,7 @@ export function AlertActions({ alert, compact, onAction }: Props) {
       </NeuButton>
       <NeuButton
         tone="ember"
-        disabled={settled}
+        disabled={!restrict}
         ariaLabel="Suspend accounts"
         className={iconBtn}
         onClick={() => onAction("restrict")}
@@ -40,13 +50,26 @@ export function AlertActions({ alert, compact, onAction }: Props) {
       </NeuButton>
       <NeuButton
         tone="moss"
-        disabled={settled || alert.status === "reviewing"}
+        disabled={!review}
         ariaLabel="Start manual review"
         className={iconBtn}
         onClick={() => onAction("review")}
       >
         <ScanSearch size={compact ? 14 : 16} strokeWidth={1.75} />
         {compact ? null : "Review"}
+      </NeuButton>
+      <NeuButton
+        disabled={!clear}
+        ariaLabel="Clear alert"
+        className={iconBtn}
+        onClick={() => onAction("clear")}
+      >
+        {clear ? (
+          <Check size={compact ? 14 : 16} strokeWidth={1.75} />
+        ) : (
+          <CircleOff size={compact ? 14 : 16} strokeWidth={1.75} />
+        )}
+        {compact ? null : "Clear"}
       </NeuButton>
     </H>
   );

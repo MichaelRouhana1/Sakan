@@ -1,9 +1,14 @@
-import { Archive, Bell, Trash2 } from "lucide-react-native";
+import { Archive, Bell, RotateCcw, Trash2 } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
 import {
+  archiveButtonLabel,
   canArchive,
   canNudge,
+  canPurge,
+  canQueueDelete,
+  canRenew,
+  nudgeBlockedReason,
   type ExpiredActionKind,
   type ExpiredAsset,
 } from "./types";
@@ -17,21 +22,36 @@ type Props = {
 export function ExpiredActions({ asset, compact, onAction }: Props) {
   const nudgeOk = canNudge(asset);
   const archiveOk = canArchive(asset);
+  const queueDeleteOk = canQueueDelete(asset);
+  const purgeOk = canPurge(asset);
+  const renewOk = canRenew(asset);
   const icon = compact ? 14 : 16;
+  const nudgeReason = nudgeBlockedReason(asset);
 
   return (
     <H
       className={
         compact
-          ? "flex items-center justify-end gap-1.5"
+          ? "flex flex-wrap items-center justify-end gap-1.5"
           : "flex flex-wrap gap-2"
       }
       onClick={(event: { stopPropagation: () => void }) => event.stopPropagation()}
     >
+      {renewOk ? (
+        <NeuButton
+          tone="moss"
+          ariaLabel="Mark listing renewed"
+          className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          onClick={() => onAction("renew")}
+        >
+          <RotateCcw size={icon} strokeWidth={1.75} />
+          {compact ? null : "Mark renewed"}
+        </NeuButton>
+      ) : null}
       <NeuButton
         tone="moss"
         disabled={!nudgeOk}
-        ariaLabel="Send reactivation nudge"
+        ariaLabel={nudgeReason ?? "Send reactivation nudge"}
         className={compact ? "px-2.5 py-1.5 text-xs" : ""}
         onClick={() => onAction("nudge")}
       >
@@ -41,22 +61,35 @@ export function ExpiredActions({ asset, compact, onAction }: Props) {
       <NeuButton
         tone="ochre"
         disabled={!archiveOk}
-        ariaLabel="Keep archived"
+        ariaLabel={archiveButtonLabel(asset)}
         className={compact ? "px-2.5 py-1.5 text-xs" : ""}
         onClick={() => onAction("archive")}
       >
         <Archive size={icon} strokeWidth={1.75} />
-        {compact ? null : "Keep archived"}
+        {compact ? null : archiveButtonLabel(asset)}
       </NeuButton>
-      <NeuButton
-        tone="ember"
-        ariaLabel="Permanently delete"
-        className={compact ? "px-2.5 py-1.5 text-xs" : ""}
-        onClick={() => onAction("remove")}
-      >
-        <Trash2 size={icon} strokeWidth={1.75} />
-        {compact ? null : "Permanently delete"}
-      </NeuButton>
+      {queueDeleteOk ? (
+        <NeuButton
+          tone="ember"
+          ariaLabel="Queue for permanent deletion"
+          className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          onClick={() => onAction("queue_delete")}
+        >
+          <Trash2 size={icon} strokeWidth={1.75} />
+          {compact ? null : "Queue for deletion"}
+        </NeuButton>
+      ) : null}
+      {purgeOk ? (
+        <NeuButton
+          tone="ember"
+          ariaLabel="Permanently delete"
+          className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          onClick={() => onAction("purge")}
+        >
+          <Trash2 size={icon} strokeWidth={1.75} />
+          {compact ? null : "Permanently delete"}
+        </NeuButton>
+      ) : null}
     </H>
   );
 }

@@ -1,22 +1,30 @@
-import { Bell, Mail } from "lucide-react-native";
+import { Bell, ExternalLink, Mail, MessageCircle } from "lucide-react-native";
+import { Link, type Href } from "expo-router";
+import { useEffect } from "react";
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
 import { ADMIN_MUTED } from "../theme";
 import {
   channelLabel,
   formatStamp,
+  type BroadcastChannel,
   type LifecycleNudge,
-  type NudgeChannel,
 } from "./types";
 
 type Props = {
   nudges: LifecycleNudge[];
+  highlightId?: string | null;
   onToggle: (id: string, enabled: boolean) => void;
 };
 
-export function NudgeGrid({ nudges, onToggle }: Props) {
+export function NudgeGrid({ nudges, highlightId, onToggle }: Props) {
+  useEffect(() => {
+    if (!highlightId || typeof document === "undefined") return;
+    const node = document.getElementById(`nudge-${highlightId}`);
+    node?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [highlightId, nudges]);
   return (
-    <NeuSurface as="section" className="flex h-full flex-col p-5 sm:p-6">
+    <NeuSurface as="section" className="flex flex-col p-5 sm:p-6">
       <H>
         <H
           as="p"
@@ -29,15 +37,17 @@ export function NudgeGrid({ nudges, onToggle }: Props) {
         </H>
         <H as="p" className="mt-1 text-sm leading-relaxed text-clay-700">
           Flip a switch. Off means that moment stays quiet until you turn it
-          back on.
+          back on. Overlap links go to the desk that already owns the manual
+          version.
         </H>
       </H>
 
-      <H className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+      <H className="mt-5 grid gap-3 sm:grid-cols-2">
         {nudges.map((nudge) => (
           <NudgeCard
             key={nudge.id}
             nudge={nudge}
+            highlighted={highlightId === nudge.id}
             onToggle={(enabled) => onToggle(nudge.id, enabled)}
           />
         ))}
@@ -48,13 +58,21 @@ export function NudgeGrid({ nudges, onToggle }: Props) {
 
 function NudgeCard({
   nudge,
+  highlighted,
   onToggle,
 }: {
   nudge: LifecycleNudge;
+  highlighted: boolean;
   onToggle: (enabled: boolean) => void;
 }) {
   return (
-    <H className="rounded-neu-md bg-clay-100 px-3.5 py-3.5 shadow-neu-in-sm">
+    <H
+      id={`nudge-${nudge.id}`}
+      className={[
+        "rounded-neu-md bg-clay-100 px-3.5 py-3.5 shadow-neu-in-sm",
+        highlighted ? "outline outline-2 outline-offset-2 outline-moss" : "",
+      ].join(" ")}
+    >
       <H className="flex items-start justify-between gap-3">
         <H className="min-w-0">
           <H as="p" className="font-display text-sm font-semibold text-clay-900">
@@ -71,13 +89,24 @@ function NudgeCard({
         />
       </H>
       <H className="mt-3 flex flex-wrap items-center gap-2">
-        <ChannelChip channel={nudge.channel} />
+        {nudge.channels.map((channel) => (
+          <ChannelChip key={channel} channel={channel} />
+        ))}
         <H
           as="span"
           className="inline-flex rounded-full bg-clay-100 px-2.5 py-1 text-[11px] font-medium text-clay-700 shadow-neu-sm"
         >
           {nudge.audience}
         </H>
+        {nudge.overlapHref && nudge.overlapLabel ? (
+          <Link
+            href={nudge.overlapHref as Href}
+            className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-2.5 py-1 text-[11px] font-medium text-moss shadow-neu-sm"
+          >
+            <ExternalLink size={11} strokeWidth={1.75} />
+            {nudge.overlapLabel}
+          </Link>
+        ) : null}
         <H as="span" className="ml-auto text-[11px] tabular-nums text-clay-500">
           {nudge.enabled ? `${nudge.sent30d} / 30d` : "Paused"}
         </H>
@@ -91,17 +120,15 @@ function NudgeCard({
   );
 }
 
-function ChannelChip({ channel }: { channel: NudgeChannel }) {
+function ChannelChip({ channel }: { channel: BroadcastChannel }) {
+  const Icon =
+    channel === "email" ? Mail : channel === "whatsapp" ? MessageCircle : Bell;
   return (
     <H
       as="span"
       className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-2.5 py-1 text-[11px] font-medium text-clay-700 shadow-neu-sm"
     >
-      {channel === "email" ? (
-        <Mail size={12} strokeWidth={1.75} color={ADMIN_MUTED} />
-      ) : (
-        <Bell size={12} strokeWidth={1.75} color={ADMIN_MUTED} />
-      )}
+      <Icon size={12} strokeWidth={1.75} color={ADMIN_MUTED} />
       {channelLabel(channel)}
     </H>
   );

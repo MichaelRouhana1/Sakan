@@ -1,4 +1,11 @@
-import { ArrowLeft, Calendar, House, Phone } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Calendar,
+  ExternalLink,
+  House,
+  Phone,
+} from "lucide-react-native";
+import { Link, type Href } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { H } from "../h";
 import { ADMIN_MUTED } from "../theme";
@@ -11,18 +18,17 @@ import {
   docKindLabel,
   docSideLabel,
   formatStamp,
+  historyKindLabel,
   personName,
+  type KycActionKind,
   type KycCase,
-  type TrustActionKind,
 } from "./types";
 
 type Props = {
   kyc: KycCase | null;
   showBack?: boolean;
   onBack?: () => void;
-  onAction: (
-    kind: Extract<TrustActionKind, "grant_badge" | "revoke_badge" | "reject_kyc">,
-  ) => void;
+  onAction: (kind: KycActionKind) => void;
 };
 
 export function VerificationDetail({ kyc, showBack, onBack, onAction }: Props) {
@@ -53,7 +59,7 @@ export function VerificationDetail({ kyc, showBack, onBack, onAction }: Props) {
   const current = kyc.documents[docIndex] ?? kyc.documents[0];
 
   return (
-    <NeuSurface className="flex max-h-[min(70vh,720px)] min-h-0 flex-col overflow-hidden">
+    <NeuSurface className="flex max-h-[min(85vh,900px)] min-h-0 flex-col overflow-hidden">
       <H className="shrink-0 space-y-3 px-5 pb-3 pt-5">
         <H className="flex items-start gap-3">
           {showBack ? (
@@ -113,13 +119,16 @@ export function VerificationDetail({ kyc, showBack, onBack, onAction }: Props) {
         <H className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <H className="rounded-neu-md bg-clay-100 px-3 py-3 shadow-neu-in-sm">
             <H as="p" className="text-[11px] font-semibold uppercase tracking-wide text-clay-500">
-              Clerk account
+              Account
             </H>
             <H as="p" className="mt-1 truncate font-display text-sm font-semibold">
               {kyc.poster.email}
             </H>
             <H as="p" className="mt-1 text-xs text-clay-500">
               {accountStatusLabel(kyc.poster.accountStatus)}
+              {kyc.poster.warningCount > 0
+                ? ` · ${kyc.poster.warningCount} warning${kyc.poster.warningCount === 1 ? "" : "s"}`
+                : ""}
             </H>
           </H>
           <NeuSurface inset className="space-y-2.5 px-4 py-3">
@@ -138,18 +147,72 @@ export function VerificationDetail({ kyc, showBack, onBack, onAction }: Props) {
           </NeuSurface>
         </H>
 
+        <H className="flex flex-wrap gap-2">
+          <DeepLink href={`/admin/users?id=${kyc.poster.id}`} label="Open in Users" />
+        </H>
+
         {kyc.note ? (
           <H className="rounded-neu-md bg-clay-100 px-4 py-3 shadow-neu-in-sm">
             <H as="p" className="text-[11px] font-semibold uppercase tracking-wide text-clay-500">
-              Staff note
+              Latest staff note
             </H>
             <H as="p" className="mt-1 text-sm leading-relaxed text-clay-700">
               {kyc.note}
             </H>
+            {kyc.reviewer ? (
+              <H as="p" className="mt-1 text-[11px] text-clay-500">
+                {kyc.reviewer}
+                {kyc.reviewedAt ? ` · ${formatStamp(kyc.reviewedAt)}` : ""}
+              </H>
+            ) : null}
           </H>
         ) : null}
+
+        <H>
+          <H as="h3" className="font-display text-sm font-semibold">
+            Staff history
+          </H>
+          {kyc.history.length === 0 ? (
+            <NeuSurface inset className="mt-3 px-4 py-5 text-sm text-clay-700">
+              No actions yet.
+            </NeuSurface>
+          ) : (
+            <H as="ul" className="mt-3 space-y-2">
+              {[...kyc.history].reverse().map((entry) => (
+                <H
+                  as="li"
+                  key={entry.id}
+                  className="rounded-neu-md bg-clay-100 px-3 py-2.5 shadow-neu-in-sm"
+                >
+                  <H as="p" className="text-sm font-medium text-clay-900">
+                    {historyKindLabel(entry.kind)}
+                    <H as="span" className="font-normal text-clay-500">
+                      {" "}
+                      · {entry.actor} · {formatStamp(entry.at)}
+                    </H>
+                  </H>
+                  <H as="p" className="mt-0.5 text-xs text-clay-700">
+                    {entry.note}
+                  </H>
+                </H>
+              ))}
+            </H>
+          )}
+        </H>
       </H>
     </NeuSurface>
+  );
+}
+
+function DeepLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href as Href}
+      className="inline-flex items-center gap-1.5 rounded-full bg-clay-100 px-3 py-1.5 text-xs font-medium text-moss shadow-neu-sm"
+    >
+      <ExternalLink size={12} strokeWidth={1.75} />
+      {label}
+    </Link>
   );
 }
 

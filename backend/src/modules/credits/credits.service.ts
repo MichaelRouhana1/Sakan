@@ -41,7 +41,7 @@ export class CreditsService {
       amountUsdCents = catalog.amountUsdCents;
     }
 
-    return creditsRepository.createPending({
+    const pending = await creditsRepository.createPending({
       userId,
       referenceId: generateReferenceId(),
       bundleType: input.bundleType,
@@ -50,6 +50,27 @@ export class CreditsService {
       amountUsdCents,
       channel: input.channel,
     });
+
+    // Demo gateway: settle in the same request so credits land immediately.
+    // Replace with a payment-provider webhook later.
+    // POST /api/admin/transactions/:id/approve remains for leftover pending rows.
+    if (!pending) {
+      throw new AppError(500, "Could not create purchase", "TX_CREATE_FAILED");
+    }
+    const settled = await creditsRepository.approveTransaction(pending.id, {
+      kind: "api_key",
+      clerkId: null,
+      userId: null,
+      adminNote: "Demo gateway auto-settle",
+    });
+    if (!settled) {
+      throw new AppError(
+        500,
+        "Demo gateway failed to settle purchase",
+        "TX_SETTLE_FAILED",
+      );
+    }
+    return settled;
   }
 
   async getByReference(referenceId: string) {

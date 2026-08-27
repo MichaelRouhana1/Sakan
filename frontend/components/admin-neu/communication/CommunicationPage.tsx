@@ -1,65 +1,70 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { BroadcastCard } from "./BroadcastCard";
+import { BroadcastConfirmDialog } from "./BroadcastConfirmDialog";
+import { CommunicationSwitcher, useCommsTab } from "./CommunicationSwitcher";
+import { FeedbackActionDialog } from "./FeedbackActionDialog";
+import { FeedbackDetailPane } from "./FeedbackDetailPane";
 import { FeedbackInbox } from "./FeedbackInbox";
 import { FeedbackReplyDialog } from "./FeedbackReplyDialog";
 import { FeedbackToolbar } from "./FeedbackToolbar";
 import { NudgeGrid } from "./NudgeGrid";
-import { MOCK_FEEDBACK, MOCK_NUDGES } from "./mockCommunication";
-import {
-  AUDIENCE_OPTIONS,
-  channelLabel,
-  personName,
-  type BroadcastAudience,
-  type BroadcastChannel,
-  type FeedbackActionKind,
-  type FeedbackCategory,
-  type FeedbackItem,
-  type FeedbackQueue,
-} from "./types";
+import { getAdminFeedback } from "./communicationSource";
+import { useAdminCommunication } from "./useAdminCommunication";
+import type { BroadcastAudience, BroadcastChannel } from "./types";
+
+function firstParam(value: string | string[] | undefined): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (Array.isArray(value) && value[0]?.trim()) return value[0].trim();
+  return null;
+}
 
 export function CommunicationPage() {
-  const [nudges, setNudges] = useState(MOCK_NUDGES);
-  const [feedback, setFeedback] = useState(MOCK_FEEDBACK);
-  const [queue, setQueue] = useState<FeedbackQueue>("unread");
-  const [category, setCategory] = useState<FeedbackCategory | "all">("all");
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [replying, setReplying] = useState<FeedbackItem | null>(null);
-  const [reply, setReply] = useState("");
-  const [liveNote, setLiveNote] = useState("");
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    tab?: string | string[];
+    nudge?: string | string[];
+  }>();
+  const tab = useCommsTab();
+  const bp = useBreakpoint();
+  const compact = bp === "mobile";
+  const state = useAdminCommunication();
+  const highlightNudge = firstParam(params.nudge);
 
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [channels, setChannels] = useState<BroadcastChannel[]>(["in_app"]);
   const [audience, setAudience] = useState<BroadcastAudience[]>(["all"]);
+  const [campusIds, setCampusIds] = useState<string[]>([]);
 
-  const counts = useMemo(
-    () => ({
-      unread: feedback.filter((row) => row.queue === "unread").length,
-      read: feedback.filter((row) => row.queue === "read").length,
-      archived: feedback.filter((row) => row.queue === "archived").length,
-    }),
-    [feedback],
-  );
+  useEffect(() => {
+    const feedbackId = firstParam(params.id);
+    if (!feedbackId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const row = await getAdminFeedback(feedbackId);
+        if (cancelled) return;
+        state.setQueue(row.queue);
+        state.setQuery("");
+        state.setCategory("all");
+        state.setSelectedId(row.id);
+      } catch {
+        // deep-link miss
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link once per id
+  }, [params.id]);
 
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return feedback
-      .filter((row) => row.queue === queue)
-      .filter((row) => (category === "all" ? true : row.category === category))
-      .filter((row) => {
-        if (!needle) return true;
-        const hay =
-          `${personName(row)} ${row.user.email} ${row.user.campus} ${row.message}`.toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [feedback, queue, category, deferredQuery]);
-
-  const activeNudges = nudges.filter((row) => row.enabled).length;
+  const showInbox = tab === "inbox";
+  const showDetail = compact && showInbox && state.selected;
+  const showList = showInbox && !showDetail;
 
   function toggleChannel(channel: BroadcastChannel) {
     setChannels((current) => {
@@ -82,55 +87,16 @@ export function CommunicationPage() {
     });
   }
 
-  function sendBroadcast() {
-    const slice = audience.includes("all")
-      ? "all users"
-      : audience
-          .map((id) => AUDIENCE_OPTIONS.find((row) => row.id === id)?.label ?? id)
-          .join(", ");
-    const via = channels.map((row) => channelLabel(row)).join(" + ");
-    setLiveNote(`Queued “${subject.trim()}” to ${slice} via ${via}. Demo only.`);
-    setSubject("");
-    setBody("");
-  }
-
-  function applyAction(item: FeedbackItem, kind: FeedbackActionKind) {
-    const now = new Date().toISOString();
-    setFeedback((current) =>
-      current.map((row) => {
-        if (row.id !== item.id) return row;
-        if (kind === "read") {
-          return { ...row, queue: row.queue === "unread" ? "read" : row.queue };
-        }
-        if (kind === "archive") {
-          return { ...row, queue: "archived" };
-        }
-        return {
-          ...row,
-          queue: row.queue === "archived" ? "archived" : "read",
-          repliedAt: now,
-        };
-      }),
+  function toggleCampus(id: string) {
+    setCampusIds((current) =>
+      current.includes(id)
+        ? current.filter((row) => row !== id)
+        : [...current, id],
     );
-    if (kind === "reply") {
-      setLiveNote(`Replied to ${personName(item)}. Demo only.`);
-    } else if (kind === "read") {
-      setLiveNote(`Marked ${personName(item)} as read.`);
-    } else {
-      setLiveNote(`Archived ${personName(item)}.`);
-    }
   }
 
-  function requestAction(item: FeedbackItem, kind: FeedbackActionKind) {
-    if (kind === "reply") {
-      setReplying(item);
-      setReply("");
-      setSelectedId(item.id);
-      return;
-    }
-    applyAction(item, kind);
-    setSelectedId(item.id);
-  }
+  const pendingFeedbackKind =
+    state.pending?.mode === "feedback" ? state.pending.kind : null;
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -154,111 +120,222 @@ export function CommunicationPage() {
           as="span"
           className="inline-flex w-fit rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
         >
-          Demo data
+          Demo data · API-ready
         </H>
       </H>
 
       <H className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Unread notes" value={String(counts.unread)} hint="Waiting on staff" />
+        <Kpi
+          label="Unread notes"
+          value={String(state.overview.unread)}
+          hint="Waiting on staff"
+        />
         <Kpi
           label="Nudges live"
-          value={`${activeNudges}/${nudges.length}`}
+          value={`${state.overview.nudgesLive}/${state.overview.nudgesTotal}`}
           hint="Automated triggers"
         />
         <Kpi
           label="Read this week"
-          value={String(counts.read)}
-          hint="Still in the inbox"
+          value={String(state.overview.readThisWeek)}
+          hint="Last 7 days on the demo clock"
         />
         <Kpi
           label="Archived"
-          value={String(counts.archived)}
+          value={String(state.overview.archived)}
           hint="Closed loops"
         />
       </H>
 
-      {liveNote ? (
+      <CommunicationSwitcher />
+
+      {state.flash ? (
         <H
           as="p"
           role="status"
           aria-live="polite"
           className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
         >
-          {liveNote}
+          {state.flash}
         </H>
       ) : null}
 
-      <H className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading communication…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load communication
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" && tab === "blast" ? (
         <BroadcastCard
           subject={subject}
           body={body}
           channels={channels}
           audience={audience}
+          campusIds={campusIds}
+          jobs={state.broadcasts}
           onSubject={setSubject}
           onBody={setBody}
           onToggleChannel={toggleChannel}
           onToggleAudience={toggleAudience}
-          onSend={sendBroadcast}
+          onToggleCampus={toggleCampus}
+          onSend={state.requestBlast}
         />
+      ) : null}
+
+      {state.status === "ready" && tab === "nudges" ? (
         <NudgeGrid
-          nudges={nudges}
-          onToggle={(id, enabled) => {
-            const target = nudges.find((row) => row.id === id);
-            setNudges((current) =>
-              current.map((row) => (row.id === id ? { ...row, enabled } : row)),
-            );
-            if (target) {
-              setLiveNote(
-                `${enabled ? "Armed" : "Paused"} “${target.title}”.`,
-              );
-            }
-          }}
+          nudges={state.nudges}
+          highlightId={highlightNudge}
+          onToggle={state.toggleNudge}
         />
-      </H>
+      ) : null}
 
-      <H>
-        <H as="h2" className="font-display text-lg font-semibold text-clay-900">
-          User feedback inbox
-        </H>
-        <H as="p" className="mt-1 mb-4 text-sm leading-relaxed text-clay-700">
-          Feature asks, bugs, and stray notes. Reply, mark read, or file it
-          away.
-        </H>
-        <FeedbackToolbar
-          query={query}
-          onQuery={setQuery}
-          queue={queue}
-          onQueue={(next) => {
-            setQueue(next);
-            setSelectedId(null);
-          }}
-          category={category}
-          onCategory={setCategory}
-          counts={counts}
-        />
-      </H>
+      {state.status === "ready" && showInbox ? (
+        <>
+          {showList || !compact ? (
+            <FeedbackToolbar
+              query={state.query}
+              onQuery={state.setQuery}
+              queue={state.queue}
+              onQueue={(next) => {
+                state.setQueue(next);
+                state.setSelectedId(null);
+              }}
+              category={state.category}
+              onCategory={state.setCategory}
+              counts={state.counts}
+              pageSize={state.pageSize}
+              onPageSize={state.setPageSize}
+            />
+          ) : null}
 
-      <FeedbackInbox
-        items={visible}
-        selectedId={selectedId}
-        onSelect={(item) => setSelectedId(item.id)}
-        onAction={requestAction}
-      />
+          {compact ? (
+            showDetail && state.selected ? (
+              <FeedbackDetailPane
+                item={state.selected}
+                showBack
+                onBack={() => state.setSelectedId(null)}
+                onAction={(kind) => state.requestAction(state.selected!, kind)}
+              />
+            ) : showList ? (
+              <FeedbackInbox
+                items={state.items}
+                queue={state.queue}
+                selectedId={state.selectedId}
+                hasQuery={state.hasQuery}
+                page={state.page}
+                pageCount={state.pageCount}
+                total={state.total}
+                onPage={state.setPage}
+                onSelect={(item) => state.setSelectedId(item.id)}
+                onAction={state.requestAction}
+              />
+            ) : null
+          ) : (
+            <H className="grid items-start gap-4 lg:grid-cols-[minmax(340px,0.92fr)_minmax(0,1.08fr)]">
+              <FeedbackInbox
+                items={state.items}
+                queue={state.queue}
+                selectedId={
+                  state.items.some((row) => row.id === state.selectedId)
+                    ? state.selectedId
+                    : null
+                }
+                hasQuery={state.hasQuery}
+                page={state.page}
+                pageCount={state.pageCount}
+                total={state.total}
+                onPage={state.setPage}
+                onSelect={(item) => state.setSelectedId(item.id)}
+                onAction={state.requestAction}
+              />
+              <H className="lg:sticky lg:top-6">
+                <FeedbackDetailPane
+                  item={
+                    state.selected &&
+                    state.items.some((row) => row.id === state.selected?.id)
+                      ? state.selected
+                      : null
+                  }
+                  onAction={(kind) => {
+                    const focus = state.selected;
+                    if (!focus) return;
+                    if (!state.items.some((row) => row.id === focus.id)) {
+                      return;
+                    }
+                    state.requestAction(focus, kind);
+                  }}
+                />
+              </H>
+            </H>
+          )}
+        </>
+      ) : null}
 
       <FeedbackReplyDialog
-        item={replying}
-        reply={reply}
-        onReply={setReply}
-        onCancel={() => {
-          setReplying(null);
-          setReply("");
-        }}
+        item={state.pending?.mode === "reply" ? state.pendingItem : null}
+        reply={state.reply}
+        onReply={state.setReply}
+        onCancel={state.cancelPending}
         onConfirm={() => {
-          if (!replying) return;
-          applyAction(replying, "reply");
-          setReplying(null);
-          setReply("");
+          void state.confirmPending();
         }}
+        busy={state.busy}
+      />
+
+      <FeedbackActionDialog
+        kind={pendingFeedbackKind}
+        item={state.pending?.mode === "feedback" ? state.pendingItem : null}
+        note={state.note}
+        onNote={state.setNote}
+        onCancel={state.cancelPending}
+        onConfirm={() => {
+          void state.confirmPending();
+        }}
+        busy={state.busy}
+      />
+
+      <BroadcastConfirmDialog
+        open={state.pending?.mode === "blast"}
+        subject={subject}
+        body={body}
+        channels={channels}
+        audience={audience}
+        campusIds={campusIds}
+        onCancel={state.cancelPending}
+        onConfirm={() => {
+          void (async () => {
+            const ok = await state.confirmPending({
+              subject,
+              body,
+              channels,
+              audience,
+              campusIds,
+            });
+            if (ok) {
+              setSubject("");
+              setBody("");
+            }
+          })();
+        }}
+        busy={state.busy}
       />
     </H>
   );

@@ -2,45 +2,58 @@ import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import type { ListingActionKind } from "./types";
 
-const COPY: Record<ListingActionKind, { title: string; body: string; confirm: string }> = {
+const COPY: Record<
+  ListingActionKind,
+  { title: string; body: string; confirm: string }
+> = {
   archive: {
     title: "Archive this listing",
-    body: "Takes the post off browse. Poster can still see it as archived.",
+    body: "Takes the post off browse. Poster can still see it as archived. Open reports close.",
     confirm: "Archive",
   },
   remove: {
     title: "Take down this listing",
-    body: "Hard removal for rule breaks. No credit refund. Open reports close.",
+    body: "Hard removal for rule breaks. One-way — cannot restore. No credit refund. Open reports close.",
     confirm: "Take down",
   },
   restore: {
     title: "Restore this listing",
-    body: "Puts an archived post back on browse until expiry.",
+    body: "Puts an archived post back on browse until expiry. Removed listings cannot be restored.",
     confirm: "Restore",
+  },
+  dismiss_reports: {
+    title: "Dismiss open reports",
+    body: "Clears open renter flags without changing listing status. Use when reports are invalid.",
+    confirm: "Dismiss flags",
   },
 };
 
 type Props = {
   kind: ListingActionKind | null;
   title: string;
+  bulkCount?: number;
   note: string;
   onNote: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
+  busy?: boolean;
 };
 
 export function ListingActionDialog({
   kind,
   title,
+  bulkCount,
   note,
   onNote,
   onCancel,
   onConfirm,
+  busy,
 }: Props) {
   if (!kind) return null;
   const copy = COPY[kind];
-  const canSubmit = note.trim().length > 0;
+  const canSubmit = note.trim().length > 0 && !busy;
   const danger = kind === "remove";
+  const bulk = (bulkCount ?? 0) > 1;
 
   return (
     <H className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
@@ -53,10 +66,11 @@ export function ListingActionDialog({
       />
       <NeuSurface className="relative w-full max-w-md p-5 sm:p-6" as="section">
         <H as="h2" className="font-display text-lg font-semibold text-clay-900">
-          {copy.title}
+          {bulk ? `${copy.title.replace(" this listing", "")} (${bulkCount})` : copy.title}
         </H>
         <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
-          {copy.body} Target: {title}.
+          {copy.body}{" "}
+          {bulk ? `Targets: ${bulkCount} listings.` : `Target: ${title}.`}
         </H>
         <H as="label" className="mt-4 block">
           <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
@@ -74,13 +88,15 @@ export function ListingActionDialog({
           />
         </H>
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
+          <NeuButton onClick={onCancel} disabled={busy}>
+            Cancel
+          </NeuButton>
           <NeuButton
             tone={danger ? "ember" : kind === "restore" ? "moss" : "ochre"}
             disabled={!canSubmit}
             onClick={onConfirm}
           >
-            {copy.confirm}
+            {busy ? "Working…" : copy.confirm}
           </NeuButton>
         </H>
       </NeuSurface>
