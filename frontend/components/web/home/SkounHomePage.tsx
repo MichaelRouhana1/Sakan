@@ -32,7 +32,6 @@ import {
   PROMO_CARDS,
   RAIL_PILLS,
   SEARCH_HINTS,
-  STATS,
   STEPS,
   TESTIMONIALS,
   VALUE_PROPS,
@@ -40,6 +39,7 @@ import {
 } from "./homeData";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
+import { InsightsMarquee } from "./InsightsMarquee";
 
 const IS_WEB = Platform.OS === "web";
 const PAD_X = 80;
@@ -569,29 +569,8 @@ export function SkounHomePage() {
           </View>
         </View>
 
-        {/* ─── 2. INSIGHTS (Amber: directly under hero) ─── */}
-        <View style={[styles.statsBand, { paddingHorizontal: padX }]}>
-          <View style={[styles.statsRow, isNarrow && styles.statsRowNarrow]}>
-            {STATS.map((s) => (
-              <View key={s.id} style={styles.statItem}>
-                <Ionicons name={s.icon} size={32} color={Skoun.color.primary} />
-                <View style={styles.statCopy}>
-                  <Text style={styles.statValue}>{s.value}</Text>
-                  <Text style={styles.statBody}>{s.body}</Text>
-                </View>
-              </View>
-            ))}
-            <View style={styles.statItem}>
-              <Ionicons name="logo-whatsapp" size={32} color="#128C7E" />
-              <View style={styles.statCopy}>
-                <Text style={styles.statValue}>WhatsApp first</Text>
-                <Text style={styles.statBody}>
-                  Message posters directly — Skoun never holds deposits.
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        {/* ─── 2. INSIGHTS — infinite marquee under hero ─── */}
+        <InsightsMarquee />
 
         {/* ─── 3. POPULAR AREAS (Amber 2-row city tile grid) ─── */}
         <View style={[styles.section, { paddingHorizontal: padX }]}>
@@ -1366,44 +1345,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: "#ffffff",
     zIndex: 2,
-  },
-
-  statsBand: {
-    width: "100%",
-    backgroundColor: "#fff",
-    paddingVertical: 48,
-    zIndex: 1,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    maxWidth: 1400,
-    width: "100%",
-    alignSelf: "center",
-    gap: 24,
-    flexWrap: "wrap",
-  },
-  statsRowNarrow: { flexDirection: "column", alignItems: "flex-start" },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 14,
-    flex: 1,
-    minWidth: 200,
-    maxWidth: 320,
-  },
-  statCopy: { flex: 1, gap: 4 },
-  statValue: {
-    fontFamily: Skoun.type.displayMedium,
-    fontSize: 18,
-    color: "#111928",
-  },
-  statBody: {
-    fontFamily: Skoun.type.body,
-    fontSize: 13,
-    lineHeight: 19,
-    color: "#4b5563",
   },
 
   pillRow: { gap: 8, paddingBottom: 4 },
