@@ -2,6 +2,8 @@
  * Static marketing content — Amber homepage layout, Skoun product truth.
  */
 
+import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
+
 export const SEARCH_HINTS = ["Area", "University", "Landmark"] as const;
 
 export const POPULAR_SEARCHES = [
@@ -57,14 +59,14 @@ export const STATS = [
   },
   {
     id: "unis",
-    value: "70 campuses",
-    body: "Sort by walk to AUB, LAU, USJ, and 30+ other university gates.",
+    value: `${CAMPUS_CATALOG.campuses} campuses`,
+    body: `${CAMPUS_CATALOG.universities} private universities. Sort by walk to AUB, LAU, USJ, and every other gate we list.`,
     icon: "school-outline" as const,
   },
   {
     id: "areas",
-    value: "15 areas",
-    body: "Beirut, the coast, and student towns you can actually filter on.",
+    value: `${CAMPUS_CATALOG.areas} areas`,
+    body: "Towns those campuses sit in — Beirut, Tripoli, Saida, Tyre, Zahlé, and the coast.",
     icon: "map-outline" as const,
   },
   {
@@ -372,7 +374,7 @@ export const PROMO_CARDS = [
   {
     id: "browse",
     title: "Browse near campus",
-    body: "Pick AUB, LAU, USJ and sort by distance to the gate.",
+    body: `Pick among ${CAMPUS_CATALOG.universities} universities and ${CAMPUS_CATALOG.campuses} campuses, then sort by distance to the gate.`,
     cta: "Open university hub",
     tone: "deep" as const,
     action: "browse" as const,

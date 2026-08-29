@@ -17,6 +17,7 @@ import {
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
@@ -576,7 +577,7 @@ export function SkounHomePage() {
         <View style={[styles.section, { paddingHorizontal: padX }]}>
           <SectionHeader
             title="Popular areas across Lebanon"
-            subtitle="Browse foyers and rooms near campuses and neighborhoods that matter."
+            subtitle={`${CAMPUS_CATALOG.campuses} campuses at ${CAMPUS_CATALOG.universities} private universities, in ${CAMPUS_CATALOG.areas} areas.`}
           />
           <View style={styles.countryTabs}>
             {AREA_REGIONS.map((r) => {
@@ -859,7 +860,9 @@ export function SkounHomePage() {
             <View style={styles.bannerOverlay} />
             <Text style={styles.bannerTitle}>Browse near campus</Text>
             <Text style={styles.bannerBody}>
-              University hub mode sorts by distance to AUB, LAU, USJ, and more.
+              {CAMPUS_CATALOG.campuses} campuses at{" "}
+              {CAMPUS_CATALOG.universities} private universities, in{" "}
+              {CAMPUS_CATALOG.areas} areas. Sort by walk to the gate.
             </Text>
             <View style={styles.bannerBtn}>
               <Text style={styles.bannerBtnText}>Start browsing</Text>

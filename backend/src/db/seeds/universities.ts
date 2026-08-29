@@ -1004,6 +1004,28 @@ export function formatCampusMapLabel(
   return name;
 }
 
+function foldCampusCity(city: string): string {
+  return city
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace("nabatiyeh", "nabatieh")
+    .replace("ras masqa", "ras maska")
+    .replace("dekouaneh", "dekwaneh");
+}
+
+/** Private MEHE catalog counts (homepage / marketing). */
+export const campusCatalogStats = {
+  universities: institutionSeeds.length,
+  campuses: institutionSeeds.reduce((n, inst) => n + inst.campuses.length, 0),
+  areas: new Set(
+    institutionSeeds.flatMap((inst) =>
+      inst.campuses.map((c) => foldCampusCity(c.city)),
+    ),
+  ).size,
+} as const;
+
 /** @deprecated Prefer institutionSeeds. Kept so old imports still typecheck. */
 export const universitySeeds = institutionSeeds.flatMap((inst) =>
   inst.campuses.map((c) => ({
