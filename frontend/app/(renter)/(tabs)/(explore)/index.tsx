@@ -26,6 +26,7 @@ import type { User } from "@/types/user";
 import { Skoun } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 import { browseSearchParams } from "@/lib/browseSearchUrl";
 import {
   AREA_REGIONS,
@@ -36,7 +37,6 @@ import {
   POPULAR_SEARCHES,
   PROMO_CARDS,
   RAIL_PILLS,
-  STATS,
   STEPS,
   TESTIMONIALS,
   VALUE_PROPS,
@@ -230,21 +230,21 @@ export default function RenterNewHomeScreen() {
         {/* COMPACT STATS ROW (No large card box shadows, pure minimalist columns like Amber) */}
         <View style={styles.compactStatsBand}>
           <View style={styles.statColumn}>
-            <Ionicons name="bed-outline" size={24} color={Skoun.color.primary} />
-            <Text style={styles.statColValue}>2.5K+</Text>
-            <Text style={styles.statColLabel}>Live Beds</Text>
+            <Ionicons name="school-outline" size={24} color={Skoun.color.primary} />
+            <Text style={styles.statColValue}>{CAMPUS_CATALOG.universities}</Text>
+            <Text style={styles.statColLabel}>Universities</Text>
           </View>
           
           <View style={styles.statColumn}>
-            <Ionicons name="school-outline" size={24} color={Skoun.color.primary} />
-            <Text style={styles.statColValue}>10+</Text>
+            <Ionicons name="location-outline" size={24} color={Skoun.color.primary} />
+            <Text style={styles.statColValue}>{CAMPUS_CATALOG.campuses}</Text>
             <Text style={styles.statColLabel}>Campuses</Text>
           </View>
           
           <View style={styles.statColumn}>
-            <Ionicons name="globe-outline" size={24} color={Skoun.color.primary} />
-            <Text style={styles.statColValue}>15+</Text>
-            <Text style={styles.statColLabel}>Local Areas</Text>
+            <Ionicons name="map-outline" size={24} color={Skoun.color.primary} />
+            <Text style={styles.statColValue}>{CAMPUS_CATALOG.areas}</Text>
+            <Text style={styles.statColLabel}>Areas</Text>
           </View>
           
           <View style={styles.statColumn}>
@@ -261,7 +261,9 @@ export default function RenterNewHomeScreen() {
               Popular neighborhoods
             </LText>
             <LText variant="body" tone="muted" style={styles.sectionSub}>
-              Browse student housing near top Lebanese campuses and areas.
+              Browse student housing near {CAMPUS_CATALOG.campuses} campuses
+              {" "}at {CAMPUS_CATALOG.universities} universities, in{" "}
+              {CAMPUS_CATALOG.areas} areas.
             </LText>
           </View>
 
