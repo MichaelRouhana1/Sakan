@@ -50,6 +50,7 @@ import {
   type Marker,
   type Popup,
 } from "@/lib/skounMapbox.web";
+import { campusPinLabel } from "@/lib/campusPinLabel";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { CampusMeta, Listing } from "@/types/listing";
 
@@ -707,7 +708,7 @@ export function ListingBrowseMap({
         const key = `campus:${campus.slug}`;
         seenListings.add(key);
         const selected = campus.slug === focusCampusSlug;
-        const html = campusPinHtml(campus.name, selected);
+        const html = campusPinHtml(campusPinLabel(campus), selected);
         const existing = listingMarkers.get(key);
         if (existing) {
           existing.marker.setLngLat(toLngLat(campus));

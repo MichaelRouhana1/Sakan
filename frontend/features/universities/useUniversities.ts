@@ -8,6 +8,7 @@ export type University = {
   slug: string;
   city?: string | null;
   displayName?: string;
+  mapLabel?: string;
   institutionId?: string | null;
   institutionName?: string | null;
   institutionShortName?: string | null;

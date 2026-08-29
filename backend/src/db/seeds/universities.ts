@@ -11,6 +11,8 @@ export type CampusSeed = {
   city: string;
   location: string;
   isMain?: boolean;
+  /** Compact map pin, e.g. CSM → "USJ - CSM". List still uses `name`. */
+  mapCode?: string;
 };
 
 export type InstitutionSeed = {
@@ -79,58 +81,67 @@ export const institutionSeeds: InstitutionSeed[] = [
     popular: true,
     campuses: [
       {
-        name: "Medical Sciences Campus",
+        name: "Campus des Sciences Médicales",
         slug: "usj-csm",
+        mapCode: "CSM",
         city: "Beirut",
         location: "POINT(35.51209 33.88233)",
       },
       {
-        name: "François Debbané Social Sciences Campus",
+        name: "Campus François Debbané des Sciences Sociales",
         slug: "usj-huvelin",
+        mapCode: "CFDSS",
         city: "Beirut",
         location: "POINT(35.50933 33.88984)",
         isMain: true,
       },
       {
-        name: "Science and Technology Campus",
+        name: "Campus des Sciences et Technologies",
         slug: "usj-cst",
+        mapCode: "CST",
         city: "Mkalles",
         location: "POINT(35.56415 33.86542)",
       },
       {
-        name: "Humanities Campus",
+        name: "Campus des Sciences Humaines",
         slug: "usj-csh",
+        mapCode: "CSH",
         city: "Beirut",
         location: "POINT(35.51162 33.88109)",
       },
       {
-        name: "Innovation and Sports Campus",
+        name: "Campus de l'Innovation et du Sport",
         slug: "usj-cis",
+        mapCode: "CIS",
         city: "Beirut",
-        location: "POINT(35.51271 33.88146)",
+        location: "POINT(35.51449 33.88019)",
       },
       {
-        name: "Charles Corm Campus",
+        name: "Campus Charles Corm",
         slug: "usj-corm",
+        mapCode: "CCC",
         city: "Beirut",
-        location: "POINT(35.5082 33.8954)",
+        location: "POINT(35.51399 33.88001)",
       },
       {
-        name: "North Lebanon Campus",
+        name: "Campus du Liban Nord",
         slug: "usj-cln",
+        mapCode: "CLN",
         city: "Ras Maska",
-        location: "POINT(35.8502 34.3981)",
+        location: "POINT(35.80690 34.40035)",
       },
       {
-        name: "South Lebanon Campus",
+        name: "Campus du Liban Sud",
         slug: "usj-cls",
+        mapCode: "CLS",
         city: "Saida",
         location: "POINT(35.39665 33.57075)",
       },
       {
-        name: "Zahle and Beqaa Campus",
+        name: "Campus de Zahlé et de la Bekaa",
         slug: "usj-czb",
-        city: "Zahle",
+        mapCode: "CZB",
+        city: "Zahlé",
         location: "POINT(35.88385 33.85773)",
       },
     ],
@@ -972,6 +983,26 @@ export const institutionSeeds: InstitutionSeed[] = [
     ],
   },
 ];
+
+export const campusMapCodes: Record<string, string> = Object.fromEntries(
+  institutionSeeds.flatMap((inst) =>
+    inst.campuses
+      .filter((c): c is CampusSeed & { mapCode: string } => Boolean(c.mapCode))
+      .map((c) => [c.slug, c.mapCode]),
+  ),
+);
+
+/** Map pin label. List UIs keep `name` (full campus title). */
+export function formatCampusMapLabel(
+  institutionShortName: string | null | undefined,
+  slug: string,
+  name: string,
+): string {
+  const code = campusMapCodes[slug];
+  if (institutionShortName && code) return `${institutionShortName} - ${code}`;
+  if (institutionShortName) return `${institutionShortName} — ${name}`;
+  return name;
+}
 
 /** @deprecated Prefer institutionSeeds. Kept so old imports still typecheck. */
 export const universitySeeds = institutionSeeds.flatMap((inst) =>

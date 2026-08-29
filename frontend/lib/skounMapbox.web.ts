@@ -125,10 +125,11 @@ export function ensureMapboxCss(): void {
     }
     .skoun-campus-stack.selected { transform: scale(1.06); }
     .skoun-campus-label {
-      max-width: 176px; padding: 3px 8px; border-radius: 6px;
+      max-width: 120px; padding: 3px 8px; border-radius: 6px;
       background: #C4A574; color: #2A1F14;
       font: 700 11px/1.25 "DM Sans", system-ui, sans-serif;
-      text-align: center; box-shadow: 0 1px 3px rgba(18,24,38,0.22);
+      text-align: center; white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(18,24,38,0.22);
     }
     .skoun-campus-stack.selected .skoun-campus-label {
       background: #121826; color: #fff;

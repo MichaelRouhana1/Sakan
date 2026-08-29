@@ -62,6 +62,7 @@ import { rentPriceTypeCompact } from "@/lib/rentPriceType";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CampusMeta, Listing } from "@/types/listing";
+import { campusPinLabel } from "@/lib/campusPinLabel";
 
 type Props = {
   listings: Listing[];
@@ -1350,16 +1351,16 @@ export function ListingBrowseMap({
                     )}
                     anchor={{ x: 0.5, y: 1 }}
                     zIndex={selected ? 80 : 50}
-                    accessibilityLabel={`${campus.name} campus`}
+                    accessibilityLabel={`${campusPinLabel(campus)} campus`}
                   >
                     <View style={styles.campusNamed}>
                       <View style={styles.campusNameChip}>
                         <LText
                           variant="caption"
                           style={styles.campusNameText}
-                          numberOfLines={2}
+                          numberOfLines={1}
                         >
-                          {campus.name}
+                          {campusPinLabel(campus)}
                         </LText>
                       </View>
                       <SkounMapPin
@@ -1750,10 +1751,10 @@ const styles = StyleSheet.create({
   },
   campusNamed: {
     alignItems: "center",
-    maxWidth: 176,
+    maxWidth: 120,
   },
   campusNameChip: {
-    maxWidth: 176,
+    maxWidth: 120,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,

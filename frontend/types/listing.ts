@@ -194,6 +194,7 @@ export type Listing = {
 export type CampusMeta = {
   slug: string;
   name: string;
+  mapLabel?: string;
   lng: number;
   lat: number;
 };

@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
+import { formatCampusMapLabel } from "../../db/seeds/universities.js";
 import { institutions, universities } from "../../db/schema/index.js";
 
 function isPublicLebaneseUniversity(row: {
@@ -57,11 +58,13 @@ export type UniversityPublic = {
   lng: number | null;
   lat: number | null;
   displayName: string;
+  mapLabel: string;
 };
 
 export type CampusMeta = {
   slug: string;
   name: string;
+  mapLabel?: string;
   lng: number;
   lat: number;
 };
@@ -93,11 +96,13 @@ function toPublicCampus(row: {
   lat: unknown;
 }): UniversityPublic {
   const shortName = row.institutionShortName;
+  const displayName = shortName ? `${shortName} — ${row.name}` : row.name;
   return {
     ...row,
     lng: parseCoord(row.lng),
     lat: parseCoord(row.lat),
-    displayName: shortName ? `${shortName} — ${row.name}` : row.name,
+    displayName,
+    mapLabel: formatCampusMapLabel(shortName, row.slug, row.name),
   };
 }
 
@@ -214,6 +219,7 @@ export class UniversitiesRepository {
       out.push({
         slug: uni.slug,
         name: uni.displayName,
+        mapLabel: uni.mapLabel,
         lng: uni.lng,
         lat: uni.lat,
       });

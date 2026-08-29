@@ -421,8 +421,12 @@ export function normalizeCampusMeta(raw: unknown): CampusMeta | null {
   const lat = parseCoord(row.lat);
   const slug = String(row.slug ?? "");
   const name = String(row.name ?? "");
+  const mapLabel =
+    typeof row.mapLabel === "string" && row.mapLabel.trim()
+      ? row.mapLabel.trim()
+      : undefined;
   if (!slug || lng == null || lat == null) return null;
-  return { slug, name, lng, lat };
+  return { slug, name, mapLabel, lng, lat };
 }
 
 function normalizeCampuses(raw: unknown): CampusMeta[] {

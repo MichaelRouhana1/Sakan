@@ -4,6 +4,18 @@ import { api } from "@/lib/api";
 import type { University } from "@/features/universities/useUniversities";
 import type { CampusMeta } from "@/types/listing";
 
+const USJ_MAP_CODES: Record<string, string> = {
+  "usj-csm": "CSM",
+  "usj-huvelin": "CFDSS",
+  "usj-cst": "CST",
+  "usj-csh": "CSH",
+  "usj-cis": "CIS",
+  "usj-corm": "CCC",
+  "usj-cln": "CLN",
+  "usj-cls": "CLS",
+  "usj-czb": "CZB",
+};
+
 export type Institution = {
   id: string;
   name: string;
@@ -42,6 +54,11 @@ export function campusPinsFromInstitution(
     pins.push({
       slug: campus.slug,
       name: campus.displayName ?? `${inst.shortName} — ${campus.name}`,
+      mapLabel:
+        campus.mapLabel ??
+        (USJ_MAP_CODES[campus.slug]
+          ? `${inst.shortName} - ${USJ_MAP_CODES[campus.slug]}`
+          : undefined),
       lng: campus.lng,
       lat: campus.lat,
     });
