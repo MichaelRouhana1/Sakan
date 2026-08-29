@@ -1,4 +1,4 @@
-import { Pencil, Power, Trash2 } from "lucide-react-native";
+import { Pencil, Power } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
 import type { AdminCampus, RegistryActionKind } from "./types";
@@ -38,15 +38,6 @@ export function CampusActions({ campus, compact, onEdit, onAction }: Props) {
       >
         <Power size={compact ? 14 : 16} strokeWidth={1.75} />
         {compact ? null : campus.active ? "Deactivate" : "Activate"}
-      </NeuButton>
-      <NeuButton
-        tone="ember"
-        ariaLabel="Remove campus"
-        className={compact ? "px-2.5 py-1.5 text-xs" : ""}
-        onClick={() => onAction("remove")}
-      >
-        <Trash2 size={compact ? 14 : 16} strokeWidth={1.75} />
-        {compact ? null : "Remove"}
       </NeuButton>
     </H>
   );

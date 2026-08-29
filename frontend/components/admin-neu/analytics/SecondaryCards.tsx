@@ -7,24 +7,42 @@ import {
   meanBy,
   weekdayAverages,
   type DayPoint,
+  type SeriesId,
 } from "./types";
 
 type Props = {
   points: DayPoint[];
   retention: { w1: number; w4: number; w8: number };
+  series?: SeriesId;
 };
 
-export function SecondaryCards({ points, retention }: Props) {
+export function SecondaryCards({ points, retention, series = "both" }: Props) {
   const last = points[points.length - 1];
-  const avgDau = meanBy(points, "dau");
+  const showRenters = series !== "posters";
+  const showPosters = series !== "renters";
+  const dauKey =
+    series === "renters"
+      ? "dauRenters"
+      : series === "posters"
+        ? "dauPosters"
+        : "dau";
+  const avgDau = meanBy(points, dauKey);
   const avgMau = meanBy(points, "mau");
   const stickiness = avgMau > 0 ? (avgDau / avgMau) * 100 : 0;
-  const splitRenters = last?.dauRenters ?? 0;
-  const splitPosters = last?.dauPosters ?? 0;
+  const splitRenters = showRenters ? (last?.dauRenters ?? 0) : 0;
+  const splitPosters = showPosters ? (last?.dauPosters ?? 0) : 0;
   const splitTotal = Math.max(1, splitRenters + splitPosters);
   const bars = bucketPoints(points, 18);
-  const week = weekdayAverages(points);
+  const week = weekdayAverages(points, dauKey);
   const weekMax = Math.max(1, ...week);
+  const stackMax = Math.max(
+    1,
+    ...bars.map((row) => {
+      const r = showRenters ? row.dauRenters : 0;
+      const p = showPosters ? row.dauPosters : 0;
+      return r + p;
+    }),
+  );
 
   return (
     <H className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -56,23 +74,27 @@ export function SecondaryCards({ points, retention }: Props) {
           >
             <H
               className="h-full rounded-full bg-moss-soft"
-              style={{ width: `${Math.min(100, stickiness * 2.2)}%` }}
+              style={{ width: `${Math.min(100, stickiness)}%` }}
             />
           </H>
         </H>
         <H className="mt-4 flex gap-2">
-          <RoleShare
-            label="Renter DAU"
-            value={splitRenters}
-            pct={(splitRenters / splitTotal) * 100}
-            tone="moss"
-          />
-          <RoleShare
-            label="Poster DAU"
-            value={splitPosters}
-            pct={(splitPosters / splitTotal) * 100}
-            tone="ochre"
-          />
+          {showRenters ? (
+            <RoleShare
+              label="Renter DAU"
+              value={splitRenters}
+              pct={(splitRenters / splitTotal) * 100}
+              tone="moss"
+            />
+          ) : null}
+          {showPosters ? (
+            <RoleShare
+              label="Poster DAU"
+              value={splitPosters}
+              pct={(splitPosters / splitTotal) * 100}
+              tone="ochre"
+            />
+          ) : null}
         </H>
       </NeuSurface>
 
@@ -92,31 +114,36 @@ export function SecondaryCards({ points, retention }: Props) {
           aria-label="Daily active users over selected range"
         >
           {bars.map((row) => {
-            const max = Math.max(...bars.map((b) => b.dau), 1);
             const totalPx = 112;
-            const rH = Math.max(2, (row.dauRenters / max) * totalPx);
-            const pH = Math.max(2, (row.dauPosters / max) * totalPx);
+            const rVal = showRenters ? row.dauRenters : 0;
+            const pVal = showPosters ? row.dauPosters : 0;
+            const rH = rVal > 0 ? Math.max(2, (rVal / stackMax) * totalPx) : 0;
+            const pH = pVal > 0 ? Math.max(2, (pVal / stackMax) * totalPx) : 0;
             return (
               <H
                 key={row.date}
                 className="flex h-full min-w-0 flex-1 flex-col justify-end gap-0.5"
-                title={`${row.date}: ${formatCount(row.dau)} DAU`}
+                title={`${row.date}: ${formatCount(rVal + pVal)} DAU`}
               >
-                <H
-                  className="w-full rounded-t-[3px] bg-ochre-soft"
-                  style={{ height: pH }}
-                />
-                <H
-                  className="w-full rounded-t-[3px] bg-moss-soft"
-                  style={{ height: rH }}
-                />
+                {showPosters ? (
+                  <H
+                    className="w-full rounded-t-[3px] bg-ochre-soft"
+                    style={{ height: pH }}
+                  />
+                ) : null}
+                {showRenters ? (
+                  <H
+                    className="w-full rounded-t-[3px] bg-moss-soft"
+                    style={{ height: rH }}
+                  />
+                ) : null}
               </H>
             );
           })}
         </H>
         <H className="mt-3 flex flex-wrap gap-3 text-[11px] text-clay-700">
-          <Swatch tone="moss" label="Renter DAU" />
-          <Swatch tone="ochre" label="Poster DAU" />
+          {showRenters ? <Swatch tone="moss" label="Renter DAU" /> : null}
+          {showPosters ? <Swatch tone="ochre" label="Poster DAU" /> : null}
         </H>
       </NeuSurface>
 

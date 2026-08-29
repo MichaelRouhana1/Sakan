@@ -70,6 +70,8 @@ type Props = {
   onHoverFlyComplete?: () => void;
   /** Picked campus — fly camera here (zoom-out / pan / zoom-in). */
   focusCampusSlug?: string | null;
+  /** Area / suggestion center — pan map (browse search). */
+  focusPoint?: { lat: number; lng: number } | null;
   /** When pane is shown after keep-alive hide, trigger resize. */
   active?: boolean;
 };
@@ -239,6 +241,7 @@ export function ListingBrowseMap({
   hoverFlyListingId = null,
   onHoverFlyComplete,
   focusCampusSlug = null,
+  focusPoint = null,
   active = true,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -560,6 +563,29 @@ export function ListingBrowseMap({
       campusFlySeqRef,
     );
   }, [mapReady, universityMode, focusCampusKey, reduceMotion]);
+
+  useEffect(() => {
+    if (!mapReady || !focusPoint || focusCampusSlug) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const seq = ++campusFlySeqRef.current;
+    map.stop();
+    flyZoomOutPanIn(
+      map,
+      mapboxRef.current,
+      [focusPoint.lng, focusPoint.lat],
+      13.5,
+      reduceMotion,
+      seq,
+      campusFlySeqRef,
+    );
+  }, [
+    mapReady,
+    focusPoint?.lat,
+    focusPoint?.lng,
+    focusCampusSlug,
+    reduceMotion,
+  ]);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -1088,7 +1114,7 @@ export function ListingBrowseMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    if (focusCampusSlug) return;
+    if (focusCampusSlug || focusPoint) return;
     if (groups.length === 0 && !(universityMode && campuses.length > 0)) {
       return;
     }
@@ -1123,7 +1149,7 @@ export function ListingBrowseMap({
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded, focusCampusSlug]);
+  }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded, focusCampusSlug, focusPoint?.lat, focusPoint?.lng]);
 
   const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
   const showLoading = (!mapReady && !tokenMissing) || loading;

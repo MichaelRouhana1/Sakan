@@ -1,6 +1,12 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import { ZoneSelect } from "./ZoneSelect";
 import { slugify, type AdminGovernorate, type AreaDraft, type RenameTarget } from "./types";
+
+const FIELD_SHELL =
+  "flex min-h-[44px] w-full items-center rounded-neu-md bg-clay-50 px-3 shadow-neu-in";
+const FIELD_CONTROL =
+  "w-full border-0 bg-transparent py-2.5 text-sm text-clay-900 shadow-none outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0 focus-visible:outline-none";
 
 type Props = {
   mode: "create" | "rename" | null;
@@ -9,6 +15,7 @@ type Props = {
   draft: AreaDraft;
   slugLocked: boolean;
   lockDistrict?: boolean;
+  busy?: boolean;
   onDraft: (draft: AreaDraft) => void;
   onSlugLocked: (locked: boolean) => void;
   onCancel: () => void;
@@ -22,6 +29,7 @@ export function AreaFormDialog({
   draft,
   slugLocked,
   lockDistrict,
+  busy,
   onDraft,
   onSlugLocked,
   onCancel,
@@ -30,6 +38,7 @@ export function AreaFormDialog({
   if (!mode) return null;
 
   const canSubmit =
+    !busy &&
     draft.name.trim().length >= 2 &&
     draft.slug.trim().length >= 2 &&
     (mode === "rename" || draft.districtId.length > 0);
@@ -57,53 +66,46 @@ export function AreaFormDialog({
         onClick={onCancel}
       />
       <NeuSurface
-        className="relative max-h-[90dvh] w-full max-w-lg overflow-y-auto p-5 sm:p-6"
+        className="relative w-full max-w-md overflow-visible p-5 sm:p-6"
         as="section"
       >
         <H as="h2" className="font-display text-lg font-semibold text-clay-900">
           {title}
         </H>
-        <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
+        <H as="p" className="mt-1.5 text-sm leading-relaxed text-clay-700">
           {mode === "create"
-            ? "Staff-only neighborhood for search filters. Lands under a district so browse stays clean. Demo until API wiring."
-            : "Updates the label renters see in Standard search. Slug stays stable unless you edit it."}
+            ? "Appears in Cities filter chips this session. Listing create still uses the seed name list."
+            : "Updates Cities filter chips this session. Does not rewrite existing listings."}
         </H>
 
-        <H className="mt-4 space-y-3">
+        <H className="mt-5 flex flex-col gap-4">
           {mode === "create" ? (
-            <H as="label" className="block">
-              <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
-                Parent district
-              </H>
-              <H
-                as="select"
-                value={draft.districtId}
-                disabled={lockDistrict}
-                onChange={(event: { target: { value: string } }) =>
-                  onDraft({ ...draft, districtId: event.target.value })
-                }
-                className="w-full cursor-pointer rounded-neu-md border-0 bg-clay-100 px-3 py-2.5 text-sm text-clay-900 shadow-neu-in-sm outline-none ring-0 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss"
-              >
-                <H as="option" value="">
-                  Select a district
-                </H>
-                {tree.map((gov) => (
-                  <H as="optgroup" key={gov.id} label={`${gov.name} · ${gov.arabicName}`}>
-                    {gov.districts.map((district) => (
-                      <H as="option" key={district.id} value={district.id}>
-                        {district.name}
-                      </H>
-                    ))}
-                  </H>
-                ))}
-              </H>
-            </H>
+            <ZoneSelect
+              label="Parent district"
+              value={draft.districtId}
+              placeholder="Select a district"
+              locked={lockDistrict}
+              tree={tree}
+              onChange={(districtId) => onDraft({ ...draft, districtId })}
+            />
           ) : null}
 
-          <Field label="Name" value={draft.name} onChange={setName} />
+          <Field
+            label="Name"
+            value={draft.name}
+            placeholder="e.g. Mar Mikhael South"
+            onChange={setName}
+            autoFocus={mode === "create" || Boolean(renameTarget)}
+          />
           <Field
             label="Slug"
             value={draft.slug}
+            placeholder="auto from name"
+            hint={
+              slugLocked
+                ? "Edited manually — no longer follows name"
+                : "Fills from name until you edit it"
+            }
             onChange={(slug) => {
               onSlugLocked(true);
               onDraft({ ...draft, slug: slugify(slug) });
@@ -111,10 +113,12 @@ export function AreaFormDialog({
           />
         </H>
 
-        <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
+        <H className="mt-6 flex flex-wrap justify-end gap-2">
+          <NeuButton disabled={busy} onClick={onCancel}>
+            Cancel
+          </NeuButton>
           <NeuButton tone="moss" disabled={!canSubmit} onClick={onConfirm}>
-            {mode === "create" ? "Add area" : "Save name"}
+            {busy ? "Saving…" : mode === "create" ? "Add area" : "Save name"}
           </NeuButton>
         </H>
       </NeuSurface>
@@ -126,24 +130,39 @@ function Field({
   label,
   value,
   onChange,
+  placeholder,
+  hint,
+  autoFocus,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
+  hint?: string;
+  autoFocus?: boolean;
 }) {
   return (
     <H as="label" className="block">
-      <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
+      <H as="span" className="mb-1.5 block text-sm font-medium text-clay-900">
         {label}
       </H>
-      <H
-        as="input"
-        value={value}
-        onChange={(event: { target: { value: string } }) =>
-          onChange(event.target.value)
-        }
-        className="w-full rounded-neu-md border-0 bg-clay-100 px-3 py-2.5 text-sm text-clay-900 shadow-neu-in-sm outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss"
-      />
+      <H className={FIELD_SHELL}>
+        <H
+          as="input"
+          value={value}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          onChange={(event: { target: { value: string } }) =>
+            onChange(event.target.value)
+          }
+          className={FIELD_CONTROL}
+        />
+      </H>
+      {hint ? (
+        <H as="span" className="mt-1.5 block text-xs text-clay-500">
+          {hint}
+        </H>
+      ) : null}
     </H>
   );
 }

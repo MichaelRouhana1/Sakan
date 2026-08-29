@@ -37,9 +37,23 @@ export function useListings(
       if (filters.universitySlugs && filters.universitySlugs.length > 0) {
         params.universitySlugs = filters.universitySlugs.join(",");
       }
-      // Cities mode only — ignored by API when universitySlugs present.
+      if (filters.campusId) {
+        params.campusId = filters.campusId;
+      }
+      if (filters.q && filters.q.trim().length > 0) {
+        params.q = filters.q.trim();
+      }
+      if (filters.lat != null && filters.lng != null) {
+        params.lat = String(filters.lat);
+        params.lng = String(filters.lng);
+        params.radiusKm = String(filters.radiusKm ?? 2);
+      } else if (filters.radiusKm != null && filters.campusId) {
+        params.radiusKm = String(filters.radiusKm);
+      }
+      // Cities mode only — ignored by API when universitySlugs / campusId present.
       if (
         !(filters.universitySlugs && filters.universitySlugs.length > 0) &&
+        !filters.campusId &&
         filters.sort
       ) {
         params.sort = filters.sort;

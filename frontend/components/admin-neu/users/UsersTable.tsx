@@ -3,6 +3,13 @@ import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { ADMIN_MUTED } from "../theme";
 import { NeuSurface } from "../NeuPrimitives";
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_ROW_INTERACTIVE,
+  ADMIN_TABLE_ROW_SELECTED,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
 import { UserModerationActions } from "./UserModerationActions";
 import { UserRolePill, UserStatusPill } from "./UserPills";
 import {
@@ -57,13 +64,8 @@ export function UsersTable({ users, selectedId, onSelect, onAction }: Props) {
   }
 
   return (
-    <NeuSurface inset className="min-w-0 overflow-hidden">
-      <H
-        className={[
-          DESKTOP_ROW,
-          "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-        ].join(" ")}
-      >
+    <NeuSurface inset className="min-w-0 overflow-hidden p-3">
+      <H className={[DESKTOP_ROW, ADMIN_TABLE_HEAD].join(" ")}>
         <H as="span">Name</H>
         <H as="span">Role</H>
         <H as="span">Status</H>
@@ -75,6 +77,7 @@ export function UsersTable({ users, selectedId, onSelect, onAction }: Props) {
         </H>
       </H>
 
+      <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
       {users.map((user) => (
         <H
           key={user.id}
@@ -86,9 +89,9 @@ export function UsersTable({ users, selectedId, onSelect, onAction }: Props) {
           }}
           className={[
             DESKTOP_ROW,
-            "cursor-pointer border-t border-clay-200/80 px-5 py-3.5 transition-colors duration-press",
-            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss",
-            selectedId === user.id ? "bg-moss-soft/40" : "hover:bg-clay-50/60",
+            ADMIN_TABLE_ROW,
+            ADMIN_TABLE_ROW_INTERACTIVE,
+            selectedId === user.id ? ADMIN_TABLE_ROW_SELECTED : "",
           ].join(" ")}
         >
           <H className="flex min-w-0 items-center gap-3">
@@ -116,6 +119,7 @@ export function UsersTable({ users, selectedId, onSelect, onAction }: Props) {
           </H>
         </H>
       ))}
+      </H>
     </NeuSurface>
   );
 }

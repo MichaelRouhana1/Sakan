@@ -73,12 +73,6 @@ export const MOCK_DAYS: DayPoint[] = buildDays();
 export const DATA_START = MOCK_DAYS[0]?.date ?? ANCHOR_DATE;
 export const DATA_END = MOCK_DAYS[MOCK_DAYS.length - 1]?.date ?? ANCHOR_DATE;
 
-export const RETENTION = {
-  w1: 0.44,
-  w4: 0.29,
-  w8: 0.21,
-};
-
 export function defaultCustomFrom(): string {
   return isoFromUtc(Date.UTC(2026, 5, 1));
 }

@@ -25,6 +25,8 @@ import { api } from "@/lib/api";
 import type { User } from "@/types/user";
 import { Skoun } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { browseSearchParams } from "@/lib/browseSearchUrl";
 import {
   AREA_REGIONS,
   DEMO_LISTINGS,
@@ -44,10 +46,15 @@ import {
 /** NativeTabs + groups: `/search` is unmatched at root (hits +not-found). */
 const SEARCH_PATH = "/(renter)/(tabs)/(explore)/search" as const;
 
-function pushSearch(q?: string) {
+function pushSearch(params?: {
+  q?: string;
+  campusId?: string;
+  areas?: string[];
+  universitySlugs?: string[];
+}) {
   router.push({
     pathname: SEARCH_PATH,
-    params: q ? { q } : {},
+    params: browseSearchParams(params ?? {}),
   } as never);
 }
 
@@ -70,16 +77,6 @@ export default function RenterNewHomeScreen() {
   const [campusPromptDismissed, setCampusPromptDismissed] = useState(false);
   const [campusSaving, setCampusSaving] = useState(false);
 
-  const [hintIndex, setHintIndex] = useState(0);
-  const searchHints = ["Area", "University", "Landmark"];
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setHintIndex((i) => (i + 1) % searchHints.length);
-    }, 2800);
-    return () => clearInterval(id);
-  }, []);
-
   const currentRegion = useMemo(
     () => AREA_REGIONS.find((r) => r.id === regionId) ?? AREA_REGIONS[0],
     [regionId]
@@ -91,12 +88,9 @@ export default function RenterNewHomeScreen() {
     return [...match, ...rest].slice(0, 6);
   }, [railPill]);
 
-  const handleSearchSubmit = () => {
-    pushSearch(searchQuery);
-  };
-
-  const handleSearchQuick = (query: string) => {
-    pushSearch(query);
+  const handleSearchQuick = (query: string, kind: "q" | "area" = "q") => {
+    if (kind === "area") pushSearch({ areas: [query] });
+    else pushSearch({ q: query });
   };
 
   const { showSwitchToHosting } = useHostingNavState();
@@ -190,31 +184,30 @@ export default function RenterNewHomeScreen() {
               </Pressable>
             </View>
 
-            {/* Amber Style Mock Search Input Container */}
-            <Pressable
-              onPress={() =>
-                pushSearch(
-                  campusLabel && user?.campus?.slug
-                    ? user.campus.slug
-                    : undefined,
-                )
-              }
-              style={styles.searchContainer}
-            >
-              <View style={styles.searchFieldMock}>
-                <Text style={styles.searchHintBold}>
-                  {campusLabel ? "Near your campus" : "Search by"}
-                </Text>
-                <Text style={styles.searchHintMuted}>
-                  {campusLabel
-                    ? ` ${campusLabel}`
-                    : " City, University, or Neighborhood"}
-                </Text>
-              </View>
-              <View style={styles.searchCircleIcon}>
-                <Ionicons name="search" size={18} color="#ffffff" />
-              </View>
-            </Pressable>
+            <View style={styles.searchContainer}>
+              <SearchAutocomplete
+                variant="pill"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder={
+                  campusLabel
+                    ? `Near ${campusLabel}`
+                    : "Search area, university, listing…"
+                }
+                onSelectArea={(s) => pushSearch({ areas: [s.label] })}
+                onSelectUniversity={(s) =>
+                  pushSearch({
+                    campusId: s.campusId,
+                    universitySlugs: [s.slug],
+                  })
+                }
+                onSelectListing={(s) => {
+                  router.push(`/(renter)/listing/${s.id}` as never);
+                }}
+                onSubmitText={(q) => pushSearch({ q })}
+                onClear={() => setSearchQuery("")}
+              />
+            </View>
 
             {/* Hero Main Copy Block */}
             <View style={styles.heroTextColumn}>
@@ -309,7 +302,7 @@ export default function RenterNewHomeScreen() {
             {currentRegion.areas.slice(0, 6).map((area) => (
               <Pressable
                 key={area.name}
-                onPress={() => handleSearchQuick(area.name)}
+                onPress={() => handleSearchQuick(area.name, "area")}
                 style={[styles.cityCard, { width: fitTileWidth, height: fitTileWidth * 1.15 }]}
               >
                 <Image source={{ uri: area.image }} style={styles.cityImg} />
@@ -367,7 +360,7 @@ export default function RenterNewHomeScreen() {
               <Pressable
                 key={item.id}
                 style={styles.listingCard}
-                onPress={() => handleSearchQuick(item.area)}
+                onPress={() => handleSearchQuick(item.area, "area")}
               >
                 <View style={styles.listingImgContainer}>
                   <Image source={{ uri: item.images[0] }} style={styles.listingImg} />
@@ -760,18 +753,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: 28,
-    paddingHorizontal: 18,
-    height: 56,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    justifyContent: "space-between",
+    zIndex: 50,
+    overflow: "visible",
+    marginBottom: 16,
   },
   searchFieldMock: {
     flexDirection: "row",

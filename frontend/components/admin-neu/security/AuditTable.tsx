@@ -2,6 +2,11 @@ import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
 import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
+import {
   ACTION_LABEL,
   TIER_LABEL,
   formatStamp,
@@ -45,15 +50,10 @@ export function AuditTable({ events }: Props) {
   }
 
   return (
-    <NeuSurface inset className="min-w-0 overflow-hidden">
+    <NeuSurface inset className="min-w-0 overflow-hidden p-3">
       <H className="neu-scroll overflow-x-auto">
         <H className="min-w-[920px]">
-          <H
-            className={[
-              DESKTOP_ROW,
-              "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-            ].join(" ")}
-          >
+          <H className={[DESKTOP_ROW, ADMIN_TABLE_HEAD].join(" ")}>
             <H as="span">Admin</H>
             <H as="span">Action</H>
             <H as="span">Target</H>
@@ -63,13 +63,14 @@ export function AuditTable({ events }: Props) {
             <H as="span">IP</H>
           </H>
 
+          <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
           {events.map((event) => (
             <H
               key={event.id}
               className={[
                 DESKTOP_ROW,
-                "border-t border-clay-200/80 px-5 py-3.5 transition-colors duration-press",
-                "hover:bg-moss-soft/20",
+                ADMIN_TABLE_ROW,
+                "hover:shadow-neu",
               ].join(" ")}
             >
               <H className="flex min-w-0 items-center gap-3">
@@ -82,7 +83,7 @@ export function AuditTable({ events }: Props) {
                     {event.actor.name}
                   </H>
                   <H as="p" className="mt-0.5 truncate text-xs text-clay-700">
-                    {TIER_LABEL[event.actor.role]}
+                    {TIER_LABEL[event.actor.role]} · {event.actor.email}
                   </H>
                 </H>
               </H>
@@ -114,6 +115,7 @@ export function AuditTable({ events }: Props) {
               </H>
             </H>
           ))}
+          </H>
         </H>
       </H>
     </NeuSurface>
@@ -131,7 +133,7 @@ function EventCard({ event }: { event: AuditEvent }) {
               {event.actor.name}
             </H>
             <H as="p" className="mt-0.5 truncate text-xs text-clay-700">
-              {TIER_LABEL[event.actor.role]}
+              {TIER_LABEL[event.actor.role]} · {event.actor.email}
             </H>
           </H>
         </H>
@@ -165,15 +167,15 @@ function EventCard({ event }: { event: AuditEvent }) {
 
 function ActionPill({ action }: { action: AuditEvent["action"] }) {
   const tone =
-    action === "banned_user" ||
-    action === "removed_listing" ||
-    action === "rejected_purchase"
+    action === "user.status" ||
+    action === "listing.remove" ||
+    action === "credit_tx.reject"
       ? "text-ember"
-      : action === "granted_credits" ||
-          action === "approved_purchase" ||
-          action === "unrestricted_user"
+      : action === "credit_tx.approve" ||
+          action === "listing.restore" ||
+          action === "listing.archive"
         ? "text-moss"
-        : action === "updated_rbac" || action === "exported_logs"
+        : action === "rbac.update" || action === "logs.export"
           ? "text-ochre"
           : "text-clay-900";
 

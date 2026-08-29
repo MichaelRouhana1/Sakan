@@ -29,6 +29,7 @@ type Props = {
   onRenameArea: (area: AdminNeighborhood) => void;
   onMoveArea: (area: AdminNeighborhood) => void;
   onMergeArea: (area: AdminNeighborhood) => void;
+  onToggleActive: (area: AdminNeighborhood) => void;
   onDragStart: (areaId: string) => void;
   onDragOver: (target: { kind: DragKind; id: string } | null) => void;
   onDropDistrict: (districtId: string) => void;
@@ -51,6 +52,7 @@ export function ZoneTree({
   onRenameArea,
   onMoveArea,
   onMergeArea,
+  onToggleActive,
   onDragStart,
   onDragOver,
   onDropDistrict,
@@ -89,6 +91,7 @@ export function ZoneTree({
           onRenameArea={onRenameArea}
           onMoveArea={onMoveArea}
           onMergeArea={onMergeArea}
+          onToggleActive={onToggleActive}
           onDragStart={onDragStart}
           onDragOver={onDragOver}
           onDropDistrict={onDropDistrict}
@@ -115,6 +118,7 @@ function GovernorateNode({
   onRenameArea,
   onMoveArea,
   onMergeArea,
+  onToggleActive,
   onDragStart,
   onDragOver,
   onDropDistrict,
@@ -135,6 +139,7 @@ function GovernorateNode({
   onRenameArea: (area: AdminNeighborhood) => void;
   onMoveArea: (area: AdminNeighborhood) => void;
   onMergeArea: (area: AdminNeighborhood) => void;
+  onToggleActive: (area: AdminNeighborhood) => void;
   onDragStart: (areaId: string) => void;
   onDragOver: (target: { kind: DragKind; id: string } | null) => void;
   onDropDistrict: (districtId: string) => void;
@@ -245,6 +250,7 @@ function GovernorateNode({
                     onRenameArea={onRenameArea}
                     onMoveArea={onMoveArea}
                     onMergeArea={onMergeArea}
+                    onToggleActive={onToggleActive}
                     onDragStart={onDragStart}
                     onDragOver={onDragOver}
                     onDropDistrict={onDropDistrict}
@@ -274,6 +280,7 @@ function DistrictNode({
   onRenameArea,
   onMoveArea,
   onMergeArea,
+  onToggleActive,
   onDragStart,
   onDragOver,
   onDropDistrict,
@@ -292,6 +299,7 @@ function DistrictNode({
   onRenameArea: (area: AdminNeighborhood) => void;
   onMoveArea: (area: AdminNeighborhood) => void;
   onMergeArea: (area: AdminNeighborhood) => void;
+  onToggleActive: (area: AdminNeighborhood) => void;
   onDragStart: (areaId: string) => void;
   onDragOver: (target: { kind: DragKind; id: string } | null) => void;
   onDropDistrict: (districtId: string) => void;
@@ -422,6 +430,7 @@ function DistrictNode({
                   onRename={() => onRenameArea(area)}
                   onMove={() => onMoveArea(area)}
                   onMerge={() => onMergeArea(area)}
+                  onToggleActive={() => onToggleActive(area)}
                   onDragStart={() => onDragStart(area.id)}
                   onDragOver={() =>
                     onDragOver({ kind: "neighborhood", id: area.id })
@@ -447,6 +456,7 @@ function NeighborhoodRow({
   onRename,
   onMove,
   onMerge,
+  onToggleActive,
   onDragStart,
   onDragOver,
   onDrop,
@@ -460,6 +470,7 @@ function NeighborhoodRow({
   onRename: () => void;
   onMove: () => void;
   onMerge: () => void;
+  onToggleActive: () => void;
   onDragStart: () => void;
   onDragOver: () => void;
   onDrop: () => void;
@@ -491,9 +502,9 @@ function NeighborhoodRow({
       onDragEnd={onDragEnd}
       className={[
         "flex cursor-grab items-start gap-2 rounded-neu-md bg-clay-100 px-3 py-2.5 shadow-neu-sm active:cursor-grabbing sm:items-center",
-        dragging ? "opacity-50" : "",
+        dragging || !area.active ? "opacity-50" : "",
         dropHere ? "shadow-press" : "",
-        highlighted ? "ring-0" : "",
+        highlighted ? "shadow-press outline outline-2 outline-offset-2 outline-moss" : "",
       ].join(" ")}
     >
       <H
@@ -509,6 +520,7 @@ function NeighborhoodRow({
         <H className="flex flex-wrap items-center gap-2">
           <H as="span" className="text-sm font-medium text-clay-900">
             {area.name}
+            {!area.active ? " · Off" : ""}
           </H>
           <OriginPill origin={area.origin} />
           <CountPill
@@ -523,10 +535,12 @@ function NeighborhoodRow({
         </H>
       </H>
       <NeighborhoodActions
+        area={area}
         compact={!compact}
         onRename={onRename}
         onMove={onMove}
         onMerge={onMerge}
+        onToggleActive={onToggleActive}
       />
     </H>
   );

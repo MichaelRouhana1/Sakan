@@ -10,6 +10,17 @@ const envSchema = z.object({
   /** Comma-separated Clerk user ids allowed to use /api/admin from the web UI. */
   ADMIN_CLERK_IDS: z.string().optional(),
   /**
+   * When true, /api/admin requires staff Clerk id or x-admin-key.
+   * Unset: off in development, on in production. Set false to keep the desk open.
+   */
+  ADMIN_AUTH_REQUIRED: z
+    .enum(["true", "false", "1", "0"])
+    .optional()
+    .transform((v) => {
+      if (v == null) return undefined;
+      return v === "true" || v === "1";
+    }),
+  /**
    * Public origin used in uploaded photo URLs (must be reachable from phones).
    * Example: http://192.168.10.249:3001
    */

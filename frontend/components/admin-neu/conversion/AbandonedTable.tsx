@@ -1,8 +1,14 @@
 import { Bell, Check } from "lucide-react-native";
+import { Link, type Href } from "expo-router";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { ADMIN_MUTED } from "../theme";
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
 import {
   daysStalled,
   formatStamp,
@@ -20,10 +26,11 @@ const DESKTOP_ROW =
 type Props = {
   drafts: AbandonedDraft[];
   nowIso: string;
+  busy?: boolean;
   onRemind: (draft: AbandonedDraft) => void;
 };
 
-export function AbandonedTable({ drafts, nowIso, onRemind }: Props) {
+export function AbandonedTable({ drafts, nowIso, busy, onRemind }: Props) {
   const bp = useBreakpoint();
   const compact = bp === "mobile";
 
@@ -48,6 +55,7 @@ export function AbandonedTable({ drafts, nowIso, onRemind }: Props) {
             key={draft.id}
             draft={draft}
             nowIso={nowIso}
+            busy={busy}
             onRemind={() => onRemind(draft)}
           />
         ))}
@@ -56,15 +64,10 @@ export function AbandonedTable({ drafts, nowIso, onRemind }: Props) {
   }
 
   return (
-    <NeuSurface inset className="overflow-hidden">
+    <NeuSurface inset className="overflow-hidden p-3">
       <H className="neu-scroll overflow-x-auto">
         <H className="min-w-[820px]">
-          <H
-            className={[
-              DESKTOP_ROW,
-              "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-            ].join(" ")}
-          >
+          <H className={[DESKTOP_ROW, ADMIN_TABLE_HEAD].join(" ")}>
             <H as="span">Poster</H>
             <H as="span">Last step</H>
             <H as="span">Stalled</H>
@@ -73,12 +76,11 @@ export function AbandonedTable({ drafts, nowIso, onRemind }: Props) {
               Follow-up
             </H>
           </H>
+          <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
           {drafts.map((draft) => (
             <H
               key={draft.id}
-              className={[DESKTOP_ROW, "border-t border-clay-200/80 px-5 py-3.5"].join(
-                " ",
-              )}
+              className={[DESKTOP_ROW, ADMIN_TABLE_ROW].join(" ")}
             >
               <PosterCell draft={draft} />
               <StepPill id={draft.lastStepId} />
@@ -93,11 +95,13 @@ export function AbandonedTable({ drafts, nowIso, onRemind }: Props) {
                   compact
                   sent={Boolean(draft.reminderSentAt)}
                   name={personName(draft.poster)}
+                  disabled={busy}
                   onClick={() => onRemind(draft)}
                 />
               </H>
             </H>
           ))}
+          </H>
         </H>
       </H>
     </NeuSurface>
@@ -107,10 +111,12 @@ export function AbandonedTable({ drafts, nowIso, onRemind }: Props) {
 function DraftCard({
   draft,
   nowIso,
+  busy,
   onRemind,
 }: {
   draft: AbandonedDraft;
   nowIso: string;
+  busy?: boolean;
   onRemind: () => void;
 }) {
   return (
@@ -129,6 +135,7 @@ function DraftCard({
         <RemindButton
           sent={Boolean(draft.reminderSentAt)}
           name={personName(draft.poster)}
+          disabled={busy}
           onClick={onRemind}
         />
       </H>
@@ -146,9 +153,12 @@ function PosterCell({ draft }: { draft: AbandonedDraft }) {
         {initials(draft.poster)}
       </H>
       <H className="min-w-0">
-        <H as="p" className="truncate font-display text-sm font-semibold">
+        <Link
+          href={`/admin/users?id=${draft.poster.id}` as Href}
+          className="block truncate font-display text-sm font-semibold text-moss"
+        >
           {personName(draft.poster)}
-        </H>
+        </Link>
         <H as="p" className="truncate text-xs text-clay-700">
           {draft.title ?? "Untitled draft"} · {draft.area}
         </H>
@@ -173,11 +183,13 @@ function RemindButton({
   name,
   onClick,
   compact,
+  disabled,
 }: {
   sent: boolean;
   name: string;
   onClick: () => void;
   compact?: boolean;
+  disabled?: boolean;
 }) {
   if (sent) {
     return (
@@ -197,6 +209,7 @@ function RemindButton({
       tone="moss"
       ariaLabel={`Send reminder to ${name}`}
       className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+      disabled={disabled}
       onClick={onClick}
     >
       <Bell size={compact ? 14 : 16} strokeWidth={1.75} />

@@ -43,6 +43,16 @@ export function CountPill({
   value: number;
   label: string;
 }) {
+  if (value <= 0) {
+    return (
+      <H
+        as="span"
+        className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-2.5 py-1 text-xs font-medium text-clay-500 shadow-neu-in-sm"
+      >
+        —
+      </H>
+    );
+  }
   return (
     <H
       as="span"

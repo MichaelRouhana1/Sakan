@@ -4,6 +4,11 @@ import type { ReactNode } from "react";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
 import { CreditKindPill, CreditStatusPill } from "./CreditPills";
 import {
   bundleLabel,
@@ -91,15 +96,10 @@ export function CreditsTable({
         </H>
       </H>
 
-      <NeuSurface inset className="min-w-0 overflow-hidden">
+      <NeuSurface inset className="min-w-0 overflow-hidden p-3">
         <H className="neu-scroll overflow-x-auto">
           <H className="min-w-[1120px]">
-            <H
-              className={[
-                DESKTOP_ROW,
-                "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-              ].join(" ")}
-            >
+            <H className={[DESKTOP_ROW, ADMIN_TABLE_HEAD].join(" ")}>
               <H as="span">User</H>
               <H as="span">Reference</H>
               <H as="span">Amount</H>
@@ -112,13 +112,11 @@ export function CreditsTable({
               </H>
             </H>
 
+            <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
             {transactions.map((tx) => (
               <H
                 key={tx.id}
-                className={[
-                  DESKTOP_ROW,
-                  "border-t border-clay-200/80 px-5 py-3.5",
-                ].join(" ")}
+                className={[DESKTOP_ROW, ADMIN_TABLE_ROW].join(" ")}
               >
                 <H className="flex min-w-0 items-center gap-3">
                   <Avatar user={tx.user} />
@@ -166,6 +164,7 @@ export function CreditsTable({
                 </H>
               </H>
             ))}
+            </H>
           </H>
         </H>
       </NeuSurface>

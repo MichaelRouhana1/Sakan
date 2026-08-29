@@ -1,7 +1,6 @@
 import {
-  RANGE_DAYS,
-  addDays,
-  lastOf,
+  priorByDate,
+  sliceByDate,
   type RangeId,
 } from "../analytics/types";
 
@@ -68,6 +67,25 @@ export type AbandonedDraft = {
   startedAt: string;
   lastActiveAt: string;
   reminderSentAt: string | null;
+};
+
+export type ListFunnelParams = {
+  range: RangeId;
+  customFrom: string;
+  customTo: string;
+};
+
+export type FunnelResult = {
+  days: DayFunnel[];
+  prior: DayFunnel[];
+  dataStart: string;
+  dataEnd: string;
+};
+
+export type ListAbandonedParams = {
+  from: string;
+  to: string;
+  step?: FunnelStepId | "all";
 };
 
 export function stepLabel(id: FunnelStepId): string {
@@ -165,24 +183,11 @@ export function sliceDays(
   customFrom: string,
   customTo: string,
 ): DayFunnel[] {
-  if (days.length === 0) return [];
-  const end = lastOf(days)!.date;
-  if (range !== "custom") {
-    const start = addDays(end, -(RANGE_DAYS[range] - 1));
-    return days.filter((row) => row.date >= start && row.date <= end);
-  }
-  const from = customFrom <= customTo ? customFrom : customTo;
-  const to = customFrom <= customTo ? customTo : customFrom;
-  return days.filter((row) => row.date >= from && row.date <= to);
+  return sliceByDate(days, range, customFrom, customTo);
 }
 
 export function priorDays(days: DayFunnel[], current: DayFunnel[]): DayFunnel[] {
-  if (current.length === 0) return [];
-  const first = current[0].date;
-  const startIdx = days.findIndex((row) => row.date === first);
-  if (startIdx <= 0) return [];
-  const from = Math.max(0, startIdx - current.length);
-  return days.slice(from, startIdx);
+  return priorByDate(days, current);
 }
 
 export function sparkFor(

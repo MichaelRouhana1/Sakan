@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { Link, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import {
   Image,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { Skoun } from "@/constants/theme";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import {
@@ -22,6 +22,16 @@ import {
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { useHostingNavState } from "@/features/listings/useHostingNavState";
+import { useUniversities } from "@/features/universities/useUniversities";
+import {
+  browseSearchSetParams,
+  homeBrowseHref,
+  parseCsvParam,
+} from "@/lib/browseSearchUrl";
+import type {
+  SearchAreaSuggestion,
+  SearchUniversitySuggestion,
+} from "@/features/search/types";
 
 type Props = {
   showSearch?: boolean;
@@ -29,6 +39,15 @@ type Props = {
 
 export function WebTopNav({ showSearch = false }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useLocalSearchParams<{
+    q?: string;
+    campusId?: string;
+    areas?: string;
+    universitySlugs?: string;
+  }>();
+  const onBrowse = pathname.includes("/search");
+  const universities = useUniversities();
   const { isSignedIn, user, logout } = useAuthSession();
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
@@ -38,6 +57,128 @@ export function WebTopNav({ showSearch = false }: Props) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
+
+  useEffect(() => {
+    if (!showSearch) return;
+    const q = typeof params.q === "string" ? params.q.trim() : "";
+    const areas = parseCsvParam(params.areas);
+    const slugs = parseCsvParam(params.universitySlugs);
+    const campusId =
+      typeof params.campusId === "string" ? params.campusId.trim() : "";
+
+    if (q) {
+      setSearchVal(q);
+      return;
+    }
+    if (areas.length > 0) {
+      setSearchVal(areas[0]!);
+      return;
+    }
+    if (campusId || slugs.length > 0) {
+      const campus = campusId
+        ? universities.data?.find((u) => u.id === campusId)
+        : universities.data?.find((u) => u.slug === slugs[0]);
+      if (campus) {
+        setSearchVal(campus.displayName ?? campus.name);
+      }
+      return;
+    }
+    setSearchVal("");
+  }, [
+    showSearch,
+    params.q,
+    params.areas,
+    params.campusId,
+    params.universitySlugs,
+    universities.data,
+  ]);
+
+  const writeBrowse = useCallback(
+    (next: {
+      q?: string | null;
+      campusId?: string | null;
+      areas?: string[];
+      universitySlugs?: string[];
+      label?: string;
+    }) => {
+      if (next.label != null) setSearchVal(next.label);
+      else if (next.q) setSearchVal(next.q);
+      else if (next.areas?.[0]) setSearchVal(next.areas[0]);
+      else if (!next.campusId && !next.universitySlugs?.length && !next.q) {
+        setSearchVal("");
+      }
+
+      if (onBrowse) {
+        router.setParams(browseSearchSetParams(next) as never);
+        return;
+      }
+      router.push(
+        homeBrowseHref({
+          q: next.q ?? undefined,
+          campusId: next.campusId ?? undefined,
+          areas: next.areas,
+          universitySlugs: next.universitySlugs,
+        }) as never,
+      );
+    },
+    [onBrowse, router],
+  );
+
+  const onSelectArea = useCallback(
+    (s: SearchAreaSuggestion) => {
+      writeBrowse({
+        label: s.label,
+        areas: [s.label],
+        campusId: null,
+        universitySlugs: [],
+        q: null,
+      });
+    },
+    [writeBrowse],
+  );
+
+  const onSelectUniversity = useCallback(
+    (s: SearchUniversitySuggestion) => {
+      writeBrowse({
+        label: s.label,
+        campusId: s.campusId,
+        universitySlugs: [s.slug],
+        areas: [],
+        q: null,
+      });
+    },
+    [writeBrowse],
+  );
+
+  const onSubmitText = useCallback(
+    (q: string) => {
+      writeBrowse({
+        label: q,
+        q,
+        campusId: null,
+        universitySlugs: [],
+        areas: [],
+      });
+    },
+    [writeBrowse],
+  );
+
+  const onClearSearch = useCallback(() => {
+    setSearchVal("");
+    if (onBrowse) {
+      router.setParams(
+        browseSearchSetParams({
+          q: null,
+          campusId: null,
+          areas: [],
+          universitySlugs: [],
+        }) as never,
+      );
+      return;
+    }
+    // Off browse: just clear local field.
+  }, [onBrowse, router]);
 
   const handleLoginClick = () => {
     setMenuOpen(false);
@@ -87,23 +228,21 @@ export function WebTopNav({ showSearch = false }: Props) {
         </Link>
 
         {showSearch ? (
-          <Pressable
-            style={styles.searchWrap}
-            onPress={() => router.push("/search")}
-            accessibilityRole="button"
-            accessibilityLabel="Search listings"
-          >
-            <TextInput
+          <View style={styles.searchWrap}>
+            <SearchAutocomplete
+              value={searchVal}
+              onChangeText={setSearchVal}
               placeholder="Search by city, area, university, or listing"
-              placeholderTextColor={Skoun.color.inkMuted}
-              style={styles.searchInput}
-              editable={false}
-              pointerEvents="none"
+              onSelectArea={onSelectArea}
+              onSelectUniversity={onSelectUniversity}
+              onSelectListing={(s) => {
+                router.push(`/listing/${s.id}` as never);
+              }}
+              onSubmitText={onSubmitText}
+              onClear={onClearSearch}
+              containerStyle={styles.searchAutocomplete}
             />
-            <View style={styles.searchBtn} accessibilityElementsHidden>
-              <Text style={styles.searchBtnGlyph}>⌕</Text>
-            </View>
-          </Pressable>
+          </View>
         ) : null}
 
         <View style={styles.links}>
@@ -334,12 +473,13 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
     height: WEB_NAV_HEIGHT,
     minHeight: WEB_NAV_HEIGHT,
-    zIndex: 50,
+    zIndex: 200,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
     boxSizing: "border-box",
+    overflow: "visible",
   },
   inner: {
     maxWidth: WEB_CONTENT_MAX,
@@ -374,35 +514,12 @@ const styles = StyleSheet.create({
   searchWrap: {
     flex: 1,
     maxWidth: 520,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Skoun.color.surface,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-    borderRadius: 999,
-    paddingLeft: 18,
-    paddingRight: 6,
-    paddingVertical: 6,
+    zIndex: 50,
+    overflow: "visible",
   },
-  searchInput: {
+  searchAutocomplete: {
     flex: 1,
-    fontFamily: Skoun.type.body,
-    fontSize: 14,
-    color: Skoun.color.ink,
-    paddingVertical: 8,
-  },
-  searchBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: Skoun.color.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchBtnGlyph: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: Skoun.type.bodyBold,
+    maxWidth: 520,
   },
   links: {
     flexDirection: "row",

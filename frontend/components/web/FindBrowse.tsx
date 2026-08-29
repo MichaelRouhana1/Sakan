@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
   Modal,
@@ -36,7 +36,10 @@ import {
   type HoverPoint,
 } from "@/components/web/HoverCommitCursor";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
-import { LEBANON_AREAS } from "@/constants/areas";
+import {
+  useLiveLebanonAreaGroups,
+  useLiveLebanonAreas,
+} from "@/constants/areas";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
@@ -49,6 +52,10 @@ import {
 } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
+import {
+  browseSearchSetParams,
+  parseCsvParam,
+} from "@/lib/browseSearchUrl";
 import { useStableBreakpoint } from "@/lib/breakpoints";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { Listing } from "@/types/listing";
@@ -81,8 +88,7 @@ function sortListingsClient(
 
 function cityLabelFromFilters(filters: BrowseFiltersValue): string {
   if (filters.areas.length === 1) return filters.areas[0]!;
-  if (filters.areas.length > 1) return "Lebanon";
-  return "Beirut";
+  return "Lebanon";
 }
 
 const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
@@ -98,9 +104,19 @@ export function FindBrowse() {
   const coarsePointer = useCoarsePointer();
   const { setFullBleed, setHideFooter, setLockScroll } = useWebShellChrome();
 
+  const params = useLocalSearchParams<{
+    q?: string;
+    campusId?: string;
+    areas?: string;
+    universitySlugs?: string;
+  }>();
   const [mode, setMode] = useState<SearchMode>("university");
   const [filters, setFilters] =
     useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
+  const [focusPoint, setFocusPoint] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [browseSort, setBrowseSort] = useState<BrowseSortKey>("newest");
   const [resultsLayout, setResultsLayout] = useState<ResultsLayout>("grid");
   const [mapOpen, setMapOpen] = useState(false);
@@ -114,23 +130,53 @@ export function FindBrowse() {
   );
   const [hoverRingDone, setHoverRingDone] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filterSection, setFilterSection] = useState<FilterSection>("university");
+  const [filterSection, setFilterSection] =
+    useState<FilterSection>("university");
   const [chipSheet, setChipSheet] = useState<ChipSheet>(null);
-
-  useEffect(() => {
-    if (mapOpen) setMapMounted(true);
-  }, [mapOpen]);
+  const liveAreas = useLiveLebanonAreas();
+  const liveAreaGroups = useLiveLebanonAreaGroups();
 
   const deferredFilters = useDeferredValue(filters);
   const deferredMode = useDeferredValue(mode);
   const deferredSort = useDeferredValue(browseSort);
-
   const effectiveMode: SearchMode =
-    deferredMode === "university" ||
+    mode === "university" ||
     deferredFilters.universitySlugs.length > 0 ||
+    Boolean(deferredFilters.campusId) ||
     Boolean(deferredFilters.institutionSlug)
       ? "university"
       : "standard";
+
+  const syncUrl = useCallback(
+    (next: {
+      q?: string | null;
+      campusId?: string | null;
+      areas?: string[];
+      universitySlugs?: string[];
+    }) => {
+      router.setParams(browseSearchSetParams(next) as never);
+    },
+    [],
+  );
+
+  const resetSearch = useCallback(() => {
+    setFocusPoint(null);
+    setFilters((prev) => ({
+      ...prev,
+      areas: [],
+      universitySlugs: [],
+      institutionSlug: null,
+      campusId: null,
+      q: null,
+    }));
+    setMode("university");
+    syncUrl({
+      q: null,
+      campusId: null,
+      areas: [],
+      universitySlugs: [],
+    });
+  }, [syncUrl]);
 
   const listFilters = useMemo(
     () =>
@@ -144,8 +190,89 @@ export function FindBrowse() {
 
   const universities = useUniversities();
   const institutions = useInstitutions();
+
+  useEffect(() => {
+    const campusId =
+      typeof params.campusId === "string" ? params.campusId.trim() : "";
+    const areas = parseCsvParam(params.areas);
+    const slugs = parseCsvParam(params.universitySlugs);
+    const q =
+      typeof params.q === "string" && params.q.trim()
+        ? params.q.trim()
+        : "";
+
+    if (!campusId && areas.length === 0 && slugs.length === 0 && !q) {
+      setFocusPoint(null);
+      setFilters((prev) => ({
+        ...prev,
+        areas: [],
+        universitySlugs: [],
+        campusId: null,
+        q: null,
+        institutionSlug: null,
+      }));
+      return;
+    }
+
+    if (campusId || slugs.length > 0) {
+      const slug = slugs[0];
+      const campus = slug
+        ? universities.data?.find((u) => u.slug === slug)
+        : universities.data?.find((u) => u.id === campusId);
+      setFilters((prev) => ({
+        ...prev,
+        campusId: campusId || campus?.id || null,
+        universitySlugs: slug ? [slug] : campus ? [campus.slug] : [],
+        areas: [],
+        q: null,
+        institutionSlug: campus?.institutionSlug ?? prev.institutionSlug,
+      }));
+      if (campus?.lat != null && campus?.lng != null) {
+        setFocusPoint({ lat: campus.lat, lng: campus.lng });
+      }
+      setMode("university");
+      setBrowseSort("distance");
+      return;
+    }
+    if (areas.length > 0) {
+      setFocusPoint(null);
+      setFilters((prev) => ({
+        ...prev,
+        areas,
+        universitySlugs: [],
+        campusId: null,
+        q: null,
+        institutionSlug: null,
+      }));
+      setMode("standard");
+      return;
+    }
+    if (q) {
+      setFocusPoint(null);
+      setFilters((prev) => ({
+        ...prev,
+        q,
+        areas: [],
+        universitySlugs: [],
+        campusId: null,
+        institutionSlug: null,
+      }));
+      setMode("standard");
+    }
+  }, [
+    params.campusId,
+    params.areas,
+    params.universitySlugs,
+    params.q,
+    universities.data,
+  ]);
+
   const { data, isLoading, isError, refetch, isFetching } =
     useListings(listFilters);
+
+  useEffect(() => {
+    if (mapOpen) setMapMounted(true);
+  }, [mapOpen]);
 
   const rawListings = data?.listings ?? [];
   const selectedInst = useMemo(
@@ -169,12 +296,15 @@ export function FindBrowse() {
   );
 
   const badgeMode: SearchMode =
-    mode === "university" || filters.universitySlugs.length > 0
+    mode === "university" ||
+    filters.universitySlugs.length > 0 ||
+    Boolean(filters.campusId)
       ? "university"
       : "standard";
   const filterCount = browseFilterBadgeCount(filters, badgeMode);
   const hasActiveFilters = filterCount > 0 || browseSort !== "newest";
   const cityLabel = cityLabelFromFilters(filters);
+  const isNationwide = filters.areas.length !== 1;
   const isMap = mapOpen;
   /** Map rail always uses grid card chrome; list/grid choice is restored on close. */
   const cardVariant: ResultsLayout = isMap ? "grid" : resultsLayout;
@@ -196,9 +326,8 @@ export function FindBrowse() {
     setFiltersOpen(true);
   };
   const clearAll = () => {
-    setFilters(EMPTY_BROWSE_FILTERS);
+    resetSearch();
     setBrowseSort("newest");
-    setMode("university");
   };
 
   const toggleArea = (area: string) => {
@@ -224,23 +353,40 @@ export function FindBrowse() {
           <LText variant="caption" tone="muted">
             {" / "}
           </LText>
-          <LText variant="caption" tone="muted">
+          <LText
+            variant="caption"
+            style={isNationwide ? styles.crumbCurrent : undefined}
+            tone={isNationwide ? undefined : "muted"}
+          >
             Lebanon
           </LText>
-          <LText variant="caption" tone="muted">
-            {" / "}
-          </LText>
-          <LText variant="caption" style={styles.crumbCurrent}>
-            {cityLabel}
-          </LText>
+          {!isNationwide ? (
+            <>
+              <LText variant="caption" tone="muted">
+                {" / "}
+              </LText>
+              <LText variant="caption" style={styles.crumbCurrent}>
+                {cityLabel}
+              </LText>
+            </>
+          ) : null}
         </View>
       ) : null}
 
       <View style={styles.headingRow}>
         <View style={styles.headingText}>
           <Text style={[styles.h1, isMap && styles.h1Map]}>
-            Student Accommodations in{" "}
-            <Text style={styles.h1Em}>{cityLabel}</Text>
+            {isNationwide ? (
+              <>
+                Student Accommodations across{" "}
+                <Text style={styles.h1Em}>Lebanon</Text>
+              </>
+            ) : (
+              <>
+                Student Accommodations in{" "}
+                <Text style={styles.h1Em}>{cityLabel}</Text>
+              </>
+            )}
             {!isLoading ? (
               <Text style={styles.h1Count}>
                 {" "}
@@ -419,6 +565,9 @@ export function FindBrowse() {
                 (inst) => inst.slug === filters.institutionSlug,
               ) ?? selectedInst,
             )}
+            focusPoint={
+              effectiveMode === "university" ? null : focusPoint
+            }
             onClose={() => {
               setHoveredListingId(null);
               setHoverFlyListingId(null);
@@ -529,32 +678,39 @@ export function FindBrowse() {
 
             {chipSheet === "areas" ? (
               <ScrollView style={styles.sheetScroll}>
-                <View style={styles.chipWrap}>
-                  {LEBANON_AREAS.map((area) => {
-                    const active = filters.areas.includes(area);
-                    return (
-                      <Pressable
-                        key={area}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: active }}
-                        onPress={() => toggleArea(area)}
-                        style={[
-                          styles.choiceChip,
-                          active && styles.choiceChipActive,
-                        ]}
-                      >
-                        <LText
-                          variant="caption"
-                          style={
-                            active ? styles.choiceChipLabelOn : undefined
-                          }
-                        >
-                          {area}
-                        </LText>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                {liveAreaGroups.map((group) => (
+                  <View key={group.governorate} style={styles.areaGroup}>
+                    <LText variant="caption" tone="muted" style={styles.areaGroupLabel}>
+                      {group.governorate}
+                    </LText>
+                    <View style={styles.chipWrap}>
+                      {group.areas.map((area) => {
+                        const active = filters.areas.includes(area);
+                        return (
+                          <Pressable
+                            key={area}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active }}
+                            onPress={() => toggleArea(area)}
+                            style={[
+                              styles.choiceChip,
+                              active && styles.choiceChipActive,
+                            ]}
+                          >
+                            <LText
+                              variant="caption"
+                              style={
+                                active ? styles.choiceChipLabelOn : undefined
+                              }
+                            >
+                              {area}
+                            </LText>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
               </ScrollView>
             ) : null}
 
@@ -836,6 +992,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+  },
+  areaGroup: {
+    marginBottom: 12,
+    gap: 6,
+  },
+  areaGroupLabel: {
+    marginBottom: 4,
+    fontFamily: Skoun.type.bodyMedium,
   },
   choiceChip: {
     paddingVertical: 8,

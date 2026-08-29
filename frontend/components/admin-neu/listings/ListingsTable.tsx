@@ -3,6 +3,13 @@ import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { ADMIN_MUTED } from "../theme";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_ROW_INTERACTIVE,
+  ADMIN_TABLE_ROW_SELECTED,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
 import { ListingActions } from "./ListingActions";
 import { ListingStatusPill } from "./ListingStatusPill";
 import {
@@ -112,13 +119,8 @@ export function ListingsTable({
 
   return (
     <H className="flex flex-col gap-3">
-      <NeuSurface inset className="min-w-0 overflow-hidden">
-        <H
-          className={[
-            DESKTOP_ROW,
-            "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-          ].join(" ")}
-        >
+      <NeuSurface inset className="min-w-0 overflow-hidden p-3">
+        <H className={[DESKTOP_ROW, ADMIN_TABLE_HEAD].join(" ")}>
           <H as="span" className="flex items-center">
             <H
               as="input"
@@ -139,6 +141,7 @@ export function ListingsTable({
           </H>
         </H>
 
+        <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
         {listings.map((listing) => (
           <H
             key={listing.id}
@@ -150,9 +153,9 @@ export function ListingsTable({
             }}
             className={[
               DESKTOP_ROW,
-              "cursor-pointer border-t border-clay-200/80 px-5 py-3.5 transition-colors duration-press",
-              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss",
-              selectedId === listing.id ? "bg-moss-soft/40" : "hover:bg-clay-50/60",
+              ADMIN_TABLE_ROW,
+              ADMIN_TABLE_ROW_INTERACTIVE,
+              selectedId === listing.id ? ADMIN_TABLE_ROW_SELECTED : "",
             ].join(" ")}
           >
             <H
@@ -206,6 +209,7 @@ export function ListingsTable({
             </H>
           </H>
         ))}
+        </H>
       </NeuSurface>
 
       <Pager

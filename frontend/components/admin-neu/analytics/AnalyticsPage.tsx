@@ -1,74 +1,15 @@
 import { Download } from "lucide-react-native";
-import { useMemo, useState } from "react";
 import { H } from "../h";
-import { NeuButton } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { AnalyticsSwitcher } from "./AnalyticsSwitcher";
-import { KpiCards, buildKpis } from "./KpiCards";
+import { KpiCards } from "./KpiCards";
 import { SecondaryCards } from "./SecondaryCards";
 import { TrendChart } from "./TrendChart";
 import { TrendsToolbar } from "./TrendsToolbar";
-import {
-  ANCHOR_DATE,
-  DATA_END,
-  DATA_START,
-  MOCK_DAYS,
-  RETENTION,
-  defaultCustomFrom,
-} from "./mockTrends";
-import {
-  addDays,
-  priorSlice,
-  sliceRange,
-  sumBy,
-  toCsv,
-  type RangeId,
-  type SeriesId,
-} from "./types";
+import { useAdminAnalytics } from "./useAdminAnalytics";
 
 export function AnalyticsPage() {
-  const [range, setRange] = useState<RangeId>("30d");
-  const [series, setSeries] = useState<SeriesId>("both");
-  const [customFrom, setCustomFrom] = useState(defaultCustomFrom);
-  const [customTo, setCustomTo] = useState(DATA_END);
-  const [exportedAt, setExportedAt] = useState<string | null>(null);
-
-  const visible = useMemo(
-    () => sliceRange(MOCK_DAYS, range, customFrom, customTo),
-    [range, customFrom, customTo],
-  );
-  const prior = useMemo(() => priorSlice(MOCK_DAYS, visible), [visible]);
-
-  const weekSignups = useMemo(() => {
-    const week = sliceRange(MOCK_DAYS, "7d", customFrom, customTo);
-    return sumBy(week, "signups");
-  }, [customFrom, customTo]);
-
-  const priorWeekSignups = useMemo(() => {
-    const end = addDays(ANCHOR_DATE, -7);
-    const start = addDays(end, -6);
-    return sumBy(
-      MOCK_DAYS.filter((row) => row.date >= start && row.date <= end),
-      "signups",
-    );
-  }, []);
-
-  const kpis = useMemo(
-    () => buildKpis(visible, prior, weekSignups, priorWeekSignups),
-    [visible, prior, weekSignups, priorWeekSignups],
-  );
-
-  function exportCsv() {
-    if (visible.length === 0) return;
-    const csv = toCsv(visible);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `skoun-active-user-trends-${range}-${DATA_END}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setExportedAt(new Date().toISOString());
-  }
+  const state = useAdminAnalytics();
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -88,7 +29,7 @@ export function AnalyticsPage() {
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
             Watch renter and poster growth, stickiness, and signup pace. Demo
-            series through {DATA_END}.
+            series through {state.dataEnd}.
           </H>
         </H>
         <H className="flex flex-col items-start gap-2 sm:items-end">
@@ -98,9 +39,13 @@ export function AnalyticsPage() {
               as="span"
               className="inline-flex rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
             >
-              Demo data
+              Demo data · API-ready
             </H>
-            <NeuButton tone="moss" onClick={exportCsv} disabled={visible.length === 0}>
+            <NeuButton
+              tone="moss"
+              onClick={state.exportCsv}
+              disabled={state.status !== "ready" || state.points.length === 0}
+            >
               <Download size={16} strokeWidth={1.75} />
               Export CSV
             </NeuButton>
@@ -108,35 +53,65 @@ export function AnalyticsPage() {
         </H>
       </H>
 
-      <KpiCards items={kpis} />
-
-      <TrendsToolbar
-        range={range}
-        onRange={setRange}
-        series={series}
-        onSeries={setSeries}
-        customFrom={customFrom}
-        customTo={customTo}
-        onCustomFrom={setCustomFrom}
-        onCustomTo={setCustomTo}
-        minDate={DATA_START}
-        maxDate={DATA_END}
-      />
-
-      {exportedAt ? (
+      {state.flash ? (
         <H
           as="p"
           role="status"
           aria-live="polite"
           className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
         >
-          Downloaded trend report for {visible.length} days.
+          {state.flash}
         </H>
       ) : null}
 
-      <TrendChart points={visible} series={series} />
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading trends…
+        </NeuSurface>
+      ) : null}
 
-      <SecondaryCards points={visible} retention={RETENTION} />
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load trends
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" ? (
+        <>
+          <KpiCards items={state.kpis} />
+
+          <TrendsToolbar
+            range={state.range}
+            onRange={state.setRange}
+            series={state.series}
+            onSeries={state.setSeries}
+            customFrom={state.customFrom}
+            customTo={state.customTo}
+            onCustomFrom={state.setCustomFrom}
+            onCustomTo={state.setCustomTo}
+            minDate={state.dataStart}
+            maxDate={state.dataEnd}
+          />
+
+          <TrendChart points={state.points} series={state.series} />
+
+          <SecondaryCards
+            points={state.points}
+            retention={state.retention}
+            series={state.series}
+          />
+        </>
+      ) : null}
     </H>
   );
 }

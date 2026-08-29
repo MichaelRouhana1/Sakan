@@ -1,5 +1,6 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import { useLiveLebanonAreas } from "@/constants/areas";
 import {
   ELECTRICITY_OPTIONS,
   LISTING_TYPE_OPTIONS,
@@ -49,12 +50,15 @@ export function ListingEditDialog({
   onConfirm,
   busy,
 }: Props) {
+  const liveAreas = useLiveLebanonAreas();
+
   if (!listing || !draft) return null;
 
   const canSubmit =
     !busy &&
     draft.title.trim().length >= 3 &&
     draft.area.trim().length >= 2 &&
+    liveAreas.includes(draft.area) &&
     draft.description.trim().length >= 3 &&
     draft.contactName.trim().length >= 2 &&
     Number.isFinite(draft.monthlyRentUsd) &&
@@ -103,11 +107,25 @@ export function ListingEditDialog({
             />
           </H>
           <H className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field
-              label="Location"
-              value={draft.area}
-              onChange={(area) => onDraft({ ...draft, area })}
-            />
+            <H as="label" className="block">
+              <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
+                Location
+              </H>
+              <H
+                as="select"
+                value={draft.area}
+                onChange={(event: { target: { value: string } }) =>
+                  onDraft({ ...draft, area: event.target.value })
+                }
+                className="w-full cursor-pointer rounded-neu-md border-0 bg-clay-100 px-3 py-2.5 text-sm text-clay-900 shadow-neu-in-sm outline-none ring-0 focus:outline-none focus:ring-0"
+              >
+                {liveAreas.map((area) => (
+                  <H as="option" key={area} value={area}>
+                    {area}
+                  </H>
+                ))}
+              </H>
+            </H>
             <Field
               label="Landmark"
               value={draft.landmark}

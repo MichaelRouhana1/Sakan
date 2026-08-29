@@ -16,6 +16,7 @@ import {
 type Props = {
   matrix: RoleMatrix;
   dirty: boolean;
+  busy?: boolean;
   onToggle: (tier: AdminTier, permission: PermissionId) => void;
   onSave: () => void;
   onReset: () => void;
@@ -24,6 +25,7 @@ type Props = {
 export function RbacPanel({
   matrix,
   dirty,
+  busy,
   onToggle,
   onSave,
   onReset,
@@ -48,17 +50,17 @@ export function RbacPanel({
             Role permissions
           </H>
           <H as="p" className="mt-1 max-w-xl text-sm leading-relaxed text-clay-700">
-            Pick a tier, flip what it can view / edit / delete. Super Admin
-            stays fully locked on.
+            Demo tiers · not enforced on desks yet. Staff gate today is binary
+            admin. Super Admin stays fully locked on.
           </H>
         </H>
         <H className="flex flex-wrap gap-2">
-          <NeuButton onClick={onReset} disabled={!dirty} inset>
+          <NeuButton onClick={onReset} disabled={!dirty || busy} inset>
             Reset
           </NeuButton>
-          <NeuButton tone="moss" onClick={onSave} disabled={!dirty}>
+          <NeuButton tone="moss" onClick={onSave} disabled={!dirty || busy}>
             <Save size={16} strokeWidth={1.75} />
-            Save matrix
+            {busy ? "Saving…" : "Save matrix"}
           </NeuButton>
         </H>
       </H>

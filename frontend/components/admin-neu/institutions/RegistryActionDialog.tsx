@@ -20,12 +20,6 @@ const COPY: Record<
     body: "Hides it from renter browse. Existing listings stay, but new campus filters skip it.",
     confirm: "Deactivate",
   },
-  remove: {
-    title: (target) =>
-      target === "institution" ? "Remove this university" : "Remove this campus",
-    body: "Demo delete. Drops the row from this page. Campuses under a university go with it.",
-    confirm: "Remove",
-  },
 };
 
 type Props = {
@@ -33,6 +27,7 @@ type Props = {
   target: RegistryTarget;
   name: string;
   note: string;
+  busy?: boolean;
   onNote: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
@@ -43,14 +38,14 @@ export function RegistryActionDialog({
   target,
   name,
   note,
+  busy,
   onNote,
   onCancel,
   onConfirm,
 }: Props) {
   if (!kind) return null;
   const copy = COPY[kind];
-  const canSubmit = note.trim().length > 0;
-  const danger = kind === "remove";
+  const canSubmit = !busy;
 
   return (
     <H className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
@@ -79,18 +74,20 @@ export function RegistryActionDialog({
             onChange={(event: { target: { value: string } }) =>
               onNote(event.target.value)
             }
-            placeholder="Why this action, in one or two lines"
-            className="w-full resize-y rounded-neu-md border-0 bg-clay-100 px-3 py-2.5 text-sm text-clay-900 shadow-neu-in-sm outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss"
+            placeholder="Optional — not stored yet (action is audited server-side)"
+            className="w-full resize-y rounded-neu-md border-0 bg-clay-50 px-3 py-2.5 text-sm text-clay-900 shadow-neu-in outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0 focus-visible:outline-none"
           />
         </H>
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
+          <NeuButton disabled={busy} onClick={onCancel}>
+            Cancel
+          </NeuButton>
           <NeuButton
-            tone={danger ? "ember" : kind === "activate" ? "moss" : "ochre"}
+            tone={kind === "activate" ? "moss" : "ochre"}
             disabled={!canSubmit}
             onClick={onConfirm}
           >
-            {copy.confirm}
+            {busy ? "Saving…" : copy.confirm}
           </NeuButton>
         </H>
       </NeuSurface>

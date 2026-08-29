@@ -89,6 +89,11 @@ export class ListingsService {
   async list(params: {
     areas?: string[];
     universitySlugs?: string[];
+    campusId?: string;
+    q?: string;
+    lat?: number | null;
+    lng?: number | null;
+    radiusKm?: number | null;
     sort?: ListingSort;
     electricity?: ListingPropertyFilters["electricity"];
     water?: ListingPropertyFilters["water"];
@@ -100,7 +105,7 @@ export class ListingsService {
     genderRestrictions?: ListingPropertyFilters["genderRestrictions"];
   }): Promise<ListingsListResult> {
     const areas = params.areas ?? [];
-    const universitySlugs = params.universitySlugs ?? [];
+    let universitySlugs = params.universitySlugs ?? [];
     const property: ListingPropertyFilters = {
       electricity: params.electricity ?? [],
       water: params.water ?? [],
@@ -111,6 +116,35 @@ export class ListingsService {
       studentsOnly: params.studentsOnly ?? false,
       genderRestrictions: params.genderRestrictions ?? [],
     };
+    const q = params.q;
+    const DEFAULT_RADIUS_KM = 2;
+
+    if (params.campusId) {
+      const campus = await universitiesRepository.findById(params.campusId);
+      if (!campus || !campus.active) {
+        throw new NotFoundError("Campus not found");
+      }
+      universitySlugs = [campus.slug];
+    }
+
+    const geoPin = params.lat != null && params.lng != null;
+    /** Radius only when pin search or caller passes radiusKm — campus hub sorts by distance without cutoff. */
+    const radiusKm =
+      params.radiusKm ?? (geoPin ? DEFAULT_RADIUS_KM : null);
+    const radiusMeters =
+      radiusKm != null ? radiusKm * 1000 : undefined;
+
+    if (geoPin && universitySlugs.length === 0) {
+      const data = await listingsRepository.listActiveNearPoint(
+        params.lat!,
+        params.lng!,
+        radiusKm ?? DEFAULT_RADIUS_KM,
+        areas,
+        property,
+        q,
+      );
+      return { data, campuses: [] };
+    }
 
     if (universitySlugs.length > 0) {
       const [data, campuses] = await Promise.all([
@@ -118,6 +152,7 @@ export class ListingsService {
           universitySlugs,
           areas,
           property,
+          { radiusMeters, q },
         ),
         universitiesRepository.campusMetaBySlugs(universitySlugs),
       ]);
@@ -128,6 +163,7 @@ export class ListingsService {
       areas,
       params.sort ?? "newest",
       property,
+      q,
     );
     return { data, campuses: [] };
   }

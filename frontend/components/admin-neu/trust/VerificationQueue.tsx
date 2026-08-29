@@ -1,5 +1,11 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import {
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_ROW_INTERACTIVE,
+  ADMIN_TABLE_ROW_SELECTED,
+  ADMIN_TABLE_STACK,
+} from "../tableChrome";
 import { BadgePill, KycQueuePill } from "./TrustPills";
 import {
   formatStamp,
@@ -56,9 +62,12 @@ export function VerificationQueue({
         </H>
       </H>
 
-      <NeuSurface inset className="overflow-hidden">
+      <NeuSurface inset className="overflow-hidden p-3">
         <H
-          className="neu-scroll max-h-[min(85vh,900px)] overflow-y-auto"
+          className={[
+            "neu-scroll max-h-[min(85vh,900px)] overflow-y-auto",
+            ADMIN_TABLE_STACK,
+          ].join(" ")}
           role="listbox"
           aria-label="Poster verification queue"
         >
@@ -75,9 +84,9 @@ export function VerificationQueue({
                   if (event.key === "Enter" || event.key === " ") onSelect(row);
                 }}
                 className={[
-                  "cursor-pointer border-t border-clay-200/80 px-4 py-3.5 transition-colors duration-press first:border-t-0",
-                  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-moss",
-                  selected ? "bg-moss-soft/40" : "hover:bg-clay-50/60",
+                  ADMIN_TABLE_ROW,
+                  ADMIN_TABLE_ROW_INTERACTIVE,
+                  selected ? ADMIN_TABLE_ROW_SELECTED : "",
                 ].join(" ")}
               >
                 <H className="flex items-start gap-3">

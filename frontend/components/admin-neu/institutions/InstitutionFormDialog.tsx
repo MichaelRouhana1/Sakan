@@ -1,20 +1,14 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
-import { DomainChip } from "./InstitutionPills";
-import {
-  parseDomain,
-  slugify,
-  type InstitutionDraft,
-} from "./types";
+import { slugify, type InstitutionDraft } from "./types";
 
 type Props = {
   mode: "create" | "edit" | null;
   draft: InstitutionDraft;
   slugLocked: boolean;
-  domainInput: string;
+  busy?: boolean;
   onDraft: (draft: InstitutionDraft) => void;
   onSlugLocked: (locked: boolean) => void;
-  onDomainInput: (value: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -23,16 +17,16 @@ export function InstitutionFormDialog({
   mode,
   draft,
   slugLocked,
-  domainInput,
+  busy,
   onDraft,
   onSlugLocked,
-  onDomainInput,
   onCancel,
   onConfirm,
 }: Props) {
   if (!mode) return null;
 
   const canSubmit =
+    !busy &&
     draft.name.trim().length >= 2 &&
     draft.shortName.trim().length >= 1 &&
     draft.slug.trim().length >= 2;
@@ -43,16 +37,6 @@ export function InstitutionFormDialog({
       name,
       slug: slugLocked ? draft.slug : slugify(name),
     });
-  }
-
-  function addDomain(raw: string) {
-    const parsed = parseDomain(raw);
-    if (!parsed || draft.emailDomains.includes(parsed)) {
-      onDomainInput("");
-      return;
-    }
-    onDraft({ ...draft, emailDomains: [...draft.emailDomains, parsed] });
-    onDomainInput("");
   }
 
   return (
@@ -72,15 +56,11 @@ export function InstitutionFormDialog({
           {mode === "create" ? "Add university" : "Edit university"}
         </H>
         <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
-          Parent record for campuses on the renter map. Demo only until API wiring.
+          Parent record for campuses on the renter map. Demo until source swap.
         </H>
 
         <H className="mt-4 space-y-3">
-          <Field
-            label="University name"
-            value={draft.name}
-            onChange={setName}
-          />
+          <Field label="University name" value={draft.name} onChange={setName} />
           <H className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field
               label="Acronym"
@@ -102,67 +82,12 @@ export function InstitutionFormDialog({
             onChange={(website) => onDraft({ ...draft, website })}
             placeholder="https://"
           />
-
-          <H as="label" className="block">
-            <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
-              Academic email domains
-              <H as="span" className="ml-1 font-normal text-clay-500">
-                optional
-              </H>
-            </H>
-            <H className="flex min-h-[44px] flex-wrap items-center gap-1.5 rounded-neu-md bg-clay-100 px-2.5 py-2 shadow-neu-in-sm">
-              {draft.emailDomains.map((domain) => (
-                <DomainChip
-                  key={domain}
-                  domain={domain}
-                  onRemove={() =>
-                    onDraft({
-                      ...draft,
-                      emailDomains: draft.emailDomains.filter((item) => item !== domain),
-                    })
-                  }
-                />
-              ))}
-              <H
-                as="input"
-                value={domainInput}
-                placeholder={
-                  draft.emailDomains.length === 0 ? "e.g. aub.edu.lb" : "Add another"
-                }
-                onChange={(event: { target: { value: string } }) => {
-                  const next = event.target.value;
-                  if (next.includes(",") || next.includes(" ")) {
-                    addDomain(next.replace(/[, ]+$/, ""));
-                    return;
-                  }
-                  onDomainInput(next);
-                }}
-                onKeyDown={(event: { key: string; preventDefault: () => void }) => {
-                  if (event.key === "Enter" || event.key === ",") {
-                    event.preventDefault();
-                    addDomain(domainInput);
-                  }
-                  if (
-                    event.key === "Backspace" &&
-                    domainInput.length === 0 &&
-                    draft.emailDomains.length > 0
-                  ) {
-                    onDraft({
-                      ...draft,
-                      emailDomains: draft.emailDomains.slice(0, -1),
-                    });
-                  }
-                }}
-                onBlur={() => {
-                  if (domainInput.trim()) addDomain(domainInput);
-                }}
-                className="min-w-[8rem] flex-1 border-0 bg-transparent px-1 py-1 text-sm text-clay-900 shadow-none outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0"
-              />
-            </H>
-            <H as="span" className="mt-1.5 block text-[11px] text-clay-500">
-              Used later for student email verification. Press Enter to add.
-            </H>
-          </H>
+          <Field
+            label="Logo URL"
+            value={draft.logoUrl}
+            onChange={(logoUrl) => onDraft({ ...draft, logoUrl })}
+            placeholder="https://… (optional)"
+          />
 
           <Toggle
             label="Status"
@@ -172,9 +97,15 @@ export function InstitutionFormDialog({
         </H>
 
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
+          <NeuButton disabled={busy} onClick={onCancel}>
+            Cancel
+          </NeuButton>
           <NeuButton tone="moss" disabled={!canSubmit} onClick={onConfirm}>
-            {mode === "create" ? "Add university" : "Save university"}
+            {busy
+              ? "Saving…"
+              : mode === "create"
+                ? "Add university"
+                : "Save university"}
           </NeuButton>
         </H>
       </NeuSurface>
@@ -198,15 +129,17 @@ function Field({
       <H as="span" className="mb-2 block text-sm font-medium text-clay-900">
         {label}
       </H>
-      <H
-        as="input"
-        value={value}
-        placeholder={placeholder}
-        onChange={(event: { target: { value: string } }) =>
-          onChange(event.target.value)
-        }
-        className="w-full rounded-neu-md border-0 bg-clay-100 px-3 py-2.5 text-sm text-clay-900 shadow-neu-in-sm outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss"
-      />
+      <H className="flex min-h-[44px] w-full items-center rounded-neu-md bg-clay-50 px-3 shadow-neu-in">
+        <H
+          as="input"
+          value={value}
+          placeholder={placeholder}
+          onChange={(event: { target: { value: string } }) =>
+            onChange(event.target.value)
+          }
+          className="w-full border-0 bg-transparent py-2.5 text-sm text-clay-900 shadow-none outline-none ring-0 placeholder:text-clay-500 focus:outline-none focus:ring-0 focus-visible:outline-none"
+        />
+      </H>
     </H>
   );
 }
@@ -226,7 +159,7 @@ function Toggle({
         {label}
       </H>
       <H
-        className="inline-flex rounded-full bg-clay-100 p-1.5 shadow-neu-in"
+        className="inline-flex rounded-full bg-clay-50 p-1.5 shadow-neu-in"
         role="group"
         aria-label={label}
       >

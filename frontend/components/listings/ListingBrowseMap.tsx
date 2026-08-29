@@ -80,6 +80,8 @@ type Props = {
   active?: boolean;
   /** When set in university mode, frame this campus instead of all pins. */
   focusCampusSlug?: string | null;
+  /** Area / suggestion center — pan map (browse search). */
+  focusPoint?: { lat: number; lng: number } | null;
 };
 
 const SETTLE_SLACK = 200;
@@ -558,6 +560,7 @@ export function ListingBrowseMap({
   onCarouselOpenChange,
   onOpenListing,
   focusCampusSlug = null,
+  focusPoint = null,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);
@@ -929,7 +932,7 @@ export function ListingBrowseMap({
 
   useEffect(() => {
     if (!mapReady) return;
-    if (focusCampusSlug) return;
+    if (focusCampusSlug || focusPoint) return;
     if (groups.length === 0 && !(universityMode && campuses.length > 0)) {
       return;
     }
@@ -965,6 +968,8 @@ export function ListingBrowseMap({
     universityMode,
     expanded,
     focusCampusSlug,
+    focusPoint?.lat,
+    focusPoint?.lng,
   ]);
 
   useEffect(() => {
@@ -980,6 +985,20 @@ export function ListingBrowseMap({
     campuses.find((c) => c.slug === focusCampusSlug)?.lng,
     campuses.find((c) => c.slug === focusCampusSlug)?.lat,
   ]);
+
+  useEffect(() => {
+    if (!mapReady || !focusPoint || focusCampusSlug) return;
+    const target = regionForListingFocus(
+      focusPoint.lat,
+      focusPoint.lng,
+      mapWidthPx,
+      mapHeightPx,
+      0,
+      14,
+    );
+    scheduleAnim(target, 450);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fly when area/point target changes
+  }, [mapReady, focusPoint?.lat, focusPoint?.lng, focusCampusSlug]);
 
   function markMarkerPress() {
     ignoreNextMapPress.current = true;

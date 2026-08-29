@@ -38,6 +38,8 @@ import {
   VALUE_PROPS,
   type DemoListing,
 } from "./homeData";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { homeBrowseHref } from "@/lib/browseSearchUrl";
 
 const IS_WEB = Platform.OS === "web";
 const PAD_X = 80;
@@ -118,8 +120,13 @@ function AreaCityCard({
   );
 }
 
-function goBrowse() {
-  router.push("/search" as never);
+function goBrowse(params?: {
+  q?: string;
+  campusId?: string;
+  areas?: string[];
+  universitySlugs?: string[];
+}) {
+  router.push(homeBrowseHref(params ?? {}) as never);
 }
 
 function SectionHeader({
@@ -369,44 +376,23 @@ function HomeNav({
 
 function SearchPill() {
   const [query, setQuery] = useState("");
-  const [hintIndex, setHintIndex] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setHintIndex((i) => (i + 1) % SEARCH_HINTS.length);
-    }, 2800);
-    return () => clearInterval(id);
-  }, []);
 
   return (
-    <View style={styles.searchPill}>
-      <View style={styles.searchField}>
-        {!query ? (
-          <View style={styles.searchHintRow} pointerEvents="none">
-            <Text style={styles.searchHintStatic}>Search by </Text>
-            <Text key={SEARCH_HINTS[hintIndex]} style={styles.searchHintCycle}>
-              {SEARCH_HINTS[hintIndex]}
-            </Text>
-          </View>
-        ) : null}
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={goBrowse}
-          style={styles.searchInput}
-          accessibilityLabel={HERO.searchPlaceholder}
-          returnKeyType="search"
-        />
-      </View>
-      <Pressable
-        onPress={goBrowse}
-        style={styles.searchCircle}
-        accessibilityRole="button"
-        accessibilityLabel="Search"
-      >
-        <Ionicons name="search" size={22} color="#fff" />
-      </Pressable>
-    </View>
+    <SearchAutocomplete
+      variant="pill"
+      value={query}
+      onChangeText={setQuery}
+      placeholder={HERO.searchPlaceholder}
+      onSelectArea={(s) => goBrowse({ areas: [s.label] })}
+      onSelectUniversity={(s) =>
+        goBrowse({ campusId: s.campusId, universitySlugs: [s.slug] })
+      }
+      onSelectListing={(s) => {
+        router.push(`/listing/${s.id}` as never);
+      }}
+      onSubmitText={(q) => goBrowse({ q })}
+      onClear={() => setQuery("")}
+    />
   );
 }
 
@@ -425,7 +411,7 @@ function ListingCard({
   return (
     <Pressable
       style={[styles.card, { width }]}
-      onPress={goBrowse}
+      onPress={() => goBrowse({ areas: [item.area] })}
       accessibilityRole="link"
       accessibilityLabel={`${item.title} in ${item.area}`}
     >
@@ -533,12 +519,14 @@ export function SkounHomePage() {
       >
         {/* ─── 1. HERO ─── */}
         <View style={[styles.hero, isNarrow && styles.heroNarrow]}>
-          <Image
-            source={{ uri: HERO.heroImage }}
-            style={styles.heroImg}
-            resizeMode="cover"
-          />
-          <View style={styles.heroOverlay} />
+          <View style={styles.heroMedia} pointerEvents="none">
+            <Image
+              source={{ uri: HERO.heroImage }}
+              style={styles.heroImg}
+              resizeMode="cover"
+            />
+            <View style={styles.heroOverlay} />
+          </View>
           <View style={[styles.heroContent, { paddingHorizontal: padX }]}>
             <Text style={[styles.heroTitle, isNarrow && styles.heroTitleSm]}>
               {HERO.title}
@@ -570,7 +558,7 @@ export function SkounHomePage() {
             <View style={styles.popularSearches}>
               <Text style={styles.popularLabel}>Top areas: </Text>
               {POPULAR_SEARCHES.map((s, i) => (
-                <Pressable key={s} onPress={goBrowse}>
+                <Pressable key={s} onPress={() => goBrowse({ q: s })}>
                   <Text style={styles.popularLink}>
                     {s}
                     {i < POPULAR_SEARCHES.length - 1 ? ", " : ""}
@@ -656,7 +644,7 @@ export function SkounHomePage() {
                     image={a.image}
                     size={tileSize}
                     fillCell
-                    onPress={goBrowse}
+                    onPress={() => goBrowse({ areas: [a.name] })}
                   />
                 ))}
               </View>
@@ -673,7 +661,7 @@ export function SkounHomePage() {
                   name={a.name}
                   image={a.image}
                   size={tileSize}
-                  onPress={goBrowse}
+                  onPress={() => goBrowse({ areas: [a.name] })}
                 />
               ))}
             </ScrollView>
@@ -881,7 +869,7 @@ export function SkounHomePage() {
             { paddingHorizontal: padX, flexDirection: isNarrow ? "column" : "row", gap: 16 },
           ]}
         >
-          <Pressable style={styles.bannerCard} onPress={goBrowse}>
+          <Pressable style={styles.bannerCard} onPress={() => goBrowse()}>
             <Image
               source={{
                 uri: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=70",
@@ -928,7 +916,13 @@ export function SkounHomePage() {
           </View>
           <View style={styles.dirLinks}>
             {(dirTab === "areas" ? DIRECTORY_AREAS : DIRECTORY_UNIS).map((name) => (
-              <Pressable key={name} onPress={goBrowse} style={styles.dirLink}>
+              <Pressable
+                key={name}
+                onPress={() =>
+                  goBrowse(dirTab === "areas" ? { areas: [name] } : undefined)
+                }
+                style={styles.dirLink}
+              >
                 <Text style={styles.dirLinkText}>{name}</Text>
               </Pressable>
             ))}
@@ -993,7 +987,7 @@ export function SkounHomePage() {
               </View>
               <View>
                 <Text style={styles.footerHead}>Company</Text>
-                <Pressable onPress={goBrowse}>
+                <Pressable onPress={() => goBrowse()}>
                   <Text style={styles.footerLink}>Find housing</Text>
                 </Pressable>
               </View>
@@ -1124,14 +1118,19 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    height: 450,
+    minHeight: 450,
     width: "100%",
     justifyContent: "center",
-    overflow: "hidden",
+    overflow: "visible",
     backgroundColor: Skoun.color.primaryDeep,
     position: "relative",
+    zIndex: 3,
   },
-  heroNarrow: { height: 520 },
+  heroNarrow: { minHeight: 560 },
+  heroMedia: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
   heroImg: {
     ...StyleSheet.absoluteFillObject,
     width: "100%",
@@ -1151,6 +1150,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
     paddingTop: 62,
+    paddingBottom: 28,
+    overflow: "visible",
   },
   heroTitle: {
     fontFamily: Skoun.type.display,
@@ -1197,6 +1198,8 @@ const styles = StyleSheet.create({
     maxWidth: 720,
     alignItems: "center",
     marginTop: 0,
+    zIndex: 40,
+    overflow: "visible",
   },
 
   searchPill: {
@@ -1369,6 +1372,7 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "#fff",
     paddingVertical: 48,
+    zIndex: 1,
   },
   statsRow: {
     flexDirection: "row",

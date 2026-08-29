@@ -83,13 +83,13 @@
     background-color: transparent;
   }
 
+  /* Do not wipe bg / shadow here — Tailwind neu wells (bg-clay-100 shadow-neu-in-sm)
+     must survive. Bare controls inside a neu wrapper stay transparent via class. */
   .skoun-admin input,
   .skoun-admin textarea,
   .skoun-admin select {
     border: none;
     outline: none;
-    box-shadow: none;
-    background: transparent;
     appearance: none;
     -webkit-appearance: none;
     color: inherit;
@@ -99,7 +99,6 @@
   .skoun-admin textarea:focus,
   .skoun-admin select:focus {
     outline: none;
-    box-shadow: none;
   }
 
   .skoun-admin input[type="date"]::-webkit-calendar-picker-indicator {

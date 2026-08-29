@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
 import { ADMIN_CHART } from "../theme";
@@ -22,17 +22,25 @@ type Props = {
 };
 
 const CHART_RANGES: { id: ChartRange; label: string }[] = [
-  { id: "24h", label: "24h" },
-  { id: "7d", label: "7d" },
-  { id: "30d", label: "30d" },
+  { id: "24h", label: "Last 24 hours" },
+  { id: "7d", label: "Last 7 days" },
+  { id: "30d", label: "Last 30 days" },
 ];
 
 export function EndpointChart({ points, range, onRange }: Props) {
   const [hover, setHover] = useState<number | null>(null);
-  const idx = hover ?? Math.max(0, points.length - 1);
-  const plot = useMemo(() => buildPlot(points), [points]);
+  const safePoints = points.length > 0 ? points : [];
+  const idx = Math.min(
+    hover ?? Math.max(0, safePoints.length - 1),
+    Math.max(0, safePoints.length - 1),
+  );
+  const plot = useMemo(() => buildPlot(safePoints), [safePoints]);
 
-  if (points.length === 0) {
+  useEffect(() => {
+    setHover(null);
+  }, [range, safePoints.length]);
+
+  if (safePoints.length === 0) {
     return (
       <NeuSurface as="section" className="px-5 py-8">
         <H as="p" className="text-center text-sm text-clay-700">
@@ -42,8 +50,8 @@ export function EndpointChart({ points, range, onRange }: Props) {
     );
   }
 
-  const active = points[idx];
-  const hoverX = xAt(idx, points.length);
+  const active = safePoints[idx] ?? safePoints[safePoints.length - 1];
+  const hoverX = xAt(idx, safePoints.length);
   const reqY = yAt(active.requests, 0, plot.max);
   const scrapeY = yAt(active.scrapes, 0, plot.max);
   const spike = isSpike(active);
@@ -56,7 +64,7 @@ export function EndpointChart({ points, range, onRange }: Props) {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = ((event.clientX - rect.left) / rect.width) * W;
     const t = (x - PAD.l) / (W - PAD.l - PAD.r);
-    const n = points.length;
+    const n = safePoints.length;
     return Math.max(0, Math.min(n - 1, Math.round(t * (n - 1))));
   }
 
@@ -74,7 +82,7 @@ export function EndpointChart({ points, range, onRange }: Props) {
             API traffic & scrape pressure
           </H>
           <H as="p" className="mt-1 max-w-lg text-sm text-clay-700">
-            Listing-read volume vs scrape-like clients. Spikes flag harvest risk.
+            Demo series only — invented listing-read vs scrape-like pressure.
           </H>
         </H>
         <H
@@ -254,7 +262,7 @@ export function EndpointChart({ points, range, onRange }: Props) {
           {plot.labels.map((lab) => (
             <text
               key={`${lab.i}-${lab.label}`}
-              x={xAt(lab.i, points.length)}
+              x={xAt(lab.i, safePoints.length)}
               y={Hgt - 10}
               textAnchor="middle"
               fill={ADMIN_CHART.axis}
@@ -333,6 +341,20 @@ function niceMax(n: number): number {
 }
 
 function buildPlot(points: TrafficPoint[]) {
+  if (points.length === 0) {
+    return {
+      max: 1,
+      grid: [] as { y: number; label: string }[],
+      labels: [] as { i: number; label: string }[],
+      summary: "",
+      spikeBands: [] as { i: number; x: number; half: number }[],
+      reqLine: "",
+      scrapeLine: "",
+      reqArea: "",
+      scrapeArea: "",
+    };
+  }
+
   const reqs = points.map((p) => p.requests);
   const scrapes = points.map((p) => p.scrapes);
   const rawMax = Math.max(...reqs, ...scrapes, 1);

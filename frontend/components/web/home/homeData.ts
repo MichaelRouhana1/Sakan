@@ -97,22 +97,12 @@ export const AREA_REGIONS: AreaRegion[] = [
           "https://images.unsplash.com/photo-1444723121867-7a241cacace9?auto=format&fit=crop&w=480&q=75",
       },
       {
-        name: "Furn el Chebbak",
+        name: "Furn El Chebbak",
         image:
           "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=480&q=75",
       },
       {
-        name: "Snoubra",
-        image:
-          "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=480&q=75",
-      },
-      {
-        name: "Corniche",
-        image:
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=480&q=75",
-      },
-      {
-        name: "Tariq el Jdide",
+        name: "Tariq El Jdide",
         image:
           "https://images.unsplash.com/photo-1534430480872-3498386e7856?auto=format&fit=crop&w=480&q=75",
       },
@@ -158,7 +148,7 @@ export const AREA_REGIONS: AreaRegion[] = [
           "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=480&q=80",
       },
       {
-        name: "Zouk",
+        name: "Zouk Mosbeh",
         image:
           "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=480&q=80",
       },
@@ -389,6 +379,7 @@ export const DIRECTORY_AREAS = [
   "Gemmayzeh",
   "Ras Beirut",
   "Verdun",
+  "Badaro",
   "Jounieh",
   "Byblos",
   "Tripoli",
@@ -397,6 +388,7 @@ export const DIRECTORY_AREAS = [
   "Broummana",
   "Dbayeh",
   "Antelias",
+  "Tyre",
 ] as const;
 
 export const DIRECTORY_UNIS = [

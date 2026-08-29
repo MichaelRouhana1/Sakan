@@ -1,19 +1,21 @@
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
-import { formatWindow, type CutAction, type GridZone } from "./types";
+import { personName, type AbandonedDraft } from "./types";
 
 type Props = {
-  action: CutAction | null;
-  zone: GridZone | null;
+  draft: AbandonedDraft | null;
+  busy?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 };
 
-export function CutActionDialog({ action, zone, onCancel, onConfirm }: Props) {
-  if (!action || !zone) return null;
-
-  const window = zone.cutWindows.find((row) => row.id === action.windowId);
-  const remove = action.kind === "remove";
+export function ConversionRemindDialog({
+  draft,
+  busy,
+  onCancel,
+  onConfirm,
+}: Props) {
+  if (!draft) return null;
 
   return (
     <H className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
@@ -26,17 +28,17 @@ export function CutActionDialog({ action, zone, onCancel, onConfirm }: Props) {
       />
       <NeuSurface className="relative w-full max-w-md p-5 sm:p-6" as="section">
         <H as="h2" className="font-display text-lg font-semibold text-clay-900">
-          {remove ? "Remove this cut window" : "Mark 24h state power"}
+          Queue this reminder?
         </H>
         <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
-          {remove
-            ? `Drops ${window ? formatWindow(window) : "this window"} from ${zone.name}. Other periods stay.`
-            : `Clears every EDL cut on ${zone.name}. Feeder reads as full state power.`}
+          Demo queue only. Nothing sends. Target: {personName(draft.poster)}.
         </H>
         <H className="mt-5 flex flex-wrap justify-end gap-2">
-          <NeuButton onClick={onCancel}>Cancel</NeuButton>
-          <NeuButton tone="ember" onClick={onConfirm}>
-            {remove ? "Remove window" : "Clear windows"}
+          <NeuButton onClick={onCancel} disabled={busy}>
+            Cancel
+          </NeuButton>
+          <NeuButton tone="moss" disabled={busy} onClick={onConfirm}>
+            {busy ? "Working…" : "Queue reminder"}
           </NeuButton>
         </H>
       </NeuSurface>

@@ -1,187 +1,16 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { Link } from "expo-router";
 import { H } from "../h";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { AuditTable } from "./AuditTable";
 import { AuditToolbar } from "./AuditToolbar";
 import { EndpointChart } from "./EndpointChart";
 import { RbacPanel } from "./RbacPanel";
-import { KPI_ICONS, SecurityKpis, type SecurityKpi } from "./SecurityKpis";
+import { SecurityKpis } from "./SecurityKpis";
 import { SpikeAlerts } from "./SpikeAlerts";
-import {
-  ANCHOR_ISO,
-  ACTORS,
-  DATA_END,
-  DATA_START,
-  MOCK_EVENTS,
-  MOCK_MATRIX,
-  defaultCustomFrom,
-  trafficForRange,
-} from "./mockSecurity";
-import {
-  ACTION_LABEL,
-  CATEGORY_TABS,
-  PERMISSIONS,
-  ROLE_FILTER_TABS,
-  TIER_LABEL,
-  TIERS,
-  buildSpikeAlerts,
-  cloneMatrix,
-  formatCount,
-  formatDay,
-  grantedCount,
-  matchesCategory,
-  matricesEqual,
-  toCsv,
-  type ActionCategory,
-  type AdminTier,
-  type AuditEvent,
-  type PermissionId,
-  type RangeId,
-} from "./types";
+import { useAdminSecurity } from "./useAdminSecurity";
 
 export function SecurityPage() {
-  const [events, setEvents] = useState(MOCK_EVENTS);
-  const [savedMatrix, setSavedMatrix] = useState(() => cloneMatrix(MOCK_MATRIX));
-  const [matrix, setMatrix] = useState(() => cloneMatrix(MOCK_MATRIX));
-  const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query);
-  const [category, setCategory] = useState<ActionCategory | "all">("all");
-  const [roleFilter, setRoleFilter] = useState<AdminTier | "all">("all");
-  const [logRange, setLogRange] = useState<RangeId>("7d");
-  const [chartRange, setChartRange] = useState<"24h" | "7d" | "30d">("24h");
-  const [customFrom, setCustomFrom] = useState(defaultCustomFrom);
-  const [customTo, setCustomTo] = useState(DATA_END);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [section, setSection] = useState<"monitor" | "access">("monitor");
-
-  const dirty = !matricesEqual(matrix, savedMatrix);
-
-  const rangeBounds = useMemo(
-    () => resolveRange(logRange, customFrom, customTo),
-    [logRange, customFrom, customTo],
-  );
-
-  const ranged = useMemo(() => {
-    return events.filter((event) => {
-      const day = formatDay(event.createdAt);
-      return day >= rangeBounds.from && day <= rangeBounds.to;
-    });
-  }, [events, rangeBounds]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: ranged.length };
-    for (const tab of CATEGORY_TABS) {
-      if (tab.id === "all") continue;
-      counts[tab.id] = ranged.filter((e) =>
-        matchesCategory(e.action, tab.id),
-      ).length;
-    }
-    return counts;
-  }, [ranged]);
-
-  const roleCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: ranged.length };
-    for (const tab of ROLE_FILTER_TABS) {
-      if (tab.id === "all") continue;
-      counts[tab.id] = ranged.filter((e) => e.actor.role === tab.id).length;
-    }
-    return counts;
-  }, [ranged]);
-
-  const visible = useMemo(() => {
-    const needle = deferredQuery.trim().toLowerCase();
-    return ranged
-      .filter((event) => matchesCategory(event.action, category))
-      .filter((event) =>
-        roleFilter === "all" ? true : event.actor.role === roleFilter,
-      )
-      .filter((event) => {
-        if (!needle) return true;
-        const hay = [
-          event.actor.name,
-          event.actor.email,
-          TIER_LABEL[event.actor.role],
-          ACTION_LABEL[event.action],
-          event.detail,
-          event.target,
-          event.ip,
-        ]
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(needle);
-      })
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  }, [ranged, category, roleFilter, deferredQuery]);
-
-  const traffic = useMemo(() => trafficForRange(chartRange), [chartRange]);
-  const alerts = useMemo(() => buildSpikeAlerts(traffic), [traffic]);
-  const kpis = useMemo(
-    () => buildKpis(ranged, alerts.length, matrix),
-    [ranged, alerts.length, matrix],
-  );
-
-  const chartRangeLabel =
-    chartRange === "24h"
-      ? "Last 24 hours"
-      : chartRange === "7d"
-        ? "Last 7 days"
-        : "Last 30 days";
-
-  function togglePermission(tier: AdminTier, permission: PermissionId) {
-    if (tier === "super_admin") return;
-    setMatrix((current) => ({
-      ...current,
-      [tier]: {
-        ...current[tier],
-        [permission]: !current[tier][permission],
-      },
-    }));
-  }
-
-  function saveMatrix() {
-    if (!dirty) return;
-    setSavedMatrix(cloneMatrix(matrix));
-    const event: AuditEvent = {
-      id: `aud_${Date.now()}`,
-      actor: ACTORS.rania,
-      action: "updated_rbac",
-      detail: "Saved role permission matrix",
-      target: "Role matrix",
-      ip: "185.112.44.18",
-      createdAt: ANCHOR_ISO,
-    };
-    setEvents((current) => [event, ...current]);
-    setNotice("RBAC matrix saved. Audit row appended.");
-    setSection("monitor");
-  }
-
-  function resetMatrix() {
-    setMatrix(cloneMatrix(savedMatrix));
-    setNotice("Discarded unsaved RBAC edits.");
-  }
-
-  function exportLogs() {
-    if (visible.length === 0) return;
-    const csv = toCsv(visible);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `skoun-security-audit-${logRange}-${DATA_END}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    const event: AuditEvent = {
-      id: `aud_exp_${Date.now()}`,
-      actor: ACTORS.lina,
-      action: "exported_logs",
-      detail: `CSV · ${visible.length} rows · ${logRange}`,
-      target: "Audit ledger",
-      ip: "194.126.19.33",
-      createdAt: ANCHOR_ISO,
-    };
-    setEvents((current) => [event, ...current]);
-    setNotice(`Exported ${visible.length} security log rows.`);
-  }
+  const state = useAdminSecurity();
 
   return (
     <H className="mx-auto flex w-full max-w-[1400px] flex-col gap-6">
@@ -200,8 +29,15 @@ export function SecurityPage() {
             Audit & access
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
-            Review admin actions, hunt listing-API scrapes, and tighten role
-            gates. Demo stream anchored {formatDay(ANCHOR_ISO)}.
+            Demo admin ledger and role matrix. Traffic spikes are invented
+            samples. Account bans live on{" "}
+            <Link
+              href="/admin/users"
+              className="font-medium text-moss underline-offset-2 hover:underline"
+            >
+              Users
+            </Link>
+            .
           </H>
         </H>
         <H className="flex flex-col items-start gap-2 sm:items-end">
@@ -211,108 +47,174 @@ export function SecurityPage() {
             aria-label="Security section"
           >
             <SectionTab
-              selected={section === "monitor"}
-              onSelect={() => setSection("monitor")}
+              selected={state.section === "monitor"}
+              onSelect={() => state.requestSection("monitor")}
               label="Monitor & ledger"
             />
             <SectionTab
-              selected={section === "access"}
-              onSelect={() => setSection("access")}
+              selected={state.section === "access"}
+              onSelect={() => state.requestSection("access")}
               label="Access control"
-              badge={dirty ? "Unsaved" : undefined}
+              badge={state.dirty ? "Unsaved" : undefined}
             />
           </H>
           <H
             as="span"
             className="inline-flex rounded-full bg-clay-100 px-3 py-1 text-xs font-medium text-clay-700 shadow-neu-in-sm"
           >
-            Demo data · append-only ledger
+            Demo · API-ready (audit → GET /api/admin/audit)
           </H>
         </H>
       </H>
 
-      <SecurityKpis items={kpis} />
-
-      {notice ? (
+      {state.flash ? (
         <H
           as="p"
           role="status"
           aria-live="polite"
-          className="rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm text-moss shadow-neu-in-sm"
+          className={[
+            "rounded-neu-md bg-clay-100 px-4 py-2.5 text-sm shadow-neu-in-sm",
+            state.flashTone === "ember" ? "text-ember" : "text-moss",
+          ].join(" ")}
         >
-          {notice}
+          {state.flash}
         </H>
       ) : null}
 
-      {section === "monitor" ? (
+      {state.status === "loading" ? (
+        <NeuSurface inset className="px-6 py-16 text-center text-sm text-clay-700">
+          Loading security…
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "error" ? (
+        <NeuSurface inset className="px-6 py-16 text-center">
+          <H as="p" className="font-display text-lg font-semibold text-clay-900">
+            Could not load security
+          </H>
+          <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
+            {state.errorMessage ?? "Unknown error"}
+          </H>
+          <H className="mt-4 flex justify-center">
+            <NeuButton tone="moss" onClick={state.retry}>
+              Retry
+            </NeuButton>
+          </H>
+        </NeuSurface>
+      ) : null}
+
+      {state.status === "ready" ? (
         <>
-          <H className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.75fr)]">
-            <EndpointChart
-              points={traffic}
-              range={chartRange}
-              onRange={setChartRange}
-            />
-            <SpikeAlerts alerts={alerts} rangeLabel={chartRangeLabel} />
-          </H>
+          <SecurityKpis items={state.kpis} />
 
-          <H className="flex flex-col gap-3">
-            <H className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <H>
-                <H
-                  as="p"
-                  className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-moss"
-                >
-                  Immutable ledger
-                </H>
-                <H
-                  as="h2"
-                  className="mt-1 font-display text-xl font-semibold text-clay-900"
-                >
-                  Admin action log
-                </H>
-                <H as="p" className="mt-1 text-sm text-clay-700">
-                  Who changed what, when, and from which IP. Filter by category
-                  and role before export.
-                </H>
+          {state.section === "monitor" ? (
+            <>
+              <H className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.75fr)]">
+                <EndpointChart
+                  points={state.traffic}
+                  range={state.chartRange}
+                  onRange={state.setChartRange}
+                />
+                <SpikeAlerts
+                  alerts={state.alerts}
+                  rangeLabel={state.chartRangeLabel}
+                  busy={state.busy}
+                  onAcknowledge={state.ackSpike}
+                />
               </H>
-              <H as="span" className="text-sm tabular-nums text-clay-500">
-                {visible.length} in view
+
+              <H className="flex flex-col gap-3">
+                <H className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <H>
+                    <H
+                      as="p"
+                      className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-moss"
+                    >
+                      Session ledger
+                    </H>
+                    <H
+                      as="h2"
+                      className="mt-1 font-display text-xl font-semibold text-clay-900"
+                    >
+                      Admin action log
+                    </H>
+                    <H as="p" className="mt-1 text-sm text-clay-700">
+                      Demo rows shaped like future audit API. Filter before
+                      export. Log 24h is rolling wall-clock.
+                    </H>
+                  </H>
+                  <H as="span" className="text-sm tabular-nums text-clay-500">
+                    {state.visible.length} in view
+                  </H>
+                </H>
+
+                <AuditToolbar
+                  query={state.query}
+                  onQuery={state.setQuery}
+                  category={state.category}
+                  onCategory={state.setCategory}
+                  categoryCounts={state.categoryCounts}
+                  role={state.roleFilter}
+                  onRole={state.setRoleFilter}
+                  roleCounts={state.roleCounts}
+                  range={state.logRange}
+                  onRange={state.setLogRange}
+                  customFrom={state.customFrom}
+                  customTo={state.customTo}
+                  onCustomFrom={state.setCustomFrom}
+                  onCustomTo={state.setCustomTo}
+                  minDate={state.minDate}
+                  maxDate={state.maxDate}
+                  onExport={() => {
+                    void state.exportLogs();
+                  }}
+                  exportDisabled={state.visible.length === 0 || state.busy}
+                />
+
+                <AuditTable events={state.visible} />
               </H>
-            </H>
-
-            <AuditToolbar
-              query={query}
-              onQuery={setQuery}
-              category={category}
-              onCategory={setCategory}
-              categoryCounts={categoryCounts}
-              role={roleFilter}
-              onRole={setRoleFilter}
-              roleCounts={roleCounts}
-              range={logRange}
-              onRange={setLogRange}
-              customFrom={customFrom}
-              customTo={customTo}
-              onCustomFrom={setCustomFrom}
-              onCustomTo={setCustomTo}
-              minDate={DATA_START}
-              maxDate={DATA_END}
-              onExport={exportLogs}
-              exportDisabled={visible.length === 0}
+            </>
+          ) : (
+            <RbacPanel
+              matrix={state.matrix}
+              dirty={state.dirty}
+              busy={state.busy}
+              onToggle={state.togglePermission}
+              onSave={() => {
+                void state.saveMatrix();
+              }}
+              onReset={state.resetMatrix}
             />
-
-            <AuditTable events={visible} />
-          </H>
+          )}
         </>
-      ) : (
-        <RbacPanel
-          matrix={matrix}
-          dirty={dirty}
-          onToggle={togglePermission}
-          onSave={saveMatrix}
-          onReset={resetMatrix}
-        />
-      )}
+      ) : null}
+
+      {state.leaveConfirmOpen ? (
+        <H className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+          <H
+            as="button"
+            type="button"
+            aria-label="Dismiss"
+            className="admin-scrim absolute inset-0 cursor-pointer border-0"
+            onClick={state.cancelLeaveAccess}
+          />
+          <NeuSurface className="relative w-full max-w-md p-5 sm:p-6" as="section">
+            <H as="h2" className="font-display text-lg font-semibold text-clay-900">
+              Discard RBAC edits?
+            </H>
+            <H as="p" className="mt-2 text-sm leading-relaxed text-clay-700">
+              Unsaved permission changes will be lost. Matrix is demo-only and
+              does not gate other desks.
+            </H>
+            <H className="mt-5 flex flex-wrap justify-end gap-2">
+              <NeuButton onClick={state.cancelLeaveAccess}>Stay</NeuButton>
+              <NeuButton tone="ochre" onClick={state.confirmLeaveAccess}>
+                Discard & leave
+              </NeuButton>
+            </H>
+          </NeuSurface>
+        </H>
+      ) : null}
     </H>
   );
 }
@@ -354,74 +256,4 @@ function SectionTab({
       ) : null}
     </H>
   );
-}
-
-function buildKpis(
-  events: AuditEvent[],
-  spikeCount: number,
-  matrix: ReturnType<typeof cloneMatrix>,
-): SecurityKpi[] {
-  const today = formatDay(ANCHOR_ISO);
-  const todayCount = events.filter((e) => formatDay(e.createdAt) === today)
-    .length;
-  const uniqueAdmins = new Set(events.map((e) => e.actor.id)).size;
-  const modGrants = grantedCount(matrix, "moderator");
-
-  return [
-    {
-      id: "today",
-      label: "Actions in range",
-      value: formatCount(events.length),
-      hint: `${todayCount} stamped today`,
-      icon: KPI_ICONS.activity,
-      tone: "moss",
-    },
-    {
-      id: "admins",
-      label: "Active admins",
-      value: String(uniqueAdmins),
-      hint: "Distinct actors in ledger",
-      icon: KPI_ICONS.users,
-    },
-    {
-      id: "spikes",
-      label: "Scrape spikes",
-      value: String(spikeCount),
-      hint: "In current traffic window",
-      icon: KPI_ICONS.alert,
-      tone: spikeCount > 0 ? "ember" : undefined,
-    },
-    {
-      id: "rbac",
-      label: "Moderator grants",
-      value: `${modGrants}/${PERMISSIONS.length}`,
-      hint: `${TIERS.length} tiers in matrix`,
-      icon: KPI_ICONS.key,
-      tone: "ochre",
-    },
-  ];
-}
-
-function resolveRange(
-  range: RangeId,
-  customFrom: string,
-  customTo: string,
-): { from: string; to: string } {
-  if (range === "custom") {
-    return {
-      from: customFrom || DATA_START,
-      to: customTo || DATA_END,
-    };
-  }
-  if (range === "24h" || range === "7d") {
-    const days = range === "24h" ? 0 : 6;
-    const end = new Date(`${DATA_END}T12:00:00.000Z`);
-    const start = new Date(end);
-    start.setUTCDate(start.getUTCDate() - days);
-    return {
-      from: start.toISOString().slice(0, 10),
-      to: DATA_END,
-    };
-  }
-  return { from: DATA_START, to: DATA_END };
 }

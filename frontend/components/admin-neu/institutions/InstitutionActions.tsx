@@ -1,4 +1,4 @@
-import { Pencil, Power, Trash2 } from "lucide-react-native";
+import { Pencil, Power } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
 import type { AdminInstitution, RegistryActionKind } from "./types";
@@ -39,21 +39,14 @@ export function InstitutionActions({
       </NeuButton>
       <NeuButton
         tone={institution.active ? "ochre" : "moss"}
-        ariaLabel={institution.active ? "Set institution inactive" : "Set institution active"}
+        ariaLabel={
+          institution.active ? "Set institution inactive" : "Set institution active"
+        }
         className={compact ? "px-2.5 py-1.5 text-xs" : ""}
         onClick={() => onAction(nextKind)}
       >
         <Power size={compact ? 14 : 16} strokeWidth={1.75} />
         {compact ? null : institution.active ? "Deactivate" : "Activate"}
-      </NeuButton>
-      <NeuButton
-        tone="ember"
-        ariaLabel="Remove institution"
-        className={compact ? "px-2.5 py-1.5 text-xs" : ""}
-        onClick={() => onAction("remove")}
-      >
-        <Trash2 size={compact ? 14 : 16} strokeWidth={1.75} />
-        {compact ? null : "Remove"}
       </NeuButton>
     </H>
   );

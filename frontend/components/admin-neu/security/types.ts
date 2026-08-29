@@ -1,20 +1,22 @@
 export type AdminTier = "super_admin" | "moderator" | "support" | "analyst";
 
+/** Adapter-shaped toward GET /api/admin/audit action strings. */
 export type AuditActionKind =
-  | "archived_listing"
-  | "removed_listing"
-  | "granted_credits"
-  | "approved_purchase"
-  | "rejected_purchase"
-  | "changed_zone"
-  | "banned_user"
-  | "restricted_user"
-  | "unrestricted_user"
-  | "resolved_report"
-  | "updated_rbac"
-  | "exported_logs"
-  | "cut_power_window"
-  | "edited_pricing";
+  | "listing.archive"
+  | "listing.remove"
+  | "listing.restore"
+  | "user.status"
+  | "report.dismiss"
+  | "credit_tx.approve"
+  | "credit_tx.reject"
+  | "institution.create"
+  | "institution.update"
+  | "campus.create"
+  | "campus.update"
+  | "rbac.update"
+  | "logs.export"
+  | "pricing.edit"
+  | "zone.change";
 
 export type ActionCategory =
   | "moderation"
@@ -77,7 +79,8 @@ export type SpikeAlert = {
 };
 
 export type RangeId = "24h" | "7d" | "30d" | "custom";
-export type LogRangeId = "24h" | "7d" | "30d" | "custom";
+export type ChartRangeId = "24h" | "7d" | "30d";
+export type SecuritySection = "monitor" | "access";
 
 export const RANGE_TABS: { id: RangeId; label: string }[] = [
   { id: "24h", label: "24h" },
@@ -101,37 +104,39 @@ export const TIER_HINT: Record<AdminTier, string> = {
 };
 
 export const ACTION_LABEL: Record<AuditActionKind, string> = {
-  archived_listing: "Archived Listing",
-  removed_listing: "Removed Listing",
-  granted_credits: "Granted Credits",
-  approved_purchase: "Approved Purchase",
-  rejected_purchase: "Rejected Purchase",
-  changed_zone: "Changed Zone",
-  banned_user: "Banned User",
-  restricted_user: "Restricted User",
-  unrestricted_user: "Unrestricted User",
-  resolved_report: "Resolved Report",
-  updated_rbac: "Updated RBAC",
-  exported_logs: "Exported Logs",
-  cut_power_window: "Cut Power Window",
-  edited_pricing: "Edited Pricing",
+  "listing.archive": "Archived Listing",
+  "listing.remove": "Removed Listing",
+  "listing.restore": "Restored Listing",
+  "user.status": "User Status",
+  "report.dismiss": "Dismissed Report",
+  "credit_tx.approve": "Approved Credits",
+  "credit_tx.reject": "Rejected Credits",
+  "institution.create": "Created Institution",
+  "institution.update": "Updated Institution",
+  "campus.create": "Created Campus",
+  "campus.update": "Updated Campus",
+  "rbac.update": "Updated RBAC",
+  "logs.export": "Exported Logs",
+  "pricing.edit": "Edited Pricing",
+  "zone.change": "Changed Zone",
 };
 
 export const ACTION_CATEGORY: Record<AuditActionKind, ActionCategory> = {
-  archived_listing: "moderation",
-  removed_listing: "moderation",
-  banned_user: "moderation",
-  restricted_user: "moderation",
-  unrestricted_user: "moderation",
-  resolved_report: "moderation",
-  granted_credits: "money",
-  approved_purchase: "money",
-  rejected_purchase: "money",
-  changed_zone: "geo",
-  cut_power_window: "geo",
-  updated_rbac: "access",
-  exported_logs: "access",
-  edited_pricing: "ops",
+  "listing.archive": "moderation",
+  "listing.remove": "moderation",
+  "listing.restore": "moderation",
+  "user.status": "moderation",
+  "report.dismiss": "moderation",
+  "credit_tx.approve": "money",
+  "credit_tx.reject": "money",
+  "institution.create": "ops",
+  "institution.update": "ops",
+  "campus.create": "ops",
+  "campus.update": "ops",
+  "zone.change": "geo",
+  "rbac.update": "access",
+  "logs.export": "access",
+  "pricing.edit": "ops",
 };
 
 export const CATEGORY_TABS: { id: ActionCategory | "all"; label: string }[] = [
@@ -270,6 +275,7 @@ export function formatStamp(iso: string): string {
 }
 
 export function formatDay(iso: string): string {
+  if (!iso) return "";
   return iso.slice(0, 10);
 }
 
@@ -278,12 +284,13 @@ export function formatCount(n: number): string {
   return String(n);
 }
 
-export function scrapeShare(point: TrafficPoint): number {
-  if (point.requests <= 0) return 0;
+export function scrapeShare(point: TrafficPoint | null | undefined): number {
+  if (!point || point.requests <= 0) return 0;
   return (point.scrapes / point.requests) * 100;
 }
 
-export function isSpike(point: TrafficPoint): boolean {
+export function isSpike(point: TrafficPoint | null | undefined): boolean {
+  if (!point) return false;
   return scrapeShare(point) >= 25;
 }
 
@@ -318,6 +325,7 @@ export function toCsv(events: AuditEvent[]): string {
   const header = [
     "id",
     "admin",
+    "email",
     "role",
     "action",
     "detail",
@@ -329,6 +337,7 @@ export function toCsv(events: AuditEvent[]): string {
     [
       e.id,
       e.actor.name,
+      e.actor.email,
       TIER_LABEL[e.actor.role],
       ACTION_LABEL[e.action],
       e.detail,
@@ -370,4 +379,55 @@ export function matchesCategory(
 ): boolean {
   if (category === "all") return true;
   return ACTION_CATEGORY[action] === category;
+}
+
+/** Log range bounds. 24h = rolling wall-clock window; others = calendar days. */
+export function resolveLogRange(
+  range: RangeId,
+  customFrom: string,
+  customTo: string,
+  seedStart: string,
+  seedEnd: string,
+): { mode: "rolling" | "days"; fromIso?: string; toIso?: string; fromDay?: string; toDay?: string } {
+  if (range === "custom") {
+    return {
+      mode: "days",
+      fromDay: customFrom || seedStart,
+      toDay: customTo || seedEnd,
+    };
+  }
+  if (range === "24h") {
+    const to = Date.now();
+    const from = to - 24 * 60 * 60 * 1000;
+    return {
+      mode: "rolling",
+      fromIso: new Date(from).toISOString(),
+      toIso: new Date(to).toISOString(),
+    };
+  }
+  const today = formatDay(new Date().toISOString());
+  const end = new Date(`${today}T12:00:00.000Z`);
+  const days = range === "7d" ? 6 : 29;
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - days);
+  return {
+    mode: "days",
+    fromDay: start.toISOString().slice(0, 10),
+    toDay: today,
+  };
+}
+
+export function eventInLogRange(
+  event: AuditEvent,
+  bounds: ReturnType<typeof resolveLogRange>,
+): boolean {
+  if (!event?.createdAt) return false;
+  if (bounds.mode === "rolling") {
+    return (
+      event.createdAt >= (bounds.fromIso ?? "") &&
+      event.createdAt <= (bounds.toIso ?? "")
+    );
+  }
+  const day = formatDay(event.createdAt);
+  return day >= (bounds.fromDay ?? "") && day <= (bounds.toDay ?? "");
 }

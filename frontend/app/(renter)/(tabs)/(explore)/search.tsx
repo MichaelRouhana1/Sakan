@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useDeferredValue, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useDeferredValue, useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -8,7 +8,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,6 +31,7 @@ import {
 } from "@/components/listings/carouselListScroll";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
+import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { Skoun } from "@/constants/theme";
 import { useListings } from "@/features/listings/useListings";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -45,7 +45,14 @@ import {
 } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
-import { LEBANON_AREAS } from "@/constants/areas";
+import {
+  browseSearchSetParams,
+  parseCsvParam,
+} from "@/lib/browseSearchUrl";
+import type {
+  SearchAreaSuggestion,
+  SearchUniversitySuggestion,
+} from "@/features/search/types";
 
 type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
 type SearchMode = "standard" | "university";
@@ -60,13 +67,24 @@ const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
 export default function RenterSearchScreen() {
   const insets = useSafeAreaInsets();
   const carouselScroll = useCarouselListScrollController();
-  const { q } = useLocalSearchParams<{ q?: string }>();
+  const params = useLocalSearchParams<{
+    q?: string;
+    campusId?: string;
+    areas?: string;
+    universitySlugs?: string;
+  }>();
   const isFocused = useIsFocused();
 
   const [mode, setMode] = useState<SearchMode>("university");
   const [browseFilters, setBrowseFilters] = useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
   const [sort, setSort] = useState<BrowseSortKey>("newest");
-  const [searchVal, setSearchVal] = useState(q ?? "");
+  const [searchVal, setSearchVal] = useState(
+    typeof params.q === "string" ? params.q : "",
+  );
+  const [focusPoint, setFocusPoint] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [uniOpen, setUniOpen] = useState(false);
@@ -78,7 +96,113 @@ export default function RenterSearchScreen() {
   const { user } = useAuthSession();
   const universities = useUniversities();
   const institutions = useInstitutions();
-  const appliedProfileCampus = React.useRef(false);
+  const appliedProfileCampus = useRef(false);
+  const hydratedUrl = useRef(false);
+
+  const syncUrl = useCallback(
+    (next: {
+      q?: string | null;
+      campusId?: string | null;
+      areas?: string[];
+      universitySlugs?: string[];
+    }) => {
+      router.setParams(browseSearchSetParams(next) as never);
+    },
+    [],
+  );
+
+  const resetSearch = useCallback(() => {
+    setSearchVal("");
+    setFocusPoint(null);
+    setBrowseFilters((prev) => ({
+      ...prev,
+      areas: [],
+      universitySlugs: [],
+      institutionSlug: null,
+      campusId: null,
+      q: null,
+    }));
+    setMode("university");
+    syncUrl({
+      q: null,
+      campusId: null,
+      areas: [],
+      universitySlugs: [],
+    });
+  }, [syncUrl]);
+
+  const applyArea = useCallback(
+    (s: SearchAreaSuggestion) => {
+      setSearchVal(s.label);
+      setFocusPoint(s.center);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        areas: [s.label],
+        universitySlugs: [],
+        institutionSlug: null,
+        campusId: null,
+        q: null,
+      }));
+      setMode("standard");
+      setMapSearchOpen(false);
+      syncUrl({
+        q: null,
+        campusId: null,
+        areas: [s.label],
+        universitySlugs: [],
+      });
+    },
+    [syncUrl],
+  );
+
+  const applyUniversity = useCallback(
+    (s: SearchUniversitySuggestion) => {
+      setSearchVal(s.label);
+      setFocusPoint(s.center);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        areas: [],
+        universitySlugs: [s.slug],
+        campusId: s.campusId,
+        q: null,
+        institutionSlug: prev.institutionSlug,
+      }));
+      setMode("university");
+      setSort("distance");
+      setMapSearchOpen(false);
+      syncUrl({
+        q: null,
+        campusId: s.campusId,
+        areas: [],
+        universitySlugs: [s.slug],
+      });
+    },
+    [syncUrl],
+  );
+
+  const applyTextQuery = useCallback(
+    (text: string) => {
+      setSearchVal(text);
+      setFocusPoint(null);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        areas: [],
+        universitySlugs: [],
+        institutionSlug: null,
+        campusId: null,
+        q: text,
+      }));
+      setMode("standard");
+      setMapSearchOpen(false);
+      syncUrl({
+        q: text,
+        campusId: null,
+        areas: [],
+        universitySlugs: [],
+      });
+    },
+    [syncUrl],
+  );
 
   const activeUniSlug = browseFilters.universitySlugs[0] ?? null;
   const activeUni = useMemo(
@@ -109,8 +233,94 @@ export default function RenterSearchScreen() {
     }
   }, [viewMode]);
 
+  // Hydrate from URL once (refresh / share / home navigate).
   useEffect(() => {
-    if (q || appliedProfileCampus.current) return;
+    if (hydratedUrl.current) return;
+    const campusId =
+      typeof params.campusId === "string" ? params.campusId.trim() : "";
+    const areas = parseCsvParam(params.areas);
+    const slugs = parseCsvParam(params.universitySlugs);
+    const q =
+      typeof params.q === "string" && params.q.trim()
+        ? params.q.trim()
+        : "";
+
+    if (!campusId && areas.length === 0 && slugs.length === 0 && !q) {
+      return;
+    }
+    hydratedUrl.current = true;
+
+    if (campusId || slugs.length > 0) {
+      const slug = slugs[0];
+      const campus = slug
+        ? universities.data?.find((u) => u.slug === slug)
+        : universities.data?.find((u) => u.id === campusId);
+      setSearchVal(campus ? (campus.displayName ?? campus.name) : q || searchVal);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        campusId: campusId || campus?.id || null,
+        universitySlugs: slug
+          ? [slug]
+          : campus
+            ? [campus.slug]
+            : [],
+        areas: [],
+        q: null,
+        institutionSlug: campus?.institutionSlug ?? prev.institutionSlug,
+      }));
+      if (campus?.lat != null && campus?.lng != null) {
+        setFocusPoint({ lat: campus.lat, lng: campus.lng });
+      }
+      setMode("university");
+      setSort("distance");
+      return;
+    }
+
+    if (areas.length > 0) {
+      setSearchVal(areas[0]!);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        areas,
+        universitySlugs: [],
+        campusId: null,
+        q: null,
+        institutionSlug: null,
+      }));
+      setMode("standard");
+      return;
+    }
+
+    if (q) {
+      setSearchVal(q);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        q,
+        areas: [],
+        universitySlugs: [],
+        campusId: null,
+        institutionSlug: null,
+      }));
+      setMode("standard");
+    }
+  }, [
+    params.campusId,
+    params.areas,
+    params.universitySlugs,
+    params.q,
+    universities.data,
+    searchVal,
+  ]);
+
+  useEffect(() => {
+    if (
+      hydratedUrl.current ||
+      params.q ||
+      params.campusId ||
+      params.areas ||
+      appliedProfileCampus.current
+    ) {
+      return;
+    }
     const slug = user?.campus?.slug;
     if (!slug) return;
     appliedProfileCampus.current = true;
@@ -121,45 +331,7 @@ export default function RenterSearchScreen() {
     }));
     setMode("university");
     setSort("distance");
-  }, [q, user?.campus?.slug]);
-
-  // Parse entry search query — university first
-  useEffect(() => {
-    if (!q) return;
-    setSearchVal(q);
-    const queryLower = q.toLowerCase().trim();
-
-    const matchedInst = (institutions.data ?? []).find(
-      (inst) =>
-        inst.slug.toLowerCase() === queryLower ||
-        inst.shortName.toLowerCase() === queryLower ||
-        inst.name.toLowerCase().includes(queryLower),
-    );
-    if (matchedInst) {
-      setBrowseFilters((prev) => ({
-        ...prev,
-        institutionSlug: matchedInst.slug,
-        universitySlugs: [],
-      }));
-      setMode("university");
-      setUniOpen(true);
-      return;
-    }
-
-    const matchedCampus = (universities.data ?? []).find(
-      (u) =>
-        u.slug.toLowerCase() === queryLower ||
-        u.name.toLowerCase() === queryLower,
-    );
-    if (matchedCampus) {
-      setBrowseFilters((prev) => ({
-        ...prev,
-        universitySlugs: [matchedCampus.slug],
-        institutionSlug: matchedCampus.institutionSlug ?? prev.institutionSlug,
-      }));
-      setMode("university");
-    }
-  }, [q, institutions.data, universities.data]);
+  }, [params.q, params.campusId, params.areas, user?.campus?.slug]);
 
   const deferredFilters = useDeferredValue(browseFilters);
   const deferredMode = useDeferredValue(mode);
@@ -188,6 +360,7 @@ export default function RenterSearchScreen() {
   const isUniversityMode =
     deferredMode === "university" &&
     (deferredFilters.universitySlugs.length > 0 ||
+      Boolean(deferredFilters.campusId) ||
       Boolean(deferredFilters.institutionSlug));
 
   // Client side sorting for desc/distance
@@ -205,65 +378,28 @@ export default function RenterSearchScreen() {
     return result;
   }, [listings, deferredSort]);
 
-  const handleSearchSubmit = () => {
-    setMapSearchOpen(false);
-    const val = searchVal.trim();
-    if (!val) {
-      setBrowseFilters(EMPTY_BROWSE_FILTERS);
-      return;
-    }
-    const valLower = val.toLowerCase();
-
-    const matchedInst = (institutions.data ?? []).find(
-      (inst) =>
-        inst.slug.toLowerCase() === valLower ||
-        inst.shortName.toLowerCase() === valLower ||
-        inst.name.toLowerCase().includes(valLower),
-    );
-    if (matchedInst) {
-      setBrowseFilters((prev) => ({
-        ...prev,
-        institutionSlug: matchedInst.slug,
-        universitySlugs: [],
-      }));
-      setMode("university");
-      setUniOpen(true);
-      return;
-    }
-
-    const matchedCampus = (universities.data ?? []).find(
-      (u) =>
-        u.slug.toLowerCase() === valLower ||
-        u.name.toLowerCase() === valLower,
-    );
-    if (matchedCampus) {
-      setBrowseFilters((prev) => ({
-        ...prev,
-        universitySlugs: [matchedCampus.slug],
-        institutionSlug: matchedCampus.institutionSlug ?? prev.institutionSlug,
-      }));
-      setMode("university");
-      return;
-    }
-
-    const matchedArea = LEBANON_AREAS.find(
-      (a) => a.toLowerCase() === valLower,
-    );
-    if (matchedArea) {
-      setBrowseFilters((prev) => ({
-        ...prev,
-        areas: [matchedArea],
-      }));
-    }
-  };
-
   const clearAllFilters = () => {
-    setBrowseFilters(EMPTY_BROWSE_FILTERS);
-    setSearchVal("");
-    setMode("university");
+    resetSearch();
   };
 
   const badgeCount = browseFilterBadgeCount(browseFilters, mode);
+
+  const searchField = (
+    <SearchAutocomplete
+      value={searchVal}
+      onChangeText={setSearchVal}
+      placeholder="Search area, university, listing…"
+      onSelectArea={applyArea}
+      onSelectUniversity={applyUniversity}
+      onSelectListing={(s) => {
+        setMapSearchOpen(false);
+        router.push(`/(renter)/listing/${s.id}`);
+      }}
+      onSubmitText={applyTextQuery}
+      onClear={resetSearch}
+      containerStyle={{ flex: 1 }}
+    />
+  );
 
   return (
     <CarouselListScrollContext.Provider value={carouselScroll.value}>
@@ -288,22 +424,8 @@ export default function RenterSearchScreen() {
           <Ionicons name="arrow-back" size={24} color={Skoun.color.ink} />
         </Pressable>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={Skoun.color.inkMuted} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchVal}
-            onChangeText={setSearchVal}
-            placeholder="Search university…"
-            placeholderTextColor={Skoun.color.inkFaint}
-            onSubmitEditing={handleSearchSubmit}
-            returnKeyType="search"
-          />
-          {searchVal ? (
-            <Pressable onPress={() => { setSearchVal(""); setBrowseFilters(EMPTY_BROWSE_FILTERS); }} style={styles.clearBtn}>
-              <Ionicons name="close-circle" size={18} color={Skoun.color.inkMuted} />
-            </Pressable>
-          ) : null}
+        <View style={[styles.searchBar, { zIndex: 50, overflow: "visible" }]}>
+          {searchField}
         </View>
       </View>
 
@@ -437,6 +559,11 @@ export default function RenterSearchScreen() {
                 activeUniSlug,
                 activeInst,
               )}
+              focusPoint={
+                isUniversityMode
+                  ? null
+                  : focusPoint
+              }
               loading={listingsQuery.isLoading}
               fillContainer
               onCarouselOpenChange={onCarouselOpenChange}
@@ -525,36 +652,8 @@ export default function RenterSearchScreen() {
                 style={StyleSheet.absoluteFill}
                 onPress={() => setMapSearchOpen(false)}
               />
-              <View style={[styles.mapSearchBarWrap, { paddingTop: insets.top + 8 }]}>
-                <View style={styles.searchBar}>
-                  <Ionicons
-                    name="search"
-                    size={18}
-                    color={Skoun.color.inkMuted}
-                    style={styles.searchIcon}
-                  />
-                  <TextInput
-                    style={styles.searchInput}
-                    value={searchVal}
-                    onChangeText={setSearchVal}
-                    placeholder="Search university…"
-                    placeholderTextColor={Skoun.color.inkFaint}
-                    onSubmitEditing={handleSearchSubmit}
-                    returnKeyType="search"
-                    autoFocus
-                  />
-                  {searchVal ? (
-                    <Pressable
-                      onPress={() => {
-                        setSearchVal("");
-                        setBrowseFilters(EMPTY_BROWSE_FILTERS);
-                      }}
-                      style={styles.clearBtn}
-                    >
-                      <Ionicons name="close-circle" size={18} color={Skoun.color.inkMuted} />
-                    </Pressable>
-                  ) : null}
-                </View>
+              <View style={[styles.mapSearchBarWrap, { paddingTop: insets.top + 8, zIndex: 60, overflow: "visible" }]}>
+                {searchField}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Close search"
@@ -807,6 +906,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
     gap: 12,
+    zIndex: 50,
+    overflow: "visible",
   },
   backBtn: {
     padding: 4,
@@ -815,10 +916,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "transparent",
     borderRadius: 24,
-    paddingHorizontal: 14,
-    height: 46,
+    paddingHorizontal: 0,
+    minHeight: 46,
+    overflow: "visible",
+    zIndex: 50,
   },
   searchIcon: {
     marginRight: 8,
@@ -989,9 +1092,11 @@ const styles = StyleSheet.create({
   },
   mapSearchBarWrap: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
+    alignItems: "flex-start",
     gap: 8,
+    paddingHorizontal: 12,
+    zIndex: 60,
+    overflow: "visible",
   },
   mapSearchClose: {
     width: 44,

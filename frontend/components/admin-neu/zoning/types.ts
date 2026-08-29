@@ -9,6 +9,8 @@ export type AdminNeighborhood = {
   slug: string;
   origin: ZoneOrigin;
   listingCount: number;
+  /** Custom areas can deactivate; official stay active until merge removes them. */
+  active: boolean;
 };
 
 export type AdminDistrict = {
@@ -51,10 +53,6 @@ export function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
-}
-
-export function districtCount(gov: AdminGovernorate): number {
-  return gov.districts.length;
 }
 
 export function neighborhoodCount(gov: AdminGovernorate): number {
@@ -107,20 +105,15 @@ export function findDistrict(
   return null;
 }
 
-export function haystack(gov: AdminGovernorate): string {
-  const inner = gov.districts
-    .map(
-      (district) =>
-        `${district.name} ${district.slug} ${district.neighborhoods
-          .map((area) => `${area.name} ${area.slug}`)
-          .join(" ")}`,
-    )
-    .join(" ");
-  return `${gov.name} ${gov.arabicName} ${gov.slug} ${inner}`.toLowerCase();
-}
-
 export function initials(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
+export function newId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now().toString(16)}`;
 }

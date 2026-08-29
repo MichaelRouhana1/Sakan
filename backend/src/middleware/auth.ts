@@ -153,6 +153,8 @@ export async function optionalAuth(
 /**
  * Admin: Clerk staff JWT (allowlist or publicMetadata.skounAdmin) or x-admin-key.
  * If both sent, staff Clerk identity wins for audit.
+ *
+ * Auth is deferred until ADMIN_AUTH_REQUIRED=true (default on only in production).
  */
 export async function requireAdmin(
   req: Request,
@@ -160,6 +162,27 @@ export async function requireAdmin(
   next: NextFunction,
 ): Promise<void> {
   try {
+    const env = loadEnv();
+    const enforceAuth =
+      env.ADMIN_AUTH_REQUIRED === true ||
+      (env.ADMIN_AUTH_REQUIRED !== false && env.NODE_ENV === "production");
+
+    if (!enforceAuth) {
+      const user = await resolveAuthUser(req);
+      if (user) {
+        req.user = user;
+        req.admin = {
+          kind: "clerk",
+          clerkId: user.clerkId,
+          userId: user.id,
+        };
+      } else {
+        req.admin = { kind: "api_key", clerkId: null, userId: null };
+      }
+      next();
+      return;
+    }
+
     const user = await resolveAuthUser(req);
     if (user) {
       req.user = user;

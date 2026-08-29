@@ -12,6 +12,11 @@ import type {
 export type ListingListFilters = {
   areas?: string[];
   universitySlugs?: string[];
+  campusId?: string;
+  q?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
   sort?: ListingSort;
   electricity?: ElectricityStatus[];
   water?: WaterStatus[];

@@ -7,6 +7,7 @@ import { listingsRouter } from "./modules/listings/listings.routes.js";
 import { UPLOADS_ROOT } from "./modules/listings/photos.storage.js";
 import { reportsRouter } from "./modules/reports/reports.routes.js";
 import { savedRouter } from "./modules/saved/saved.routes.js";
+import { searchRouter } from "./modules/search/search.routes.js";
 import { institutionsRouter } from "./modules/universities/institutions.routes.js";
 import { universitiesRouter } from "./modules/universities/universities.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
@@ -32,6 +33,7 @@ export function createApp() {
     app.use("/api/auth", authDevRouter);
   }
   app.use("/api/listings", listingsRouter);
+  app.use("/api/search", searchRouter);
   app.use("/api/saved", savedRouter);
   app.use("/api/reports", reportsRouter);
   app.use("/api/universities", universitiesRouter);

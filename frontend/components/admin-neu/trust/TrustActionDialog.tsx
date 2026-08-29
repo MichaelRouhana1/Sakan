@@ -49,7 +49,7 @@ const COPY: Record<
   },
   remove_domain: {
     title: "Remove this domain",
-    body: "Drops it from the demo student-domain map. Institutions emailDomains stay untouched.",
+    body: "Drops it from the demo student-domain map. Institutions registry stays untouched.",
     confirm: "Remove domain",
   },
 };

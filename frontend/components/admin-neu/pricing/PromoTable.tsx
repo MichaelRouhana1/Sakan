@@ -1,6 +1,11 @@
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
 import { PromoActions } from "./PromoActions";
 import { PromoCodeChip, PromoStatusPill } from "./PromoPills";
 import {
@@ -58,15 +63,10 @@ export function PromoTable({ promos, filter, busy, onAction }: Props) {
   }
 
   return (
-    <NeuSurface inset className="overflow-hidden">
+    <NeuSurface inset className="overflow-hidden p-3">
       <H className="neu-scroll overflow-x-auto">
         <H className="min-w-[900px]">
-          <H
-            className={[
-              DESKTOP_ROW,
-              "border-b border-clay-200/80 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-            ].join(" ")}
-          >
+          <H className={[DESKTOP_ROW, ADMIN_TABLE_HEAD].join(" ")}>
             <H as="span">Code</H>
             <H as="span">Campaign</H>
             <H as="span">Discount</H>
@@ -77,10 +77,11 @@ export function PromoTable({ promos, filter, busy, onAction }: Props) {
             </H>
           </H>
 
+          <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
           {promos.map((promo) => (
             <H
               key={promo.id}
-              className={[DESKTOP_ROW, "border-t border-clay-200/80 px-5 py-3.5"].join(" ")}
+              className={[DESKTOP_ROW, ADMIN_TABLE_ROW].join(" ")}
             >
               <H className="min-w-0">
                 <H className="flex items-center gap-2">
@@ -118,6 +119,7 @@ export function PromoTable({ promos, filter, busy, onAction }: Props) {
               </H>
             </H>
           ))}
+          </H>
         </H>
       </H>
     </NeuSurface>

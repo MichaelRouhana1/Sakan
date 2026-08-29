@@ -18,6 +18,7 @@ type Props = {
   hoverFlyListingId?: string | null;
   onHoverFlyComplete?: () => void;
   focusCampusSlug?: string | null;
+  focusPoint?: { lat: number; lng: number } | null;
 };
 
 /** Amber-style map pane: map fills the column; Close Map floats top-right. */
@@ -33,6 +34,7 @@ export function FindMapPane({
   hoverFlyListingId = null,
   onHoverFlyComplete,
   focusCampusSlug = null,
+  focusPoint = null,
 }: Props) {
   return (
     <View
@@ -92,6 +94,7 @@ export function FindMapPane({
           hoverFlyListingId={hoverFlyListingId}
           onHoverFlyComplete={onHoverFlyComplete}
           focusCampusSlug={focusCampusSlug}
+          focusPoint={focusPoint}
           active={visible}
         />
       </View>

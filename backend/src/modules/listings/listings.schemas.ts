@@ -158,7 +158,11 @@ export const createListingSchema = z.object({
     )
     .max(4)
     .optional(),
-  area: z.string().min(1).max(128),
+  area: z
+    .string()
+    .min(1)
+    .max(128)
+    .refine((value) => LEBANON_AREA_SET.has(value), "Unknown area"),
   landmark: z.string().max(256).optional(),
   addressLine: z.string().trim().max(256).optional(),
   buildingName: z.string().trim().max(128).optional(),
@@ -339,6 +343,15 @@ export const listListingsQuerySchema = z
     universitySlugs: z.string().optional(),
     /** Legacy singular alias → one-item universitySlugs. */
     universitySlug: z.string().optional(),
+    /** Campus UUID — preferred over universitySlugs when both set. */
+    campusId: z.string().optional(),
+    /** Free-text match on title / description / area / landmark / address. */
+    q: z.string().max(128).optional(),
+    /** WGS84 pin for radius filter (requires lng). */
+    lat: z.string().optional(),
+    lng: z.string().optional(),
+    /** Radius in km around campus or pin. Default 2 when geo active. */
+    radiusKm: z.string().optional(),
     /** Cities mode only — ignored when any universitySlugs are set. */
     sort: listingSortSchema,
     status: z.enum(["draft", "active", "archived", "removed"]).optional(),
@@ -362,6 +375,25 @@ export const listListingsQuerySchema = z
     const universitySlugs = parseCsvQueryParam(
       raw.universitySlugs ?? raw.universitySlug,
     );
+    const campusIdRaw =
+      raw.campusId != null && raw.campusId.trim().length > 0
+        ? raw.campusId.trim()
+        : undefined;
+    if (
+      campusIdRaw &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        campusIdRaw,
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "campusId must be a UUID",
+      });
+      return z.NEVER;
+    }
+    const campusId = campusIdRaw;
+    const q =
+      raw.q != null && raw.q.trim().length > 0 ? raw.q.trim() : undefined;
 
     if (areas.length > MAX_LISTING_AREAS) {
       ctx.addIssue({
@@ -473,9 +505,59 @@ export const listListingsQuerySchema = z
       return z.NEVER;
     }
 
+    let lat: number | null = null;
+    let lng: number | null = null;
+    if (raw.lat != null && raw.lat !== "") {
+      const n = Number(raw.lat);
+      if (!Number.isFinite(n) || n < -90 || n > 90) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "lat must be a number between -90 and 90",
+        });
+        return z.NEVER;
+      }
+      lat = n;
+    }
+    if (raw.lng != null && raw.lng !== "") {
+      const n = Number(raw.lng);
+      if (!Number.isFinite(n) || n < -180 || n > 180) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "lng must be a number between -180 and 180",
+        });
+        return z.NEVER;
+      }
+      lng = n;
+    }
+    if ((lat == null) !== (lng == null)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "lat and lng must be provided together",
+      });
+      return z.NEVER;
+    }
+
+    let radiusKm: number | null = null;
+    if (raw.radiusKm != null && raw.radiusKm !== "") {
+      const n = Number(raw.radiusKm);
+      if (!Number.isFinite(n) || n <= 0 || n > 100) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "radiusKm must be a positive number ≤ 100",
+        });
+        return z.NEVER;
+      }
+      radiusKm = n;
+    }
+
     return {
       areas,
       universitySlugs,
+      campusId,
+      q,
+      lat,
+      lng,
+      radiusKm,
       sort: raw.sort,
       status: raw.status,
       electricity,

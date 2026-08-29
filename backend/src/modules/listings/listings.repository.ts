@@ -4,10 +4,12 @@ import {
   desc,
   eq,
   gte,
+  ilike,
   inArray,
   isNotNull,
   lte,
   ne,
+  or,
   sql,
   type SQL,
 } from "drizzle-orm";
@@ -130,6 +132,34 @@ function parseJsonStringArray(value: unknown): string[] {
     }
   }
   return [];
+}
+
+/** Text search OR fragments for Drizzle browse. */
+function textSearchDrizzleConditions(q: string | undefined): SQL[] {
+  if (!q || q.trim().length === 0) return [];
+  const like = `%${q.trim()}%`;
+  return [
+    or(
+      ilike(listings.title, like),
+      ilike(listings.description, like),
+      ilike(listings.area, like),
+      ilike(listings.landmark, like),
+      ilike(listings.addressLine, like),
+    )!,
+  ];
+}
+
+/** Raw-SQL text search AND fragment for hub / point queries (alias `l`). */
+function textSearchSqlFragment(q: string | undefined): SQL {
+  if (!q || q.trim().length === 0) return sql``;
+  const like = `%${q.trim()}%`;
+  return sql`AND (
+    l.title ILIKE ${like}
+    OR l.description ILIKE ${like}
+    OR l.area ILIKE ${like}
+    OR COALESCE(l.landmark, '') ILIKE ${like}
+    OR COALESCE(l.address_line, '') ILIKE ${like}
+  )`;
 }
 
 /** Drizzle AND fragments for property browse filters. */
@@ -345,10 +375,12 @@ export class ListingsRepository {
     areas: string[] = [],
     sort: ListingSort = "newest",
     property: ListingPropertyFilters = EMPTY_PROPERTY_FILTERS,
+    q?: string,
   ) {
     const conditions = [
       eq(listings.status, "active"),
       ...propertyDrizzleConditions(property),
+      ...textSearchDrizzleConditions(q),
     ];
     if (areas.length > 0) {
       conditions.push(inArray(listings.area, areas));
@@ -378,11 +410,13 @@ export class ListingsRepository {
   /**
    * Hub distance = nearest of selected campuses; `nearest_campus_slug` is the campus that won.
    * Optional `areas` further filters listing.area IN (...).
+   * Optional `radiusMeters` caps with ST_DWithin (default none / unlimited when undefined).
    */
   async listActiveNearUniversities(
     universitySlugs: string[],
     areas: string[] = [],
     property: ListingPropertyFilters = EMPTY_PROPERTY_FILTERS,
+    opts?: { radiusMeters?: number; q?: string },
   ) {
     if (universitySlugs.length === 0) return [];
 
@@ -398,6 +432,12 @@ export class ListingsRepository {
           )})`
         : sql``;
     const propertyFilter = propertySqlFragments(property);
+    const textFilter = textSearchSqlFragment(opts?.q);
+    const radiusMeters = opts?.radiusMeters;
+    const radiusFilter =
+      radiusMeters != null && Number.isFinite(radiusMeters) && radiusMeters > 0
+        ? sql`AND ST_DWithin(l.location, d.campus_location, ${radiusMeters})`
+        : sql``;
 
     const result = await db.execute(sql`
       WITH campus_set AS (
@@ -414,7 +454,8 @@ export class ListingsRepository {
         CROSS JOIN LATERAL (
           SELECT
             ST_Distance(l.location, c.location) AS distance_meters,
-            c.slug AS campus_slug
+            c.slug AS campus_slug,
+            c.location AS campus_location
           FROM campus_set c
           ORDER BY ST_Distance(l.location, c.location) ASC
           LIMIT 1
@@ -423,6 +464,8 @@ export class ListingsRepository {
           AND l.location IS NOT NULL
           ${areaFilter}
           ${propertyFilter}
+          ${textFilter}
+          ${radiusFilter}
       )
       SELECT
         l.id,
@@ -494,6 +537,62 @@ export class ListingsRepository {
       ORDER BY l.boosted_until DESC NULLS LAST, n.distance_meters ASC
     `);
 
+    return this.mapHubRows(result);
+  }
+
+  /** Active listings within radiusKm of an arbitrary WGS84 point. */
+  async listActiveNearPoint(
+    lat: number,
+    lng: number,
+    radiusKm: number,
+    areas: string[] = [],
+    property: ListingPropertyFilters = EMPTY_PROPERTY_FILTERS,
+    q?: string,
+  ) {
+    const meters = radiusKm * 1000;
+    const conditions = [
+      eq(listings.status, "active"),
+      isNotNull(listings.location),
+      sql`ST_DWithin(
+        ${listings.location},
+        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+        ${meters}
+      )`,
+      ...propertyDrizzleConditions(property),
+      ...textSearchDrizzleConditions(q),
+    ];
+    if (areas.length > 0) {
+      conditions.push(inArray(listings.area, areas));
+    }
+
+    const distanceSql = sql<number>`ST_Distance(
+      ${listings.location},
+      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+    )`;
+
+    const rows = await db
+      .select({
+        ...listingPublicColumns,
+        distanceMeters: distanceSql.as("distance_meters"),
+      })
+      .from(listings)
+      .where(and(...conditions))
+      .orderBy(
+        sql`${listings.boostedUntil} DESC NULLS LAST`,
+        asc(distanceSql),
+      );
+
+    const normalized = rows.map((row) => ({
+      ...row,
+      lng: parseCoord(row.lng),
+      lat: parseCoord(row.lat),
+      distanceMeters: Number(row.distanceMeters),
+    }));
+
+    return this.withPhotos(normalized);
+  }
+
+  private mapHubRows(result: unknown) {
     const rows = Array.isArray(result)
       ? result
       : ((result as { rows?: Record<string, unknown>[] }).rows ?? []);

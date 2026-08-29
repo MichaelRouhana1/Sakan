@@ -2,11 +2,15 @@ import { ChevronDown, MapPin, Plus } from "lucide-react-native";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { H } from "../h";
 import { NeuButton, NeuSurface } from "../NeuPrimitives";
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_STACK_AFTER_HEAD,
+} from "../tableChrome";
 import { CampusActions } from "./CampusActions";
 import { InstitutionActions } from "./InstitutionActions";
 import {
   AcronymPill,
-  DomainChip,
   MainCampusPill,
   RegistryStatusPill,
 } from "./InstitutionPills";
@@ -53,7 +57,7 @@ export function InstitutionTree({
           No institutions in this view
         </H>
         <H as="p" className="mx-auto mt-2 max-w-sm text-sm text-clay-700">
-          Try another name, campus, or domain — or add a university.
+          Try another name or campus — or add a university.
         </H>
       </NeuSurface>
     );
@@ -102,14 +106,12 @@ function InstitutionNode({
   const panelId = `campuses-${institution.id}`;
   const total = campusCount(institution);
   const active = activeCampusCount(institution);
+  const createdLabel = institution.createdAt.slice(0, 10);
 
   return (
     <NeuSurface as="section" className="overflow-hidden">
       <H className="flex items-start gap-2 px-4 py-4 sm:items-center sm:px-5">
-        <H
-          as="h2"
-          className="min-w-0 flex-1 text-base font-normal"
-        >
+        <H as="h2" className="min-w-0 flex-1 text-base font-normal">
           <H
             as="button"
             type="button"
@@ -150,9 +152,9 @@ function InstitutionNode({
               <H as="span" className="mt-1 block text-sm font-normal text-clay-700">
                 {total} {total === 1 ? "campus" : "campuses"}
                 {total > 0 ? ` · ${active} active` : ""}
-                {institution.emailDomains.length > 0
-                  ? ` · ${institution.emailDomains.length} ${institution.emailDomains.length === 1 ? "domain" : "domains"}`
-                  : ""}
+                <H as="span" className="text-clay-500">
+                  {` · added ${createdLabel}`}
+                </H>
               </H>
             </H>
           </H>
@@ -181,18 +183,6 @@ function InstitutionNode({
       {expanded ? (
         <H id={panelId} className="px-4 pb-4 sm:px-5">
           <H className="ml-0 border-l-2 border-clay-200/80 pl-3 sm:ml-4 sm:pl-4">
-            {institution.emailDomains.length > 0 ? (
-              <H className="mb-3 flex flex-wrap gap-1.5">
-                {institution.emailDomains.map((domain) => (
-                  <DomainChip key={domain} domain={domain} />
-                ))}
-              </H>
-            ) : (
-              <H as="p" className="mb-3 text-xs text-clay-500">
-                No academic email domain mapped yet.
-              </H>
-            )}
-
             {institution.campuses.length === 0 ? (
               <NeuSurface inset className="px-4 py-8 text-center">
                 <H as="p" className="text-sm font-medium text-clay-900">
@@ -214,14 +204,11 @@ function InstitutionNode({
                 ))}
               </H>
             ) : (
-              <NeuSurface inset className="overflow-hidden">
+              <NeuSurface inset className="overflow-hidden p-3">
                 <H className="overflow-x-auto">
                   <H className="min-w-[720px]">
                     <H
-                      className={[
-                        CAMPUS_ROW,
-                        "px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-clay-700",
-                      ].join(" ")}
+                      className={[CAMPUS_ROW, ADMIN_TABLE_HEAD].join(" ")}
                     >
                       <H as="span">Campus</H>
                       <H as="span">City</H>
@@ -231,13 +218,11 @@ function InstitutionNode({
                         Actions
                       </H>
                     </H>
+                    <H className={ADMIN_TABLE_STACK_AFTER_HEAD}>
                     {institution.campuses.map((campus) => (
                       <H
                         key={campus.id}
-                        className={[
-                          CAMPUS_ROW,
-                          "border-t border-clay-200/80 px-4 py-3",
-                        ].join(" ")}
+                        className={[CAMPUS_ROW, ADMIN_TABLE_ROW].join(" ")}
                       >
                         <H className="min-w-0">
                           <H className="flex flex-wrap items-center gap-2">
@@ -267,6 +252,7 @@ function InstitutionNode({
                         />
                       </H>
                     ))}
+                    </H>
                   </H>
                 </H>
               </NeuSurface>

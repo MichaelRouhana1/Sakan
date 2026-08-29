@@ -1,7 +1,6 @@
-import type { AuditEvent, RoleMatrix, TrafficPoint } from "./types";
+import type { AuditEvent, ChartRangeId, RoleMatrix, TrafficPoint } from "./types";
 
-/** Demo anchor — keep filters + charts stable. */
-export const ANCHOR_ISO = "2026-08-25T18:40:00.000Z";
+/** Seed window for custom date picker bounds (demo catalog dates). */
 export const DATA_END = "2026-08-25";
 export const DATA_START = "2026-07-26";
 export const defaultCustomFrom = "2026-08-18";
@@ -38,6 +37,10 @@ export const ACTORS = {
     role: "analyst" as const,
   },
 };
+
+/** Demo session actors for save / export until real admin identity wires. */
+export const DEMO_SAVE_ACTOR = ACTORS.rania;
+export const DEMO_EXPORT_ACTOR = ACTORS.lina;
 
 export const MOCK_MATRIX: RoleMatrix = {
   super_admin: {
@@ -102,7 +105,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_001",
     actor: ACTORS.rania,
-    action: "updated_rbac",
+    action: "rbac.update",
     detail: "Enabled logs_export for Analyst",
     target: "Role · Analyst",
     ip: "185.112.44.18",
@@ -111,7 +114,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_002",
     actor: ACTORS.nabil,
-    action: "archived_listing",
+    action: "listing.archive",
     detail: "Expired boost · duplicate photos",
     target: "Listing · Hamra studio #L-4412",
     ip: "91.232.110.54",
@@ -120,7 +123,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_003",
     actor: ACTORS.maya,
-    action: "granted_credits",
+    action: "credit_tx.approve",
     detail: "Comp 2 post credits · launch promo",
     target: "User · elie.n@aub.edu.lb",
     ip: "178.135.22.91",
@@ -129,7 +132,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_004",
     actor: ACTORS.nabil,
-    action: "changed_zone",
+    action: "zone.change",
     detail: "Moved Achrafieh East → Achrafieh Core",
     target: "Neighborhood · Sassine",
     ip: "91.232.110.54",
@@ -138,7 +141,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_005",
     actor: ACTORS.karim,
-    action: "resolved_report",
+    action: "report.dismiss",
     detail: "Dismissed spam · no policy hit",
     target: "Report · RP-8821",
     ip: "176.67.88.201",
@@ -147,8 +150,8 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_006",
     actor: ACTORS.maya,
-    action: "banned_user",
-    detail: "Repeat fake listings after warn",
+    action: "user.status",
+    detail: "status=banned · Repeat fake listings after warn",
     target: "User · ghost.host@mail.com",
     ip: "178.135.22.91",
     createdAt: "2026-08-25T11:47:00.000Z",
@@ -156,7 +159,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_007",
     actor: ACTORS.lina,
-    action: "exported_logs",
+    action: "logs.export",
     detail: "CSV · last 7 days · compliance",
     target: "Audit ledger",
     ip: "194.126.19.33",
@@ -165,7 +168,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_008",
     actor: ACTORS.rania,
-    action: "edited_pricing",
+    action: "pricing.edit",
     detail: "Post credit $9 → $8.50",
     target: "Pricing engine",
     ip: "185.112.44.18",
@@ -173,17 +176,17 @@ export const MOCK_EVENTS: AuditEvent[] = [
   },
   {
     id: "aud_009",
-    actor: ACTORS.nabil,
-    action: "cut_power_window",
-    detail: "Scheduled cut 14:00–18:00",
-    target: "Zone · Ras Beirut",
-    ip: "91.232.110.54",
+    actor: ACTORS.rania,
+    action: "institution.update",
+    detail: "Renamed shortName AUB → AUB Beirut",
+    target: "Institution · American University of Beirut",
+    ip: "185.112.44.18",
     createdAt: "2026-08-24T18:05:00.000Z",
   },
   {
     id: "aud_010",
     actor: ACTORS.maya,
-    action: "approved_purchase",
+    action: "credit_tx.approve",
     detail: "Whish · 3 post pack",
     target: "Tx · TX-22901",
     ip: "178.135.22.91",
@@ -192,8 +195,8 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_011",
     actor: ACTORS.karim,
-    action: "restricted_user",
-    detail: "Messaging freeze · harassment queue",
+    action: "user.status",
+    detail: "status=restricted · Messaging freeze · harassment queue",
     target: "User · sami.k@lau.edu.lb",
     ip: "176.67.88.201",
     createdAt: "2026-08-24T15:01:00.000Z",
@@ -201,7 +204,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_012",
     actor: ACTORS.nabil,
-    action: "removed_listing",
+    action: "listing.remove",
     detail: "Off-platform escrow scam language",
     target: "Listing · Verdun 2BR #L-4388",
     ip: "91.232.110.54",
@@ -210,7 +213,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_013",
     actor: ACTORS.maya,
-    action: "rejected_purchase",
+    action: "credit_tx.reject",
     detail: "Duplicate OMT slip",
     target: "Tx · TX-22874",
     ip: "178.135.22.91",
@@ -219,8 +222,8 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_014",
     actor: ACTORS.rania,
-    action: "unrestricted_user",
-    detail: "Appeal accepted · clean history",
+    action: "user.status",
+    detail: "status=active · Appeal accepted · clean history",
     target: "User · nada.b@usj.edu.lb",
     ip: "185.112.44.18",
     createdAt: "2026-08-23T17:40:00.000Z",
@@ -228,7 +231,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_015",
     actor: ACTORS.lina,
-    action: "exported_logs",
+    action: "logs.export",
     detail: "CSV · zone changes only",
     target: "Audit ledger",
     ip: "194.126.19.33",
@@ -237,7 +240,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_016",
     actor: ACTORS.nabil,
-    action: "archived_listing",
+    action: "listing.archive",
     detail: "Owner request · lease signed",
     target: "Listing · Jounieh loft #L-4201",
     ip: "91.232.110.54",
@@ -246,17 +249,17 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_017",
     actor: ACTORS.maya,
-    action: "granted_credits",
-    detail: "Support goodwill · 1 boost",
-    target: "User · host.beirut@gmail.com",
+    action: "campus.create",
+    detail: "Branch campus pin set",
+    target: "Campus · LAU Byblos",
     ip: "178.135.22.91",
     createdAt: "2026-08-22T14:33:00.000Z",
   },
   {
     id: "aud_018",
     actor: ACTORS.karim,
-    action: "resolved_report",
-    detail: "Confirmed wrong address · archived",
+    action: "report.dismiss",
+    detail: "Confirmed wrong address · archived listing",
     target: "Report · RP-8760",
     ip: "176.67.88.201",
     createdAt: "2026-08-21T11:08:00.000Z",
@@ -264,7 +267,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_019",
     actor: ACTORS.rania,
-    action: "updated_rbac",
+    action: "rbac.update",
     detail: "Disabled zones_edit for Support",
     target: "Role · Support",
     ip: "185.112.44.18",
@@ -273,7 +276,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_020",
     actor: ACTORS.nabil,
-    action: "changed_zone",
+    action: "zone.change",
     detail: "Split Mar Elias into North / South",
     target: "District · Beirut",
     ip: "91.232.110.54",
@@ -282,8 +285,8 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_021",
     actor: ACTORS.maya,
-    action: "archived_listing",
-    detail: "Stale draft photos · policy scrub",
+    action: "listing.restore",
+    detail: "False positive archive · restored live",
     target: "Listing · Bliss micro #L-4190",
     ip: "178.135.22.91",
     createdAt: "2026-08-18T22:05:00.000Z",
@@ -291,7 +294,7 @@ export const MOCK_EVENTS: AuditEvent[] = [
   {
     id: "aud_022",
     actor: ACTORS.karim,
-    action: "resolved_report",
+    action: "report.dismiss",
     detail: "Wrong campus tag · corrected",
     target: "Report · RP-8712",
     ip: "176.67.88.201",
@@ -306,7 +309,7 @@ const ENDPOINTS = [
   "GET /api/explore",
 ] as const;
 
-/** 24 hourly buckets ending near ANCHOR. */
+/** Demo hourly buckets (chart “Last 24 hours” series — not log rolling window). */
 export const MOCK_TRAFFIC_24H: TrafficPoint[] = Array.from(
   { length: 24 },
   (_, i) => {
@@ -393,10 +396,8 @@ export const MOCK_TRAFFIC_30D: TrafficPoint[] = Array.from(
   },
 );
 
-export function trafficForRange(
-  range: "24h" | "7d" | "30d" | "custom",
-): TrafficPoint[] {
+export function trafficForRange(range: ChartRangeId): TrafficPoint[] {
   if (range === "7d") return MOCK_TRAFFIC_7D;
-  if (range === "30d" || range === "custom") return MOCK_TRAFFIC_30D;
+  if (range === "30d") return MOCK_TRAFFIC_30D;
   return MOCK_TRAFFIC_24H;
 }

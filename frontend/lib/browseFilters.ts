@@ -23,9 +23,21 @@ export function toListFilters(
       browse.genderRestrictions.length > 0
         ? browse.genderRestrictions
         : undefined,
+    q: browse.q?.trim() ? browse.q.trim() : undefined,
+    campusId: browse.campusId ?? undefined,
   };
   const areas = browse.areas.length > 0 ? browse.areas : undefined;
 
+  if (browse.campusId || browse.universitySlugs.length > 0) {
+    return {
+      universitySlugs:
+        browse.universitySlugs.length > 0
+          ? browse.universitySlugs
+          : undefined,
+      areas,
+      ...property,
+    };
+  }
   if (mode === "standard") {
     return { areas, sort, ...property };
   }

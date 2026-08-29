@@ -1,19 +1,24 @@
-import { ArrowRightLeft, Pencil } from "lucide-react-native";
+import { ArrowRightLeft, Pencil, Power } from "lucide-react-native";
 import { NeuButton } from "../NeuPrimitives";
 import { H } from "../h";
+import type { AdminNeighborhood } from "./types";
 
 type Props = {
+  area: AdminNeighborhood;
   compact?: boolean;
   onRename: () => void;
   onMove: () => void;
   onMerge: () => void;
+  onToggleActive?: () => void;
 };
 
 export function NeighborhoodActions({
+  area,
   compact,
   onRename,
   onMove,
   onMerge,
+  onToggleActive,
 }: Props) {
   return (
     <H
@@ -46,8 +51,19 @@ export function NeighborhoodActions({
         className={compact ? "px-2.5 py-1.5 text-xs" : ""}
         onClick={onMerge}
       >
-        {compact ? "Merge" : "Merge"}
+        Merge
       </NeuButton>
+      {area.origin === "custom" && onToggleActive ? (
+        <NeuButton
+          tone={area.active ? "ochre" : "moss"}
+          ariaLabel={area.active ? "Deactivate custom area" : "Reactivate custom area"}
+          className={compact ? "px-2.5 py-1.5 text-xs" : ""}
+          onClick={onToggleActive}
+        >
+          <Power size={compact ? 14 : 16} strokeWidth={1.75} />
+          {compact ? null : area.active ? "Deactivate" : "Activate"}
+        </NeuButton>
+      ) : null}
     </H>
   );
 }

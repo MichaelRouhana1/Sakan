@@ -61,12 +61,8 @@ export function DomainMappingCard({ domains, busy, onAdd, onRemove }: Props) {
 
       <H className="mt-4 rounded-neu-md bg-clay-100 px-3 py-2.5 shadow-neu-in-sm">
         <H as="p" className="text-xs leading-relaxed text-clay-700">
-          Institutions already lists campus{" "}
-          <H as="span" className="font-medium text-clay-900">
-            emailDomains
-          </H>
-          . This tray is a separate demo map — keep both in mind until one API
-          owns student email.
+          Institutions owns university + campus pins. Student email domains
+          live here until a shared API exists.
         </H>
         <Link
           href={"/admin/universities" as Href}

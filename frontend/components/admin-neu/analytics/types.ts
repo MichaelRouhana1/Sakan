@@ -12,6 +12,28 @@ export type DayPoint = {
   dauPosters: number;
 };
 
+export type Retention = {
+  w1: number;
+  w4: number;
+  w8: number;
+};
+
+export type ListTrendsParams = {
+  range: RangeId;
+  customFrom: string;
+  customTo: string;
+};
+
+export type TrendsResult = {
+  points: DayPoint[];
+  prior: DayPoint[];
+  retention: Retention;
+  dataStart: string;
+  dataEnd: string;
+  weekSignups: number;
+  priorWeekSignups: number;
+};
+
 export const RANGE_TABS: { id: RangeId; label: string }[] = [
   { id: "7d", label: "7D" },
   { id: "30d", label: "30D" },
@@ -118,12 +140,12 @@ export function meanBy(points: DayPoint[], key: keyof DayPoint): number {
   return sumBy(points, key) / points.length;
 }
 
-export function sliceRange(
-  days: DayPoint[],
+export function sliceByDate<T extends { date: string }>(
+  days: T[],
   range: RangeId,
   customFrom: string,
   customTo: string,
-): DayPoint[] {
+): T[] {
   if (days.length === 0) return [];
   const end = lastOf(days)!.date;
   if (range !== "custom") {
@@ -135,13 +157,50 @@ export function sliceRange(
   return days.filter((row) => row.date >= from && row.date <= to);
 }
 
-export function priorSlice(days: DayPoint[], current: DayPoint[]): DayPoint[] {
+export function priorByDate<T extends { date: string }>(
+  days: T[],
+  current: T[],
+): T[] {
   if (current.length === 0) return [];
   const first = current[0].date;
   const startIdx = days.findIndex((row) => row.date === first);
   if (startIdx <= 0) return [];
   const from = Math.max(0, startIdx - current.length);
   return days.slice(from, startIdx);
+}
+
+export function sliceRange(
+  days: DayPoint[],
+  range: RangeId,
+  customFrom: string,
+  customTo: string,
+): DayPoint[] {
+  return sliceByDate(days, range, customFrom, customTo);
+}
+
+export function priorSlice(days: DayPoint[], current: DayPoint[]): DayPoint[] {
+  return priorByDate(days, current);
+}
+
+export function lastDays<T>(points: T[], n: number): T[] {
+  if (points.length <= n) return points;
+  return points.slice(-n);
+}
+
+export function weekSignupsOf(points: DayPoint[]): number {
+  return sumBy(lastDays(points, 7), "signups");
+}
+
+/** Mock cohort return — range length nudges the curve so the card is not a constant. */
+export function retentionFromSlice(points: DayPoint[]): Retention {
+  const last = lastOf(points);
+  const stickiness = last && last.mau > 0 ? last.dau / last.mau : 0.28;
+  const span = points.length;
+  const spanBoost = span >= 300 ? 0.05 : span >= 80 ? 0.02 : span >= 25 ? 0 : -0.04;
+  const w1 = clamp(stickiness * 1.45 + spanBoost, 0.16, 0.62);
+  const w4 = clamp(w1 * 0.66, 0.11, 0.44);
+  const w8 = clamp(w4 * 0.72, 0.08, 0.32);
+  return { w1, w4, w8 };
 }
 
 export function xLabels(points: DayPoint[]): { i: number; label: string }[] {
@@ -192,12 +251,15 @@ export function bucketPoints(points: DayPoint[], maxBars: number): DayPoint[] {
   return out;
 }
 
-export function weekdayAverages(points: DayPoint[]): number[] {
+export function weekdayAverages(
+  points: DayPoint[],
+  key: "dau" | "dauRenters" | "dauPosters" = "dau",
+): number[] {
   const sums = [0, 0, 0, 0, 0, 0, 0];
   const counts = [0, 0, 0, 0, 0, 0, 0];
   for (const row of points) {
     const d = weekdayOf(row.date);
-    sums[d] += row.dau;
+    sums[d] += row[key];
     counts[d] += 1;
   }
   return sums.map((sum, i) => (counts[i] === 0 ? 0 : sum / counts[i]));

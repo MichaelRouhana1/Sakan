@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -9,12 +9,13 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
+import { EMPTY_BROWSE_FILTERS } from "@/components/listings/BrowseFiltersPanel";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
 import {
-  LEBANON_AREAS,
   MAX_LISTING_AREAS,
   MAX_UNIVERSITY_SLUGS,
+  useLiveLebanonAreaGroups,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { Skoun } from "@/constants/theme";
@@ -94,12 +95,7 @@ export function FindFilterRail({
 }: Props) {
   const [areaQuery, setAreaQuery] = useState("");
   const pendingInstSlug = useRef(value.institutionSlug);
-
-  const filteredAreas = useMemo(() => {
-    const q = areaQuery.trim().toLowerCase();
-    if (!q) return LEBANON_AREAS;
-    return LEBANON_AREAS.filter((a) => a.toLowerCase().includes(q));
-  }, [areaQuery]);
+  const areaGroups = useLiveLebanonAreaGroups(areaQuery);
 
   const patch = (partial: Partial<BrowseFiltersValue>) =>
     onChange({ ...value, ...partial });
@@ -136,18 +132,27 @@ export function FindFilterRail({
           onChangeText={setAreaQuery}
           style={styles.input}
         />
-        <View style={styles.chipRow}>
-          {filteredAreas.map((area) => (
-            <Chip
-              key={area}
-              label={area}
-              selected={value.areas.includes(area)}
-              onPress={() =>
-                patch({
-                  areas: toggleInList(value.areas, area, MAX_LISTING_AREAS),
-                })
-              }
-            />
+        <View style={styles.areaGroups}>
+          {areaGroups.map((group) => (
+            <View key={group.governorate} style={styles.areaGroup}>
+              <LText variant="caption" tone="muted" style={styles.areaGroupLabel}>
+                {group.governorate}
+              </LText>
+              <View style={styles.chipRow}>
+                {group.areas.map((area) => (
+                  <Chip
+                    key={area}
+                    label={area}
+                    selected={value.areas.includes(area)}
+                    onPress={() =>
+                      patch({
+                        areas: toggleInList(value.areas, area, MAX_LISTING_AREAS),
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            </View>
           ))}
         </View>
       </Section>
@@ -290,21 +295,7 @@ export function FindFilterRail({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Clear all filters"
-        onPress={() =>
-          onChange({
-            areas: [],
-            universitySlugs: [],
-            institutionSlug: null,
-            electricity: [],
-            water: [],
-            wifiIncluded: false,
-            listingTypes: [],
-            minRentUsd: null,
-            maxRentUsd: null,
-            studentsOnly: false,
-            genderRestrictions: [],
-          })
-        }
+        onPress={() => onChange(EMPTY_BROWSE_FILTERS)}
         style={({ hovered }) => [styles.clearBtn, hovered && styles.clearHover]}
       >
         <LText variant="caption" tone="primary">
@@ -385,6 +376,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
+  },
+  areaGroups: {
+    gap: 10,
+  },
+  areaGroup: {
+    gap: 6,
+  },
+  areaGroupLabel: {
+    fontSize: 11,
+    fontFamily: Skoun.type.bodyMedium,
   },
   chip: {
     paddingHorizontal: 10,

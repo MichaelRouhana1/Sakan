@@ -1,7 +1,7 @@
 import { H } from "../h";
 import { NeuSurface } from "../NeuPrimitives";
 import { ADMIN_CHART } from "../theme";
-import { formatCount, formatPct, type DayPoint } from "./types";
+import { formatCount, formatPct, type DayPoint, type SeriesId } from "./types";
 
 export type KpiItem = {
   id: string;
@@ -19,57 +19,93 @@ export function buildKpis(
   prior: DayPoint[],
   weekSignups: number,
   priorWeekSignups: number,
+  series: SeriesId = "both",
 ): KpiItem[] {
   const last = current[current.length - 1];
   const prev = prior[prior.length - 1];
   const renters = last?.activeRenters ?? 0;
   const posters = last?.activePosters ?? 0;
-  const rate = last && last.mau > 0 ? (last.dau / last.mau) * 100 : 0;
-  const priorRate =
-    prev && prev.mau > 0 ? (prev.dau / prev.mau) * 100 : rate;
+  const dau =
+    series === "renters"
+      ? (last?.dauRenters ?? 0)
+      : series === "posters"
+        ? (last?.dauPosters ?? 0)
+        : (last?.dau ?? 0);
+  const priorDau =
+    series === "renters"
+      ? (prev?.dauRenters ?? 0)
+      : series === "posters"
+        ? (prev?.dauPosters ?? 0)
+        : (prev?.dau ?? 0);
+  const mau = last?.mau ?? 0;
+  const priorMau = prev?.mau ?? 0;
+  const rate = mau > 0 ? (dau / mau) * 100 : 0;
+  const priorRate = priorMau > 0 ? (priorDau / priorMau) * 100 : rate;
+  const showRenters = series !== "posters";
+  const showPosters = series !== "renters";
 
-  return [
-    {
+  const items: KpiItem[] = [];
+  if (showRenters) {
+    items.push({
       id: "renters",
       label: "Active renters",
       value: formatCount(renters),
-      hint: "30-day active at range end",
-      delta: prev ? ((renters - prev.activeRenters) / Math.max(1, prev.activeRenters)) * 100 : 0,
+      hint: "Active at last day of range",
+      delta: prev
+        ? ((renters - prev.activeRenters) / Math.max(1, prev.activeRenters)) * 100
+        : 0,
       spark: current.map((row) => row.activeRenters),
-    },
-    {
+    });
+  }
+  if (showPosters) {
+    items.push({
       id: "posters",
       label: "Active posters",
       value: formatCount(posters),
       hint: "Hosts with live or recent listings",
-      delta: prev ? ((posters - prev.activePosters) / Math.max(1, prev.activePosters)) * 100 : 0,
+      delta: prev
+        ? ((posters - prev.activePosters) / Math.max(1, prev.activePosters)) * 100
+        : 0,
       spark: current.map((row) => row.activePosters),
-    },
-    {
-      id: "signups",
-      label: "New signups this week",
-      value: formatCount(weekSignups),
-      hint: "Last 7 days from today",
-      delta:
-        priorWeekSignups === 0
-          ? 0
-          : ((weekSignups - priorWeekSignups) / priorWeekSignups) * 100,
-      spark: current.map((row) => row.signups).slice(-14),
-    },
-    {
-      id: "rate",
-      label: "Active rate",
-      value: `${rate.toFixed(1)}%`,
-      hint: "DAU / MAU stickiness",
-      delta: rate - priorRate,
-      spark: current.map((row) => (row.mau > 0 ? (row.dau / row.mau) * 100 : 0)),
-    },
-  ];
+    });
+  }
+  items.push({
+    id: "signups",
+    label: "New signups this week",
+    value: formatCount(weekSignups),
+    hint: "Last 7 days of this range · all roles",
+    delta:
+      priorWeekSignups === 0
+        ? 0
+        : ((weekSignups - priorWeekSignups) / priorWeekSignups) * 100,
+    spark: current.map((row) => row.signups).slice(-14),
+  });
+  items.push({
+    id: "rate",
+    label: "Active rate",
+    value: `${rate.toFixed(1)}%`,
+    hint: "DAU / MAU stickiness",
+    delta: rate - priorRate,
+    spark: current.map((row) => {
+      const dayDau =
+        series === "renters"
+          ? row.dauRenters
+          : series === "posters"
+            ? row.dauPosters
+            : row.dau;
+      return row.mau > 0 ? (dayDau / row.mau) * 100 : 0;
+    }),
+  });
+  return items;
 }
 
 export function KpiCards({ items }: { items: KpiItem[] }) {
+  const cols =
+    items.length === 3
+      ? "grid-cols-2 gap-3 lg:grid-cols-3"
+      : "grid-cols-2 gap-3 lg:grid-cols-4";
   return (
-    <H className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <H className={`grid ${cols}`}>
       {items.map((item) => (
         <Kpi key={item.id} item={item} />
       ))}

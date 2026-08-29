@@ -1,7 +1,7 @@
 export type RegistryStatus = "active" | "inactive";
 export type RegistryStatusFilter = RegistryStatus | "all";
 export type RegistryTarget = "institution" | "campus";
-export type RegistryActionKind = "activate" | "deactivate" | "remove";
+export type RegistryActionKind = "activate" | "deactivate";
 
 export type AdminCampus = {
   id: string;
@@ -13,6 +13,7 @@ export type AdminCampus = {
   lat: number;
   isMain: boolean;
   active: boolean;
+  createdAt: string;
 };
 
 export type AdminInstitution = {
@@ -21,8 +22,9 @@ export type AdminInstitution = {
   shortName: string;
   slug: string;
   website: string;
-  emailDomains: string[];
+  logoUrl: string | null;
   active: boolean;
+  createdAt: string;
   campuses: AdminCampus[];
 };
 
@@ -31,7 +33,7 @@ export type InstitutionDraft = {
   shortName: string;
   slug: string;
   website: string;
-  emailDomains: string[];
+  logoUrl: string;
   active: boolean;
 };
 
@@ -44,6 +46,15 @@ export type CampusDraft = {
   lng: string;
   isMain: boolean;
   active: boolean;
+};
+
+export type RegistryNote = {
+  id: string;
+  target: RegistryTarget;
+  targetId: string;
+  kind: RegistryActionKind;
+  note: string;
+  at: string;
 };
 
 export function campusCount(institution: AdminInstitution): number {
@@ -69,22 +80,16 @@ export function slugify(value: string): string {
     .slice(0, 80);
 }
 
-export function parseDomain(value: string): string | null {
-  const trimmed = value.trim().toLowerCase().replace(/^@/, "");
-  if (!trimmed) return null;
-  if (
-    !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/.test(
-      trimmed,
-    )
-  ) {
-    return null;
-  }
-  return trimmed;
-}
-
 export function haystack(institution: AdminInstitution): string {
   const campusHay = institution.campuses
     .map((campus) => `${campus.name} ${campus.city} ${campus.slug}`)
     .join(" ");
-  return `${institution.name} ${institution.shortName} ${institution.slug} ${institution.website} ${institution.emailDomains.join(" ")} ${campusHay}`.toLowerCase();
+  return `${institution.name} ${institution.shortName} ${institution.slug} ${institution.website} ${campusHay}`.toLowerCase();
+}
+
+export function newId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, "0")}`;
 }

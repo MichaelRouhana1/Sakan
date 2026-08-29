@@ -1,15 +1,22 @@
 import { AlertTriangle, Radio } from "lucide-react-native";
 import { H } from "../h";
-import { NeuSurface } from "../NeuPrimitives";
+import { NeuButton, NeuSurface } from "../NeuPrimitives";
 import { ADMIN_MUTED } from "../theme";
 import { formatCount, type SpikeAlert } from "./types";
 
 type Props = {
   alerts: SpikeAlert[];
   rangeLabel: string;
+  busy?: boolean;
+  onAcknowledge?: (spikeId: string) => void;
 };
 
-export function SpikeAlerts({ alerts, rangeLabel }: Props) {
+export function SpikeAlerts({
+  alerts,
+  rangeLabel,
+  busy,
+  onAcknowledge,
+}: Props) {
   return (
     <NeuSurface as="section" className="flex h-full flex-col p-5 sm:p-6">
       <H className="flex items-start justify-between gap-3">
@@ -24,7 +31,7 @@ export function SpikeAlerts({ alerts, rangeLabel }: Props) {
             Scrape spikes
           </H>
           <H as="p" className="mt-1 text-sm leading-relaxed text-clay-700">
-            Buckets where scrape-like traffic crossed 25% of listing reads.
+            Demo traffic only — buckets where scrape-like share crossed 25%.
           </H>
         </H>
         <H
@@ -45,7 +52,7 @@ export function SpikeAlerts({ alerts, rangeLabel }: Props) {
             Quiet window
           </H>
           <H as="p" className="mt-1 max-w-[220px] text-xs text-clay-700">
-            No scrape spikes in this range. Listing reads look organic.
+            No open scrape spikes in this demo series.
           </H>
         </H>
       ) : (
@@ -97,6 +104,17 @@ export function SpikeAlerts({ alerts, rangeLabel }: Props) {
                   tone={alert.severity === "high" ? "ember" : "ochre"}
                 />
               </H>
+              {onAcknowledge ? (
+                <H className="mt-3 flex justify-end">
+                  <NeuButton
+                    className="px-2.5 py-1.5 text-xs"
+                    disabled={busy}
+                    onClick={() => onAcknowledge(alert.id)}
+                  >
+                    Acknowledge
+                  </NeuButton>
+                </H>
+              ) : null}
             </H>
           ))}
         </H>

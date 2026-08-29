@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -13,9 +13,9 @@ import {
   type BrowseFiltersValue,
 } from "@/components/listings/BrowseFiltersPanel";
 import {
-  LEBANON_AREAS,
   MAX_LISTING_AREAS,
   MAX_UNIVERSITY_SLUGS,
+  useLiveLebanonAreaGroups,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
@@ -139,11 +139,7 @@ export function FindFiltersDialog({
     setAreaQuery("");
   }, [visible, applied, initialSection]);
 
-  const filteredAreas = useMemo(() => {
-    const q = areaQuery.trim().toLowerCase();
-    if (!q) return [...LEBANON_AREAS];
-    return LEBANON_AREAS.filter((a) => a.toLowerCase().includes(q));
-  }, [areaQuery]);
+  const areaGroups = useLiveLebanonAreaGroups(areaQuery);
 
   const sectionTitle =
     SECTIONS.find((s) => s.id === section)?.label ?? "Filters";
@@ -185,6 +181,13 @@ export function FindFiltersDialog({
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,
+      campusId:
+        draftSlugs.length === 1 &&
+        applied.campusId &&
+        applied.universitySlugs[0] === draftSlugs[0]
+          ? applied.campusId
+          : null,
+      q: draftSlugs.length > 0 || draftAreas.length > 0 ? null : applied.q,
       electricity: draftElectricity,
       water: draftWater,
       wifiIncluded: draftWifi,
@@ -290,24 +293,35 @@ export function FindFiltersDialog({
                       />
                     </View>
                     <View style={styles.optionList}>
-                      {filteredAreas.map((area) => {
-                        const on = draftAreas.includes(area);
-                        const disabled =
-                          !on && draftAreas.length >= MAX_LISTING_AREAS;
-                        return (
-                          <OptionRow
-                            key={area}
-                            label={area}
-                            selected={on}
-                            disabled={disabled}
-                            onPress={() =>
-                              setDraftAreas((prev) =>
-                                toggleInList(prev, area, MAX_LISTING_AREAS),
-                              )
-                            }
-                          />
-                        );
-                      })}
+                      {areaGroups.map((group) => (
+                        <View key={group.governorate} style={styles.areaGroup}>
+                          <LText
+                            variant="caption"
+                            tone="muted"
+                            style={styles.areaGroupLabel}
+                          >
+                            {group.governorate}
+                          </LText>
+                          {group.areas.map((area) => {
+                            const on = draftAreas.includes(area);
+                            const disabled =
+                              !on && draftAreas.length >= MAX_LISTING_AREAS;
+                            return (
+                              <OptionRow
+                                key={area}
+                                label={area}
+                                selected={on}
+                                disabled={disabled}
+                                onPress={() =>
+                                  setDraftAreas((prev) =>
+                                    toggleInList(prev, area, MAX_LISTING_AREAS),
+                                  )
+                                }
+                              />
+                            );
+                          })}
+                        </View>
+                      ))}
                     </View>
                   </View>
                 ) : null}
@@ -690,6 +704,15 @@ const styles = StyleSheet.create({
   },
   optionList: {
     gap: 4,
+  },
+  areaGroup: {
+    gap: 4,
+    marginBottom: 8,
+  },
+  areaGroupLabel: {
+    marginTop: 4,
+    marginBottom: 2,
+    fontFamily: Skoun.type.bodyMedium,
   },
   optionRow: {
     flexDirection: "row",

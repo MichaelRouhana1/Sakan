@@ -17,10 +17,9 @@ import {
   Users,
   Wallet,
   X,
-  Zap,
 } from "lucide-react-native";
 import { Link, Slot, usePathname } from "expo-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 import { H } from "./h";
@@ -43,7 +42,6 @@ const NAV = [
   { href: "/admin/analytics", label: "Analytics", icon: ChartLine, live: true },
   { href: "/admin/universities", label: "Institutions", icon: Building2, live: true },
   { href: "/admin/zoning", label: "Zoning", icon: MapPinned, live: true },
-  { href: "/admin/electricity", label: "Electricity", icon: Zap, live: true },
   { href: "/admin/security", label: "Security", icon: KeyRound, live: true },
 ] as const;
 
@@ -65,6 +63,7 @@ export function AdminNeuShell({ children }: Props) {
         "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Outfit:wght@400;500;600;700&display=swap";
       document.head.appendChild(font);
     }
+    // CSS already ships in +html; keep a dedicated tag as fallback for HMR.
     const id = "skoun-admin-css";
     let style = document.getElementById(id) as HTMLStyleElement | null;
     if (!style) {
@@ -72,20 +71,31 @@ export function AdminNeuShell({ children }: Props) {
       style.id = id;
       document.head.appendChild(style);
     }
-    style.textContent = ADMIN_CSS;
+    if (style.textContent !== ADMIN_CSS) {
+      style.textContent = ADMIN_CSS;
+    }
   }, []);
 
-  useEffect(() => {
+  /**
+   * Hoist scope onto <html> so Tailwind `important: .skoun-admin` still matches
+   * during route swaps (outgoing nodes can paint one frame outside the shell).
+   * useLayoutEffect: before paint, so tab switches don't FOUC unstyled buttons.
+   */
+  useLayoutEffect(() => {
     if (typeof document === "undefined") return;
-    const root = document.querySelector(".skoun-admin");
-    if (!root) return;
-    const clay = getComputedStyle(root).getPropertyValue("--admin-clay-100").trim();
     const html = document.documentElement;
+    html.classList.add("skoun-admin");
+    html.setAttribute("data-theme", theme);
+    const clay = getComputedStyle(html).getPropertyValue("--admin-clay-100").trim();
     const prevHtml = html.style.backgroundColor;
     const prevBody = document.body.style.backgroundColor;
-    html.style.backgroundColor = clay;
-    document.body.style.backgroundColor = clay;
+    if (clay) {
+      html.style.backgroundColor = clay;
+      document.body.style.backgroundColor = clay;
+    }
     return () => {
+      html.classList.remove("skoun-admin");
+      html.removeAttribute("data-theme");
       html.style.backgroundColor = prevHtml;
       document.body.style.backgroundColor = prevBody;
     };
@@ -167,8 +177,13 @@ export function AdminNeuShell({ children }: Props) {
             </H>
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </H>
-          <H as="main" className="min-w-0 flex-1 px-4 pb-8 pt-2 md:px-6 lg:px-8 lg:pt-8">
-            {children ?? <Slot />}
+          <H
+            as="main"
+            className="relative isolate min-w-0 flex-1 overflow-x-hidden bg-clay-100 px-4 pb-8 pt-2 md:px-6 lg:px-8 lg:pt-8"
+          >
+            <H key={pathname} className="min-h-full">
+              {children ?? <Slot />}
+            </H>
           </H>
         </H>
       </H>

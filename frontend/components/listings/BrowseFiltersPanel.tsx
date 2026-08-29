@@ -15,9 +15,9 @@ import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
 import {
-  LEBANON_AREAS,
   MAX_LISTING_AREAS,
   MAX_UNIVERSITY_SLUGS,
+  useLiveLebanonAreaGroups,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
@@ -41,6 +41,10 @@ export type BrowseFiltersValue = {
   universitySlugs: string[];
   /** Institution kept while campus is still being chosen. */
   institutionSlug: string | null;
+  /** Campus UUID for geo hub browse. */
+  campusId: string | null;
+  /** Free-text keyword search. */
+  q: string | null;
   electricity: ElectricityStatus[];
   water: WaterStatus[];
   /** true = Wi‑Fi included only; false = any. */
@@ -58,6 +62,8 @@ export const EMPTY_BROWSE_FILTERS: BrowseFiltersValue = {
   areas: [],
   universitySlugs: [],
   institutionSlug: null,
+  campusId: null,
+  q: null,
   electricity: [],
   water: [],
   wifiIncluded: false,
@@ -248,6 +254,8 @@ export function BrowseFiltersPanel({
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,
+      campusId: applied.campusId,
+      q: applied.q,
       electricity: draftElectricity,
       water: draftWater,
       wifiIncluded: draftWifi,
@@ -261,6 +269,8 @@ export function BrowseFiltersPanel({
       draftAreas,
       draftSlugs,
       draftInstSlug,
+      applied.campusId,
+      applied.q,
       draftElectricity,
       draftWater,
       draftWifi,
@@ -314,11 +324,7 @@ export function BrowseFiltersPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, reduceMotion, offscreen, slide]);
 
-  const filteredAreas = useMemo(() => {
-    const q = areaQuery.trim().toLowerCase();
-    if (!q) return [...LEBANON_AREAS];
-    return LEBANON_AREAS.filter((a) => a.toLowerCase().includes(q));
-  }, [areaQuery]);
+  const areaGroups = useLiveLebanonAreaGroups(areaQuery);
 
   const areasAtCap = draftAreas.length >= MAX_LISTING_AREAS;
   const isDirty = !sameBrowseFilters(draftValue, {
@@ -393,6 +399,13 @@ export function BrowseFiltersPanel({
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,
+      campusId:
+        draftSlugs.length === 1 &&
+        applied.campusId &&
+        applied.universitySlugs[0] === draftSlugs[0]
+          ? applied.campusId
+          : null,
+      q: draftSlugs.length > 0 || draftAreas.length > 0 ? null : applied.q,
       electricity: draftElectricity,
       water: draftWater,
       wifiIncluded: draftWifi,
@@ -735,36 +748,45 @@ export function BrowseFiltersPanel({
                     All areas
                   </LText>
                 </Pressable>
-                {filteredAreas.map((area) => {
-                  const on = draftAreas.includes(area);
-                  const disabled = !on && areasAtCap;
-                  return (
-                    <Pressable
-                      key={area}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: on, disabled }}
-                      disabled={disabled}
-                      onPress={() =>
-                        setDraftAreas((prev) =>
-                          toggleInList(prev, area, MAX_LISTING_AREAS),
-                        )
-                      }
-                      style={[
-                        styles.chip,
-                        on && styles.chipOn,
-                        disabled && styles.chipDisabled,
-                      ]}
-                    >
-                      <LText
-                        variant="caption"
-                        style={on ? styles.chipLabelOn : styles.chipLabel}
-                      >
-                        {area}
-                      </LText>
-                    </Pressable>
-                  );
-                })}
               </View>
+              {areaGroups.map((group) => (
+                <View key={group.governorate} style={styles.areaGroup}>
+                  <LText variant="caption" tone="muted" style={styles.areaGroupLabel}>
+                    {group.governorate}
+                  </LText>
+                  <View style={styles.chipWrap}>
+                    {group.areas.map((area) => {
+                      const on = draftAreas.includes(area);
+                      const disabled = !on && areasAtCap;
+                      return (
+                        <Pressable
+                          key={area}
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: on, disabled }}
+                          disabled={disabled}
+                          onPress={() =>
+                            setDraftAreas((prev) =>
+                              toggleInList(prev, area, MAX_LISTING_AREAS),
+                            )
+                          }
+                          style={[
+                            styles.chip,
+                            on && styles.chipOn,
+                            disabled && styles.chipDisabled,
+                          ]}
+                        >
+                          <LText
+                            variant="caption"
+                            style={on ? styles.chipLabelOn : styles.chipLabel}
+                          >
+                            {area}
+                          </LText>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
             </View>
           </ScrollView>
 
@@ -905,6 +927,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+  },
+  areaGroup: {
+    gap: 6,
+    marginTop: 8,
+  },
+  areaGroupLabel: {
+    fontFamily: Skoun.type.bodyMedium,
   },
   chip: {
     paddingHorizontal: 12,
