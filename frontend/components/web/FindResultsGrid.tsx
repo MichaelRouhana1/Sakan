@@ -1,8 +1,14 @@
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { Skoun } from "@/constants/theme";
+import {
+  campusFarSeparatorKey,
+  withCampusDistanceSeparator,
+  type MixedListingRow,
+} from "@/lib/campusProximity";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -17,6 +23,8 @@ type Props = {
     id: string | null,
     point?: { x: number; y: number },
   ) => void;
+  showDistanceSplit?: boolean;
+  universityLabel?: string;
 };
 
 function SkeletonCard({ list }: { list?: boolean }) {
@@ -37,6 +45,12 @@ function gridColumnStyle(columns: 1 | 2 | 3) {
   return styles.grid3;
 }
 
+function rowKey(row: MixedListingRow): string {
+  return row.kind === "separator"
+    ? campusFarSeparatorKey(row.km)
+    : row.listing.id;
+}
+
 export function FindResultsGrid({
   listings,
   loading,
@@ -45,6 +59,8 @@ export function FindResultsGrid({
   variant = "grid",
   columns = 3,
   onHoverListing,
+  showDistanceSplit = false,
+  universityLabel = "",
 }: Props) {
   const isList = variant === "list";
   const layoutStyle = isList
@@ -83,21 +99,38 @@ export function FindResultsGrid({
     );
   }
 
+  const rows: MixedListingRow[] = withCampusDistanceSeparator(listings, {
+    enabled: showDistanceSplit,
+    universityLabel,
+  });
+
   return (
     <View style={styles.wrap}>
       <View style={layoutStyle}>
-        {listings.map((listing) => (
-          <View
-            key={listing.id}
-            style={isList ? undefined : styles.gridCell}
-          >
-            <ListingResultCard
-              listing={listing}
-              variant={variant}
-              onHoverListing={onHoverListing}
-            />
-          </View>
-        ))}
+        {rows.map((row: MixedListingRow) => {
+          if (row.kind === "separator") {
+            return (
+              <View
+                key={rowKey(row)}
+                style={isList ? undefined : styles.gridSpan}
+              >
+                <CampusFarSeparator label={row.label} />
+              </View>
+            );
+          }
+          return (
+            <View
+              key={rowKey(row)}
+              style={isList ? undefined : styles.gridCell}
+            >
+              <ListingResultCard
+                listing={row.listing}
+                variant={variant}
+                onHoverListing={onHoverListing}
+              />
+            </View>
+          );
+        })}
       </View>
       {loading ? (
         <View style={styles.loadingMore}>
@@ -134,6 +167,10 @@ const styles = StyleSheet.create({
   gridCell: {
     minWidth: 0,
   },
+  gridSpan: {
+    minWidth: 0,
+    gridColumn: "1 / -1",
+  } as Record<string, unknown>,
   list: {
     flexDirection: "column",
     gap: 14,

@@ -138,3 +138,14 @@ export const adminActorKindEnum = pgEnum("admin_actor_kind", [
   "clerk",
   "api_key",
 ]);
+
+export const degreeLevelEnum = pgEnum("degree_level", ["bachelor", "master"]);
+
+export const billingModelEnum = pgEnum("billing_model", [
+  "per_credit",
+  "flat_term",
+]);
+
+export const creditSystemEnum = pgEnum("credit_system", ["us", "ects"]);
+
+export const feePeriodEnum = pgEnum("fee_period", ["term", "year"]);

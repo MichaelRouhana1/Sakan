@@ -14,6 +14,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
+import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -30,6 +31,7 @@ import {
   DIRECTORY_UNIS,
   HERO,
   POPULAR_SEARCHES,
+  popularSearchBrowseParams,
   PROMO_CARDS,
   RAIL_PILLS,
   SEARCH_HINTS,
@@ -39,7 +41,9 @@ import {
   type DemoListing,
 } from "./homeData";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { useUniversities } from "@/features/universities/useUniversities";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
+import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
 import { InsightsMarquee } from "./InsightsMarquee";
 
 const IS_WEB = Platform.OS === "web";
@@ -214,6 +218,14 @@ function HomeNav({
         </Pressable>
 
         <View style={styles.navRight}>
+          <ProductSwitchControl
+            variant="toCampus"
+            textStyle={[
+              styles.navLink,
+              solid && styles.navLinkSolid,
+              styles.homeHostCtaText,
+            ]}
+          />
           <DownloadAppButton isDarkNav={!solid} />
 
           {showBecomeAHost ? (
@@ -377,6 +389,7 @@ function HomeNav({
 
 function SearchPill() {
   const [query, setQuery] = useState("");
+  const universities = useUniversities();
 
   return (
     <SearchAutocomplete
@@ -391,7 +404,20 @@ function SearchPill() {
       onSelectListing={(s) => {
         router.push(`/listing/${s.id}` as never);
       }}
-      onSubmitText={(q) => goBrowse({ q })}
+      onSubmitText={(q) => {
+        const campus = resolveCampusFromTypedQuery(
+          q,
+          universities.data ?? [],
+        );
+        if (campus) {
+          goBrowse({
+            campusId: campus.id,
+            universitySlugs: [campus.slug],
+          });
+          return;
+        }
+        goBrowse({ q });
+      }}
       onClear={() => setQuery("")}
     />
   );
@@ -559,9 +585,12 @@ export function SkounHomePage() {
             <View style={styles.popularSearches}>
               <Text style={styles.popularLabel}>Top areas: </Text>
               {POPULAR_SEARCHES.map((s, i) => (
-                <Pressable key={s} onPress={() => goBrowse({ q: s })}>
+                <Pressable
+                  key={s.label}
+                  onPress={() => goBrowse(popularSearchBrowseParams(s))}
+                >
                   <Text style={styles.popularLink}>
-                    {s}
+                    {s.label}
                     {i < POPULAR_SEARCHES.length - 1 ? ", " : ""}
                   </Text>
                 </Pressable>

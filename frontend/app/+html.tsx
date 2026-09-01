@@ -2,6 +2,22 @@ import type { ReactNode } from "react";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 
 const BG = "#EEF1F6";
+const CAMPUS_CSS = `
+.skoun-campus {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: #EEF1F6;
+  color: #121826;
+  -webkit-font-smoothing: antialiased;
+}
+.skoun-campus [role="button"],
+.skoun-campus [role="link"] { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) {
+  .skoun-campus * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+`;
 
 /** Homepage motion + tokens — kept in +html so Expo Router does not treat it as a route module. */
 const SKOUN_HOME_CSS = `
@@ -234,6 +250,7 @@ button, [role="button"], [role="link"] { cursor: pointer; }
   }
 }
 ${SKOUN_HOME_CSS}
+${CAMPUS_CSS}
 ${ADMIN_CSS}
 `,
           }}

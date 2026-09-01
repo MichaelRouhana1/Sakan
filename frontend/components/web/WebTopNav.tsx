@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -22,12 +23,14 @@ import {
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { useHostingNavState } from "@/features/listings/useHostingNavState";
+import { campusFilterLabel } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import {
   browseSearchSetParams,
   homeBrowseHref,
   parseCsvParam,
 } from "@/lib/browseSearchUrl";
+import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
 import type {
   SearchAreaSuggestion,
   SearchUniversitySuggestion,
@@ -153,6 +156,20 @@ export function WebTopNav({ showSearch = false }: Props) {
 
   const onSubmitText = useCallback(
     (q: string) => {
+      const campus = resolveCampusFromTypedQuery(
+        q,
+        universities.data ?? [],
+      );
+      if (campus) {
+        writeBrowse({
+          label: campusFilterLabel(campus),
+          campusId: campus.id,
+          universitySlugs: [campus.slug],
+          areas: [],
+          q: null,
+        });
+        return;
+      }
       writeBrowse({
         label: q,
         q,
@@ -161,23 +178,15 @@ export function WebTopNav({ showSearch = false }: Props) {
         areas: [],
       });
     },
-    [writeBrowse],
+    [universities.data, writeBrowse],
   );
 
   const onClearSearch = useCallback(() => {
     setSearchVal("");
     if (onBrowse) {
-      router.setParams(
-        browseSearchSetParams({
-          q: null,
-          campusId: null,
-          areas: [],
-          universitySlugs: [],
-        }) as never,
-      );
+      router.replace("/search" as never);
       return;
     }
-    // Off browse: just clear local field.
   }, [onBrowse, router]);
 
   const handleLoginClick = () => {
@@ -246,6 +255,7 @@ export function WebTopNav({ showSearch = false }: Props) {
         ) : null}
 
         <View style={styles.links}>
+          <ProductSwitchControl variant="toCampus" />
           <DownloadAppButton />
 
           {showBecomeAHost ? (

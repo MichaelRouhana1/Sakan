@@ -50,7 +50,7 @@ import {
   type Marker,
   type Popup,
 } from "@/lib/skounMapbox.web";
-import { campusPinLabel } from "@/lib/campusPinLabel";
+import { campusPinLabel, CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { CampusMeta, Listing } from "@/types/listing";
 
@@ -74,6 +74,8 @@ type Props = {
   focusPoint?: { lat: number; lng: number } | null;
   /** When pane is shown after keep-alive hide, trigger resize. */
   active?: boolean;
+  /** Confirm switch from an unselected campus pin. */
+  onSelectCampus?: (campus: CampusMeta) => void;
 };
 
 type MarkerRec = {
@@ -85,6 +87,7 @@ type MarkerRec = {
   popup?: Popup;
   popupOnOpen?: (popup: Popup) => void;
   popupOnClose?: () => void;
+  campusBound?: boolean;
 };
 
 function calculateDistanceMeters(
@@ -243,6 +246,7 @@ export function ListingBrowseMap({
   focusCampusSlug = null,
   focusPoint = null,
   active = true,
+  onSelectCampus,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
@@ -270,12 +274,19 @@ export function ListingBrowseMap({
   const hoverCamLockUntilRef = useRef(0);
   const onHoverFlyCompleteRef = useRef(onHoverFlyComplete);
   onHoverFlyCompleteRef.current = onHoverFlyComplete;
+  const onSelectCampusRef = useRef(onSelectCampus);
+  onSelectCampusRef.current = onSelectCampus;
+  const focusCampusSlugRef = useRef(focusCampusSlug);
+  focusCampusSlugRef.current = focusCampusSlug;
   const reduceMotion = useReducedMotion();
   const reduceMotionRef = useRef(reduceMotion);
   reduceMotionRef.current = reduceMotion;
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
+  const [pendingCampusSlug, setPendingCampusSlug] = useState<string | null>(
+    null,
+  );
   /** Survives brief sheet flicker during zoom/popup replace — drives walking route. */
   const [routeListingId, setRouteListingId] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -294,6 +305,7 @@ export function ListingBrowseMap({
     pathSideAppliedForRef.current = null;
     setRouteListingId(null);
     setSheet({ kind: "none" });
+    setPendingCampusSlug(null);
   }
 
   useEffect(() => {
@@ -565,6 +577,10 @@ export function ListingBrowseMap({
   }, [mapReady, universityMode, focusCampusKey, reduceMotion]);
 
   useEffect(() => {
+    setPendingCampusSlug(null);
+  }, [focusCampusSlug, universityMode]);
+
+  useEffect(() => {
     if (!mapReady || !focusPoint || focusCampusSlug) return;
     const map = mapRef.current;
     if (!map) return;
@@ -730,11 +746,54 @@ export function ListingBrowseMap({
     }
 
     if (universityMode) {
+      const canSwitchCampuses =
+        campuses.length > 1 && Boolean(onSelectCampusRef.current);
+
+      function bindCampusMarker(marker: Marker, slug: string) {
+        const onCampusActivate = (e: Event) => {
+          e.stopPropagation();
+          ignoreNextMapClickUntil.current = Date.now() + 250;
+          const action = (e.target as Element | null)
+            ?.closest("[data-campus-switch]")
+            ?.getAttribute("data-campus-switch");
+          const campus = campusesRef.current.find((c) => c.slug === slug);
+          const canSwitch =
+            campusesRef.current.length > 1 &&
+            Boolean(onSelectCampusRef.current);
+          if (action === "cancel") {
+            setPendingCampusSlug(null);
+            return;
+          }
+          if (action === "confirm") {
+            if (campus) onSelectCampusRef.current?.(campus);
+            setPendingCampusSlug(null);
+            return;
+          }
+          if (!canSwitch || slug === focusCampusSlugRef.current) {
+            return;
+          }
+          setPendingCampusSlug(slug);
+        };
+        const el = marker.getElement();
+        el.addEventListener("click", onCampusActivate);
+        el.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          if ((e.target as Element).closest("[data-campus-switch]")) return;
+          e.preventDefault();
+          onCampusActivate(e);
+        });
+      }
+
       for (const campus of campuses) {
         const key = `campus:${campus.slug}`;
         seenListings.add(key);
         const selected = campus.slug === focusCampusSlug;
-        const html = campusPinHtml(campusPinLabel(campus), selected);
+        const clickable = canSwitchCampuses && !selected;
+        const pending = pendingCampusSlug === campus.slug && clickable;
+        const html = campusPinHtml(campusPinLabel(campus), selected, {
+          pending,
+          clickable,
+        });
         const existing = listingMarkers.get(key);
         if (existing) {
           existing.marker.setLngLat(toLngLat(campus));
@@ -742,17 +801,52 @@ export function ListingBrowseMap({
             existing.marker.getElement().innerHTML = html;
             existing.html = html;
           }
-          existing.marker.getElement().style.zIndex = selected
-            ? "900"
-            : "2";
+          const el = existing.marker.getElement();
+          el.classList.toggle("inert", !clickable);
+          el.style.zIndex = selected || pending ? "900" : "2";
+          if (clickable && !pending) {
+            el.setAttribute("role", "button");
+            el.setAttribute(
+              "aria-label",
+              `Switch campus to ${campusPinLabel(campus)}`,
+            );
+            el.tabIndex = 0;
+          } else if (clickable && pending) {
+            el.removeAttribute("role");
+            el.setAttribute("aria-label", CAMPUS_SWITCH_PROMPT);
+            el.tabIndex = -1;
+          } else {
+            el.removeAttribute("role");
+            el.removeAttribute("aria-label");
+            el.tabIndex = -1;
+          }
+          if (!existing.campusBound) {
+            bindCampusMarker(existing.marker, campus.slug);
+            existing.campusBound = true;
+          }
           continue;
         }
         const campusMarker = makeMarker(gl, html, campus, {
-          inert: true,
-          zIndex: selected ? 900 : 2,
+          inert: !clickable,
+          zIndex: selected || pending ? 900 : 2,
         });
+        const el = campusMarker.getElement();
+        if (clickable && !pending) {
+          el.setAttribute("role", "button");
+          el.setAttribute(
+            "aria-label",
+            `Switch campus to ${campusPinLabel(campus)}`,
+          );
+          el.tabIndex = 0;
+        }
+        bindCampusMarker(campusMarker, campus.slug);
         campusMarker.addTo(hostMap);
-        listingMarkers.set(key, { marker: campusMarker, key, html });
+        listingMarkers.set(key, {
+          marker: campusMarker,
+          key,
+          html,
+          campusBound: true,
+        });
       }
     }
 
@@ -972,6 +1066,7 @@ export function ListingBrowseMap({
     campuses,
     universityMode,
     focusCampusSlug,
+    pendingCampusSlug,
     activeGroupId,
     reduceMotion,
   ]);

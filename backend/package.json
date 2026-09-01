@@ -13,6 +13,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed:universities": "tsx src/db/seeds/run-universities.ts",
+    "db:seed:academic": "tsx src/db/seeds/run-academic.ts",
     "db:seed:listings": "tsx src/db/seeds/run-listings.ts",
     "job:archive-expired": "tsx src/jobs/archive-expired-listings.ts"
   },

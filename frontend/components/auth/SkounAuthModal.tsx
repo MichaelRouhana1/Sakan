@@ -23,6 +23,7 @@ import {
   activateClerkSession,
   completeOAuthSession,
   isAlreadySignedInError,
+  startWebOAuthRedirect,
 } from "@/lib/clerkAuth";
 import {
   CLERK_SETUP_MESSAGE,
@@ -107,16 +108,26 @@ function ClerkOAuthSection({
     try {
       await setPendingAuthProvider(provider);
 
+      if (Platform.OS === "web" && typeof window !== "undefined") {
+        await startWebOAuthRedirect(
+          clerk,
+          `oauth_${provider}`,
+          `${window.location.origin}/oauth-native-callback`,
+        );
+        return;
+      }
+
       let startFlow = startGoogleOAuth;
       if (provider === "facebook") startFlow = startFacebookOAuth;
       if (provider === "apple") startFlow = startAppleOAuth;
 
-      const redirectUrl =
-        Platform.OS === "web" && typeof window !== "undefined"
-          ? `${window.location.origin}/oauth-native-callback`
-          : undefined;
-
-      const res = await startFlow(redirectUrl ? { redirectUrl } : undefined);
+      const res = await startFlow();
+      if (
+        res.authSessionResult?.type === "cancel" ||
+        res.authSessionResult?.type === "dismiss"
+      ) {
+        return;
+      }
       const activated = await completeOAuthSession(clerk, res);
 
       if (activated || clerk?.session) {

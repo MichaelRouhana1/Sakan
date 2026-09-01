@@ -10,10 +10,17 @@ type ClerkLike = {
   setActive?: (args: { session: string }) => Promise<unknown>;
   client?: {
     signIn?: {
+      create?: (args: {
+        strategy: string;
+        redirectUrl: string;
+      }) => Promise<unknown>;
       reload?: (args: { rotatingTokenNonce: string }) => Promise<unknown>;
       status?: string;
       createdSessionId?: string | null;
-      firstFactorVerification?: { status?: string | null };
+      firstFactorVerification?: {
+        status?: string | null;
+        externalVerificationRedirectURL?: { toString: () => string } | string | null;
+      };
     } | null;
     signUp?: {
       create?: (args: { transfer: boolean }) => Promise<{ createdSessionId?: string | null }>;
@@ -123,6 +130,61 @@ export async function completeOAuthSession(
   return activateClerkSession(clerk, sessionId);
 }
 
+const OAUTH_RETURN_TO_KEY = "skoun.oauth.returnTo";
+
+let oauthRedirectInFlight: Promise<boolean> | null = null;
+
+export function rememberOAuthReturnTo(): void {
+  if (Platform.OS !== "web" || typeof window === "undefined") return;
+  const path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  try {
+    sessionStorage.setItem(OAUTH_RETURN_TO_KEY, path || "/");
+  } catch {
+    // ignore storage failures
+  }
+}
+
+export function consumeOAuthReturnTo(): string {
+  if (Platform.OS !== "web" || typeof window === "undefined") return "/";
+  try {
+    const stored = sessionStorage.getItem(OAUTH_RETURN_TO_KEY);
+    sessionStorage.removeItem(OAUTH_RETURN_TO_KEY);
+    if (!stored || !stored.startsWith("/") || stored.startsWith("//")) return "/";
+    if (stored.startsWith("/oauth-native-callback")) return "/";
+    return stored;
+  } catch {
+    return "/";
+  }
+}
+
+/**
+ * Web Google/Facebook/Apple cannot use the Expo popup: Chrome's COOP
+ * blocks window.closed, so startOAuthFlow never receives the nonce.
+ * Full-page redirect is the reliable path.
+ */
+export async function startWebOAuthRedirect(
+  clerk: ClerkLike,
+  strategy: "oauth_google" | "oauth_facebook" | "oauth_apple",
+  redirectUrl: string,
+): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("OAuth redirect is only available in the browser.");
+  }
+  if (!clerk.client?.signIn?.create) {
+    throw new Error("Sign-in is not ready.");
+  }
+
+  rememberOAuthReturnTo();
+  await clerk.client.signIn.create({ strategy, redirectUrl });
+  const raw =
+    clerk.client.signIn.firstFactorVerification?.externalVerificationRedirectURL;
+  const oauthUrl = raw ? raw.toString() : "";
+  if (!oauthUrl) {
+    throw new Error("OAuth redirect URL was missing.");
+  }
+  window.location.assign(oauthUrl);
+}
+
 /** Finish a full-page OAuth redirect that landed back on the app with a nonce. */
 export async function completeOAuthRedirectIfPresent(
   clerk: ClerkLike,
@@ -131,14 +193,25 @@ export async function completeOAuthRedirectIfPresent(
   const params = new URLSearchParams(window.location.search);
   const nonce = params.get("rotating_token_nonce");
   if (!nonce || !clerk.client?.signIn?.reload) return false;
+  if (oauthRedirectInFlight) return oauthRedirectInFlight;
 
-  await clerk.client.signIn.reload({ rotatingTokenNonce: nonce });
-  const signIn = clerk.client.signIn;
-  const signUp = clerk.client.signUp;
-  const activated = await completeOAuthSession(clerk, { signIn, signUp });
+  oauthRedirectInFlight = (async () => {
+    await clerk.client!.signIn!.reload!({ rotatingTokenNonce: nonce });
+    const signIn = clerk.client!.signIn;
+    const signUp = clerk.client!.signUp;
+    const activated = await completeOAuthSession(clerk, { signIn, signUp });
 
-  const next = new URL(window.location.href);
-  next.searchParams.delete("rotating_token_nonce");
-  window.history.replaceState({}, "", `${next.pathname}${next.search}${next.hash}`);
-  return activated;
+    const next = new URL(window.location.href);
+    next.searchParams.delete("rotating_token_nonce");
+    window.history.replaceState(
+      {},
+      "",
+      `${next.pathname}${next.search}${next.hash}`,
+    );
+    return activated;
+  })().finally(() => {
+    oauthRedirectInFlight = null;
+  });
+
+  return oauthRedirectInFlight;
 }

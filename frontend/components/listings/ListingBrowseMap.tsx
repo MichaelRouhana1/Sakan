@@ -32,7 +32,8 @@ import {
   mapCarouselOverlayHeight,
   MAP_CAROUSEL_CLOSE_H,
 } from "@/components/listings/ListingMapCarousel";
-import { SkounMapPin } from "@/components/listings/SkounMapPin";
+import { SwapHorizIcon } from "@/components/icons/SwapHorizIcon";
+import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
 import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
@@ -62,7 +63,7 @@ import { rentPriceTypeCompact } from "@/lib/rentPriceType";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CampusMeta, Listing } from "@/types/listing";
-import { campusPinLabel } from "@/lib/campusPinLabel";
+import { campusPinLabel, CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 
 type Props = {
   listings: Listing[];
@@ -82,6 +83,8 @@ type Props = {
   focusCampusSlug?: string | null;
   /** Area / suggestion center — pan map (browse search). */
   focusPoint?: { lat: number; lng: number } | null;
+  /** Confirm switch from an unselected campus pin. */
+  onSelectCampus?: (campus: CampusMeta) => void;
 };
 
 const SETTLE_SLACK = 200;
@@ -561,9 +564,11 @@ export function ListingBrowseMap({
   onOpenListing,
   focusCampusSlug = null,
   focusPoint = null,
+  onSelectCampus,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
   const ignoreNextMapPress = useRef(false);
+  const ignoreCampusPressRef = useRef(false);
   const flyStepRef = useRef<"idle" | "out" | "pan" | "in">("idle");
   const flyPanRef = useRef<MapRegion | null>(null);
   const flyInRef = useRef<MapRegion | null>(null);
@@ -573,6 +578,9 @@ export function ListingBrowseMap({
   const insets = useSafeAreaInsets();
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
+  const [pendingCampusSlug, setPendingCampusSlug] = useState<string | null>(
+    null,
+  );
   const [mapReady, setMapReady] = useState(false);
   /** True while animateToRegion fly runs — freeze marker tracks/coords churn. */
   const [cameraBusy, setCameraBusy] = useState(false);
@@ -987,6 +995,10 @@ export function ListingBrowseMap({
   ]);
 
   useEffect(() => {
+    setPendingCampusSlug(null);
+  }, [focusCampusSlug, universityMode]);
+
+  useEffect(() => {
     if (!mapReady || !focusPoint || focusCampusSlug) return;
     const target = regionForListingFocus(
       focusPoint.lat,
@@ -1253,6 +1265,7 @@ export function ListingBrowseMap({
   function dismissCarousel() {
     cancelFly();
     setSheet({ kind: "none" });
+    setPendingCampusSlug(null);
   }
 
   function onMapPress() {
@@ -1358,35 +1371,108 @@ export function ListingBrowseMap({
           {universityMode
             ? campuses.map((campus) => {
                 const selected = campus.slug === focusCampusSlug;
+                const canSwitch =
+                  campuses.length > 1 && Boolean(onSelectCampus) && !selected;
+                const pending =
+                  pendingCampusSlug === campus.slug && canSwitch;
                 return (
                   <TrackedMarker
                     key={`campus-${campus.slug}`}
-                    trackKey={`campus-${campus.slug}-${selected ? "on" : "off"}`}
-                    freezeTracks={cameraBusy}
+                    trackKey={`campus-${campus.slug}-${selected ? "on" : "off"}-${pending ? "ask" : "idle"}`}
+                    freezeTracks={cameraBusy && !pending}
+                    forceTracks={pending}
                     coordinate={pinCoord(
                       `campus-${campus.slug}`,
                       campus.lat,
                       campus.lng,
                     )}
                     anchor={{ x: 0.5, y: 1 }}
-                    zIndex={selected ? 80 : 50}
-                    accessibilityLabel={`${campusPinLabel(campus)} campus`}
+                    zIndex={selected || pending ? 80 : 50}
+                    tappable={canSwitch}
+                    onPress={() => {
+                      if (ignoreCampusPressRef.current) {
+                        ignoreCampusPressRef.current = false;
+                        return;
+                      }
+                      if (!canSwitch) return;
+                      ignoreNextMapPress.current = true;
+                      setPendingCampusSlug(campus.slug);
+                    }}
+                    accessibilityLabel={
+                      canSwitch
+                        ? `${campusPinLabel(campus)} campus. Double tap to switch.`
+                        : `${campusPinLabel(campus)} campus`
+                    }
                   >
-                    <View style={styles.campusNamed}>
-                      <View style={styles.campusNameChip}>
+                    <View style={styles.campusNamed} pointerEvents="box-none">
+                      <View
+                        style={[
+                          styles.campusNameChip,
+                          selected && styles.campusNameChipOn,
+                        ]}
+                      >
                         <LText
                           variant="caption"
-                          style={styles.campusNameText}
+                          style={[
+                            styles.campusNameText,
+                            selected && styles.campusNameTextOn,
+                          ]}
                           numberOfLines={1}
                         >
                           {campusPinLabel(campus)}
                         </LText>
                       </View>
-                      <SkounMapPin
-                        variant="campus"
-                        dropped
-                        selected={selected}
-                      />
+                      <View style={styles.campusPinSlot} pointerEvents="box-none">
+                        <SkounMapPin
+                          variant="campus"
+                          dropped
+                          selected={selected}
+                        />
+                        {pending ? (
+                          <View
+                            style={styles.campusSwitch}
+                            accessibilityRole="toolbar"
+                            accessibilityLabel={CAMPUS_SWITCH_PROMPT}
+                          >
+                            <SwapHorizIcon size={18} color="#121826" />
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel="Switch to this campus"
+                              hitSlop={6}
+                              onPress={() => {
+                                ignoreCampusPressRef.current = true;
+                                ignoreNextMapPress.current = true;
+                                onSelectCampus?.(campus);
+                                setPendingCampusSlug(null);
+                              }}
+                              style={({ pressed }) => [
+                                styles.campusSwitchBtn,
+                                styles.campusSwitchYes,
+                                pressed && styles.campusSwitchBtnPressed,
+                              ]}
+                            >
+                              <Ionicons name="checkmark" size={15} color="#FFFFFF" />
+                            </Pressable>
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel="Keep current campus"
+                              hitSlop={6}
+                              onPress={() => {
+                                ignoreCampusPressRef.current = true;
+                                ignoreNextMapPress.current = true;
+                                setPendingCampusSlug(null);
+                              }}
+                              style={({ pressed }) => [
+                                styles.campusSwitchBtn,
+                                styles.campusSwitchNo,
+                                pressed && styles.campusSwitchBtnPressed,
+                              ]}
+                            >
+                              <Ionicons name="close" size={15} color="#121826" />
+                            </Pressable>
+                          </View>
+                        ) : null}
+                      </View>
                     </View>
                   </TrackedMarker>
                 );
@@ -1770,7 +1856,7 @@ const styles = StyleSheet.create({
   },
   campusNamed: {
     alignItems: "center",
-    maxWidth: 120,
+    overflow: "visible",
   },
   campusNameChip: {
     maxWidth: 120,
@@ -1780,11 +1866,59 @@ const styles = StyleSheet.create({
     backgroundColor: "#C4A574",
     marginBottom: 4,
   },
+  campusNameChipOn: {
+    backgroundColor: "#121826",
+  },
   campusNameText: {
     color: "#2A1F14",
     fontFamily: Skoun.type.bodySemi,
     fontSize: 11,
     textAlign: "center",
+  },
+  campusNameTextOn: {
+    color: "#FFFFFF",
+  },
+  campusPinSlot: {
+    width: SKOUN_CAMPUS_PIN.width,
+    height: SKOUN_CAMPUS_PIN.height,
+    position: "relative",
+    overflow: "visible",
+  },
+  campusSwitch: {
+    position: "absolute",
+    left: SKOUN_CAMPUS_PIN.width + 2,
+    top: SKOUN_CAMPUS_PIN.headCenterY - 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingLeft: 8,
+    paddingRight: 3,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#121826",
+    shadowColor: "#121826",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  campusSwitchBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  campusSwitchYes: {
+    backgroundColor: "#121826",
+  },
+  campusSwitchNo: {
+    backgroundColor: "#EEF1F6",
+  },
+  campusSwitchBtnPressed: {
+    opacity: 0.82,
   },
   mapLoading: {
     ...StyleSheet.absoluteFillObject,

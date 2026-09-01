@@ -7,6 +7,7 @@ import type { GeoJSONSource, Map as MapboxMap, Marker, Popup } from "mapbox-gl";
 import type { Listing } from "@/types/listing";
 import type { MapPinGroup } from "@/lib/mapPinGroups";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
+import { CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 import { getMapboxStyle, getMapboxToken } from "@/lib/mapboxEnv";
 
 export type MapboxGL = typeof import("mapbox-gl").default;
@@ -120,19 +121,103 @@ export function ensureMapboxCss(): void {
       width: 14px; height: 4px; border-radius: 2px; background: #121826; margin-top: -1px;
     }
     .skoun-campus-stack {
+      position: relative;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       pointer-events: none;
+      -webkit-font-smoothing: antialiased;
     }
     .skoun-campus-stack.selected { transform: scale(1.06); }
+    .skoun-campus-stack.clickable {
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .skoun-campus-stack.clickable .skoun-campus-label {
+      transition: background-color 160ms ease;
+    }
+    .skoun-campus-stack.clickable:hover .skoun-campus-label {
+      background: #D4B78A;
+    }
     .skoun-campus-label {
       max-width: 120px; padding: 3px 8px; border-radius: 6px;
       background: #C4A574; color: #2A1F14;
       font: 700 11px/1.25 "DM Sans", system-ui, sans-serif;
       text-align: center; white-space: nowrap;
       box-shadow: 0 1px 3px rgba(18,24,38,0.22);
+      -webkit-font-smoothing: antialiased;
     }
     .skoun-campus-stack.selected .skoun-campus-label {
       background: #121826; color: #fff;
+    }
+    .skoun-campus-pin-slot {
+      position: relative;
+      width: 48px;
+      height: 56px;
+      flex-shrink: 0;
+    }
+    .skoun-campus-switch {
+      position: absolute;
+      left: calc(100% + 2px);
+      top: 22px;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 3px 3px 8px;
+      border-radius: 999px;
+      background: #FFFFFF;
+      border: 1.5px solid #121826;
+      box-shadow: 0 6px 18px rgba(18,24,38,0.2);
+      pointer-events: auto;
+      white-space: nowrap;
+      z-index: 8;
+      animation: skoun-campus-switch-in 180ms ease;
+      -webkit-font-smoothing: antialiased;
+    }
+    .skoun-campus-switch-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      color: #121826;
+      flex-shrink: 0;
+    }
+    .skoun-campus-switch-btn {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+    .skoun-campus-switch-btn.yes {
+      background: #121826;
+      color: #FFFFFF;
+    }
+    .skoun-campus-switch-btn.no {
+      background: #EEF1F6;
+      color: #121826;
+    }
+    .skoun-campus-switch-btn.yes:hover { background: #2F6FED; }
+    .skoun-campus-switch-btn.no:hover { background: #E2E8F0; }
+    .skoun-campus-switch-btn:focus-visible {
+      outline: 2px solid #2F6FED;
+      outline-offset: 2px;
+    }
+    .skoun-campus-switch-btn:active { transform: scale(0.94); }
+    @keyframes skoun-campus-switch-in {
+      from { opacity: 0; transform: translateY(-50%) translateX(-8px); }
+      to { opacity: 1; transform: translateY(-50%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .skoun-campus-switch { animation: none; }
+      .skoun-campus-stack.clickable .skoun-campus-label,
+      .skoun-campus-switch-btn { transition: none; }
     }
     .skoun-dist-badge {
       display: flex; align-items: center; justify-content: center;
@@ -209,7 +294,7 @@ export function ensureMapboxCss(): void {
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
       display: flex; align-items: center; justify-content: center;
       font-size: 11px; font-weight: 700; color: #334155; cursor: pointer; padding: 0;
-      line-height: 1;
+      line-height: 1; pointer-events: auto;
     }
     .skoun-popup-close-btn:hover { background: #ffffff; }
     .skoun-popup-body { display: block; padding: 12px; background: #ffffff; }
@@ -568,12 +653,33 @@ export function clusterBubbleHtml(count: number, size: number): string {
   return `<div class="skoun-cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size >= 46 ? 15 : 13}px">${escapeHtml(String(count))}</div>`;
 }
 
-export function campusPinHtml(label?: string, selected = false): string {
+const CAMPUS_SWITCH_SWAP_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 6h13.5V3.5L22 7.5 15.5 11.5V9H2zM22 15H8.5v-2.5L2 16.5 8.5 20.5V18H22z"/></svg>`;
+const CAMPUS_SWITCH_CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 12.5l5 5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const CAMPUS_SWITCH_CLOSE_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+
+export function campusPinHtml(
+  label?: string,
+  selected = false,
+  opts?: { pending?: boolean; clickable?: boolean },
+): string {
   const pin = teardropHtml("campus");
   const text = label?.trim();
   if (!text) return pin;
-  const stack = selected ? "skoun-campus-stack selected" : "skoun-campus-stack";
-  return `<div class="${stack}"><div class="skoun-campus-label">${escapeHtml(text)}</div>${pin}</div>`;
+  const stack = [
+    "skoun-campus-stack",
+    selected ? "selected" : "",
+    opts?.clickable ? "clickable" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const prompt = opts?.pending
+    ? `<div class="skoun-campus-switch" role="group" aria-label="${escapeHtml(CAMPUS_SWITCH_PROMPT)}">
+        <span class="skoun-campus-switch-mark">${CAMPUS_SWITCH_SWAP_SVG}</span>
+        <button type="button" class="skoun-campus-switch-btn yes" data-campus-switch="confirm" aria-label="Switch to this campus">${CAMPUS_SWITCH_CHECK_SVG}</button>
+        <button type="button" class="skoun-campus-switch-btn no" data-campus-switch="cancel" aria-label="Keep current campus">${CAMPUS_SWITCH_CLOSE_SVG}</button>
+      </div>`
+    : "";
+  return `<div class="${stack}"><div class="skoun-campus-label">${escapeHtml(text)}</div><div class="skoun-campus-pin-slot">${pin}${prompt}</div></div>`;
 }
 
 export function listingPinHtml(selected = false): string {
@@ -838,17 +944,17 @@ export function createAmberPopupHtml(listing: Listing): string {
   const url = `/listing/${listing.id}`;
 
   return `<div class="skoun-amber-popup-card">
-    <div class="skoun-popup-media">
-      <img src="${escapeHtml(coverUrl)}" alt="${title}" class="skoun-popup-img" />
-      <button type="button" class="skoun-popup-close-btn" aria-label="Close">✕</button>
-    </div>
     <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-popup-body-link" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+      <div class="skoun-popup-media">
+        <img src="${escapeHtml(coverUrl)}" alt="${title}" class="skoun-popup-img" />
+      </div>
       <div class="skoun-popup-body">
         <div class="skoun-popup-title">${title}</div>
         <div class="skoun-popup-subtitle">${subtitle}</div>
         <div class="skoun-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
       </div>
     </a>
+    <button type="button" class="skoun-popup-close-btn" aria-label="Close">✕</button>
   </div>`;
 }
 
@@ -1037,11 +1143,16 @@ function bindPopupCloseButton(popup: Popup): void {
   const btn = root?.querySelector(".skoun-popup-close-btn");
   if (!(btn instanceof HTMLElement) || btn.dataset.skounBound === "1") return;
   btn.dataset.skounBound = "1";
-  btn.addEventListener("click", (ev) => {
+  const dismiss = (ev: Event) => {
     ev.preventDefault();
     ev.stopPropagation();
     popup.remove();
     window._skounDismissPreview?.();
+  };
+  btn.addEventListener("click", dismiss);
+  btn.addEventListener("mousedown", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
   });
 }
 
@@ -1051,6 +1162,11 @@ function wireAmberPopup(
   onClose?: () => void,
 ): void {
   popup.on("open", () => {
+    const prev = window._skounActivePopup;
+    if (prev && prev !== popup) {
+      replacingPopups.add(prev as Popup);
+      prev.remove();
+    }
     window._skounActivePopup = popup;
     bindPopupCloseButton(popup);
     onOpen?.(popup);

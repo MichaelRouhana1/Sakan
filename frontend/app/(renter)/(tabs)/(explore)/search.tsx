@@ -32,6 +32,7 @@ import {
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { Skoun } from "@/constants/theme";
 import { useListings } from "@/features/listings/useListings";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -49,10 +50,21 @@ import {
   browseSearchSetParams,
   parseCsvParam,
 } from "@/lib/browseSearchUrl";
+import {
+  campusFarSeparatorKey,
+  campusResultsHeading,
+  withCampusDistanceSeparator,
+  type MixedListingRow,
+} from "@/lib/campusProximity";
+import {
+  resolveCampusFromTypedQuery,
+  universityToSuggestion,
+} from "@/lib/resolveCampusSearch";
 import type {
   SearchAreaSuggestion,
   SearchUniversitySuggestion,
 } from "@/features/search/types";
+import type { CampusMeta } from "@/types/listing";
 
 type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
 type SearchMode = "standard" | "university";
@@ -180,8 +192,63 @@ export default function RenterSearchScreen() {
     [syncUrl],
   );
 
+  const switchMapCampus = useCallback(
+    (campus: CampusMeta) => {
+      const uni = universities.data?.find((u) => u.slug === campus.slug);
+      setBrowseFilters((prev) => ({
+        ...prev,
+        areas: [],
+        universitySlugs: [campus.slug],
+        campusId: uni?.id ?? null,
+        q: null,
+        institutionSlug: uni?.institutionSlug ?? prev.institutionSlug,
+      }));
+      setMode("university");
+      setSort("distance");
+      setMapSearchOpen(false);
+      syncUrl({
+        q: null,
+        campusId: uni?.id ?? null,
+        areas: [],
+        universitySlugs: [campus.slug],
+      });
+    },
+    [syncUrl, universities.data],
+  );
+
   const applyTextQuery = useCallback(
     (text: string) => {
+      const campus = resolveCampusFromTypedQuery(
+        text,
+        universities.data ?? [],
+      );
+      if (campus) {
+        const suggestion = universityToSuggestion(campus);
+        if (suggestion) {
+          applyUniversity(suggestion);
+          return;
+        }
+        setSearchVal(campusFilterLabel(campus));
+        setFocusPoint(null);
+        setBrowseFilters((prev) => ({
+          ...prev,
+          areas: [],
+          universitySlugs: [campus.slug],
+          campusId: campus.id,
+          q: null,
+          institutionSlug: prev.institutionSlug,
+        }));
+        setMode("university");
+        setSort("distance");
+        setMapSearchOpen(false);
+        syncUrl({
+          q: null,
+          campusId: campus.id,
+          areas: [],
+          universitySlugs: [campus.slug],
+        });
+        return;
+      }
       setSearchVal(text);
       setFocusPoint(null);
       setBrowseFilters((prev) => ({
@@ -201,14 +268,21 @@ export default function RenterSearchScreen() {
         universitySlugs: [],
       });
     },
-    [syncUrl],
+    [applyUniversity, syncUrl, universities.data],
   );
 
   const activeUniSlug = browseFilters.universitySlugs[0] ?? null;
-  const activeUni = useMemo(
-    () => universities.data?.find((u) => u.slug === activeUniSlug),
-    [universities.data, activeUniSlug]
-  );
+  const activeUni = useMemo(() => {
+    const list = universities.data ?? [];
+    return (
+      list.find((u) => activeUniSlug != null && u.slug === activeUniSlug) ??
+      list.find(
+        (u) =>
+          browseFilters.campusId != null && u.id === browseFilters.campusId,
+      ) ??
+      null
+    );
+  }, [universities.data, activeUniSlug, browseFilters.campusId]);
   const activeInst = useMemo(
     () =>
       (institutions.data ?? []).find(
@@ -377,6 +451,28 @@ export default function RenterSearchScreen() {
     }
     return result;
   }, [listings, deferredSort]);
+
+  const browseRows: MixedListingRow[] = useMemo(
+    () =>
+      withCampusDistanceSeparator(processedListings, {
+        enabled:
+          isUniversityMode &&
+          deferredSort === "distance" &&
+          activeUni != null,
+        universityLabel: activeUni ? campusFilterLabel(activeUni) : "",
+      }),
+    [processedListings, isUniversityMode, deferredSort, activeUni],
+  );
+  const showDistanceSplit =
+    isUniversityMode && deferredSort === "distance" && activeUni != null;
+  const resultsHeading =
+    showDistanceSplit && activeUni
+      ? campusResultsHeading({ listings: processedListings })
+      : null;
+  const resultsTitle =
+    showDistanceSplit && activeUni
+      ? `Student Accommodations near ${campusFilterLabel(activeUni)}`
+      : null;
 
   const clearAllFilters = () => {
     resetSearch();
@@ -564,6 +660,7 @@ export default function RenterSearchScreen() {
                   ? null
                   : focusPoint
               }
+              onSelectCampus={switchMapCampus}
               loading={listingsQuery.isLoading}
               fillContainer
               onCarouselOpenChange={onCarouselOpenChange}
@@ -709,13 +806,35 @@ export default function RenterSearchScreen() {
       ) : (
         <FlatList
           ref={carouselScroll.listRef}
-          data={processedListings}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.cardContainer}>
-              <ListingResultCard listing={item} variant="grid" />
-            </View>
-          )}
+          data={browseRows}
+          keyExtractor={(item) =>
+            item.kind === "separator"
+              ? campusFarSeparatorKey(item.km)
+              : item.listing.id
+          }
+          ListHeaderComponent={
+            resultsTitle ? (
+              <View style={styles.resultsHeadingBlock}>
+                <LText variant="subtitle" style={styles.resultsTitle}>
+                  {resultsTitle}
+                </LText>
+                {resultsHeading ? (
+                  <LText variant="caption" tone="muted" style={styles.resultsSub}>
+                    {resultsHeading}
+                  </LText>
+                ) : null}
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) =>
+            item.kind === "separator" ? (
+              <CampusFarSeparator label={item.label} />
+            ) : (
+              <View style={styles.cardContainer}>
+                <ListingResultCard listing={item.listing} variant="grid" />
+              </View>
+            )
+          }
           contentContainerStyle={[styles.listContent, { paddingBottom: 90 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled
@@ -984,6 +1103,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 80,
+  },
+  resultsHeadingBlock: {
+    marginBottom: 12,
+    gap: 4,
+  },
+  resultsTitle: {
+    fontWeight: "700",
+  },
+  resultsSub: {
+    fontSize: 14,
   },
   cardContainer: {
     marginBottom: 16,

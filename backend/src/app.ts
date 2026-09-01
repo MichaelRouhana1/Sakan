@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { errorHandler } from "./middleware/error-handler.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
+import { campusRouter } from "./modules/campus/campus.routes.js";
 import { creditsRouter } from "./modules/credits/credits.routes.js";
 import { listingsRouter } from "./modules/listings/listings.routes.js";
 import { UPLOADS_ROOT } from "./modules/listings/photos.storage.js";
@@ -38,6 +39,7 @@ export function createApp() {
   app.use("/api/reports", reportsRouter);
   app.use("/api/universities", universitiesRouter);
   app.use("/api/institutions", institutionsRouter);
+  app.use("/api/campus", campusRouter);
   app.use("/api/credits", creditsRouter);
   app.use("/api/admin", adminRouter);
 

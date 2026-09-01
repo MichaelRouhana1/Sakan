@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -28,6 +29,8 @@ import { LText } from "@/components/lister/Typography";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 import { browseSearchParams } from "@/lib/browseSearchUrl";
+import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
+import { useUniversities } from "@/features/universities/useUniversities";
 import {
   AREA_REGIONS,
   DEMO_LISTINGS,
@@ -76,6 +79,7 @@ export default function RenterNewHomeScreen() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [campusPromptDismissed, setCampusPromptDismissed] = useState(false);
   const [campusSaving, setCampusSaving] = useState(false);
+  const universities = useUniversities();
 
   const currentRegion = useMemo(
     () => AREA_REGIONS.find((r) => r.id === regionId) ?? AREA_REGIONS[0],
@@ -175,13 +179,20 @@ export default function RenterNewHomeScreen() {
             {/* Logo and Listing Trigger */}
             <View style={styles.brandRow}>
               <Text style={styles.brandText}>skoun</Text>
-              <Pressable
-                onPress={handleHostCta}
-                style={styles.listBtn}
-                accessibilityRole="button"
-              >
-                <Text style={styles.listBtnText}>{hostCtaLabel}</Text>
-              </Pressable>
+              <View style={styles.brandActions}>
+                <ProductSwitchControl
+                  variant="toCampus"
+                  style={styles.listBtn}
+                  textStyle={styles.listBtnText}
+                />
+                <Pressable
+                  onPress={handleHostCta}
+                  style={styles.listBtn}
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.listBtnText}>{hostCtaLabel}</Text>
+                </Pressable>
+              </View>
             </View>
 
             <View style={styles.searchContainer}>
@@ -204,7 +215,20 @@ export default function RenterNewHomeScreen() {
                 onSelectListing={(s) => {
                   router.push(`/(renter)/listing/${s.id}` as never);
                 }}
-                onSubmitText={(q) => pushSearch({ q })}
+                onSubmitText={(q) => {
+                  const campus = resolveCampusFromTypedQuery(
+                    q,
+                    universities.data ?? [],
+                  );
+                  if (campus) {
+                    pushSearch({
+                      campusId: campus.id,
+                      universitySlugs: [campus.slug],
+                    });
+                    return;
+                  }
+                  pushSearch({ q });
+                }}
                 onClear={() => setSearchQuery("")}
               />
             </View>
@@ -732,6 +756,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 10,
+  },
+  brandActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   brandText: {
     fontFamily: Skoun.type.display,

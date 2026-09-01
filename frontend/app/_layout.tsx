@@ -104,6 +104,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(renter)" />
           <Stack.Screen name="(poster)" />
           <Stack.Screen name="hosting" />
+          <Stack.Screen name="campus" />
           <Stack.Screen name="admin" />
         </Stack>
       </ThemeProvider>

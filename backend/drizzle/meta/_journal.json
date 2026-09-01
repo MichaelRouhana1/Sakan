@@ -106,6 +106,20 @@
       "when": 1786798800000,
       "tag": "0014_report_review",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1786802400000,
+      "tag": "0015_campus_academic",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786806000000,
+      "tag": "0016_program_total_credits",
+      "breakpoints": true
     }
   ]
 }

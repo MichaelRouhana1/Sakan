@@ -190,6 +190,29 @@ export function FindFilterBar({
           onPress={onOpenAreas}
         />
 
+        {filters.q?.trim() ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Clear search ${filters.q}`}
+            onPress={onClearAll}
+            style={({ hovered, pressed }) => [
+              styles.pill,
+              styles.pillActive,
+              (hovered || pressed) && styles.pillHover,
+            ]}
+          >
+            <Ionicons
+              name="search-outline"
+              size={15}
+              color={Skoun.color.primaryDeep}
+            />
+            <LText variant="caption" style={[styles.pillLabel, styles.pillLabelActive]}>
+              {filters.q}
+            </LText>
+            <Ionicons name="close" size={14} color={Skoun.color.primaryDeep} />
+          </Pressable>
+        ) : null}
+
         {hasActiveFilters ? (
           <Pressable
             accessibilityRole="button"

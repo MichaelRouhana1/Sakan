@@ -45,6 +45,7 @@ import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import {
+  campusFilterLabel,
   campusPinsFromInstitution,
   mergeCampusPins,
   resolveFocusCampusSlug,
@@ -56,9 +57,10 @@ import {
   browseSearchSetParams,
   parseCsvParam,
 } from "@/lib/browseSearchUrl";
+import { campusResultsHeading } from "@/lib/campusProximity";
 import { useStableBreakpoint } from "@/lib/breakpoints";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
-import type { Listing } from "@/types/listing";
+import type { CampusMeta, Listing } from "@/types/listing";
 
 type ResultsLayout = "grid" | "list";
 type ChipSheet = "areas" | "universities" | "sort" | null;
@@ -295,6 +297,51 @@ export function FindBrowse() {
     [rawListings, deferredSort],
   );
 
+  const switchMapCampus = useCallback(
+    (campus: CampusMeta) => {
+      const uni = universities.data?.find((u) => u.slug === campus.slug);
+      setFilters((prev) => ({
+        ...prev,
+        universitySlugs: [campus.slug],
+        campusId: uni?.id ?? null,
+        institutionSlug: uni?.institutionSlug ?? prev.institutionSlug,
+        areas: [],
+        q: null,
+      }));
+      setMode("university");
+      setBrowseSort("distance");
+      syncUrl({
+        q: null,
+        campusId: uni?.id ?? null,
+        areas: [],
+        universitySlugs: [campus.slug],
+      });
+    },
+    [syncUrl, universities.data],
+  );
+
+  const activeCampus = useMemo(() => {
+    const slug = deferredFilters.universitySlugs[0];
+    const campusId = deferredFilters.campusId;
+    const list = universities.data ?? [];
+    return (
+      list.find((u) => slug != null && u.slug === slug) ??
+      list.find((u) => campusId != null && u.id === campusId) ??
+      null
+    );
+  }, [
+    universities.data,
+    deferredFilters.universitySlugs,
+    deferredFilters.campusId,
+  ]);
+  const showDistanceSplit =
+    effectiveMode === "university" &&
+    deferredSort === "distance" &&
+    activeCampus != null;
+  const universityLabel = activeCampus
+    ? campusFilterLabel(activeCampus)
+    : "";
+
   const badgeMode: SearchMode =
     mode === "university" ||
     filters.universitySlugs.length > 0 ||
@@ -376,7 +423,12 @@ export function FindBrowse() {
       <View style={styles.headingRow}>
         <View style={styles.headingText}>
           <Text style={[styles.h1, isMap && styles.h1Map]}>
-            {isNationwide ? (
+            {showDistanceSplit && universityLabel ? (
+              <>
+                Student Accommodations near{" "}
+                <Text style={styles.h1Em}>{universityLabel}</Text>
+              </>
+            ) : isNationwide ? (
               <>
                 Student Accommodations across{" "}
                 <Text style={styles.h1Em}>Lebanon</Text>
@@ -387,7 +439,7 @@ export function FindBrowse() {
                 <Text style={styles.h1Em}>{cityLabel}</Text>
               </>
             )}
-            {!isLoading ? (
+            {!showDistanceSplit && !isLoading ? (
               <Text style={styles.h1Count}>
                 {" "}
                 | Showing {listings.length} place
@@ -395,6 +447,11 @@ export function FindBrowse() {
               </Text>
             ) : null}
           </Text>
+          {showDistanceSplit && universityLabel && !isLoading ? (
+            <Text style={styles.h1Sub}>
+              {campusResultsHeading({ listings })}
+            </Text>
+          ) : null}
           {(isStale(filters, deferredFilters, mode, deferredMode, browseSort, deferredSort) ||
             isFetching) &&
           !isLoading ? (
@@ -476,6 +533,8 @@ export function FindBrowse() {
                 : 1
       }
       onHoverListing={isMap ? onHoverListing : undefined}
+      showDistanceSplit={showDistanceSplit}
+      universityLabel={universityLabel}
     />
   );
 
@@ -568,6 +627,7 @@ export function FindBrowse() {
             focusPoint={
               effectiveMode === "university" ? null : focusPoint
             }
+            onSelectCampus={switchMapCampus}
             onClose={() => {
               setHoveredListingId(null);
               setHoverFlyListingId(null);
@@ -836,7 +896,13 @@ const styles = StyleSheet.create({
   },
   headingText: {
     flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: "auto" as unknown as number,
     minWidth: 240,
+    maxWidth: "100%",
+    flexDirection: "column",
+    alignSelf: "flex-start",
     gap: 4,
   },
   h1: {
@@ -858,6 +924,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Skoun.color.inkMuted,
     fontFamily: Skoun.type.body,
+  },
+  h1Sub: {
+    fontSize: 18,
+    lineHeight: 26,
+    color: Skoun.color.inkMuted,
+    fontFamily: Skoun.type.body,
+    marginTop: 2,
   },
   viewToggle: {
     flexDirection: "row",

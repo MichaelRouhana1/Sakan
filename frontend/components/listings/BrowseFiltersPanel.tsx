@@ -157,6 +157,7 @@ export function browseFilterBadgeCount(
   return (
     value.areas.length +
     value.universitySlugs.length +
+    (value.q?.trim() ? 1 : 0) +
     value.electricity.length +
     value.water.length +
     (value.wifiIncluded ? 1 : 0) +

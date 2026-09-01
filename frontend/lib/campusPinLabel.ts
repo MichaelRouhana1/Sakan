@@ -6,3 +6,6 @@ export function campusPinLabel(campus: {
   const compact = campus.mapLabel?.trim();
   return compact || campus.name;
 }
+
+/** Confirm copy on an unselected campus pin before making it the hub. */
+export const CAMPUS_SWITCH_PROMPT = "Switch to this campus?";

@@ -7,3 +7,4 @@ export * from "./credit-transactions.js";
 export * from "./saved-listings.js";
 export * from "./listing-reports.js";
 export * from "./admin-audit-events.js";
+export * from "./academic.js";

@@ -6,14 +6,31 @@ import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 
 export const SEARCH_HINTS = ["Area", "University", "Landmark"] as const;
 
-export const POPULAR_SEARCHES = [
-  "Achrafieh",
-  "Hamra",
-  "AUB",
-  "Mar Mikhael",
-  "Jounieh",
-  "LAU",
-] as const;
+export type PopularSearch =
+  | { label: string; kind: "area"; areas: readonly [string, ...string[]] }
+  | {
+      label: string;
+      kind: "university";
+      universitySlugs: readonly [string, ...string[]];
+    };
+
+/** Hero shortcuts — same browse params as city tiles / autocomplete (not free-text `q`). */
+export const POPULAR_SEARCHES: readonly PopularSearch[] = [
+  { label: "Achrafieh", kind: "area", areas: ["Achrafieh"] },
+  { label: "Hamra", kind: "area", areas: ["Hamra"] },
+  { label: "AUB", kind: "university", universitySlugs: ["aub"] },
+  { label: "Mar Mikhael", kind: "area", areas: ["Mar Mikhael"] },
+  { label: "Jounieh", kind: "area", areas: ["Jounieh"] },
+  { label: "LAU", kind: "university", universitySlugs: ["lau-beirut"] },
+];
+
+export function popularSearchBrowseParams(item: PopularSearch): {
+  areas?: string[];
+  universitySlugs?: string[];
+} {
+  if (item.kind === "area") return { areas: [...item.areas] };
+  return { universitySlugs: [...item.universitySlugs] };
+}
 
 export const HERO = {
   /** Short emotional line — Amber's "Home away from home" slot */
