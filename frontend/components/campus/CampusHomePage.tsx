@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 
 const TOOLS = [
   {
@@ -10,7 +11,7 @@ const TOOLS = [
     live: true,
     href: "/campus/calculator",
     title: "Tuition calculator",
-    body: "Semester and year cost in USD — AUB, LAU, USJ, UA, NDU, USEK, BAU, UOB, LIU, ULS, MEU, Haigazian, Makassed, Jinan, Global, AOU, RHU, AUST, AUT, MUBS, LCU, ULF, Sainte Famille, UT, USAL, Phoenicia, Maaref, and Azm have live figures; other unis are in the catalog waiting on sources.",
+    body: "Estimate a major’s total tuition, cost per year and per semester, in USD.",
     icon: "calculator-outline" as const,
   },
   {
@@ -22,9 +23,10 @@ const TOOLS = [
   },
   {
     id: "calendar",
-    live: false,
+    live: true,
+    href: "/campus/calendar",
     title: "Academic calendar",
-    body: "Term dates, holidays, registration windows.",
+    body: "Official Lebanese holidays — the days campuses close.",
     icon: "calendar-outline" as const,
   },
   {
@@ -38,19 +40,24 @@ const TOOLS = [
 
 export function CampusHomePage() {
   const router = useRouter();
+  const { user } = useAuthSession();
+  const uni =
+    user?.campus?.institutionShortName?.trim() ||
+    user?.campus?.institutionName?.trim() ||
+    null;
 
   return (
     <View style={styles.page}>
       <LText variant="label" tone="muted">
-        Student tools · Lebanon
+        {uni ? `Your campus · ${uni}` : "Student tools · Lebanon"}
       </LText>
       <LText variant="display" style={styles.title}>
-        Useful all year — not only when you need a room.
+        {uni ? `Your ${uni} student home` : "Your student home"}
       </LText>
       <LText variant="body" tone="muted" style={styles.lede}>
-        Estimate what a major costs at a private university, then open live
-        listings near that campus. Housing stays on Skoun; Campus is the rest
-        of the year.
+        {uni
+          ? `Free tools for ${uni} students — tuition, calendar, benefits, and housing nearby. Skoun builds this to simplify campus life.`
+          : "Free tools for your university — tuition, calendar, benefits, and housing nearby. Skoun builds this to simplify campus life."}
       </LText>
 
       <View style={styles.grid}>
@@ -78,9 +85,11 @@ export function CampusHomePage() {
               <LText variant="caption" tone="muted" style={styles.cardBody}>
                 {tool.body}
               </LText>
-              <LText variant="caption" tone="primary" style={styles.cardCta}>
-                Open calculator
-              </LText>
+              <View style={styles.livePill}>
+                <LText variant="label" style={styles.livePillText}>
+                  Available now
+                </LText>
+              </View>
             </Pressable>
           ) : (
             <View
@@ -176,9 +185,15 @@ const styles = StyleSheet.create({
   cardBody: {
     flexGrow: 1,
   },
-  cardCta: {
-    fontFamily: Skoun.type.bodySemi,
-    textDecorationLine: "underline",
+  livePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "#E8F5EE",
+    borderRadius: Skoun.radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  livePillText: {
+    color: "#1B7A4A",
   },
   soonPill: {
     alignSelf: "flex-start",

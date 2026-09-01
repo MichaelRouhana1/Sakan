@@ -2,7 +2,10 @@
  * Static marketing content — Amber homepage layout, Skoun product truth.
  */
 
-import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
+import {
+  ACADEMIC_CATALOG,
+  CAMPUS_CATALOG,
+} from "@/constants/campusCatalogStats";
 
 export const SEARCH_HINTS = ["Area", "University", "Landmark"] as const;
 
@@ -47,24 +50,82 @@ export const HERO = {
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1800&q=80",
 } as const;
 
-/** Slim ticker under the web hero — places, campuses, and trust in one line. */
-export const TICKER = [
-  { id: "usd", label: "Priced in USD", icon: "cash-outline" as const },
-  { id: "aub", label: "AUB", icon: "school-outline" as const },
-  { id: "hamra", label: "Hamra", icon: "location-outline" as const },
-  { id: "wa", label: "WhatsApp the poster", icon: "logo-whatsapp" as const },
-  { id: "lau", label: "LAU", icon: "school-outline" as const },
-  { id: "solar", label: "Solar & ishtirak listed", icon: "flash-outline" as const },
-  { id: "achrafieh", label: "Achrafieh", icon: "location-outline" as const },
-  { id: "deposits", label: "No deposits held", icon: "shield-checkmark-outline" as const },
-  { id: "usj", label: "USJ", icon: "school-outline" as const },
-  { id: "mm", label: "Mar Mikhael", icon: "location-outline" as const },
-  { id: "walk", label: "Walk time to campus", icon: "walk-outline" as const },
-  { id: "jounieh", label: "Jounieh", icon: "location-outline" as const },
-  { id: "campuses", label: "70 campuses", icon: "school-outline" as const },
-  { id: "byblos", label: "Byblos", icon: "location-outline" as const },
-  { id: "areas", label: "15 filterable areas", icon: "map-outline" as const },
-] as const;
+export type HomeTickerItem = {
+  id: string;
+  label: string;
+  icon: string;
+  selected?: boolean;
+};
+
+/** Campus ticker under the web hero — catalog facts + coming-soon tools. */
+export const CAMPUS_TICKER: HomeTickerItem[] = [
+  {
+    id: "launch",
+    label: "COMING SOON! 4 MONTHS FOR LAUNCH",
+    icon: "rocket-outline",
+    selected: true,
+  },
+  {
+    id: "unis",
+    label: `${CAMPUS_CATALOG.universities} universities`,
+    icon: "school-outline",
+  },
+  {
+    id: "campuses",
+    label: `${CAMPUS_CATALOG.campuses} campuses`,
+    icon: "school-outline",
+  },
+  {
+    id: "areas",
+    label: `${CAMPUS_CATALOG.areas} areas`,
+    icon: "map-outline",
+  },
+  {
+    id: "tuition",
+    label: `Tuition calculator ${ACADEMIC_CATALOG.tuitionYear}`,
+    icon: "calculator-outline",
+  },
+  {
+    id: "credit",
+    label: "Per-credit prices in USD",
+    icon: "cash-outline",
+  },
+  {
+    id: "programs",
+    label: `${ACADEMIC_CATALOG.programs} programs`,
+    icon: "library-outline",
+  },
+  {
+    id: "faculties",
+    label: `${ACADEMIC_CATALOG.faculties} faculties`,
+    icon: "albums-outline",
+  },
+  {
+    id: "calendar",
+    label: "Academic calendar",
+    icon: "calendar-outline",
+  },
+  {
+    id: "benefits",
+    label: "Student benefits",
+    icon: "gift-outline",
+  },
+  {
+    id: "cost",
+    label: "Study cost + housing",
+    icon: "home-outline",
+  },
+  {
+    id: "compare",
+    label: "Compare majors",
+    icon: "swap-horizontal-outline",
+  },
+  {
+    id: "ects",
+    label: "US credits & ECTS",
+    icon: "school-outline",
+  },
+];
 
 /** Insights strip — Amber order: immediately under hero (beds / unis / cities + trust) */
 export const STATS = [
@@ -87,10 +148,10 @@ export const STATS = [
     icon: "map-outline" as const,
   },
   {
-    id: "whatsapp",
-    value: "WhatsApp first",
-    body: "Message posters directly — Skoun never holds deposits.",
-    icon: "logo-whatsapp" as const,
+    id: "benefits",
+    value: "Student benefits",
+    body: "Campus discounts and partner offers — coming in 4 months.",
+    icon: "gift-outline" as const,
   },
 ] as const;
 

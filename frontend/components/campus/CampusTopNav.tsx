@@ -15,6 +15,8 @@ export function CampusTopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const onCalculator = pathname.includes("/calculator");
+  const onCalendar = pathname.includes("/calendar");
+  const onHome = pathname === "/campus" || pathname === "/campus/";
 
   return (
     <View style={styles.bar} accessibilityRole="header">
@@ -41,7 +43,7 @@ export function CampusTopNav() {
             style={styles.navLinkHit}
           >
             <Text
-              style={[styles.navLink, !onCalculator && styles.navLinkActive]}
+              style={[styles.navLink, onHome && styles.navLinkActive]}
             >
               Home
             </Text>
@@ -55,6 +57,17 @@ export function CampusTopNav() {
               style={[styles.navLink, onCalculator && styles.navLinkActive]}
             >
               Calculator
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/campus/calendar" as never)}
+            accessibilityRole="link"
+            style={styles.navLinkHit}
+          >
+            <Text
+              style={[styles.navLink, onCalendar && styles.navLinkActive]}
+            >
+              Calendar
             </Text>
           </Pressable>
           <ProductSwitchControl variant="toHousing" />

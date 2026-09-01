@@ -333,10 +333,6 @@ export function SearchAutocomplete({
 
   function submitPlainText() {
     const trimmed = value.trim();
-    if (!trimmed) {
-      onClear();
-      return;
-    }
     setFocused(false);
     inputRef.current?.blur();
     onSubmitText(trimmed);
@@ -345,7 +341,7 @@ export function SearchAutocomplete({
   function handleSubmitFromKeyboard() {
     const trimmed = value.trim();
     if (!trimmed) {
-      onClear();
+      submitPlainText();
       return;
     }
     if (highlight >= 0 && highlight < items.length) {
