@@ -52,11 +52,12 @@ const TOOLS: readonly Tool[] = [
   },
   {
     id: "benefits",
-    live: false,
+    live: true,
+    href: "/campus/benefits",
     title: "Student benefits",
-    body: "Discounts and student services.",
+    body: "Verified student discounts on software, food, transport, and telecom — plus campus-only offers.",
     icon: "pricetag-outline",
-    gradient: ["#EEF1F5", "#F5F7FA", "#F8F9FB"],
+    gradient: ["#E6EEFA", "#FFFFFF", "#F5F7FA"],
   },
 ];
 

@@ -2,6 +2,7 @@
  * Static marketing content — Amber homepage layout, Skoun product truth.
  */
 
+import type { Ionicons } from "@expo/vector-icons";
 import {
   ACADEMIC_CATALOG,
   CAMPUS_CATALOG,
@@ -127,33 +128,43 @@ export const CAMPUS_TICKER: HomeTickerItem[] = [
   },
 ];
 
+export type HomeStat = {
+  id: string;
+  value: string;
+  body: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  /** Set when the stat points at a live tool — renders as a link. */
+  href?: string;
+};
+
 /** Insights strip — Amber order: immediately under hero (beds / unis / cities + trust) */
-export const STATS = [
+export const STATS: HomeStat[] = [
   {
     id: "listings",
     value: "Live listings",
     body: "Rooms, foyers, and shared flats for students — priced in USD.",
-    icon: "home-outline" as const,
+    icon: "home-outline",
   },
   {
     id: "unis",
     value: `${CAMPUS_CATALOG.campuses} campuses`,
     body: `${CAMPUS_CATALOG.universities} private universities. Sort by walk to AUB, LAU, USJ, and every other gate we list.`,
-    icon: "school-outline" as const,
+    icon: "school-outline",
   },
   {
     id: "areas",
     value: `${CAMPUS_CATALOG.areas} areas`,
     body: "Towns those campuses sit in — Beirut, Tripoli, Saida, Tyre, Zahlé, and the coast.",
-    icon: "map-outline" as const,
+    icon: "map-outline",
   },
   {
     id: "benefits",
     value: "Student benefits",
-    body: "Campus discounts and partner offers — coming in 4 months.",
-    icon: "gift-outline" as const,
+    body: "Verified discounts on software, food, transport, and telecom — plus campus-only partner offers.",
+    icon: "gift-outline",
+    href: "/campus/benefits",
   },
-] as const;
+];
 
 export type AreaRegion = {
   id: string;

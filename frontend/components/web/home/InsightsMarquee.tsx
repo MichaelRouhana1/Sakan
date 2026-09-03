@@ -1,7 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -20,6 +23,7 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 import {
   CAMPUS_TICKER,
   STATS,
+  type HomeStat,
   type HomeTickerItem,
 } from "./homeData";
 
@@ -187,6 +191,55 @@ function MarqueeRow({
   );
 }
 
+/** Stats with an `href` point at a shipped tool, so they become links. */
+function StatBlock({ stat }: { stat: HomeStat }) {
+  const router = useRouter();
+
+  const inner = (
+    <>
+      <Ionicons
+        name={stat.icon}
+        size={22}
+        color={Skoun.color.primary}
+        style={styles.statIcon}
+      />
+      <View style={styles.statCopy}>
+        <View style={styles.statTitleRow}>
+          <Text style={styles.statTitle}>{stat.value}</Text>
+          {stat.href ? (
+            <Ionicons
+              name="arrow-forward"
+              size={14}
+              color={Skoun.color.primary}
+            />
+          ) : null}
+        </View>
+        <Text style={styles.statBody}>{stat.body}</Text>
+      </View>
+    </>
+  );
+
+  if (!stat.href) {
+    return <View style={styles.statBlock}>{inner}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={() => router.push(stat.href as never)}
+      accessibilityRole="link"
+      accessibilityLabel={stat.value}
+      accessibilityHint={stat.body}
+      style={({ hovered, pressed }) => [
+        styles.statBlock,
+        styles.statBlockLink,
+        (hovered || pressed) && styles.statBlockLinkActive,
+      ]}
+    >
+      {inner}
+    </Pressable>
+  );
+}
+
 export function InsightsMarquee() {
   return (
     <View>
@@ -199,18 +252,7 @@ export function InsightsMarquee() {
       />
       <View style={styles.statsBand}>
         {STATS.map((s) => (
-          <View key={s.id} style={styles.statBlock}>
-            <Ionicons
-              name={s.icon}
-              size={22}
-              color={Skoun.color.primary}
-              style={styles.statIcon}
-            />
-            <View style={styles.statCopy}>
-              <Text style={styles.statTitle}>{s.value}</Text>
-              <Text style={styles.statBody}>{s.body}</Text>
-            </View>
-          </View>
+          <StatBlock key={s.id} stat={s} />
         ))}
       </View>
     </View>
@@ -326,12 +368,37 @@ const styles = StyleSheet.create({
     minWidth: 200,
     maxWidth: 420,
   },
+  // Negative margins cancel the padding, so hovering a link stat can't nudge
+  // the row's layout.
+  statBlockLink: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginVertical: -8,
+    marginHorizontal: -10,
+    borderRadius: Skoun.radius.md,
+    ...(Platform.OS === "web"
+      ? ({
+          cursor: "pointer",
+          transitionProperty: "background-color",
+          transitionDuration: "200ms",
+          transitionTimingFunction: "ease-out",
+        } as object)
+      : null),
+  },
+  statBlockLinkActive: {
+    backgroundColor: Skoun.color.primaryMist,
+  },
   statIcon: {
     marginTop: 2,
   },
   statCopy: {
     flex: 1,
     gap: 4,
+  },
+  statTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   statTitle: {
     fontFamily: Skoun.type.bodyBold,
