@@ -45,14 +45,16 @@ No Inter, Roboto, Space Grotesk, or Playfair on Campus screens.
 - **Buttons:** Primary = Ocean fill, white type (`LButton`). Secondary = hairline / mist. Clickable elements `cursor: pointer` on web.
 - **Inputs:** Visible labels. Never placeholder-only.
 - **Calculator form:** Stacked `CampusFormSelect` dropdowns (university → faculty → program → campus) on one white form card. Selected control uses Ocean border + `primaryMist`.
-- **Cards:** `radius.lg` (18), `border` + white fill. Icon in a 40px `primaryMist` circle. Coming tools: muted surface + pill “Coming”.
+- **Cards:** Soft Ocean mist gradients (`expo-linear-gradient`), `radius.lg`, light shadow. Icon in a white rounded square. Live tools show an arrow affordance — no “Available now” / “Coming” pills. Upcoming tools stay muted without status tags.
+- **Home grid:** Two columns from ~900px; single column below. Balanced 2×2, not a lonely fourth card.
 - **Term toggle:** `SegmentedPillTrack` (same as Find).
 - **Icons:** Ionicons only. No emoji as icons.
 
 ## 5. Layout principles
 
 - Max content width follows `WEB_CONTENT_MAX` (1520) with `WEB_CONTENT_PAD_X`.
-- Calculator desktop: form column + sticky ledger. Native: stack form then ledger.
+- Calculator desktop: full shell width, left-aligned form column + sticky ledger (Ocean mist card surfaces).
+- Native: stack form then ledger.
 
 ## 6. Depth & elevation
 

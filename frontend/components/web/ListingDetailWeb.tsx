@@ -9,7 +9,7 @@ import {
   Users,
   Zap,
 } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -20,12 +20,14 @@ import {
   Share,
   StyleSheet,
   View,
+  type LayoutChangeEvent,
 } from "react-native";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { CoincidentListingsSection } from "@/components/listings/CoincidentListingsSection";
 import { ReportListingDialog } from "@/components/web/ReportListingDialog";
 import { Skoun } from "@/constants/theme";
+import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
@@ -71,6 +73,29 @@ export function ListingDetailWeb({ listingId }: Props) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [showFullAbout, setShowFullAbout] = useState(false);
+  const [sidebarFixed, setSidebarFixed] = useState<{
+    left: number;
+    width: number;
+  } | null>(null);
+  const [sidebarHeight, setSidebarHeight] = useState(420);
+  const sidebarAnchorRef = useRef<View>(null);
+
+  const syncSidebarFixed = () => {
+    if (Platform.OS !== "web") return;
+    const node = sidebarAnchorRef.current as unknown as
+      | { getBoundingClientRect?: () => DOMRect }
+      | null;
+    const rect = node?.getBoundingClientRect?.();
+    if (!rect || rect.width < 1) return;
+    setSidebarFixed({ left: rect.left, width: rect.width });
+  };
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    syncSidebarFixed();
+    window.addEventListener("resize", syncSidebarFixed);
+    return () => window.removeEventListener("resize", syncSidebarFixed);
+  }, [listingId, isLoading]);
 
   // Accordion collapsed state for PBSA room categories
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({
@@ -828,8 +853,32 @@ export function ListingDetailWeb({ listingId }: Props) {
       {/* Vertical Separator Line */}
       <View style={styles.verticalSeparator} />
 
-      {/* RIGHT COLUMN (~32% width): Amber Top Sticky Booking Sidebar */}
-      <View style={styles.rightStickySidebar}>
+      {/* RIGHT COLUMN: fixed booking sidebar — does not scroll with the page */}
+      <View
+        ref={sidebarAnchorRef}
+        collapsable={false}
+        onLayout={(_e: LayoutChangeEvent) => syncSidebarFixed()}
+        style={[styles.rightSidebarAnchor, { minHeight: sidebarHeight }]}
+      >
+        <View
+          onLayout={(e) => {
+            const h = Math.ceil(e.nativeEvent.layout.height);
+            if (h > 0 && h !== sidebarHeight) setSidebarHeight(h);
+            syncSidebarFixed();
+          }}
+          style={[
+            styles.rightSidebarPanel,
+            Platform.OS === "web" && sidebarFixed
+              ? ({
+                  position: "fixed",
+                  top: WEB_NAV_HEIGHT + 16,
+                  left: sidebarFixed.left,
+                  width: sidebarFixed.width,
+                  zIndex: 60,
+                } as object)
+              : null,
+          ]}
+        >
         {/* Card 1: Main CTA & Social Proof Card */}
         <View style={styles.stickyTopCard}>
           {/* Header Title with Save & Share Icons */}
@@ -905,6 +954,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               <Ionicons name="chevron-down" size={14} color="#1F2A37" style={{ marginLeft: "auto" }} />
             </View>
           ))}
+        </View>
         </View>
       </View>
 
@@ -994,10 +1044,11 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     paddingBottom: 40,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: "#F9FAFB",
     maxWidth: 1240,
     alignSelf: "center",
     width: "100%",
+    overflow: "visible",
   },
   center: {
     alignItems: "center",
@@ -1009,6 +1060,7 @@ const styles = StyleSheet.create({
     gap: 16,
     width: "100%",
     alignItems: "flex-start",
+    overflow: "visible",
   },
   verticalSeparator: {
     width: 1,
@@ -1025,11 +1077,13 @@ const styles = StyleSheet.create({
     gap: 24,
     width: "100%",
   },
-  rightStickySidebar: {
+  rightSidebarAnchor: {
     width: 440,
-    position: "sticky" as unknown as "relative",
-    top: 80,
+    flexShrink: 0,
     alignSelf: "flex-start",
+  },
+  rightSidebarPanel: {
+    width: "100%",
     gap: 16,
   },
   breadcrumbList: {

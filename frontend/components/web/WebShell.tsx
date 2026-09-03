@@ -2,7 +2,6 @@ import { StyleSheet, View } from "react-native";
 import { WebFooter } from "@/components/web/WebFooter";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { WebTopNav } from "@/components/web/WebTopNav";
-import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 type Props = {
@@ -39,7 +38,7 @@ const styles = StyleSheet.create({
   root: {
     width: "100%",
     minHeight: "100vh" as unknown as number,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: "#F9FAFB",
     boxSizing: "border-box",
     display: "flex" as unknown as "flex",
     flexDirection: "column",

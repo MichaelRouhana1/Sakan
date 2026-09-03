@@ -469,10 +469,9 @@ export default function RenterSearchScreen() {
     showDistanceSplit && activeUni
       ? campusResultsHeading({ listings: processedListings })
       : null;
-  const resultsTitle =
-    showDistanceSplit && activeUni
-      ? `Student Accommodations near ${campusFilterLabel(activeUni)}`
-      : null;
+  const resultsTitle = activeUni
+    ? `Student Accommodations near ${campusFilterLabel(activeUni)}`
+    : null;
 
   const clearAllFilters = () => {
     resetSearch();

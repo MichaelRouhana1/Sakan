@@ -96,6 +96,15 @@ export class ListingsController {
     }
   }
 
+  async homePopular(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.homePopular(10);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async recordView(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.recordView(

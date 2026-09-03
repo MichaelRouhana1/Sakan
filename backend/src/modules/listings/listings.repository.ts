@@ -17,6 +17,7 @@ import {
   COINCIDENT_METERS,
   NEARBY_LISTINGS_LIMIT,
 } from "../../constants/mapCoincident.js";
+import { campusHousingRadiusMeters } from "../campus/campus.repository.js";
 import { db } from "../../db/index.js";
 import { listingPhotos, listings } from "../../db/schema/index.js";
 import { deriveListingType } from "./deriveListingType.js";
@@ -807,6 +808,84 @@ export class ListingsRepository {
         and(eq(listings.posterId, posterId), eq(listings.status, "active")),
       );
     return rows.length;
+  }
+
+  /** Top areas by active listing pin count (home discover grid). */
+  async topAreasByPinCount(limit = 10) {
+    const rows = await db
+      .select({
+        name: listings.area,
+        count: sql<number>`count(*)::int`.as("count"),
+      })
+      .from(listings)
+      .where(eq(listings.status, "active"))
+      .groupBy(listings.area)
+      .orderBy(desc(sql`count(*)`), asc(listings.area))
+      .limit(limit);
+    return rows.map((r) => ({
+      name: String(r.name),
+      count: Number(r.count ?? 0),
+    }));
+  }
+
+  /**
+   * Top campuses by active listings within housing radius.
+   * Excludes Lebanese University (public) — same filter as public uni catalog.
+   */
+  async topCampusesByNearbyPins(limit = 10) {
+    const result = await db.execute(sql`
+      SELECT
+        u.id,
+        u.slug,
+        u.name,
+        u.city,
+        u.is_main AS "isMain",
+        i.short_name AS "institutionShortName",
+        i.slug AS "institutionSlug",
+        i.logo_url AS "logoUrl",
+        COUNT(l.id)::int AS count
+      FROM universities u
+      LEFT JOIN institutions i ON i.id = u.institution_id
+      LEFT JOIN listings l
+        ON l.status = 'active'
+        AND l.location IS NOT NULL
+        AND u.location IS NOT NULL
+        AND ST_DWithin(l.location, u.location, ${campusHousingRadiusMeters})
+      WHERE u.active = true
+        AND COALESCE(LOWER(u.slug), '') NOT IN ('lu', 'lu-fanar')
+        AND COALESCE(LOWER(i.slug), '') NOT IN ('lu')
+        AND COALESCE(LOWER(u.name), '') NOT LIKE '%lebanese university%'
+        AND COALESCE(LOWER(i.name), '') NOT LIKE '%lebanese university%'
+      GROUP BY
+        u.id, u.slug, u.name, u.city, u.is_main,
+        i.short_name, i.slug, i.logo_url
+      HAVING COUNT(l.id) > 0
+      ORDER BY COUNT(l.id) DESC, u.is_main DESC, i.short_name ASC NULLS LAST, u.name ASC
+      LIMIT ${limit}
+    `);
+    const rows = Array.isArray(result)
+      ? result
+      : ((result as { rows?: Record<string, unknown>[] }).rows ?? []);
+    return rows.map((row) => {
+      const shortName =
+        row.institutionShortName != null
+          ? String(row.institutionShortName)
+          : null;
+      const name = String(row.name);
+      return {
+        id: String(row.id),
+        slug: String(row.slug),
+        name,
+        city: row.city != null ? String(row.city) : null,
+        isMain: Boolean(row.isMain),
+        institutionShortName: shortName,
+        institutionSlug:
+          row.institutionSlug != null ? String(row.institutionSlug) : null,
+        logoUrl: row.logoUrl != null ? String(row.logoUrl) : null,
+        displayName: shortName ? `${shortName} — ${name}` : name,
+        count: Number(row.count ?? 0),
+      };
+    });
   }
 
   async archiveById(id: string, posterId: string) {

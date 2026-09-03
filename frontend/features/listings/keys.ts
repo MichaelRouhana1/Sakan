@@ -36,6 +36,7 @@ export const listingKeys = {
   lists: () => [...listingKeys.all, "list"] as const,
   list: (filters: ListingListFilters) =>
     [...listingKeys.lists(), filters] as const,
+  homePopular: () => [...listingKeys.all, "home-popular"] as const,
   details: () => [...listingKeys.all, "detail"] as const,
   detail: (id: string) => [...listingKeys.details(), id] as const,
   nearby: (id: string) => [...listingKeys.detail(id), "nearby"] as const,

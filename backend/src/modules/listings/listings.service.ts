@@ -55,6 +55,15 @@ export class ListingsService {
     return rows;
   }
 
+  /** Home discover: top areas by pins + top campuses by nearby pins. */
+  async homePopular(limit = 10) {
+    const [areas, universities] = await Promise.all([
+      listingsRepository.topAreasByPinCount(limit),
+      listingsRepository.topCampusesByNearbyPins(limit),
+    ]);
+    return { areas, universities };
+  }
+
   async recordView(
     id: string,
     viewer?: { id: string; role: "renter" | "poster" },

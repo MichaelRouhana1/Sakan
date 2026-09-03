@@ -15,6 +15,10 @@ listingsRouter.get("/mine", requireAuth, (req, res, next) =>
   listingsController.listMine(req, res, next),
 );
 
+listingsRouter.get("/home-popular", (req, res, next) =>
+  listingsController.homePopular(req, res, next),
+);
+
 listingsRouter.post(
   "/photos",
   requireAuth,

@@ -38,6 +38,6 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     minHeight: "100vh" as unknown as number,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: "#F9FAFB",
   },
 });

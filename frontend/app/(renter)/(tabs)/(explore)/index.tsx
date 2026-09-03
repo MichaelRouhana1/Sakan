@@ -37,14 +37,19 @@ import {
   DIRECTORY_AREAS,
   DIRECTORY_UNIS,
   HERO,
+  HOME_DISCOVER_TABS,
   POPULAR_SEARCHES,
   PROMO_CARDS,
   RAIL_PILLS,
   STEPS,
   TESTIMONIALS,
   VALUE_PROPS,
+  areaTileImage,
   type DemoListing,
+  type HomeDiscoverTabId,
 } from "@/components/web/home/homeData";
+import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
+import { useHomePopular } from "@/features/listings/useHomePopular";
 
 /** NativeTabs + groups: `/search` is unmatched at root (hits +not-found). */
 const SEARCH_PATH = "/(renter)/(tabs)/(explore)/search" as const;
@@ -72,7 +77,7 @@ export default function RenterNewHomeScreen() {
       )
     : null;
   const { width } = useWindowDimensions();
-  const [regionId, setRegionId] = useState(AREA_REGIONS[0].id);
+  const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,11 +85,82 @@ export default function RenterNewHomeScreen() {
   const [campusPromptDismissed, setCampusPromptDismissed] = useState(false);
   const [campusSaving, setCampusSaving] = useState(false);
   const universities = useUniversities();
+  const homePopular = useHomePopular();
 
-  const currentRegion = useMemo(
-    () => AREA_REGIONS.find((r) => r.id === regionId) ?? AREA_REGIONS[0],
-    [regionId]
-  );
+  const areaTiles = useMemo(() => {
+    const live = homePopular.data?.areas ?? [];
+    if (live.length > 0) {
+      return live.slice(0, 10).map((a) => ({
+        key: a.name,
+        label: a.name,
+        image: areaTileImage(a.name),
+        kind: "area" as const,
+      }));
+    }
+    return (AREA_REGIONS[0]?.areas ?? []).slice(0, 10).map((a) => ({
+      key: a.name,
+      label: a.name,
+      image: a.image,
+      kind: "area" as const,
+    }));
+  }, [homePopular.data?.areas]);
+
+  const uniTiles = useMemo(() => {
+    const live = homePopular.data?.universities ?? [];
+    if (live.length > 0) {
+      return live.slice(0, 10).map((u) => ({
+        key: u.id,
+        label: u.institutionShortName
+          ? u.isMain
+            ? u.institutionShortName
+            : `${u.institutionShortName} · ${u.name}`
+          : u.name,
+        shortName: u.institutionShortName ?? u.name,
+        institutionSlug: u.institutionSlug,
+        logoUrl: u.logoUrl,
+        campusId: u.id,
+        slug: u.slug,
+        kind: "uni" as const,
+      }));
+    }
+    const preferred = [
+      "aub",
+      "lau-beirut",
+      "lau-jbeil",
+      "usj-huvelin",
+      "ndu-louaize",
+      "usek-kaslik",
+      "bau-beirut",
+      "balamand",
+      "haigazian-kantari",
+      "liu-beirut",
+    ];
+    const bySlug = new Map(
+      (universities.data ?? []).map((u) => [u.slug, u] as const),
+    );
+    const picked = preferred
+      .map((slug) => bySlug.get(slug))
+      .filter((u): u is NonNullable<typeof u> => Boolean(u));
+    const fill = (universities.data ?? []).filter(
+      (u) => u.isMain && !picked.some((p) => p.id === u.id),
+    );
+    return [...picked, ...fill].slice(0, 10).map((u) => ({
+      key: u.id,
+      label: u.institutionShortName
+        ? u.isMain
+          ? u.institutionShortName
+          : `${u.institutionShortName} · ${u.name}`
+        : u.name,
+      shortName: u.institutionShortName ?? u.name,
+      institutionSlug: u.institutionSlug,
+      logoUrl: u.logoUrl,
+      campusId: u.id,
+      slug: u.slug,
+      kind: "uni" as const,
+    }));
+  }, [homePopular.data?.universities, universities.data]);
+
+  const discoverTiles = discoverTab === "areas" ? areaTiles : uniTiles;
 
   const railListings = useMemo(() => {
     const match = DEMO_LISTINGS.filter((l) => l.area === railPill);
@@ -124,34 +200,6 @@ export default function RenterNewHomeScreen() {
     : handleBecomeAHost;
 
   const fitTileWidth = (width - 40 - 12) / 2; // two column with padding 20 and gap 12
-
-  // Styled icons for our Governorates selector (to match Amber's circular flags)
-  const GOVERNORATES = [
-    {
-      id: "beirut",
-      shortLabel: "BEY",
-      label: "Beirut",
-      icon: "location",
-      bgColor: Skoun.color.primaryMist,
-      color: Skoun.color.primary,
-    },
-    {
-      id: "coast",
-      shortLabel: "MTL",
-      label: "Coast & hills",
-      icon: "leaf",
-      bgColor: "#EBF5FF",
-      color: "#1E429F",
-    },
-    {
-      id: "cities",
-      shortLabel: "CTY",
-      label: "Cities",
-      icon: "business",
-      bgColor: "#E7F8F3",
-      color: "#128C7E",
-    },
-  ];
 
   return (
     <View style={styles.container}>
@@ -278,11 +326,11 @@ export default function RenterNewHomeScreen() {
           </View>
         </View>
 
-        {/* POPULAR AREAS WITH ROUNDED FLAG SELECTORS (GOVERNORATES) */}
+        {/* POPULAR AREAS / UNIS (top pins) */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <LText variant="title" style={styles.sectionTitle}>
-              Popular neighborhoods
+              Popular across Lebanon
             </LText>
             <LText variant="body" tone="muted" style={styles.sectionSub}>
               Browse student housing near {CAMPUS_CATALOG.campuses} campuses
@@ -291,54 +339,86 @@ export default function RenterNewHomeScreen() {
             </LText>
           </View>
 
-          {/* Governorates rounded row selectors (Matches Amber's flag selectors) */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.govScrollContent}
-            style={styles.govOuterScroll}
+            contentContainerStyle={styles.pillsContainer}
+            style={styles.pillsOuterScroll}
           >
-            {GOVERNORATES.map((gov) => {
-              const active = gov.id === regionId;
+            {HOME_DISCOVER_TABS.map((tab) => {
+              const active = tab.id === discoverTab;
               return (
                 <Pressable
-                  key={gov.id}
-                  onPress={() => setRegionId(gov.id)}
-                  style={styles.govItemContainer}
+                  key={tab.id}
+                  onPress={() => setDiscoverTab(tab.id)}
+                  style={[styles.regionPill, active && styles.regionPillActive]}
                 >
-                  <View
+                  <Text
                     style={[
-                      styles.govCircle,
-                      { backgroundColor: gov.bgColor },
-                      active && styles.govCircleActive,
+                      styles.regionPillText,
+                      active && styles.regionPillTextActive,
                     ]}
                   >
-                    <Ionicons name={gov.icon as any} size={22} color={gov.color} />
-                  </View>
-                  <Text style={[styles.govLabelText, active && styles.govLabelTextActive]}>
-                    {gov.shortLabel}
+                    {tab.label}
                   </Text>
                 </Pressable>
               );
             })}
           </ScrollView>
 
-          {/* Grid of city tiles (2 columns wrapper) */}
           <View style={styles.cityGrid}>
-            {currentRegion.areas.slice(0, 6).map((area) => (
-              <Pressable
-                key={area.name}
-                onPress={() => handleSearchQuick(area.name, "area")}
-                style={[styles.cityCard, { width: fitTileWidth, height: fitTileWidth * 1.15 }]}
-              >
-                <Image source={{ uri: area.image }} style={styles.cityImg} />
-                <LinearGradient
-                  colors={["transparent", "rgba(18,24,38,0.75)"]}
-                  style={styles.cityOverlay}
-                />
-                <Text style={styles.cityName}>{area.name}</Text>
-              </Pressable>
-            ))}
+            {discoverTiles.slice(0, 10).map((tile) =>
+              tile.kind === "area" ? (
+                <Pressable
+                  key={tile.key}
+                  onPress={() => handleSearchQuick(tile.label, "area")}
+                  style={[
+                    styles.cityCard,
+                    { width: fitTileWidth, height: fitTileWidth * 1.15 },
+                  ]}
+                >
+                  <Image source={{ uri: tile.image }} style={styles.cityImg} />
+                  <LinearGradient
+                    colors={["transparent", "rgba(18,24,38,0.75)"]}
+                    style={styles.cityOverlay}
+                  />
+                  <Text style={styles.cityName}>{tile.label}</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  key={tile.key}
+                  onPress={() =>
+                    pushSearch({
+                      campusId: tile.campusId,
+                      universitySlugs: [tile.slug],
+                    })
+                  }
+                  style={[
+                    styles.uniCityCard,
+                    { width: fitTileWidth, height: fitTileWidth * 1.15 },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={["#EAF1FC", "#FFFFFF", "#F7F9FC"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.uniCityFill}
+                  >
+                    <View style={styles.uniLogoWell}>
+                      <InstitutionLogo
+                        shortName={tile.shortName}
+                        slug={tile.institutionSlug}
+                        logoUrl={tile.logoUrl}
+                        size={Math.round(fitTileWidth * 0.42)}
+                      />
+                    </View>
+                    <Text style={styles.uniCityName} numberOfLines={2}>
+                      {tile.label}
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+              ),
+            )}
           </View>
         </View>
 
@@ -997,6 +1077,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#ffffff",
     fontWeight: "600",
+  },
+  uniCityCard: {
+    borderRadius: Skoun.radius.lg,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#D5DCE7",
+    backgroundColor: Skoun.color.surface,
+    shadowColor: "#121826",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  uniCityFill: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  uniLogoWell: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D4E0F4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uniCityName: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 13,
+    color: "#111928",
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 6,
   },
   listingsScrollContent: {
     gap: 14,

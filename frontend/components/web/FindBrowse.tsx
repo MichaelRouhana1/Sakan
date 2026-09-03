@@ -377,6 +377,43 @@ export function FindBrowse() {
     setBrowseSort("newest");
   };
 
+  const applyBrowseFilters = useCallback(
+    (next: typeof filters) => {
+      setFilters(next);
+      const uniSlug = next.universitySlugs[0];
+      if (uniSlug || next.campusId) {
+        setMode("university");
+        setBrowseSort("distance");
+        const campus =
+          universities.data?.find((u) => u.slug === uniSlug) ??
+          universities.data?.find((u) => u.id === next.campusId) ??
+          null;
+        if (campus?.lat != null && campus?.lng != null) {
+          setFocusPoint({ lat: campus.lat, lng: campus.lng });
+        }
+        syncUrl({
+          q: null,
+          campusId: next.campusId ?? campus?.id ?? null,
+          areas: [],
+          universitySlugs: uniSlug
+            ? [uniSlug]
+            : campus
+              ? [campus.slug]
+              : [],
+        });
+      } else {
+        syncUrl({
+          q: next.q,
+          campusId: null,
+          areas: next.areas,
+          universitySlugs: [],
+        });
+      }
+      setFiltersOpen(false);
+    },
+    [syncUrl, universities.data],
+  );
+
   const toggleArea = (area: string) => {
     setFilters((prev) => {
       const next = prev.areas.includes(area)
@@ -423,7 +460,7 @@ export function FindBrowse() {
       <View style={styles.headingRow}>
         <View style={styles.headingText}>
           <Text style={[styles.h1, isMap && styles.h1Map]}>
-            {showDistanceSplit && universityLabel ? (
+            {universityLabel ? (
               <>
                 Student Accommodations near{" "}
                 <Text style={styles.h1Em}>{universityLabel}</Text>
@@ -655,11 +692,7 @@ export function FindBrowse() {
           universitiesLoading={universities.isLoading}
           initialSection={filterSection}
           onClose={() => setFiltersOpen(false)}
-          onApply={(next) => {
-            setFilters(next);
-            if (next.universitySlugs.length > 0) setMode("university");
-            setFiltersOpen(false);
-          }}
+          onApply={applyBrowseFilters}
         />
       ) : (
         <BrowseFiltersPanel
@@ -669,11 +702,7 @@ export function FindBrowse() {
           universities={universities.data ?? []}
           universitiesLoading={universities.isLoading}
           onClose={() => setFiltersOpen(false)}
-          onApply={(next) => {
-            setFilters(next);
-            if (next.universitySlugs.length > 0) setMode("university");
-            setFiltersOpen(false);
-          }}
+          onApply={applyBrowseFilters}
         />
       )}
 
@@ -838,7 +867,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     display: "flex" as unknown as "flex",
     flexDirection: "column",
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: "#F9FAFB",
   },
   pageMap: {
     width: "100%",

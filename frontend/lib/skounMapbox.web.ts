@@ -1156,6 +1156,15 @@ function bindPopupCloseButton(popup: Popup): void {
   });
 }
 
+function stripOrphanPopupNodes(keep: Popup): void {
+  const el = keep.getElement();
+  if (!el) return;
+  const root = el.closest(".mapboxgl-map") ?? el.parentElement;
+  root?.querySelectorAll(".mapboxgl-popup").forEach((node) => {
+    if (node !== el) node.remove();
+  });
+}
+
 function wireAmberPopup(
   popup: Popup,
   onOpen?: (popup: Popup) => void,
@@ -1169,6 +1178,8 @@ function wireAmberPopup(
     }
     window._skounActivePopup = popup;
     bindPopupCloseButton(popup);
+    // Side-replace races can leave detached popup DOM; kill them before onOpen.
+    stripOrphanPopupNodes(popup);
     onOpen?.(popup);
   });
   popup.on("close", () => {
@@ -1250,10 +1261,19 @@ export function applyAmberPopupSide(
   );
   if (wasOpen) {
     next.addTo(ctx.map);
-    window._skounActivePopup = next;
-    bindPopupCloseButton(next);
+    // Do NOT set _skounActivePopup here — open handler does, and onOpen may
+    // replace again (another applyAmberPopupSide). Overwriting with `next`
+    // left a stale pointer while the live card stayed untracked, so the next
+    // pin click failed to close it.
   }
-  return next;
+  // onOpen may have side-replaced again; return the marker's live popup.
+  const live = (ctx.marker.getPopup?.() as Popup | null | undefined) ?? next;
+  if (wasOpen && live.isOpen()) {
+    window._skounActivePopup = live;
+    bindPopupCloseButton(live);
+    stripOrphanPopupNodes(live);
+  }
+  return live;
 }
 
 export function amberPopupHtml(group: MapPinGroup): string {

@@ -4,8 +4,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { eq, sql } from "drizzle-orm";
 import { loadEnv } from "../../config/env.js";
+import {
+  hoursWithPowerFromWindows,
+  resolveCutWindows,
+} from "../../lib/electricityCuts.js";
+import { deriveContactPhones } from "../../lib/lebanonPhone.js";
+import { deriveListingType } from "../../modules/listings/deriveListingType.js";
 import { db } from "../index.js";
-import { listingPhotos, listings, users } from "../schema/index.js";
+import { listingPhotos, listings, universities, users } from "../schema/index.js";
 import { listingSeeds } from "./listings.js";
 
 const SEED_POSTER_PHONE = "+96170000001";
@@ -70,6 +76,15 @@ async function ensurePoster(): Promise<string> {
   return created.id;
 }
 
+async function campusIdBySlug(slug: string): Promise<string | null> {
+  const [row] = await db
+    .select({ id: universities.id })
+    .from(universities)
+    .where(eq(universities.slug, slug))
+    .limit(1);
+  return row?.id ?? null;
+}
+
 async function clearListings() {
   // Cascade removes listing_photos + saved_listings.
   await db.delete(listings);
@@ -99,24 +114,77 @@ async function main() {
       process.stdout.write(".");
     }
 
+    const listingType = deriveListingType(seed.spaceType, seed.propertyType);
+    const cutWindows = resolveCutWindows({
+      electricity: seed.electricity,
+      electricityCutWindows: seed.electricityCutWindows,
+    });
+    const firstCut = cutWindows[0];
+    const hoursOn = hoursWithPowerFromWindows(cutWindows);
+    const phones = deriveContactPhones(seed.contactNumbers);
+    const primaryCampusId = await campusIdBySlug(seed.campusSlug);
+    if (!primaryCampusId) {
+      console.warn(
+        `\nWarning: campus slug "${seed.campusSlug}" not found — seeding without primaryCampusId`,
+      );
+    }
+
     const [row] = await db
       .insert(listings)
       .values({
         posterId,
         status: "active",
-        listingType: seed.listingType,
+        listingType,
+        spaceType: seed.spaceType,
+        propertyType: seed.propertyType,
+        priceBasis: seed.priceBasis,
         targetAudience: seed.targetAudience,
-        genderRestriction: seed.genderRestriction ?? "anyone",
+        genderRestriction: seed.genderRestriction,
         monthlyRentUsd: seed.monthlyRentUsd,
+        securityDepositUsd: seed.securityDepositUsd,
+        leaseTerm: seed.leaseTerm,
+        availableFrom: seed.availableFrom,
+        paymentModality: seed.paymentModality,
         electricity: seed.electricity,
+        electricityCutsStart: firstCut?.start ?? null,
+        electricityCutsEnd: firstCut?.end ?? null,
+        electricityHoursOn: hoursOn,
+        electricityCutWindows: cutWindows,
         water: seed.water,
         wifiIncluded: seed.wifiIncluded,
         routerUps: seed.routerUps,
         elevator24_7: seed.elevator24_7,
+        hasElevator: seed.hasElevator,
+        hasSolar: seed.hasSolar,
+        generatorAmperes: seed.generatorAmperes,
+        generatorIncluded: seed.generatorIncluded,
+        conciergeIncluded: seed.conciergeIncluded,
+        cookingGasIncluded: seed.cookingGasIncluded,
+        amenities: seed.amenities,
+        bedrooms: seed.bedrooms,
+        beds: seed.beds,
+        bathrooms: seed.bathrooms,
+        maxOccupancy: seed.maxOccupancy,
+        furnishingType: seed.furnishingType,
+        floorNumber: seed.floorNumber,
+        areaSqm: seed.areaSqm,
+        smokingPolicy: seed.smokingPolicy,
+        petsPolicy: seed.petsPolicy,
+        guestsPolicy: seed.guestsPolicy,
+        quietHours: seed.quietHours,
+        title: seed.title,
+        description: seed.description,
+        highlightTags: seed.highlightTags,
+        listingPosterRole: seed.listingPosterRole,
+        contactName: seed.contactName,
+        contactPhone: phones.contactPhone,
+        whatsappNumber: phones.whatsappNumber,
+        contactNumbers: seed.contactNumbers,
         area: seed.area,
         landmark: seed.landmark,
-        title: seed.landmark.slice(0, 60),
-        description: `Student housing in ${seed.area} near ${seed.landmark}. Quiet building, close to campus.`,
+        addressLine: seed.addressLine,
+        buildingName: seed.buildingName,
+        primaryCampusId,
         location: sql`ST_GeogFromText(${seed.location})`,
         publishedAt: now,
         expiresAt,
@@ -130,13 +198,14 @@ async function main() {
       photoUrls.map((url, index) => ({
         listingId: row.id,
         url,
+        caption: seed.photoCaptions[index]?.trim() || null,
         sortOrder: index,
       })),
     );
     created += 1;
   }
 
-  console.log(`\nSeeded ${created} listings with Unsplash photos`);
+  console.log(`\nSeeded ${created} listings with full upload fields + tags`);
   process.exit(0);
 }
 

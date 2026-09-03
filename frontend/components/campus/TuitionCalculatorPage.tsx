@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -277,16 +278,24 @@ export function TuitionCalculatorPage() {
   };
 
   const formColumn = (
-      <View style={[styles.formCol, wide && styles.formColWide]}>
+    <View style={[styles.formCol, wide && styles.formColWide]}>
+      <View style={styles.hero}>
+        <View style={styles.heroRule} />
         <Text style={styles.kicker}>Tuition & study cost</Text>
         <Text style={styles.title}>What will this major cost?</Text>
         <Text style={styles.lede}>
           Estimate published USD tuition for private universities in Lebanon,
           then jump to rooms near that campus.
         </Text>
+      </View>
 
-        <View style={styles.formCard}>
-          <View style={styles.formAccent} />
+      <View style={styles.formCard}>
+        <LinearGradient
+          colors={["#EAF1FC", "#FFFFFF", "#F7F9FC"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.formCardFill}
+        >
           {catalog.isLoading ? (
             <ActivityIndicator color={Skoun.color.primary} />
           ) : null}
@@ -528,12 +537,19 @@ export function TuitionCalculatorPage() {
               })}
             </>
           ) : null}
-        </View>
+        </LinearGradient>
       </View>
+    </View>
   );
 
   const ledgerCard = (
-      <View style={[styles.ledger, wide && styles.ledgerWide]}>
+    <View style={[styles.ledger, wide && styles.ledgerWide]}>
+      <LinearGradient
+        colors={["#E6EEFA", "#FFFFFF", "#F5F7FA"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.ledgerFill}
+      >
         {!program ? (
           <>
             <Text style={styles.placeholder}>
@@ -561,9 +577,7 @@ export function TuitionCalculatorPage() {
             <Text style={styles.ledgerKicker}>
               {costs.data.institution.shortName} · {costs.data.program.name}
             </Text>
-            <Text
-              style={[styles.total, !reduced && styles.totalEnter]}
-            >
+            <Text style={[styles.total, !reduced && styles.totalEnter]}>
               {money(grandTotal)}
             </Text>
             <Text style={styles.totalSub}>
@@ -644,15 +658,18 @@ export function TuitionCalculatorPage() {
             ) : null}
           </>
         ) : null}
-      </View>
+      </LinearGradient>
+    </View>
   );
 
   // Web: document scroll + CSS sticky ledger (RN ScrollView breaks sticky).
   if (Platform.OS === "web") {
     return (
-      <View style={[styles.content, wide && styles.contentWide]}>
-        {formColumn}
-        {ledgerCard}
+      <View style={styles.page}>
+        <View style={[styles.content, wide && styles.contentWide]}>
+          {formColumn}
+          {ledgerCard}
+        </View>
       </View>
     );
   }
@@ -660,40 +677,58 @@ export function TuitionCalculatorPage() {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      {formColumn}
-      {ledgerCard}
+      <View style={styles.content}>
+        {formColumn}
+        {ledgerCard}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
+  page: {
+    width: "100%",
+    alignSelf: "stretch",
+    paddingBottom: 48,
+  },
   content: {
     gap: 28,
-    paddingBottom: 48,
+    width: "100%",
   },
   contentWide: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 32,
   },
-  formCol: { flex: 1, gap: 10, minWidth: 0 },
+  formCol: { flex: 1, gap: 16, minWidth: 0 },
   formColWide: { flex: 1.15 },
+  hero: {
+    gap: 10,
+    maxWidth: 560,
+  },
+  heroRule: {
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: Skoun.color.primary,
+    marginBottom: 2,
+  },
   kicker: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
     color: Skoun.color.inkMuted,
   },
   title: {
     fontFamily: Skoun.type.display,
-    fontSize: 36,
-    lineHeight: 42,
-    letterSpacing: -0.6,
+    fontSize: 40,
+    lineHeight: 46,
+    letterSpacing: -0.8,
     color: Skoun.color.ink,
   },
   lede: {
@@ -701,44 +736,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Skoun.color.inkMuted,
-    marginBottom: 8,
-    maxWidth: 560,
+    maxWidth: 520,
   },
   formCard: {
-    position: "relative",
-    marginTop: 12,
-    backgroundColor: Skoun.color.surface,
+    position: 'relative',
+    marginTop: 4,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: '#D5DCE7',
     borderRadius: Skoun.radius.lg,
-    paddingTop: 28,
+    overflow: 'hidden',
+    backgroundColor: Skoun.color.surface,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 2px 8px rgba(18, 24, 38, 0.05)',
+        } as object)
+      : {
+          shadowColor: '#121826',
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 3 },
+        }),
+  },
+  formCardFill: {
+    paddingTop: 26,
     paddingBottom: 24,
     paddingHorizontal: 22,
     gap: 18,
-    overflow: "visible",
-    shadowColor: "#121826",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
-    ...(Platform.OS === "web"
-      ? ({
-          boxShadow: "0 10px 28px rgba(18, 24, 38, 0.08)",
-        } as object)
-      : null),
-  },
-  formAccent: {
-    position: "absolute",
-    top: 0,
-    left: 22,
-    right: 22,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: Skoun.color.primary,
+    overflow: "hidden",
   },
   formDivider: {
     height: 1,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: '#E2E8F0',
     marginTop: 4,
     marginBottom: 4,
   },
@@ -764,15 +792,15 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: '#D9E3F4',
   },
   loadTitle: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.35,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     color: Skoun.color.inkMuted,
   },
   loadBody: {
@@ -786,11 +814,11 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
   },
   customToggle: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingVertical: 4,
-    cursor: "pointer",
+    cursor: 'pointer',
   },
   switchTrack: {
     width: 44,
@@ -798,13 +826,13 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: Skoun.color.border,
     paddingHorizontal: 3,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   switchTrackOn: {
     backgroundColor: Skoun.color.primary,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   switchThumb: {
     width: 20,
@@ -839,14 +867,14 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
     minHeight: 48,
     maxWidth: 160,
-    outlineStyle: "none" as unknown as undefined,
+    outlineStyle: 'none' as unknown as undefined,
   },
   checkRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 10,
     paddingVertical: 8,
-    cursor: "pointer",
+    cursor: 'pointer',
   },
   check: {
     width: 20,
@@ -855,8 +883,8 @@ const styles = StyleSheet.create({
     borderColor: Skoun.color.borderStrong,
     borderRadius: Skoun.radius.sm,
     marginTop: 2,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkOn: {
     backgroundColor: Skoun.color.primary,
@@ -868,12 +896,27 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
   },
   ledger: {
-    backgroundColor: Skoun.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: '#D5DCE7',
     borderRadius: Skoun.radius.lg,
+    overflow: 'hidden',
+    backgroundColor: Skoun.color.surface,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 2px 8px rgba(18, 24, 38, 0.05)',
+        } as object)
+      : {
+          shadowColor: '#121826',
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 3 },
+        }),
+  },
+  ledgerFill: {
     padding: 24,
     gap: 8,
+    overflow: "hidden",
+    minHeight: 180,
   },
   ledgerWide: {
     width: 400,
@@ -890,15 +933,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Skoun.color.inkFaint,
     lineHeight: 22,
+    zIndex: 1,
   },
   error: {
     fontFamily: Skoun.type.bodyMedium,
     color: Skoun.color.danger,
+    zIndex: 1,
   },
   ledgerKicker: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 13,
     color: Skoun.color.inkMuted,
+    zIndex: 1,
   },
   total: {
     fontFamily: Skoun.type.display,
@@ -906,7 +952,8 @@ const styles = StyleSheet.create({
     lineHeight: 54,
     letterSpacing: -0.8,
     color: Skoun.color.ink,
-    fontVariant: ["tabular-nums"],
+    fontVariant: ['tabular-nums'],
+    zIndex: 1,
   },
   totalEnter: {},
   totalSub: {
@@ -914,17 +961,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Skoun.color.inkMuted,
     marginBottom: 8,
+    zIndex: 1,
   },
   rule: {
     height: 1,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: '#E2E8F0',
     marginVertical: 8,
+    zIndex: 1,
   },
   line: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: 12,
     paddingVertical: 4,
+    zIndex: 1,
   },
   lineLabel: {
     flex: 1,
@@ -936,7 +986,7 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodySemi,
     fontSize: 14,
     color: Skoun.color.ink,
-    fontVariant: ["tabular-nums"],
+    fontVariant: ['tabular-nums'],
   },
   disclaimer: {
     fontFamily: Skoun.type.body,
@@ -944,33 +994,40 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Skoun.color.inkFaint,
     marginTop: 8,
+    zIndex: 1,
   },
   years: {
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 12,
     color: Skoun.color.inkMuted,
+    zIndex: 1,
   },
   sourceLink: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 13,
     color: Skoun.color.primary,
-    textDecorationLine: "underline",
+    textDecorationLine: 'underline',
     marginTop: 4,
+    zIndex: 1,
   },
   housingTitle: {
     fontFamily: Skoun.type.bodyBold,
     fontSize: 15,
     color: Skoun.color.ink,
     marginTop: 4,
+    zIndex: 1,
   },
   housingBody: {
     fontFamily: Skoun.type.body,
     fontSize: 14,
     lineHeight: 20,
     color: Skoun.color.inkMuted,
+    zIndex: 1,
   },
   housingCta: {
     marginTop: 8,
-    alignSelf: "stretch",
+    alignSelf: 'stretch',
+    zIndex: 1,
   },
 });
+

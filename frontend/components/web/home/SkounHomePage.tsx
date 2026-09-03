@@ -30,6 +30,7 @@ import {
   DIRECTORY_AREAS,
   DIRECTORY_UNIS,
   HERO,
+  HOME_DISCOVER_TABS,
   POPULAR_SEARCHES,
   popularSearchBrowseParams,
   PROMO_CARDS,
@@ -38,9 +39,13 @@ import {
   STEPS,
   TESTIMONIALS,
   VALUE_PROPS,
+  areaTileImage,
   type DemoListing,
+  type HomeDiscoverTabId,
 } from "./homeData";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
+import { useHomePopular } from "@/features/listings/useHomePopular";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
 import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
@@ -121,6 +126,58 @@ function AreaCityCard({
       >
         {name}
       </Text>
+    </Pressable>
+  );
+}
+
+function UniCityCard({
+  label,
+  shortName,
+  institutionSlug,
+  logoUrl,
+  size,
+  onPress,
+  fillCell = false,
+}: {
+  label: string;
+  shortName: string;
+  institutionSlug?: string | null;
+  logoUrl?: string | null;
+  size: number;
+  onPress: () => void;
+  fillCell?: boolean;
+}) {
+  const logoSize = Math.min(64, Math.round(size * 0.4));
+  return (
+    <Pressable
+      style={[
+        styles.uniTile,
+        fillCell
+          ? { width: "100%" as unknown as number, height: size }
+          : { width: size, height: size },
+      ]}
+      onPress={onPress}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+    >
+      <LinearGradient
+        colors={["#EAF1FC", "#FFFFFF", "#F7F9FC"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.uniTileFill}
+      >
+        <View style={styles.uniTileLogoWell} pointerEvents="none">
+          <InstitutionLogo
+            shortName={shortName}
+            slug={institutionSlug}
+            logoUrl={logoUrl}
+            size={logoSize}
+          />
+        </View>
+        <Text style={styles.uniTileLabel} numberOfLines={2}>
+          {label}
+        </Text>
+      </LinearGradient>
     </Pressable>
   );
 }
@@ -493,9 +550,11 @@ export function SkounHomePage() {
   const { width } = useWindowDimensions();
   const [navSolid, setNavSolid] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [regionId, setRegionId] = useState(AREA_REGIONS[0].id);
+  const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
+  const homePopular = useHomePopular();
+  const universities = useUniversities();
 
   const openAuth = () => setAuthModalOpen(true);
 
@@ -504,13 +563,87 @@ export function SkounHomePage() {
   const cityGap = isNarrow ? 10 : 16;
   const innerW = Math.min(width, 1400) - padX * 2;
 
-  const region = useMemo(
-    () => AREA_REGIONS.find((r) => r.id === regionId) ?? AREA_REGIONS[0],
-    [regionId],
-  );
+  const areaTiles = useMemo(() => {
+    const live = homePopular.data?.areas ?? [];
+    if (live.length > 0) {
+      return live.map((a) => ({
+        key: a.name,
+        label: a.name,
+        image: areaTileImage(a.name),
+        kind: "area" as const,
+        areas: [a.name],
+      }));
+    }
+    // Empty DB fallback — curated Beirut tiles so home still has content.
+    return (AREA_REGIONS[0]?.areas ?? []).slice(0, 10).map((a) => ({
+      key: a.name,
+      label: a.name,
+      image: a.image,
+      kind: "area" as const,
+      areas: [a.name],
+    }));
+  }, [homePopular.data?.areas]);
+
+  const uniTiles = useMemo(() => {
+    const live = homePopular.data?.universities ?? [];
+    if (live.length > 0) {
+      return live.map((u) => ({
+        key: u.id,
+        label: u.institutionShortName
+          ? u.isMain
+            ? u.institutionShortName
+            : `${u.institutionShortName} · ${u.name}`
+          : u.name,
+        shortName: u.institutionShortName ?? u.name,
+        institutionSlug: u.institutionSlug,
+        logoUrl: u.logoUrl,
+        kind: "uni" as const,
+        campusId: u.id,
+        universitySlugs: [u.slug],
+      }));
+    }
+    // Empty DB fallback — main campuses of well-known institutions.
+    const preferred = [
+      "aub",
+      "lau-beirut",
+      "lau-jbeil",
+      "usj-huvelin",
+      "ndu-louaize",
+      "usek-kaslik",
+      "bau-beirut",
+      "balamand",
+      "haigazian-kantari",
+      "liu-beirut",
+    ];
+    const bySlug = new Map(
+      (universities.data ?? []).map((u) => [u.slug, u] as const),
+    );
+    const picked = preferred
+      .map((slug) => bySlug.get(slug))
+      .filter((u): u is NonNullable<typeof u> => Boolean(u));
+    const fill = (universities.data ?? []).filter(
+      (u) => u.isMain && !picked.some((p) => p.id === u.id),
+    );
+    return [...picked, ...fill].slice(0, 10).map((u) => ({
+      key: u.id,
+      label: u.institutionShortName
+        ? u.isMain
+          ? u.institutionShortName
+          : `${u.institutionShortName} · ${u.name}`
+        : u.name,
+      shortName: u.institutionShortName ?? u.name,
+      institutionSlug: u.institutionSlug,
+      logoUrl: u.logoUrl,
+      kind: "uni" as const,
+      campusId: u.id,
+      universitySlugs: [u.slug],
+    }));
+  }, [homePopular.data?.universities, universities.data]);
+
+  const discoverTiles = discoverTab === "areas" ? areaTiles : uniTiles;
 
   /** 2-row column-flow → columns = ceil(n / 2); size so every column fits. */
-  const cityCols = Math.max(1, Math.ceil(region.areas.length / 2));
+  const cityCols = Math.max(1, Math.ceil(Math.max(discoverTiles.length, 1) / 2));
   const tileSize = fitCityTileSize(innerW, cityCols, cityGap);
 
   const railListings = useMemo(() => {
@@ -602,19 +735,19 @@ export function SkounHomePage() {
         {/* ─── 2. INSIGHTS — infinite marquee under hero ─── */}
         <InsightsMarquee />
 
-        {/* ─── 3. POPULAR AREAS (Amber 2-row city tile grid) ─── */}
+        {/* ─── 3. POPULAR AREAS / UNIS (top pins) ─── */}
         <View style={[styles.section, { paddingHorizontal: padX }]}>
           <SectionHeader
-            title="Popular areas across Lebanon"
+            title="Popular across Lebanon"
             subtitle={`${CAMPUS_CATALOG.campuses} campuses at ${CAMPUS_CATALOG.universities} private universities, in ${CAMPUS_CATALOG.areas} areas.`}
           />
           <View style={styles.countryTabs}>
-            {AREA_REGIONS.map((r) => {
-              const active = r.id === regionId;
+            {HOME_DISCOVER_TABS.map((tab) => {
+              const active = tab.id === discoverTab;
               return (
                 <Pressable
-                  key={r.id}
-                  onPress={() => setRegionId(r.id)}
+                  key={tab.id}
+                  onPress={() => setDiscoverTab(tab.id)}
                   style={[styles.countryTab, active && styles.countryTabActive]}
                 >
                   <Text
@@ -623,13 +756,19 @@ export function SkounHomePage() {
                       active && styles.countryTabTextActive,
                     ]}
                   >
-                    {r.label}
+                    {tab.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-          {IS_WEB ? (
+          {discoverTiles.length === 0 ? (
+            <Text style={styles.discoverEmpty}>
+              {discoverTab === "areas"
+                ? "No live area pins yet — check back soon."
+                : "No campuses with nearby listings yet — browse all housing instead."}
+            </Text>
+          ) : IS_WEB ? (
             <View style={styles.citiesWrap}>
               <View
                 {...({ className: "sk-cities-grid" } as object)}
@@ -646,16 +785,34 @@ export function SkounHomePage() {
                   } as object,
                 ]}
               >
-                {region.areas.map((a) => (
-                  <AreaCityCard
-                    key={a.name}
-                    name={a.name}
-                    image={a.image}
-                    size={tileSize}
-                    fillCell
-                    onPress={() => goBrowse({ areas: [a.name] })}
-                  />
-                ))}
+                {discoverTiles.map((tile) =>
+                  tile.kind === "area" ? (
+                    <AreaCityCard
+                      key={tile.key}
+                      name={tile.label}
+                      image={tile.image}
+                      size={tileSize}
+                      fillCell
+                      onPress={() => goBrowse({ areas: tile.areas })}
+                    />
+                  ) : (
+                    <UniCityCard
+                      key={tile.key}
+                      label={tile.label}
+                      shortName={tile.shortName}
+                      institutionSlug={tile.institutionSlug}
+                      logoUrl={tile.logoUrl}
+                      size={tileSize}
+                      fillCell
+                      onPress={() =>
+                        goBrowse({
+                          campusId: tile.campusId,
+                          universitySlugs: tile.universitySlugs,
+                        })
+                      }
+                    />
+                  ),
+                )}
               </View>
             </View>
           ) : (
@@ -664,15 +821,32 @@ export function SkounHomePage() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={[styles.tileRail, { gap: cityGap }]}
             >
-              {region.areas.map((a) => (
-                <AreaCityCard
-                  key={a.name}
-                  name={a.name}
-                  image={a.image}
-                  size={tileSize}
-                  onPress={() => goBrowse({ areas: [a.name] })}
-                />
-              ))}
+              {discoverTiles.map((tile) =>
+                tile.kind === "area" ? (
+                  <AreaCityCard
+                    key={tile.key}
+                    name={tile.label}
+                    image={tile.image}
+                    size={tileSize}
+                    onPress={() => goBrowse({ areas: tile.areas })}
+                  />
+                ) : (
+                  <UniCityCard
+                    key={tile.key}
+                    label={tile.label}
+                    shortName={tile.shortName}
+                    institutionSlug={tile.institutionSlug}
+                    logoUrl={tile.logoUrl}
+                    size={tileSize}
+                    onPress={() =>
+                      goBrowse({
+                        campusId: tile.campusId,
+                        universitySlugs: tile.universitySlugs,
+                      })
+                    }
+                  />
+                ),
+              )}
             </ScrollView>
           )}
         </View>
@@ -1331,6 +1505,63 @@ const styles = StyleSheet.create({
   countryTabTextActive: {
     color: "#111928",
     fontFamily: Skoun.type.bodySemi,
+  },
+  discoverEmpty: {
+    fontFamily: Skoun.type.body,
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 12,
+  },
+  uniTile: {
+    borderRadius: Skoun.radius.lg,
+    borderWidth: 1,
+    borderColor: "#D5DCE7",
+    overflow: "hidden",
+    backgroundColor: Skoun.color.surface,
+    ...(IS_WEB
+      ? ({
+          boxShadow: "0 2px 8px rgba(18, 24, 38, 0.05)",
+        } as object)
+      : {
+          shadowColor: "#121826",
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 3 },
+        }),
+  },
+  uniTileFill: {
+    flex: 1,
+    width: "100%" as unknown as number,
+    height: "100%" as unknown as number,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  uniTileLogoWell: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#D4E0F4",
+    alignItems: "center",
+    justifyContent: "center",
+    ...(IS_WEB
+      ? ({
+          boxShadow: "0 4px 14px rgba(47, 111, 237, 0.1)",
+        } as object)
+      : null),
+  },
+  uniTileLabel: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 18,
+    color: "#111928",
+    textAlign: "center",
+    paddingHorizontal: 4,
   },
 
   citiesWrap: {

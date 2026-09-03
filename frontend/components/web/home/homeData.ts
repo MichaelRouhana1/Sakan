@@ -161,6 +161,18 @@ export type AreaRegion = {
   areas: { name: string; image: string }[];
 };
 
+/** Home discover pills — Areas (top pin counts) / Unis (nearby pins). */
+export const HOME_DISCOVER_TABS = [
+  { id: "areas" as const, label: "Areas" },
+  { id: "unis" as const, label: "Unis" },
+];
+
+export type HomeDiscoverTabId = (typeof HOME_DISCOVER_TABS)[number]["id"];
+
+/** Fallback tile when an area has pins but no curated photo. */
+export const AREA_TILE_FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1444723121867-7a241cacace9?auto=format&fit=crop&w=480&q=75";
+
 export const AREA_REGIONS: AreaRegion[] = [
   {
     id: "beirut",
@@ -306,6 +318,15 @@ export const AREA_REGIONS: AreaRegion[] = [
     ],
   },
 ];
+
+/** Flat area → tile image map (from curated REGION photos). */
+export const AREA_TILE_IMAGES: Record<string, string> = Object.fromEntries(
+  AREA_REGIONS.flatMap((r) => r.areas.map((a) => [a.name, a.image])),
+);
+
+export function areaTileImage(name: string): string {
+  return AREA_TILE_IMAGES[name] ?? AREA_TILE_FALLBACK_IMAGE;
+}
 
 export type DemoListing = {
   id: string;

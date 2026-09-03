@@ -1039,8 +1039,13 @@ export function ListingBrowseMap({
         e.stopPropagation();
         ignoreNextMapClickUntil.current = Date.now() + 250;
         openGroup(group);
-        const popup = rec.popup;
-        if (popup) popup.addTo(hostMap);
+        // Prefer marker's live popup — side-replace can stale `rec.popup`.
+        const popup =
+          (rec.marker.getPopup?.() as Popup | null | undefined) ?? rec.popup;
+        if (popup) {
+          popup.addTo(hostMap);
+          rec.popup = popup;
+        }
       });
       marker.addTo(hostMap);
       listingMarkers.set(group.id, rec);
