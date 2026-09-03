@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { errorHandler } from "./middleware/error-handler.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
+import { benefitsRouter } from "./modules/benefits/benefits.routes.js";
 import { campusRouter } from "./modules/campus/campus.routes.js";
 import { creditsRouter } from "./modules/credits/credits.routes.js";
 import { listingsRouter } from "./modules/listings/listings.routes.js";
@@ -40,6 +41,7 @@ export function createApp() {
   app.use("/api/universities", universitiesRouter);
   app.use("/api/institutions", institutionsRouter);
   app.use("/api/campus", campusRouter);
+  app.use("/api/benefits", benefitsRouter);
   app.use("/api/credits", creditsRouter);
   app.use("/api/admin", adminRouter);
 

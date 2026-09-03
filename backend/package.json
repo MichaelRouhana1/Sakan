@@ -15,6 +15,7 @@
     "db:seed:universities": "tsx src/db/seeds/run-universities.ts",
     "db:seed:academic": "tsx src/db/seeds/run-academic.ts",
     "db:seed:listings": "tsx src/db/seeds/run-listings.ts",
+    "db:seed:benefits": "tsx src/db/seeds/run-student-benefits.ts",
     "job:archive-expired": "tsx src/jobs/archive-expired-listings.ts"
   },
   "engines": {

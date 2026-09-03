@@ -149,3 +149,18 @@ export const billingModelEnum = pgEnum("billing_model", [
 export const creditSystemEnum = pgEnum("credit_system", ["us", "ects"]);
 
 export const feePeriodEnum = pgEnum("fee_period", ["term", "year"]);
+
+export const benefitCategoryEnum = pgEnum("benefit_category", [
+  "tech",
+  "food",
+  "services",
+  "entertainment",
+  "finance",
+  "telecom",
+]);
+
+export const benefitRedemptionTypeEnum = pgEnum("benefit_redemption_type", [
+  "link",
+  "promo_code",
+  "show_id",
+]);

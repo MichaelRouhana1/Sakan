@@ -120,6 +120,13 @@
       "when": 1786806000000,
       "tag": "0016_program_total_credits",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786809600000,
+      "tag": "0017_student_benefits",
+      "breakpoints": true
     }
   ]
 }
