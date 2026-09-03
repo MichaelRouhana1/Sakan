@@ -10,6 +10,8 @@ export type ProgramSeed = {
   /** Full major credit requirement (US or ECTS). */
   totalCredits?: number;
   maxBilledCredits?: number;
+  /** First N credits at one rate, remainder at the last band (e.g. UA CCE). */
+  creditTiers?: { upToCredits?: number; amountUsd: number }[];
   creditSystem?: "us" | "ects";
   degreeLevel?: "bachelor" | "master";
 };
@@ -29,15 +31,19 @@ export type InstitutionAcademicSeed = {
     period: "term" | "year";
     academicYear: string;
     sourceUrl: string;
+    /** When set, this fee applies only to that faculty (and overrides a same-named institution fee). */
+    facultySlug?: string;
   }[];
 };
 
-const LAU_SRC = "https://www.lau.edu.lb/fees/2025-2026/";
+const LAU_SRC =
+  "https://catalog.lau.edu.lb/2026-2027/undergraduate/tuition.php";
 const AUB_TUITION_SRC =
   "https://aub.edu.lb/comptroller/Documents/Students/Tuition%20Fees.pdf";
 const AUB_COA_SRC = "https://www.aub.edu.lb/faid/Pages/Cost-of-Attendance.aspx";
-const USJ_SRC = "https://usj.edu.lb/catalogues/2025/1/05.1-Coutducredit1ercycle.pdf";
+const USJ_SRC = "https://www.usj.edu.lb/";
 const UA_SRC = "https://ua.edu.lb/en/undergraduate/tuition-fees";
+const UA_GRAD_SRC = "https://ua.edu.lb/en/graduate/tuition-fees";
 const NDU_SRC = "https://www.ndu.edu.lb/office-of-finance/tuition-fees";
 const USEK_SRC =
   "https://www.usek.edu.lb/en/university-fees/undergraduate-studies-1";
@@ -78,16 +84,34 @@ function ua(
   name: string,
   slug: string,
   perCreditUsd: number,
-  defaultCredits = 15,
+  extra: {
+    totalCredits: number;
+    degreeLevel?: "bachelor" | "master";
+    defaultCredits?: number;
+    sourceUrl?: string;
+    creditTiers?: { upToCredits?: number; amountUsd: number }[];
+  },
 ): ProgramSeed {
+  const degreeLevel = extra.degreeLevel ?? "bachelor";
+  const defaultCredits =
+    extra.defaultCredits ??
+    (extra.totalCredits <= 24
+      ? extra.totalCredits
+      : degreeLevel === "master"
+        ? 9
+        : 15);
   return {
     name,
     slug,
     perCreditUsd,
     academicYear: "2026-2027",
-    sourceUrl: UA_SRC,
+    sourceUrl:
+      extra.sourceUrl ?? (degreeLevel === "master" ? UA_GRAD_SRC : UA_SRC),
     defaultCredits,
+    totalCredits: extra.totalCredits,
+    degreeLevel,
     creditSystem: "us",
+    creditTiers: extra.creditTiers,
   };
 }
 
@@ -485,7 +509,7 @@ function lau(
     name,
     slug,
     perCreditUsd,
-    academicYear: "2025-2026",
+    academicYear: "2026-2027",
     sourceUrl: LAU_SRC,
     defaultCredits: 15,
     creditSystem: "us",
@@ -501,7 +525,7 @@ function aub(
     name,
     slug,
     perCreditUsd,
-    academicYear: "2023-2024",
+    academicYear: "2026-2027",
     sourceUrl: AUB_TUITION_SRC,
     defaultCredits: 15,
     maxBilledCredits: 15,
@@ -518,7 +542,7 @@ function usj(
     name,
     slug,
     perCreditUsd,
-    academicYear: "2024-2025",
+    academicYear: "2026-2027",
     sourceUrl: USJ_SRC,
     defaultCredits: 30,
     creditSystem: "ects",
@@ -533,62 +557,79 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
         name: "School of Architecture & Design",
         slug: "architecture-design",
         programs: [
-          lau("Architecture (B.Arch.)", "architecture", 942),
-          lau("Fashion Design (B.F.A.)", "fashion-design", 942),
-          lau("Graphic Design (B.F.A.)", "graphic-design", 942),
-          lau("Interior Design (B.F.A.)", "interior-design", 942),
-          lau("Studio Art (B.F.A.)", "studio-art", 942),
+          lau("Architecture (B.Arch.)", "architecture", 989),
+          lau("Fashion Design (B.F.A.)", "fashion-design", 989),
+          lau("Graphic Design (B.F.A.)", "graphic-design", 989),
+          lau("Interior Design (B.F.A.)", "interior-design", 989),
+          lau("Studio Art (B.F.A.)", "studio-art", 989),
         ],
       },
       {
         name: "School of Arts & Sciences",
         slug: "arts-sciences",
         programs: [
-          lau("Applied Physics (B.S.)", "applied-physics", 859),
-          lau("Bioinformatics (B.S.)", "bioinformatics", 859),
-          lau("Biology (B.S.)", "biology", 859),
-          lau("Chemistry (B.S.)", "chemistry", 859),
-          lau("Communication (B.A.)", "communication", 859),
-          lau("Computer Science (B.S.)", "computer-science", 859),
-          lau("Education (B.S.)", "education", 770),
-          lau("English (B.A.)", "english", 770),
-          lau("Mathematics (B.S.)", "mathematics", 855),
-          lau("Multimedia Journalism (B.A.)", "multimedia-journalism", 859),
-          lau("Nutrition and Dietetics (B.S.)", "nutrition", 859),
-          lau("Performing Arts (B.A.)", "performing-arts", 859),
-          lau("Political Science / International Affairs (B.A.)", "political-science", 770),
-          lau("Psychology (B.A.)", "psychology", 770),
-          lau("Translation (B.A.)", "translation", 770),
-          lau("TV & Film (B.A.)", "tv-film", 859),
+          lau("Applied Physics (B.S.)", "applied-physics", 902),
+          lau("Bioinformatics (B.S.)", "bioinformatics", 902),
+          lau("Biology (B.S.)", "biology", 902),
+          lau("Chemistry (B.S.)", "chemistry", 902),
+          lau("Communication (B.A.)", "communication", 902),
+          lau("Computer Science (B.S.)", "computer-science", 902),
+          lau("Education (B.S.)", "education", 809),
+          lau("English (B.A.)", "english", 809),
+          lau("Freshman", "freshman", 812),
+          lau("Mathematics (B.S.)", "mathematics", 898),
+          lau("Multimedia Journalism (B.A.)", "multimedia-journalism", 902),
+          lau("Nutrition and Dietetics (B.S.)", "nutrition", 902),
+          lau(
+            "Nutrition and Dietetics Coordinated Program (B.S.)",
+            "nutrition-cp",
+            902,
+          ),
+          lau("Performing Arts (B.A.)", "performing-arts", 902),
+          lau("Political Science / International Affairs (B.A.)", "political-science", 809),
+          lau("Psychology (B.A.)", "psychology", 809),
+          lau("Teaching Diploma in Education", "teaching-diploma", 809),
+          lau(
+            "Diploma in Learning Disability and Giftedness",
+            "learning-disability-diploma",
+            809,
+          ),
+          lau("TV & Film (B.A.)", "tv-film", 902),
         ],
       },
       {
         name: "Adnan Kassar School of Business",
         slug: "business",
         programs: [
-          lau("Business (B.S.)", "business", 911),
-          lau("Hospitality & Tourism Management (B.S.)", "hospitality", 911),
-          lau("Economics (B.S.)", "economics", 911),
+          lau("Business (B.S.)", "business", 957),
+          lau("Hospitality & Tourism Management (B.S.)", "hospitality", 957),
+          lau("Economics (B.S.)", "economics", 957),
         ],
       },
       {
         name: "School of Engineering",
         slug: "engineering",
         programs: [
-          lau("Chemical Engineering (B.E.)", "chemical-engineering", 935),
-          lau("Civil Engineering (B.E.)", "civil-engineering", 935),
-          lau("Computer Engineering (B.E.)", "computer-engineering", 935),
-          lau("Electrical Engineering (B.E.)", "electrical-engineering", 935),
-          lau("Industrial Engineering (B.E.)", "industrial-engineering", 935),
-          lau("Mechanical Engineering (B.E.)", "mechanical-engineering", 935),
-          lau("Mechatronics Engineering (B.E.)", "mechatronics-engineering", 935),
-          lau("Petroleum Engineering (B.E.)", "petroleum-engineering", 935),
+          lau("Civil Engineering (B.E.)", "civil-engineering", 982),
+          lau("Computer Engineering (B.E.)", "computer-engineering", 982),
+          lau("Electrical Engineering (B.E.)", "electrical-engineering", 982),
+          lau("Industrial Engineering (B.E.)", "industrial-engineering", 982),
+          lau("Mechanical Engineering (B.E.)", "mechanical-engineering", 982),
+          lau("Mechatronics Engineering (B.E.)", "mechatronics-engineering", 982),
+          lau("Petroleum Engineering (B.E.)", "petroleum-engineering", 982),
         ],
       },
       {
         name: "School of Pharmacy",
         slug: "pharmacy",
-        programs: [lau("Pharmacy (B.S.)", "pharmacy", 999)],
+        programs: [lau("Pharmacy (B.S.)", "pharmacy", 1049)],
+      },
+      {
+        name: "Alice Ramez Chaghoury School of Nursing",
+        slug: "nursing",
+        programs: [
+          lau("Nursing — new students (B.S.)", "nursing", 692),
+        ],
       },
     ],
   },
@@ -596,11 +637,25 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
     institutionSlug: "aub",
     fees: [
       {
-        name: "AUB fees (activity, internet, health insurance)",
-        amountUsd: 848,
+        name: "Social activity fee",
+        amountUsd: 37,
         period: "year",
-        academicYear: "2025-2026",
-        sourceUrl: AUB_COA_SRC,
+        academicYear: "2026-2027",
+        sourceUrl: AUB_TUITION_SRC,
+      },
+      {
+        name: "Technology fee",
+        amountUsd: 218,
+        period: "term",
+        academicYear: "2026-2027",
+        sourceUrl: AUB_TUITION_SRC,
+      },
+      {
+        name: "Health insurance (HIP, if applicable)",
+        amountUsd: 408,
+        period: "year",
+        academicYear: "2026-2027",
+        sourceUrl: AUB_TUITION_SRC,
       },
     ],
     faculties: [
@@ -608,36 +663,36 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
         name: "Faculty of Arts and Sciences",
         slug: "fas",
         programs: [
-          aub("Freshman", "freshman", 783),
-          aub("Humanities and Social Sciences", "humanities-social-sciences", 760),
-          aub("Sciences", "sciences", 806),
-          aub("Financial Economics", "financial-economics", 928),
+          aub("Freshman", "freshman", 881),
+          aub("Humanities and Social Sciences", "humanities-social-sciences", 855),
+          aub("Sciences", "sciences", 907),
+          aub("Financial Economics", "financial-economics", 1044),
         ],
       },
       {
         name: "Faculty of Agricultural and Food Sciences",
         slug: "fafs",
-        programs: [aub("Undergraduate (FAFS)", "undergraduate", 821)],
+        programs: [aub("Undergraduate (FAFS)", "undergraduate", 924)],
       },
       {
         name: "Maroun Semaan Faculty of Engineering and Architecture",
         slug: "msfea",
-        programs: [aub("Undergraduate (MSFEA)", "undergraduate", 909)],
+        programs: [aub("Undergraduate (MSFEA)", "undergraduate", 1022)],
       },
       {
         name: "Faculty of Health Sciences",
         slug: "fhs",
-        programs: [aub("Undergraduate (FHS)", "undergraduate", 847)],
+        programs: [aub("Undergraduate (FHS)", "undergraduate", 953)],
       },
       {
         name: "Suliman S. Olayan School of Business",
         slug: "osb",
-        programs: [aub("Undergraduate (OSB)", "undergraduate", 880)],
+        programs: [aub("Undergraduate (OSB)", "undergraduate", 990)],
       },
       {
         name: "Rafic Hariri School of Nursing",
         slug: "hson",
-        programs: [aub("Undergraduate (HSON)", "undergraduate", 651)],
+        programs: [aub("Undergraduate (HSON)", "undergraduate", 732)],
       },
     ],
   },
@@ -647,42 +702,72 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
       {
         name: "Faculty of Medicine",
         slug: "fm",
-        programs: [usj("First cycle (FM)", "licence", 237)],
+        programs: [usj("First cycle (FM)", "licence", 425)],
       },
       {
         name: "Faculty of Dental Medicine",
         slug: "fmd",
-        programs: [usj("First cycle (FMD)", "licence", 220)],
+        programs: [usj("First cycle (FMD)", "licence", 425)],
       },
       {
         name: "Faculty of Pharmacy",
         slug: "fp",
-        programs: [usj("First cycle (Pharmacy)", "licence", 164)],
+        programs: [usj("First cycle (Pharmacy)", "licence", 300)],
+      },
+      {
+        name: "Faculty of Nursing Science",
+        slug: "fsi",
+        programs: [usj("First cycle (FSI)", "licence", 200)],
       },
       {
         name: "Faculty of Engineering and Architecture (ESIB)",
         slug: "esib",
-        programs: [usj("First cycle (ESIB)", "licence", 161)],
+        programs: [usj("First cycle (ESIB)", "licence", 300)],
       },
       {
-        name: "Faculty of Sciences",
+        name: "Faculty of Science",
         slug: "fs",
-        programs: [usj("First cycle (Sciences)", "licence", 115)],
+        programs: [usj("First cycle (Sciences)", "licence", 200)],
+      },
+      {
+        name: "Faculty of Law and Political Science",
+        slug: "fdsp",
+        programs: [usj("First cycle (FDSP)", "licence", 200)],
+      },
+      {
+        name: "Faculty of Economics",
+        slug: "fse",
+        programs: [usj("First cycle (Economics)", "licence", 200)],
+      },
+      {
+        name: "USJ Business School",
+        slug: "fgm",
+        programs: [usj("First cycle (Business)", "licence", 200)],
       },
       {
         name: "Faculty of Humanities Ramez G. Chagoury",
         slug: "flsh",
-        programs: [usj("First cycle (FLSH)", "licence", 107)],
+        programs: [usj("First cycle (FLSH)", "licence", 200)],
       },
       {
         name: "Faculty of Education",
         slug: "fsedu",
-        programs: [usj("First cycle (Education)", "licence", 110)],
+        programs: [usj("First cycle (Education)", "licence", 200)],
+      },
+      {
+        name: "Faculty of Languages and Translation",
+        slug: "fdlt",
+        programs: [usj("First cycle (FDLT)", "licence", 200)],
+      },
+      {
+        name: "Faculty of Religious Studies",
+        slug: "fsr",
+        programs: [usj("First cycle (FSR)", "licence", 100)],
       },
       {
         name: "IESAV — Audiovisual",
         slug: "iesav",
-        programs: [usj("First cycle (IESAV)", "licence", 133)],
+        programs: [usj("First cycle (IESAV)", "licence", 250)],
       },
     ],
   },
@@ -696,28 +781,57 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
         academicYear: "2026-2027",
         sourceUrl: UA_SRC,
       },
+      {
+        name: "Registration fee",
+        amountUsd: 70,
+        period: "term",
+        academicYear: "2026-2027",
+        sourceUrl: UA_SRC,
+        facultySlug: "theology",
+      },
+      {
+        name: "Individual accident insurance",
+        amountUsd: 25,
+        period: "term",
+        academicYear: "2026-2027",
+        sourceUrl: UA_SRC,
+      },
+      {
+        name: "Social security (NSSF, if applicable)",
+        amountUsd: 95,
+        period: "year",
+        academicYear: "2026-2027",
+        sourceUrl: UA_SRC,
+      },
     ],
     faculties: [
       {
         name: "Antonine School of Business",
         slug: "business",
-        programs: [ua("Business Administration (B.B.A.)", "bba", 200)],
+        programs: [
+          ua("Business Administration (B.B.A.)", "bba", 200, {
+            totalCredits: 96,
+          }),
+          ua("Business Administration (M.B.A.)", "mba", 230, {
+            totalCredits: 36,
+            degreeLevel: "master",
+          }),
+        ],
       },
       {
         name: "Faculty of Engineering and Technology",
         slug: "engineering",
         programs: [
-          ua(
-            "Computer and Communications Engineering (B.E., ≤96 credits)",
-            "cce",
-            245,
-          ),
-          ua(
-            "Computer and Communications Engineering (B.E., after 96 credits)",
-            "cce-upper",
-            275,
-          ),
-          ua("Computer Science (B.Tech.)", "computer-science", 245),
+          ua("Computer and Communications Engineering (B.E.)", "cce", 245, {
+            totalCredits: 156,
+            creditTiers: [
+              { upToCredits: 96, amountUsd: 245 },
+              { amountUsd: 275 },
+            ],
+          }),
+          ua("Computer Science (B.Tech.)", "computer-science", 245, {
+            totalCredits: 96,
+          }),
         ],
       },
       {
@@ -725,35 +839,120 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
         slug: "info-comm",
         programs: [
           ua(
-            "Advertising — Audiovisual, Journalism and Radio/TV (B.A.)",
-            "advertising",
+            "Advertising — Journalism and Radio/TV (B.A.)",
+            "journalism",
             170,
+            { totalCredits: 96 },
           ),
-          ua("Advertising — Graphic Design (B.A.)", "graphic-design", 190),
+          ua("Advertising — Audiovisual (B.A.)", "audiovisual", 170, {
+            totalCredits: 96,
+          }),
+          ua("Advertising — Graphic Design (B.A.)", "graphic-design", 190, {
+            totalCredits: 96,
+          }),
+          ua("Advertising (B.A.)", "advertising", 170, { totalCredits: 96 }),
+          ua(
+            "Information and Communication (M.A.)",
+            "info-comm-ma",
+            215,
+            { totalCredits: 36, degreeLevel: "master" },
+          ),
         ],
       },
       {
         name: "Faculty of Music and Musicology",
         slug: "music",
         programs: [
-          ua("Music and Musicology — collective courses (B.A.)", "music-collective", 160),
-          ua("Music and Musicology — individual courses (B.A.)", "music-individual", 200),
+          ua("Music and Musicology — collective courses (B.A.)", "music-collective", 160, {
+            totalCredits: 90,
+          }),
+          ua("Music and Musicology — individual courses (B.A.)", "music-individual", 200, {
+            totalCredits: 90,
+          }),
+          ua(
+            "Teaching Diploma in Music and Musicology — collective",
+            "music-td-collective",
+            160,
+            { totalCredits: 22 },
+          ),
+          ua(
+            "Teaching Diploma in Music and Musicology — individual",
+            "music-td-individual",
+            200,
+            { totalCredits: 22 },
+          ),
+          ua(
+            "Music and Musicology — collective courses (M.A.)",
+            "music-ma-collective",
+            200,
+            { totalCredits: 36, degreeLevel: "master" },
+          ),
+          ua(
+            "Music and Musicology — individual courses (M.A.)",
+            "music-ma-individual",
+            245,
+            { totalCredits: 36, degreeLevel: "master" },
+          ),
         ],
       },
       {
         name: "Faculty of Public Health",
         slug: "public-health",
         programs: [
-          ua("Nursing Sciences (B.S.)", "nursing", 165),
-          ua("Dental Laboratory Technology (B.S.)", "dental-lab", 190),
-          ua("Physical Therapy (B.S.)", "physical-therapy", 230),
+          ua("Nursing Sciences (B.S.)", "nursing", 165, { totalCredits: 105 }),
+          ua("Dental Laboratory Technology (B.S.)", "dental-lab", 190, {
+            totalCredits: 104,
+          }),
+          ua("Physical Therapy (B.S.)", "physical-therapy", 230, {
+            totalCredits: 129,
+          }),
+          ua("Doctor of Physical Therapy (D.P.T.)", "dpt", 380, {
+            totalCredits: 42,
+            degreeLevel: "master",
+            sourceUrl: UA_SRC,
+          }),
+          ua(
+            "Advanced Diploma in Dental Laboratory Technology",
+            "dental-lab-advanced",
+            245,
+            { totalCredits: 25, degreeLevel: "master" },
+          ),
+          ua("Nursing Sciences (M.S.)", "nursing-ms", 235, {
+            totalCredits: 39,
+            degreeLevel: "master",
+          }),
+          ua(
+            "Specialized Diploma in Gerontology Nursing",
+            "gerontology-nursing",
+            200,
+            { totalCredits: 22, degreeLevel: "master", sourceUrl: UA_SRC },
+          ),
         ],
       },
       {
         name: "Faculty of Sport Sciences",
         slug: "sport",
         programs: [
-          ua("Physical Education and Sport (B.A.)", "physical-education", 200),
+          ua("Physical Education and Sport (B.A.)", "physical-education", 200, {
+            totalCredits: 96,
+          }),
+          ua(
+            "University Diploma in Mountain Guide and Outdoor Activities",
+            "mountain-guide",
+            275,
+            { totalCredits: 21 },
+          ),
+          ua("University Diploma in Basketball Coaching", "basketball-coaching", 275, {
+            totalCredits: 21,
+          }),
+          ua("Teaching Diploma in Physical Education and Sport", "pe-teaching-diploma", 275, {
+            totalCredits: 24,
+          }),
+          ua("Sport Sciences (M.A.)", "sport-ma", 265, {
+            totalCredits: 33,
+            degreeLevel: "master",
+            sourceUrl: UA_SRC,
+          }),
         ],
       },
       {
@@ -764,6 +963,19 @@ export const academicSeeds: InstitutionAcademicSeed[] = [
             "Theological Sciences and Pastoral Studies (B.A.)",
             "theology",
             75,
+            { totalCredits: 98 },
+          ),
+          ua(
+            "Theological Sciences and Pastoral Studies (M.A.)",
+            "theology-ma",
+            90,
+            { totalCredits: 37, degreeLevel: "master" },
+          ),
+          ua(
+            "Certificate in Training of Trainers for the Consecrated Life",
+            "consecrated-life-certificate",
+            90,
+            { totalCredits: 37, degreeLevel: "master", sourceUrl: UA_SRC },
           ),
         ],
       },

@@ -1,9 +1,11 @@
 import { NotFoundError } from "../../lib/errors.js";
+import type { CreditRateTier } from "../../db/schema/academic.js";
 import { campusRepository } from "./campus.repository.js";
 
 const POPULAR_SLUGS = ["aub", "lau", "usj"];
 
 const DUAL_CURRENCY_NOTE: Record<string, string> = {
+  usj: "USJ bills 70% in fresh USD and 30% in LBP at the market rate; this total is the published USD credit price (first cycle, 2026–2027). ",
   bau: "BAU also bills LBP per credit; this total is the published USD component only (new students, 2026–2027). ",
   uob: "UOB also bills LBP per credit; this total is the published USD component only. ",
   makassed:
@@ -21,6 +23,48 @@ function dualCurrencyDisclaimer(slug: string) {
   return `Official figures change. Skoun is an estimate, not an invoice. ${extra}Each line shows the academic year of its source.`;
 }
 
+function tuitionForCredits(
+  credits: number,
+  fallbackUsd: number,
+  tiers: CreditRateTier[] | null | undefined,
+  unit: string,
+  termSuffix: string,
+): { total: number; label: string } {
+  if (!tiers?.length) {
+    return {
+      total: credits * fallbackUsd,
+      label: `Tuition (${credits} ${unit} × $${fallbackUsd}${termSuffix})`,
+    };
+  }
+
+  let remaining = Math.max(0, credits);
+  let cursor = 0;
+  const parts: { qty: number; rate: number }[] = [];
+
+  for (const tier of tiers) {
+    if (remaining <= 0) break;
+    const cap = tier.upToCredits;
+    const bandSize = cap == null ? remaining : Math.max(0, cap - cursor);
+    const qty = Math.min(remaining, bandSize);
+    if (qty > 0) parts.push({ qty, rate: tier.amountUsd });
+    remaining -= qty;
+    cursor = cap == null ? cursor + qty : cap;
+  }
+  if (remaining > 0) {
+    const last = tiers[tiers.length - 1]!;
+    parts.push({ qty: remaining, rate: last.amountUsd });
+  }
+
+  const total = parts.reduce((sum, part) => sum + part.qty * part.rate, 0);
+  const bands = parts
+    .map((part) => `${part.qty} ${unit} × $${part.rate}`)
+    .join(" + ");
+  return {
+    total,
+    label: `Tuition (${bands}${termSuffix})`,
+  };
+}
+
 export class CampusService {
   async listInstitutions() {
     const { instRows, facultyRows, programRows, campusRows } =
@@ -33,8 +77,16 @@ export class CampusService {
       facultiesByInst.set(faculty.institutionId, list);
     }
 
-    const programsByFaculty = new Map<string, typeof programRows>();
+    const latestByProgram = new Map<string, (typeof programRows)[number]>();
     for (const program of programRows) {
+      const prev = latestByProgram.get(program.id);
+      if (!prev || program.academicYear > prev.academicYear) {
+        latestByProgram.set(program.id, program);
+      }
+    }
+
+    const programsByFaculty = new Map<string, typeof programRows>();
+    for (const program of latestByProgram.values()) {
       const list = programsByFaculty.get(program.facultyId) ?? [];
       list.push(program);
       programsByFaculty.set(program.facultyId, list);
@@ -87,11 +139,20 @@ export class CampusService {
           totalCredits: program.totalCredits,
           maxBilledCredits: program.maxBilledCredits,
           perCreditUsd: program.rateAmountUsd,
+          creditTiers: program.creditTiers ?? null,
           academicYear: program.academicYear,
           sourceUrl: program.sourceUrl,
         })),
       })),
-    }));
+    }))
+      .filter((inst) => {
+        const years = inst.faculties.flatMap((faculty) =>
+          faculty.programs.map((program) => program.academicYear),
+        );
+        if (years.length === 0) return false;
+        if (inst.slug === "usj") return true;
+        return years.every((year) => year === "2026-2027");
+      });
   }
 
   async programCosts(
@@ -121,8 +182,15 @@ export class CampusService {
       requestedCredits = credits ?? totalMajorCredits;
       // Per-term billing caps do not apply to a full-degree rollup.
       billedCredits = requestedCredits;
-      tuitionTotal = billedCredits * program.amountUsd;
-      tuitionLabel = `Tuition (${billedCredits} ${unit} × $${program.amountUsd})`;
+      const priced = tuitionForCredits(
+        billedCredits,
+        program.amountUsd,
+        program.creditTiers,
+        unit,
+        "",
+      );
+      tuitionTotal = priced.total;
+      tuitionLabel = priced.label;
       feeTermEquivalent = spanYears * 2;
     } else {
       const termCount = period === "year" ? 2 : 1;
@@ -131,28 +199,65 @@ export class CampusService {
         program.maxBilledCredits != null
           ? Math.min(requestedCredits, program.maxBilledCredits)
           : requestedCredits;
-      tuitionTotal = billedCredits * program.amountUsd * termCount;
-      tuitionLabel = `Tuition (${billedCredits} ${unit} × $${program.amountUsd} × ${termCount} term${termCount === 1 ? "" : "s"})`;
+      if (program.creditTiers?.length) {
+        const priced = tuitionForCredits(
+          billedCredits * termCount,
+          program.amountUsd,
+          program.creditTiers,
+          unit,
+          "",
+        );
+        tuitionTotal = priced.total;
+        tuitionLabel = priced.label;
+      } else {
+        tuitionTotal = billedCredits * program.amountUsd * termCount;
+        tuitionLabel = `Tuition (${billedCredits} ${unit} × $${program.amountUsd} × ${termCount} term${termCount === 1 ? "" : "s"})`;
+      }
       feeTermEquivalent = termCount;
     }
 
-    const fees = await campusRepository.listFeesForInstitution(
+    const allFees = await campusRepository.listFeesForInstitution(
       program.institutionId,
     );
-    const feeLines = fees.map((fee) => {
-      const amountUsd =
-        fee.period === "year"
-          ? Math.round((fee.amountUsd * feeTermEquivalent) / 2)
-          : fee.amountUsd * feeTermEquivalent;
-      return {
-        kind: "fee" as const,
-        label: fee.name,
-        amountUsd,
-        academicYear: fee.academicYear,
-        sourceUrl: fee.sourceUrl,
-        period: fee.period,
-      };
-    });
+    const sameYear = allFees.filter(
+      (fee) => fee.academicYear === program.academicYear,
+    );
+    const fees = sameYear.length > 0 ? sameYear : allFees;
+    const programFees = fees.filter(
+      (fee) => fee.programId === program.programId,
+    );
+    const overriddenByProgram = new Set(programFees.map((fee) => fee.name));
+    const facultyFees = fees.filter(
+      (fee) =>
+        fee.facultyId === program.facultyId &&
+        fee.programId == null &&
+        !overriddenByProgram.has(fee.name),
+    );
+    const overriddenNames = new Set(
+      [...programFees, ...facultyFees].map((fee) => fee.name),
+    );
+    const institutionFees = fees.filter(
+      (fee) =>
+        fee.facultyId == null &&
+        fee.programId == null &&
+        !overriddenNames.has(fee.name),
+    );
+    const feeLines = [...institutionFees, ...facultyFees, ...programFees].map(
+      (fee) => {
+        const amountUsd =
+          fee.period === "year"
+            ? Math.round((fee.amountUsd * feeTermEquivalent) / 2)
+            : fee.amountUsd * feeTermEquivalent;
+        return {
+          kind: "fee" as const,
+          label: fee.name,
+          amountUsd,
+          academicYear: fee.academicYear,
+          sourceUrl: fee.sourceUrl,
+          period: fee.period,
+        };
+      },
+    );
 
     const lines = [
       {
@@ -181,6 +286,7 @@ export class CampusService {
         totalCredits: program.totalCredits,
         maxBilledCredits: program.maxBilledCredits,
         perCreditUsd: program.amountUsd,
+        creditTiers: program.creditTiers ?? null,
         academicYear: program.academicYear,
         sourceUrl: program.sourceUrl,
       },

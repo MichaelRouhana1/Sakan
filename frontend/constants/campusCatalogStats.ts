@@ -12,7 +12,7 @@ export const CAMPUS_CATALOG = {
 /** Seeded academic catalog — must match `db:seed:academic`. */
 export const ACADEMIC_CATALOG = {
   faculties: 191,
-  programs: 616,
+  programs: 642,
   /** Universities with a full 2026–2027 per-credit rate on every faculty. */
   tuitionYear: "2026-2027",
 } as const;

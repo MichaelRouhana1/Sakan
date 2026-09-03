@@ -1,5 +1,6 @@
 import {
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -60,6 +61,12 @@ export const programs = pgTable(
   (table) => [unique("programs_faculty_slug").on(table.facultyId, table.slug)],
 );
 
+export type CreditRateTier = {
+  amountUsd: number;
+  /** Credits billed at this rate, counting from the start of the major. Last band omits the cap. */
+  upToCredits?: number;
+};
+
 export const tuitionRates = pgTable(
   "tuition_rates",
   {
@@ -69,6 +76,7 @@ export const tuitionRates = pgTable(
       .references(() => programs.id, { onDelete: "cascade" }),
     academicYear: varchar("academic_year", { length: 16 }).notNull(),
     amountUsd: integer("amount_usd").notNull(),
+    creditTiers: jsonb("credit_tiers").$type<CreditRateTier[]>(),
     sourceUrl: varchar("source_url", { length: 1024 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

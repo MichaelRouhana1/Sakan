@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { db } from "../index.js";
 import {
   faculties,
@@ -56,6 +56,7 @@ async function main() {
 
     const institutionId = row.id;
     const facultyList = mergedFaculties(inst.slug);
+    const facultyIds = new Map<string, string>();
 
     for (const fac of facultyList) {
       await db
@@ -84,6 +85,7 @@ async function main() {
       if (!facultyRow) {
         throw new Error(`Missing faculty ${inst.slug}/${fac.slug}`);
       }
+      facultyIds.set(fac.slug, facultyRow.id);
 
       for (const program of fac.programs ?? []) {
         const creditSystem = program.creditSystem ?? "us";
@@ -143,23 +145,45 @@ async function main() {
             programId: programRow.id,
             academicYear: program.academicYear,
             amountUsd: program.perCreditUsd,
+            creditTiers: program.creditTiers ?? null,
             sourceUrl: program.sourceUrl,
           })
           .onConflictDoUpdate({
             target: [tuitionRates.programId, tuitionRates.academicYear],
             set: {
               amountUsd: program.perCreditUsd,
+              creditTiers: program.creditTiers ?? null,
               sourceUrl: program.sourceUrl,
               updatedAt: new Date(),
             },
           });
         programCount += 1;
       }
+
+      const seededSlugs = (fac.programs ?? []).map((program) => program.slug);
+      if (seededSlugs.length > 0) {
+        await db
+          .delete(programs)
+          .where(
+            and(
+              eq(programs.facultyId, facultyRow.id),
+              notInArray(programs.slug, seededSlugs),
+            ),
+          );
+      }
     }
 
     const fees = programBySlug.get(inst.slug)?.fees;
     if (fees) {
       for (const fee of fees) {
+        const facultyId = fee.facultySlug
+          ? (facultyIds.get(fee.facultySlug) ?? null)
+          : null;
+        if (fee.facultySlug && !facultyId) {
+          throw new Error(
+            `Unknown faculty slug ${fee.facultySlug} for ${inst.slug} fee ${fee.name}`,
+          );
+        }
         const existing = await db
           .select({ id: feeItems.id })
           .from(feeItems)
@@ -168,6 +192,9 @@ async function main() {
               eq(feeItems.institutionId, institutionId),
               eq(feeItems.name, fee.name),
               eq(feeItems.academicYear, fee.academicYear),
+              facultyId
+                ? eq(feeItems.facultyId, facultyId)
+                : isNull(feeItems.facultyId),
             ),
           )
           .limit(1);
@@ -178,12 +205,14 @@ async function main() {
               amountUsd: fee.amountUsd,
               period: fee.period,
               sourceUrl: fee.sourceUrl,
+              facultyId,
               updatedAt: new Date(),
             })
             .where(eq(feeItems.id, existing[0].id));
         } else {
           await db.insert(feeItems).values({
             institutionId,
+            facultyId,
             name: fee.name,
             amountUsd: fee.amountUsd,
             period: fee.period,

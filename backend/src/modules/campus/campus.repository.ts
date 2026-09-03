@@ -51,6 +51,7 @@ export class CampusRepository {
         totalCredits: programs.totalCredits,
         maxBilledCredits: programs.maxBilledCredits,
         rateAmountUsd: tuitionRates.amountUsd,
+        creditTiers: tuitionRates.creditTiers,
         academicYear: tuitionRates.academicYear,
         sourceUrl: tuitionRates.sourceUrl,
       })
@@ -95,6 +96,7 @@ export class CampusRepository {
         institutionSlug: institutions.slug,
         logoUrl: institutions.logoUrl,
         amountUsd: tuitionRates.amountUsd,
+        creditTiers: tuitionRates.creditTiers,
         academicYear: tuitionRates.academicYear,
         sourceUrl: tuitionRates.sourceUrl,
       })

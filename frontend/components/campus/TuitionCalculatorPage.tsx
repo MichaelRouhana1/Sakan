@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -21,7 +20,6 @@ import { Skoun } from "@/constants/theme";
 import { useCampusHousingStats } from "@/features/campus/useCampusHousingStats";
 import { useCampusInstitutions } from "@/features/campus/useCampusInstitutions";
 import { useProgramCosts } from "@/features/campus/useProgramCosts";
-import { AUB_LIVING_COA } from "@/features/campus/types";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
@@ -57,7 +55,6 @@ export function TuitionCalculatorPage() {
     custom?: string;
     period?: string;
     terms?: string;
-    living?: string;
   }>();
   const { width } = useWindowDimensions();
   const wide = Platform.OS === "web" && width >= 1024;
@@ -76,12 +73,6 @@ export function TuitionCalculatorPage() {
   );
   const [period, setPeriod] = useState<CostPeriod>(
     parsePeriod(params.period, params.terms),
-  );
-  const [livingIds, setLivingIds] = useState<string[]>(
-    paramStr(params.living)
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
   );
 
   const institution = useMemo(
@@ -147,7 +138,6 @@ export function TuitionCalculatorPage() {
       credits?: number;
       custom?: boolean;
       period?: CostPeriod;
-      living?: string[];
     }) => {
       const usingCustom = next.custom ?? customLoad;
       const creditValue = usingCustom
@@ -163,7 +153,6 @@ export function TuitionCalculatorPage() {
         custom: usingCustom ? "1" : undefined,
         period: nextPeriod,
         terms: undefined,
-        living: (next.living ?? livingIds).join(",") || undefined,
       } as never);
     },
     [
@@ -175,7 +164,6 @@ export function TuitionCalculatorPage() {
       credits,
       customLoad,
       period,
-      livingIds,
     ],
   );
 
@@ -189,7 +177,6 @@ export function TuitionCalculatorPage() {
     setCampusSlug(main?.slug ?? "");
     setCredits(0);
     setCustomLoad(false);
-    setLivingIds([]);
     writeParams({
       uni: row.slug,
       faculty: "",
@@ -197,7 +184,6 @@ export function TuitionCalculatorPage() {
       campus: main?.slug ?? "",
       credits: 0,
       custom: false,
-      living: [],
     });
   };
 
@@ -241,23 +227,7 @@ export function TuitionCalculatorPage() {
   const costs = useProgramCosts(program?.id ?? null, effectiveCredits, period);
   const housing = useCampusHousingStats(campusSlug || null);
 
-  const livingYear = useMemo(() => {
-    if (institution?.slug !== "aub") return 0;
-    return AUB_LIVING_COA.items
-      .filter((item) => livingIds.includes(item.id))
-      .reduce((sum, item) => sum + item.yearUsd, 0);
-  }, [institution?.slug, livingIds]);
-  const spanYears = Math.max(
-    1,
-    Math.ceil(totalMajorCredits / Math.max(1, typicalCredits * 2)),
-  );
-  const livingAmount =
-    period === "degree"
-      ? livingYear * spanYears
-      : period === "year"
-        ? livingYear
-        : Math.round(livingYear / 2);
-  const grandTotal = (costs.data?.totalUsd ?? 0) + livingAmount;
+  const grandTotal = costs.data?.totalUsd ?? 0;
 
   const onSeeRooms = () => {
     router.push(
@@ -498,45 +468,6 @@ export function TuitionCalculatorPage() {
               </View>
             </>
           ) : null}
-
-          {institution?.slug === "aub" ? (
-            <>
-              <View style={styles.formDivider} />
-              <Text style={styles.label}>Optional living costs (AUB COA)</Text>
-              <Text style={styles.hint}>
-                Yearly estimates from AUB Cost of Attendance 2025–2026. Not
-                tuition. Prorated when you pick a semester.
-              </Text>
-              {AUB_LIVING_COA.items.map((item) => {
-                const on = livingIds.includes(item.id);
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => {
-                      const next = on
-                        ? livingIds.filter((id) => id !== item.id)
-                        : [...livingIds, item.id];
-                      setLivingIds(next);
-                      writeParams({ living: next });
-                    }}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: on }}
-                    style={styles.checkRow}
-                  >
-                    <View style={[styles.check, on && styles.checkOn]}>
-                      {on ? (
-                        <Ionicons name="checkmark" size={14} color="#fff" />
-                      ) : null}
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.checkLabel}>{item.label}</Text>
-                      <Text style={styles.hint}>{item.range}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </>
-          ) : null}
         </LinearGradient>
       </View>
     </View>
@@ -597,21 +528,10 @@ export function TuitionCalculatorPage() {
                 <Text style={styles.lineAmt}>{money(line.amountUsd)}</Text>
               </View>
             ))}
-            {livingAmount > 0 ? (
-              <View style={styles.line}>
-                <Text style={styles.lineLabel}>
-                  Living (AUB COA, {AUB_LIVING_COA.academicYear})
-                </Text>
-                <Text style={styles.lineAmt}>{money(livingAmount)}</Text>
-              </View>
-            ) : null}
 
             <Text style={styles.disclaimer}>{costs.data.disclaimer}</Text>
             <Text style={styles.years}>
               Sources: {costs.data.academicYears.join(" · ")}
-              {livingAmount > 0
-                ? ` · living ${AUB_LIVING_COA.academicYear}`
-                : ""}
             </Text>
             {costs.data.program.sourceUrl ? (
               <Pressable
@@ -868,32 +788,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     maxWidth: 160,
     outlineStyle: 'none' as unknown as undefined,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 8,
-    cursor: 'pointer',
-  },
-  check: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: Skoun.color.borderStrong,
-    borderRadius: Skoun.radius.sm,
-    marginTop: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkOn: {
-    backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
-  },
-  checkLabel: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 14,
-    color: Skoun.color.ink,
   },
   ledger: {
     borderWidth: 1,

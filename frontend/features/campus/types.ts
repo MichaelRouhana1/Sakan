@@ -17,6 +17,7 @@ export type CampusProgram = {
   totalCredits: number;
   maxBilledCredits: number | null;
   perCreditUsd: number;
+  creditTiers?: { upToCredits?: number; amountUsd: number }[] | null;
   academicYear: string;
   sourceUrl: string;
 };
@@ -79,34 +80,3 @@ export type HousingStats = {
   minUsd: number | null;
   medianUsd: number | null;
 };
-
-export const AUB_LIVING_COA = {
-  academicYear: "2025-2026",
-  sourceUrl: "https://www.aub.edu.lb/faid/Pages/Cost-of-Attendance.aspx",
-  items: [
-    {
-      id: "food",
-      label: "Food (AUB COA, from)",
-      yearUsd: 2700,
-      range: "$2,700–$5,940 / year",
-    },
-    {
-      id: "books",
-      label: "Books and supplies (AUB COA)",
-      yearUsd: 2000,
-      range: "$2,000 / year",
-    },
-    {
-      id: "transport",
-      label: "Transportation (AUB COA)",
-      yearUsd: 4095,
-      range: "$4,095 / year",
-    },
-    {
-      id: "misc",
-      label: "Miscellaneous (AUB COA)",
-      yearUsd: 1200,
-      range: "$1,200 / year",
-    },
-  ],
-} as const;
