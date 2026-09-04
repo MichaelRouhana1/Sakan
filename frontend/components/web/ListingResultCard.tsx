@@ -24,6 +24,7 @@ import {
   type ListingAmberPill,
 } from "@/lib/listingCardMeta";
 import { labelListingType } from "@/lib/listingLabels";
+import { resolveMediaUrls } from "@/lib/mediaUrl";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { Listing } from "@/types/listing";
 
@@ -57,8 +58,8 @@ function photoUrls(listing: Listing): string[] {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((p) => p.url)
     .filter(Boolean);
-  if (fromPhotos.length > 0) return fromPhotos;
-  return listing.coverUrl ? [listing.coverUrl] : [];
+  if (fromPhotos.length > 0) return resolveMediaUrls(fromPhotos);
+  return resolveMediaUrls(listing.coverUrl ? [listing.coverUrl] : []);
 }
 
 function HeartButton({
@@ -185,7 +186,7 @@ export function ListingResultCard({
     return (
       <View style={[styles.card, styles.cardList]} {...mapHoverHandlers}>
         <View style={[touchPanX, styles.mediaShell, styles.mediaList]}>
-          <ListingCardCarousel urls={urls} onPressCard={onOpen} />
+          <ListingCardCarousel urls={urls} onPressCard={onOpen} minHeight={220} />
           <ImageCornerBadge listing={listing} variant="list" />
         </View>
 
@@ -513,8 +514,7 @@ const styles = StyleSheet.create({
   gridMedia: {
     position: "relative",
     width: "100%",
-    aspectRatio: 16 / 10,
-    overflow: Platform.OS === "web" ? "hidden" : "visible",
+    overflow: "hidden",
     backgroundColor: Skoun.color.primaryMist,
   },
   gridHeart: {

@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Zap } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
+import { useIsFocused } from "expo-router/react-navigation";
 import { LText } from "@/components/lister/Typography";
 import { LButton } from "@/components/lister/Button";
 import RenterListingDetailScreen from "@/app/(renter)/listing/[id]";
@@ -101,6 +101,7 @@ export default function RenterSearchScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [uniOpen, setUniOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [mapModalShown, setMapModalShown] = useState(false);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [mapListingId, setMapListingId] = useState<string | null>(null);
@@ -110,6 +111,10 @@ export default function RenterSearchScreen() {
   const institutions = useInstitutions();
   const appliedProfileCampus = useRef(false);
   const hydratedUrl = useRef(false);
+
+  useEffect(() => {
+    if (viewMode !== "map" || !isFocused) setMapModalShown(false);
+  }, [viewMode, isFocused]);
 
   const syncUrl = useCallback(
     (next: {
@@ -638,6 +643,7 @@ export default function RenterSearchScreen() {
           animationType="none"
           presentationStyle="fullScreen"
           statusBarTranslucent
+          onShow={() => setMapModalShown(true)}
           onRequestClose={() => {
             setFiltersOpen(false);
             setMapSearchOpen(false);
@@ -646,6 +652,7 @@ export default function RenterSearchScreen() {
           }}
         >
           <View style={styles.mapScreen}>
+            {mapModalShown ? (
             <ListingBrowseMap
               listings={processedListings}
               campuses={campuses}
@@ -665,6 +672,7 @@ export default function RenterSearchScreen() {
               onCarouselOpenChange={onCarouselOpenChange}
               onOpenListing={(listing) => setMapListingId(listing.id)}
             />
+            ) : null}
             {!carouselOpen ? (
               <View
                 style={[styles.mapChrome, { paddingTop: insets.top + 8 }]}

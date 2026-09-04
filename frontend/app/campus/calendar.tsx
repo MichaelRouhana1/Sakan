@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AcademicCalendarPage } from "@/components/campus/AcademicCalendarPage";
 import { CampusTopNav } from "@/components/campus/CampusTopNav";
@@ -10,9 +10,13 @@ export default function CampusCalendar() {
   return (
     <Screen style={styles.root} {...(Platform.OS === "web" ? {} : { edges: ["top"] })}>
       <CampusTopNav />
-      <View style={styles.body}>
+      <ScrollView
+        style={styles.body}
+        contentContainerStyle={styles.bodyContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <AcademicCalendarPage />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -26,5 +30,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
+  },
+  bodyContent: {
+    paddingBottom: 32,
   },
 });

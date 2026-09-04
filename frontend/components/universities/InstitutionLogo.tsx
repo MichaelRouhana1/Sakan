@@ -14,6 +14,7 @@ import {
   isCircularInstitutionSeal,
 } from "@/lib/institutionLogoSources";
 import { institutionLogoCandidates } from "@/lib/institutionLogos";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 type Props = {
   shortName: string;
@@ -37,10 +38,12 @@ export function InstitutionLogo({
   fallbackTextStyle,
 }: Props) {
   const local = institutionLogoSource(slug);
-  const candidates = useMemo(
-    () => (local ? [] : institutionLogoCandidates(website, logoUrl)),
-    [local, website, logoUrl],
-  );
+  const candidates = useMemo(() => {
+    if (local) return [];
+    return institutionLogoCandidates(website, logoUrl)
+      .map((url) => resolveMediaUrl(url))
+      .filter((url): url is string => Boolean(url));
+  }, [local, website, logoUrl]);
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {

@@ -72,6 +72,7 @@ export function CampusHomePage() {
     null;
 
   const twoCol = width >= 900;
+  const compact = width < 640;
 
   return (
     <View style={styles.page}>
@@ -80,10 +81,17 @@ export function CampusHomePage() {
         <LText variant="label" tone="muted" style={styles.kicker}>
           {uni ? `Your campus · ${uni}` : "Student tools · Lebanon"}
         </LText>
-        <LText variant="display" style={styles.title}>
+        <LText
+          variant="display"
+          style={[styles.title, compact && styles.titleCompact]}
+        >
           {uni ? `Your ${uni} student home` : "Your student home"}
         </LText>
-        <LText variant="body" tone="muted" style={styles.lede}>
+        <LText
+          variant="body"
+          tone="muted"
+          style={[styles.lede, compact && styles.ledeCompact]}
+        >
           {uni
             ? `Free tools for ${uni} students — tuition, calendar, benefits, and housing nearby.`
             : "Free tools for your university — tuition, calendar, benefits, and housing nearby."}
@@ -97,7 +105,7 @@ export function CampusHomePage() {
               colors={[...tool.gradient]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.cardFill}
+              style={[styles.cardFill, compact && styles.cardFillCompact]}
             >
               <View style={styles.cardOrb} pointerEvents="none" />
               <View style={styles.cardTop}>
@@ -206,11 +214,20 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
     textAlign: "center",
   },
+  titleCompact: {
+    fontSize: 30,
+    lineHeight: 36,
+    letterSpacing: -0.5,
+  },
   lede: {
     fontSize: 16,
     lineHeight: 24,
     maxWidth: 520,
     textAlign: "center",
+  },
+  ledeCompact: {
+    fontSize: 15,
+    lineHeight: 22,
   },
   grid: {
     flexDirection: "row",
@@ -226,6 +243,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: Skoun.color.surface,
     cursor: "pointer",
+    minWidth: 0,
     ...(Platform.OS === "web"
       ? ({
           boxShadow: "0 2px 8px rgba(18, 24, 38, 0.05)",
@@ -252,6 +270,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     gap: 12,
     overflow: "hidden",
+  },
+  cardFillCompact: {
+    minHeight: 152,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    gap: 10,
   },
   cardOrb: {
     position: "absolute",

@@ -24,7 +24,7 @@ export type SegmentedPillOption<T extends string> = {
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 };
 
-type Appearance = "glass" | "chip";
+type Appearance = "glass" | "chip" | "well";
 
 type Props<T extends string> = {
   value: T;
@@ -65,7 +65,7 @@ export function SegmentedPillTrack<T extends string>({
     0,
     options.findIndex((o) => o.value === value),
   );
-  const pad = appearance === "glass" ? 4 : 3;
+  const pad = appearance === "glass" ? 4 : appearance === "well" ? 4 : 3;
 
   const layoutsRef = useRef<(SlotLayout | null)[]>(options.map(() => null));
   const [ready, setReady] = useState(false);
@@ -174,6 +174,7 @@ export function SegmentedPillTrack<T extends string>({
             styles.thumb,
             appearance === "glass" && styles.thumbGlass,
             appearance === "chip" && styles.thumbChip,
+            appearance === "well" && styles.thumbWell,
             {
               width: thumbSize.width,
               height: thumbSize.height,
@@ -209,6 +210,7 @@ export function SegmentedPillTrack<T extends string>({
                 styles.slot,
                 appearance === "glass" && styles.slotGlass,
                 appearance === "chip" && styles.slotChip,
+                appearance === "well" && styles.slotWell,
                 option.icon ? styles.slotWithIcon : null,
               ]}
             >
@@ -235,10 +237,17 @@ export function SegmentedPillTrack<T extends string>({
     </View>
   );
 
+  const shellStyle =
+    appearance === "glass"
+      ? styles.shellGlass
+      : appearance === "well"
+        ? styles.shellWell
+        : styles.shellChip;
+
   const shell = (
     <View
       style={[
-        appearance === "glass" ? styles.shellGlass : styles.shellChip,
+        shellStyle,
         stretch ? styles.shellStretch : styles.shellHug,
         { padding: pad },
         style,
@@ -278,6 +287,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Skoun.color.border,
   },
+  shellWell: {
+    minHeight: 56,
+    backgroundColor: "#F7F9FC",
+    borderRadius: Skoun.radius.md,
+    borderWidth: 1.5,
+    borderColor: "#A8C0EC",
+    justifyContent: "center",
+  },
   shellStretch: {
     alignSelf: "stretch",
   },
@@ -308,6 +325,10 @@ const styles = StyleSheet.create({
     borderRadius: Skoun.radius.pill,
     backgroundColor: Skoun.color.primary,
   },
+  thumbWell: {
+    borderRadius: Skoun.radius.sm,
+    backgroundColor: Skoun.color.primary,
+  },
   slotWrap: {
     zIndex: 1,
   },
@@ -336,6 +357,10 @@ const styles = StyleSheet.create({
   slotChip: {
     paddingVertical: 8,
     paddingHorizontal: 12,
+  },
+  slotWell: {
+    paddingVertical: 14,
+    paddingHorizontal: 10,
   },
   slotWithIcon: {
     flexDirection: "row",

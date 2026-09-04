@@ -9,6 +9,7 @@ import {
   formatExpiry,
   labelListingType,
 } from "@/lib/listingLabels";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
 import { NearLandmark } from "@/components/listings/NearLandmark";
@@ -24,7 +25,9 @@ type Props = {
 export function PosterListingCard({ listing, onPress }: Props) {
   const days = daysUntil(listing.expiresAt);
   const urgent = days != null && days >= 0 && days <= 5;
-  const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+  const cover = resolveMediaUrl(
+    listing.coverUrl ?? listing.photos[0]?.url ?? null,
+  );
 
   return (
     <Pressable

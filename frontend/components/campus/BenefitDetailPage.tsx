@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -18,6 +19,7 @@ import { categoryMeta } from "@/features/benefits/categories";
 import { isCampusExclusive } from "@/features/benefits/types";
 import { useBenefit } from "@/features/benefits/useBenefit";
 import { errorStatus } from "@/features/benefits/useBenefits";
+import { benefitCompanyLogo } from "@/lib/benefitCompanyLogos";
 
 type Props = {
   id: string;
@@ -28,11 +30,23 @@ function hostOf(url: string): string {
   return match?.[1]?.replace(/^www\./, "") ?? "source";
 }
 
+function PageScroll({ children }: { children: React.ReactNode }) {
+  if (Platform.OS === "web") {
+    return <View style={styles.content}>{children}</View>;
+  }
+  return (
+    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      {children}
+    </ScrollView>
+  );
+}
+
 export function BenefitDetailPage({ id }: Props) {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const benefit = useBenefit(id);
   const wide = width >= 1000;
+  const compact = width < 640;
 
   const backToList = () => router.push("/campus/benefits" as never);
 
@@ -47,7 +61,7 @@ export function BenefitDetailPage({ id }: Props) {
   if (benefit.isError || !benefit.data) {
     const gone = errorStatus(benefit.error) === 404;
     return (
-      <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      <PageScroll>
         <WebEmptyState
           icon={gone ? "pricetag-outline" : "cloud-offline-outline"}
           title={gone ? "This offer is no longer available" : "Couldn't load this offer"}
@@ -59,22 +73,27 @@ export function BenefitDetailPage({ id }: Props) {
           actionLabel={gone ? "Browse all benefits" : "Retry"}
           onAction={gone ? backToList : () => void benefit.refetch()}
         />
-      </ScrollView>
+      </PageScroll>
     );
   }
 
   const row = benefit.data;
   const meta = categoryMeta(row.category);
   const exclusive = isCampusExclusive(row);
+  const logo = benefitCompanyLogo(row.companyName);
 
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <PageScroll>
       <View style={styles.page}>
         <Pressable
           onPress={backToList}
           accessibilityRole="link"
           accessibilityLabel="Back to all benefits"
-          style={({ hovered }) => [styles.back, hovered && styles.backHover]}
+          style={({ hovered }) => [
+            styles.back,
+            compact && styles.backCompact,
+            hovered && styles.backHover,
+          ]}
         >
           <Ionicons name="arrow-back" size={16} color={Skoun.color.primary} />
           <LText variant="caption" style={styles.backLabel}>
@@ -82,9 +101,28 @@ export function BenefitDetailPage({ id }: Props) {
           </LText>
         </Pressable>
 
-        <View style={styles.header}>
-          <View style={[styles.iconWell, { backgroundColor: meta.tint }]}>
-            <Ionicons name={meta.icon} size={26} color={meta.accent} />
+        <View style={[styles.header, compact && styles.headerCompact]}>
+          <View
+            style={[
+              styles.iconWell,
+              compact && styles.iconWellCompact,
+              logo ? styles.iconWellLogo : { backgroundColor: meta.tint },
+            ]}
+          >
+            {logo ? (
+              <Image
+                source={logo}
+                style={[styles.logoImg, compact && styles.logoImgCompact]}
+                resizeMode="contain"
+                accessibilityIgnoresInvertColors
+              />
+            ) : (
+              <Ionicons
+                name={meta.icon}
+                size={compact ? 22 : 26}
+                color={meta.accent}
+              />
+            )}
           </View>
           <View style={styles.headerCopy}>
             <LText
@@ -93,7 +131,10 @@ export function BenefitDetailPage({ id }: Props) {
             >
               {row.companyName}
             </LText>
-            <LText variant="display" style={styles.title}>
+            <LText
+              variant="display"
+              style={[styles.title, compact && styles.titleCompact]}
+            >
               {row.title}
             </LText>
           </View>
@@ -214,7 +255,7 @@ export function BenefitDetailPage({ id }: Props) {
           </View>
         </View>
       </View>
-    </ScrollView>
+    </PageScroll>
   );
 }
 
@@ -247,6 +288,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginLeft: -10,
     borderRadius: Skoun.radius.pill,
+    minHeight: 44,
     ...(Platform.OS === "web"
       ? ({
           cursor: "pointer",
@@ -254,6 +296,9 @@ const styles = StyleSheet.create({
           transitionDuration: "180ms",
         } as object)
       : null),
+  },
+  backCompact: {
+    marginLeft: -6,
   },
   backHover: {
     backgroundColor: Skoun.color.primaryMist,
@@ -267,12 +312,37 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 16,
   },
+  headerCompact: {
+    gap: 12,
+  },
   iconWell: {
     width: 56,
     height: 56,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  iconWellCompact: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+  },
+  iconWellLogo: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: Skoun.color.border,
+  },
+  logoImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+  },
+  logoImgCompact: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
   },
   headerCopy: {
     flex: 1,
@@ -286,6 +356,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 38,
     letterSpacing: -0.6,
+  },
+  titleCompact: {
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: -0.4,
   },
   badgeRow: {
     flexDirection: "row",

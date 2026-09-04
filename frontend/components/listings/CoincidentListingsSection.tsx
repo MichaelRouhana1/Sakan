@@ -7,6 +7,7 @@ import { NearLandmark } from "@/components/listings/NearLandmark";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { labelGenderRestriction, labelListingType } from "@/lib/listingLabels";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
 
@@ -35,7 +36,9 @@ export function CoincidentListingsSection({ listings }: Props) {
 
       <View style={styles.list}>
         {listings.map((listing) => {
-          const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+          const cover = resolveMediaUrl(
+            listing.coverUrl ?? listing.photos[0]?.url ?? null,
+          );
 
           return (
             <Pressable

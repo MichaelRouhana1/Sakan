@@ -23,8 +23,8 @@ export const Lister = {
     ink: "#121826",
     inkMuted: "#5B6570",
     inkFaint: "#8B95A1",
-    /** Pale cool blue-gray — calm screen ground */
-    bg: "#EEF1F6",
+    /** Pale cool gray — calm screen ground */
+    bg: "#F9FAFB",
     bgWash: "#E2E8F0",
     surface: "#FFFFFF",
     surfaceMuted: "#F5F7FA",

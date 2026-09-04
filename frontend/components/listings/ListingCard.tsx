@@ -21,6 +21,7 @@ import {
   listingCardTitle,
 } from "@/lib/listingCardMeta";
 import { labelListingType } from "@/lib/listingLabels";
+import { resolveMediaUrls } from "@/lib/mediaUrl";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -38,8 +39,8 @@ function photoUrls(listing: Listing): string[] {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((p) => p.url)
     .filter(Boolean);
-  if (fromPhotos.length > 0) return fromPhotos;
-  return listing.coverUrl ? [listing.coverUrl] : [];
+  if (fromPhotos.length > 0) return resolveMediaUrls(fromPhotos);
+  return resolveMediaUrls(listing.coverUrl ? [listing.coverUrl] : []);
 }
 
 function ImageCornerBadge({ listing }: { listing: Listing }) {
@@ -75,7 +76,12 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
   return (
     <View style={styles.card}>
       <View style={[{ touchAction: "pan-x" } as any, styles.mediaShell]}>
-        <ListingCardCarousel urls={urls} onPressCard={onPress} alwaysShowArrows />
+        <ListingCardCarousel
+          urls={urls}
+          onPressCard={onPress}
+          alwaysShowArrows
+          minHeight={168}
+        />
         <ImageCornerBadge listing={listing} />
       </View>
 
@@ -177,7 +183,8 @@ const styles = StyleSheet.create({
     width: 118,
     alignSelf: "stretch",
     flexShrink: 0,
-    overflow: Platform.OS === "web" ? "hidden" : "visible",
+    overflow: "hidden",
+    minHeight: 168,
     ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   middle: {

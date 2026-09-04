@@ -7,6 +7,7 @@ import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { formatDistanceMeters } from "@/lib/formatDistance";
 import { labelGenderRestriction, labelListingType } from "@/lib/listingLabels";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
 
@@ -62,7 +63,9 @@ export function ListingMapPicker({
         showsVerticalScrollIndicator={false}
       >
         {listings.map((listing) => {
-          const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+          const cover = resolveMediaUrl(
+            listing.coverUrl ?? listing.photos[0]?.url ?? null,
+          );
           const distance = showDistance
             ? formatDistanceMeters(
                 listing.distanceMeters,

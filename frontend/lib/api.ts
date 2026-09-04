@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 /** Physical device: Metro host = dev machine LAN IP. Simulator/web: localhost. */
-function resolveApiBaseUrl(): string {
+export function resolveApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
   if (fromEnv) return fromEnv;
 
@@ -18,7 +18,7 @@ function resolveApiBaseUrl(): string {
   return "http://localhost:3001";
 }
 
-const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

@@ -12,7 +12,7 @@ export function SkounLogo({ size = 32, style }: Props) {
   return (
     <View style={[{ width: size, height: size }, style]}>
       <Image
-        source={require("@/assets/images/logo.png")}
+        source={require("../../assets/images/logo.png")}
         style={styles.img}
         resizeMode="contain"
         accessibilityLabel="Skoun Logo"

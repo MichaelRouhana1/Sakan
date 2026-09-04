@@ -15,8 +15,10 @@ import {
 } from "react-native";
 import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
+import { resolveMediaUrls } from "@/lib/mediaUrl";
 
 const MAX_PHOTOS = 5;
+const PHOTO_ASPECT = 16 / 10;
 
 type Props = {
   urls: string[];
@@ -24,6 +26,8 @@ type Props = {
   /** Always show chevrons on Web. Mobile hides arrows and uses native finger swiping. */
   alwaysShowArrows?: boolean;
   onPressCard?: () => void;
+  /** Floor height for list/side cards. Grid uses 16/10 from measured width. */
+  minHeight?: number;
 };
 
 function stopCardNav(e?: GestureResponderEvent) {
@@ -48,10 +52,12 @@ export function ListingCardCarousel({
   style,
   alwaysShowArrows = false,
   onPressCard,
+  minHeight = 0,
 }: Props) {
-  const photos = urls.filter(Boolean).slice(0, MAX_PHOTOS);
+  const photos = resolveMediaUrls(urls).slice(0, MAX_PHOTOS);
   const [index, setIndex] = useState(0);
   const [cardWidth, setCardWidth] = useState(0);
+  const [cardHeight, setCardHeight] = useState(0);
   const [hovered, setHovered] = useState(false);
   const count = photos.length;
   const isWeb = Platform.OS === "web";
@@ -140,12 +146,23 @@ export function ListingCardCarousel({
       style={[
         styles.root,
         isWeb && coarsePointer ? ({ touchAction: "pan-x" } as ViewStyle) : null,
+        cardHeight > 0
+          ? { height: cardHeight }
+          : { aspectRatio: PHOTO_ASPECT },
         style,
       ]}
-      onLayout={(e) => setCardWidth(e.nativeEvent.layout.width)}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout;
+        if (width <= 0) return;
+        const nextH = Math.round(
+          Math.max(height > 1 ? height : width / PHOTO_ASPECT, minHeight),
+        );
+        setCardWidth(width);
+        setCardHeight(nextH);
+      }}
       {...webHoverHandlers}
     >
-      {count > 0 && cardWidth > 0 ? (
+      {count > 0 && cardWidth > 0 && cardHeight > 0 ? (
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -189,14 +206,14 @@ export function ListingCardCarousel({
               key={`${url}-${i}`}
               onPress={onPressCard}
               style={[
-                { width: cardWidth, height: "100%" },
+                { width: cardWidth, height: cardHeight },
                 isWeb ? ({ scrollSnapAlign: "start" } as ViewStyle) : null,
               ]}
             >
               <Image
                 pointerEvents="none"
                 source={{ uri: url }}
-                style={StyleSheet.absoluteFillObject}
+                style={{ width: cardWidth, height: cardHeight }}
                 contentFit="cover"
               />
             </Pressable>
@@ -207,7 +224,11 @@ export function ListingCardCarousel({
           <Image
             pointerEvents="none"
             source={{ uri: photos[0] }}
-            style={StyleSheet.absoluteFillObject}
+            style={
+              cardWidth > 0 && cardHeight > 0
+                ? { width: cardWidth, height: cardHeight }
+                : StyleSheet.absoluteFillObject
+            }
             contentFit="cover"
           />
         </Pressable>
@@ -299,13 +320,11 @@ const webTransition = (property: string): ViewStyle =>
     : {};
 
 const styles = StyleSheet.create({
+  // In-flow width + computed height. absoluteFill collapsed to 0 on RN 0.86
+  // when the parent only had absolutely positioned children.
   root: {
-    position: "relative",
-    flex: 1,
-    alignSelf: "stretch",
     width: "100%",
-    height: "100%",
-    minHeight: "100%",
+    position: "relative",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
   },

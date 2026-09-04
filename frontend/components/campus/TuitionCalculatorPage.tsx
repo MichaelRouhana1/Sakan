@@ -58,6 +58,7 @@ export function TuitionCalculatorPage() {
   }>();
   const { width } = useWindowDimensions();
   const wide = Platform.OS === "web" && width >= 1024;
+  const compact = width < 640;
   const reduced = useReducedMotion();
   const catalog = useCampusInstitutions();
 
@@ -252,8 +253,10 @@ export function TuitionCalculatorPage() {
       <View style={styles.hero}>
         <View style={styles.heroRule} />
         <Text style={styles.kicker}>Tuition & study cost</Text>
-        <Text style={styles.title}>What will this major cost?</Text>
-        <Text style={styles.lede}>
+        <Text style={[styles.title, compact && styles.titleCompact]}>
+          What will this major cost?
+        </Text>
+        <Text style={[styles.lede, compact && styles.ledeCompact]}>
           Estimate published USD tuition for private universities in Lebanon,
           then jump to rooms near that campus.
         </Text>
@@ -264,7 +267,7 @@ export function TuitionCalculatorPage() {
           colors={["#EAF1FC", "#FFFFFF", "#F7F9FC"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.formCardFill}
+          style={[styles.formCardFill, compact && styles.formCardFillCompact]}
         >
           {catalog.isLoading ? (
             <ActivityIndicator color={Skoun.color.primary} />
@@ -479,7 +482,7 @@ export function TuitionCalculatorPage() {
         colors={["#E6EEFA", "#FFFFFF", "#F5F7FA"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.ledgerFill}
+        style={[styles.ledgerFill, compact && styles.ledgerFillCompact]}
       >
         {!program ? (
           <>
@@ -508,7 +511,13 @@ export function TuitionCalculatorPage() {
             <Text style={styles.ledgerKicker}>
               {costs.data.institution.shortName} · {costs.data.program.name}
             </Text>
-            <Text style={[styles.total, !reduced && styles.totalEnter]}>
+            <Text
+              style={[
+                styles.total,
+                compact && styles.totalCompact,
+                !reduced && styles.totalEnter,
+              ]}
+            >
               {money(grandTotal)}
             </Text>
             <Text style={styles.totalSub}>
@@ -651,12 +660,21 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
     color: Skoun.color.ink,
   },
+  titleCompact: {
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.5,
+  },
   lede: {
     fontFamily: Skoun.type.body,
     fontSize: 16,
     lineHeight: 24,
     color: Skoun.color.inkMuted,
     maxWidth: 520,
+  },
+  ledeCompact: {
+    fontSize: 15,
+    lineHeight: 22,
   },
   formCard: {
     position: 'relative',
@@ -683,6 +701,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     gap: 18,
     overflow: "hidden",
+  },
+  formCardFillCompact: {
+    paddingTop: 20,
+    paddingBottom: 18,
+    paddingHorizontal: 14,
+    gap: 14,
   },
   formDivider: {
     height: 1,
@@ -812,6 +836,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     minHeight: 180,
   },
+  ledgerFillCompact: {
+    padding: 16,
+  },
   ledgerWide: {
     width: 400,
     flexShrink: 0,
@@ -848,6 +875,10 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
     fontVariant: ['tabular-nums'],
     zIndex: 1,
+  },
+  totalCompact: {
+    fontSize: 36,
+    lineHeight: 42,
   },
   totalEnter: {},
   totalSub: {

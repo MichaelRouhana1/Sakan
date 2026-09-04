@@ -6,6 +6,7 @@ import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
 
@@ -27,7 +28,9 @@ export function ListingDetailNearbyRail({ listings }: Props) {
         contentContainerStyle={styles.rail}
       >
         {listings.map((listing) => {
-          const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+          const cover = resolveMediaUrl(
+            listing.coverUrl ?? listing.photos[0]?.url ?? null,
+          );
           return (
             <Pressable
               key={listing.id}

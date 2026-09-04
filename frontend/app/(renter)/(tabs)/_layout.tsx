@@ -1,11 +1,5 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { DynamicColorIOS, Platform } from "react-native";
-import {
-  Icon,
-  Label,
-  NativeTabs,
-  VectorIcon,
-} from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Skoun } from "@/constants/theme";
 import { useMigrateLocalSaved } from "@/features/saved/useSavedListings";
 
@@ -17,6 +11,10 @@ const tint =
       })
     : Skoun.color.primary;
 
+/**
+ * SDK 55+ uses NativeTabs.Trigger.Label / .Icon (standalone Label/Icon
+ * imports are ignored, which showed raw route names like "(explore)").
+ */
 export default function RenterTabsLayout() {
   useMigrateLocalSaved();
 
@@ -27,24 +25,24 @@ export default function RenterTabsLayout() {
       minimizeBehavior="onScrollDown"
     >
       <NativeTabs.Trigger name="(explore)">
-        <Label>Search</Label>
-        <Icon
+        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
           sf={{ default: "magnifyingglass", selected: "magnifyingglass" }}
-          androidSrc={<VectorIcon family={Ionicons} name="search" />}
+          md="search"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="saved">
-        <Label>Saved</Label>
-        <Icon
+        <NativeTabs.Trigger.Label>Saved</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
           sf={{ default: "heart", selected: "heart.fill" }}
-          androidSrc={<VectorIcon family={Ionicons} name="heart" />}
+          md="favorite"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
-        <Label>Profile</Label>
-        <Icon
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
           sf={{ default: "person", selected: "person.fill" }}
-          androidSrc={<VectorIcon family={Ionicons} name="person" />}
+          md="person"
         />
       </NativeTabs.Trigger>
     </NativeTabs>

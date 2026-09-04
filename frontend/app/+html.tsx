@@ -1,18 +1,23 @@
 import type { ReactNode } from "react";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 
-const BG = "#EEF1F6";
+const BG = "#F9FAFB";
 const CAMPUS_CSS = `
-.skoun-campus {
+.skoun-campus,
+#skoun-campus {
   font-family: 'DM Sans', system-ui, sans-serif;
-  background: #EEF1F6;
+  background: #F9FAFB;
   color: #121826;
   -webkit-font-smoothing: antialiased;
+  -webkit-overflow-scrolling: touch;
 }
 .skoun-campus [role="button"],
-.skoun-campus [role="link"] { cursor: pointer; }
+.skoun-campus [role="link"],
+#skoun-campus [role="button"],
+#skoun-campus [role="link"] { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
-  .skoun-campus * {
+  .skoun-campus *,
+  #skoun-campus * {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
@@ -28,7 +33,7 @@ const SKOUN_HOME_CSS = `
   --sk-primary-deep: #121826;
   --sk-primary-soft: #A8C4F0;
   --sk-primary-mist: #E8EEF6;
-  --sk-bg: #EEF1F6;
+  --sk-bg: #F9FAFB;
   --sk-bg-wash: #E2E8F0;
   --sk-surface: #FFFFFF;
   --sk-ink: #121826;

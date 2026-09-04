@@ -13,6 +13,7 @@ import {
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { Listing } from "@/types/listing";
 
 const CARD_BORDER = "#E2E8F0";
@@ -29,7 +30,7 @@ function coverUrl(listing: Listing): string | null {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((p) => p.url)
     .find(Boolean);
-  return fromPhotos ?? listing.coverUrl ?? null;
+  return resolveMediaUrl(fromPhotos ?? listing.coverUrl ?? null);
 }
 
 export const MAP_CAROUSEL_BODY_H = 96;
@@ -50,7 +51,7 @@ export function ListingMapCarouselCard({ listing, width, onPress }: Props) {
       onPress={onPress}
       style={[styles.card, { width }]}
     >
-      <View style={styles.media}>
+      <View style={[styles.media, { height: width * (10 / 16) }]}>
         {cover ? (
           <Image
             source={{ uri: cover }}
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   media: {
     position: "relative",
     width: "100%",
-    aspectRatio: 16 / 10,
+    overflow: "hidden",
     backgroundColor: Skoun.color.primaryMist,
   },
   mediaFallback: {

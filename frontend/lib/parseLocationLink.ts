@@ -6,40 +6,6 @@ const SHORT_LINK_HOSTS = new Set([
   "g.co",
 ]);
 
-// #region agent log
-const DEBUG_LOG_URLS = [
-  "http://127.0.0.1:7480/ingest/c819fe4b-ee03-4efd-a623-2ff9add46ee7",
-  "http://192.168.10.249:7480/ingest/c819fe4b-ee03-4efd-a623-2ff9add46ee7",
-  `${process.env.EXPO_PUBLIC_API_URL ?? "http://192.168.10.249:3001"}/api/debug-session-log`,
-];
-function dbg(
-  hypothesisId: string,
-  location: string,
-  message: string,
-  data: Record<string, unknown>,
-) {
-  const payload = JSON.stringify({
-    sessionId: "b50488",
-    runId: "maps-link-postfix",
-    hypothesisId,
-    location,
-    message,
-    data,
-    timestamp: Date.now(),
-  });
-  for (const u of DEBUG_LOG_URLS) {
-    fetch(u, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "b50488",
-      },
-      body: payload,
-    }).catch(() => {});
-  }
-}
-// #endregion
-
 /** Pull first http(s) or geo: URL from WhatsApp / share paste blobs. */
 export function extractUrlFromPaste(text: string): string | null {
   const trimmed = text.trim();
@@ -203,24 +169,6 @@ export async function expandUrlIfNeeded(urlStr: string): Promise<ExpandResult> {
       },
     });
     const body = await res.text();
-    // #region agent log
-    dbg("A", "parseLocationLink.ts:expandUrlIfNeeded", "short link fetch result", {
-      input: urlStr.slice(0, 120),
-      status: res.status,
-      resUrl: (res.url ?? "").slice(0, 300),
-      resUrlSameAsInput: res.url === urlStr,
-      locationHeader: (res.headers.get("location") ?? "").slice(0, 300),
-      contentType: res.headers.get("content-type"),
-      bodyLen: body.length,
-      bodyHasAt: /@-?\d/.test(body),
-      bodyHas3d: /!3d-?\d/.test(body),
-      bodyHasMaps: /google\.com\/maps/.test(body),
-      bodyHasCenter: /center=-?\d/.test(body),
-      metaRefresh:
-        /url=(https[^"'\s>]+)/i.exec(body)?.[1]?.slice(0, 250) ?? null,
-      bodyHead: body.slice(0, 280),
-    });
-    // #endregion
     let finalUrl = urlStr;
     if (res.url && res.url !== urlStr) {
       finalUrl = res.url;
@@ -236,12 +184,6 @@ export async function expandUrlIfNeeded(urlStr: string): Promise<ExpandResult> {
     }
     return { url: finalUrl, html: body };
   } catch (err) {
-    // #region agent log
-    dbg("D", "parseLocationLink.ts:expandUrlIfNeeded", "short link fetch THREW", {
-      input: urlStr.slice(0, 120),
-      error: String(err),
-    });
-    // #endregion
     throw new Error(
       "Couldn’t open that short link. Paste the full Google/Apple Maps URL instead.",
     );
@@ -259,14 +201,6 @@ export async function resolveLocationLink(
   paste: string,
 ): Promise<ResolveLocationLinkResult> {
   const extracted = extractUrlFromPaste(paste);
-  // #region agent log
-  dbg("E", "parseLocationLink.ts:resolveLocationLink", "extracted url from paste", {
-    pasteLen: paste.trim().length,
-    pasteHead: paste.trim().slice(0, 160),
-    extracted: extracted?.slice(0, 160) ?? null,
-    isShort: extracted ? isShortMapsLink(extracted) : null,
-  });
-  // #endregion
   if (!extracted) {
     return {
       ok: false,
@@ -291,25 +225,9 @@ export async function resolveLocationLink(
   }
 
   let coord = parseCoordsFromLocationUrl(resolvedUrl);
-  let fromHtml = false;
   if (!coord && html) {
     coord = parseCoordsFromMapsHtml(html);
-    fromHtml = Boolean(coord);
   }
-  // #region agent log
-  dbg("B", "parseLocationLink.ts:resolveLocationLink", "parse after expand", {
-    extracted: extracted.slice(0, 160),
-    resolvedUrl: resolvedUrl.slice(0, 400),
-    expandedChanged: resolvedUrl !== extracted,
-    stillShort: isShortMapsLink(resolvedUrl),
-    hasAt: /@-?\d/.test(resolvedUrl),
-    hasBang3d: /!3d-?\d/.test(resolvedUrl),
-    hasQ: /[?&]q=/.test(resolvedUrl),
-    fromHtml,
-    coord,
-    parseOk: Boolean(coord),
-  });
-  // #endregion
   if (!coord) {
     return {
       ok: false,

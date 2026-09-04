@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
 import { hostListingStatus } from "@/components/web/host/hostListingStatus";
 import { Skoun } from "@/constants/theme";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -16,7 +17,9 @@ function listingStatus(listing: Listing) {
 }
 
 export function HostListingGridCard({ listing, onPress }: Props) {
-  const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+  const cover = resolveMediaUrl(
+    listing.coverUrl ?? listing.photos[0]?.url ?? null,
+  );
   const status = listingStatus(listing);
   const title = listing.title?.trim() || listing.area;
   const subtitle = `Home in ${listing.area}`;

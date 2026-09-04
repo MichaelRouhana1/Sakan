@@ -15,6 +15,7 @@ import {
 } from "@/features/listings/create/createDraftCheckpoint";
 import type { DraftCheckpoint, DraftSlot } from "@/features/listings/create/draft";
 import { labelListingType } from "@/lib/listingLabels";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { Skoun } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
 import { hostListingStatus } from "@/components/web/host/hostListingStatus";
@@ -133,7 +134,9 @@ export function HostListingListView({
         }
 
         const { listing } = row;
-        const cover = listing.coverUrl ?? listing.photos[0]?.url ?? null;
+        const cover = resolveMediaUrl(
+          listing.coverUrl ?? listing.photos[0]?.url ?? null,
+        );
         const status = hostListingStatus(listing);
         const title =
           listing.title?.trim() ||

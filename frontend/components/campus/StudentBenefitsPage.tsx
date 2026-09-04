@@ -16,7 +16,6 @@ import {
 } from "@/components/campus/BenefitCard";
 import { CampusFormSelect } from "@/components/campus/CampusFormSelect";
 import { LText } from "@/components/lister/Typography";
-import { SegmentedPillTrack } from "@/components/listings/SegmentedPillTrack";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -82,7 +81,9 @@ export function StudentBenefitsPage() {
   );
   const [scope, setScope] = useState<Scope>(parseScope(params.scope));
 
-  const columns = width >= 1100 ? 3 : width >= 720 ? 2 : 1;
+  const columns = width >= 1500 ? 4 : width >= 980 ? 3 : width >= 640 ? 2 : 1;
+  const compact = width < 640;
+  const pagePadX = compact ? 16 : width < 900 ? 24 : 48;
 
   const syncParams = useCallback(
     (next: {
@@ -115,6 +116,9 @@ export function StudentBenefitsPage() {
         value: row.shortName,
         label: row.shortName,
         detail: row.name,
+        slug: row.slug,
+        logoUrl: row.logoUrl,
+        website: row.website,
       })),
     ];
     // A deep-linked acronym has to stay selectable before the catalog lands,
@@ -146,6 +150,10 @@ export function StudentBenefitsPage() {
       open: searched.filter((row) => !isCampusExclusive(row)),
     };
   }, [searched]);
+
+  const countLabel = `${searched.length} ${searched.length === 1 ? "offer" : "offers"}${
+    uni ? ` for ${uni} students` : " across Lebanon"
+  }`;
 
   const openDetail = useCallback(
     (id: string) => {
@@ -187,28 +195,35 @@ export function StudentBenefitsPage() {
     </View>
   );
 
-  return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.page}>
+  const pageInner = (
+      <View
+        style={[
+          styles.page,
+          Platform.OS === "web"
+            ? ({
+                width: "100vw",
+                maxWidth: "100vw",
+                marginLeft: "calc(50% - 50vw)",
+                paddingHorizontal: pagePadX,
+                boxSizing: "border-box",
+              } as object)
+            : { paddingHorizontal: 12 },
+        ]}
+      >
         <View style={styles.hero}>
           <View style={styles.heroRule} />
           <LText variant="label" tone="muted" style={styles.kicker}>
-            Student benefits · Lebanon
+            Student benefits
           </LText>
-          <LText variant="display" style={styles.title}>
+          <LText
+            variant="display"
+            style={[styles.title, compact && styles.titleCompact]}
+          >
             Perks you already qualify for
-          </LText>
-          <LText variant="body" tone="muted" style={styles.lede}>
-            Verified student discounts on software, food, transport, and
-            telecom — plus offers exclusive to your campus.
           </LText>
         </View>
 
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, compact && styles.searchWrapCompact]}>
           <Ionicons name="search" size={18} color={Skoun.color.inkMuted} />
           <TextInput
             value={query}
@@ -216,7 +231,11 @@ export function StudentBenefitsPage() {
               setQuery(next);
               syncParams({ q: next });
             }}
-            placeholder="Search a brand or offer — Spotify, Zomato, Alfa…"
+            placeholder={
+              compact
+                ? "Search Spotify, Alfa, food…"
+                : "Search a brand or offer — Spotify, Zomato, Alfa…"
+            }
             placeholderTextColor={Skoun.color.inkFaint}
             accessibilityLabel="Search student benefits"
             returnKeyType="search"
@@ -230,20 +249,26 @@ export function StudentBenefitsPage() {
               }}
               accessibilityRole="button"
               accessibilityLabel="Clear search"
+              hitSlop={8}
               style={styles.clearBtn}
             >
               <Ionicons
                 name="close-circle"
-                size={18}
+                size={20}
                 color={Skoun.color.inkMuted}
               />
             </Pressable>
           ) : null}
         </View>
 
-        <View style={[styles.filterRow, columns === 1 && styles.filterRowStack]}>
-          <View style={styles.uniField}>
+        <View style={[styles.filterRail, columns === 1 && styles.filterRailStack]}>
+          <View style={[styles.railBlock, styles.railUni]}>
+            <LText variant="label" tone="muted" style={styles.railEyebrow}>
+              Studying at
+            </LText>
             <CampusFormSelect
+              appearance="passport"
+              hideLabel
               label="University"
               value={uni}
               options={uniOptions}
@@ -257,80 +282,164 @@ export function StudentBenefitsPage() {
               }}
             />
           </View>
-          <View style={styles.scopeField}>
-            <LText variant="label" tone="muted" style={styles.fieldLabel}>
-              Availability
-            </LText>
-            <SegmentedPillTrack
-              value={scope}
-              options={SCOPE_OPTIONS}
-              accessibilityLabel="Filter by availability"
-              fill
-              onChange={(next) => {
-                setScope(next);
-                syncParams({ scope: next });
-              }}
-            />
-          </View>
-        </View>
 
-        <View style={styles.chipRow}>
-          <Pressable
-            onPress={() => {
-              setCategory("");
-              syncParams({ cat: "" });
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: category === "" }}
-            accessibilityLabel="All categories"
-            style={({ hovered }) => [
-              styles.chip,
-              category === "" && styles.chipOn,
-              hovered && category !== "" && styles.chipHover,
+          <View
+            style={[
+              styles.railBlock,
+              styles.railScope,
+              columns === 1 && styles.railScopeStack,
             ]}
           >
-            <LText
-              variant="caption"
-              style={[styles.chipLabel, category === "" && styles.chipLabelOn]}
-            >
-              All
+            <LText variant="label" tone="muted" style={styles.railEyebrow}>
+              Show
             </LText>
-          </Pressable>
+            <View
+              style={[styles.scopeTabs, columns === 1 && styles.scopeTabsWrap]}
+              accessibilityRole="tablist"
+              accessibilityLabel="Filter by availability"
+            >
+              {SCOPE_OPTIONS.map((opt) => {
+                const on = scope === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => {
+                      setScope(opt.value);
+                      syncParams({ scope: opt.value });
+                    }}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={opt.label}
+                    style={({ hovered }) => [
+                      styles.scopeTab,
+                      hovered && !on && styles.scopeTabHover,
+                    ]}
+                  >
+                    <LText
+                      variant="body"
+                      style={[styles.scopeTabLabel, on && styles.scopeTabLabelOn]}
+                    >
+                      {opt.label}
+                    </LText>
+                    <View
+                      style={[styles.scopeUnderline, on && styles.scopeUnderlineOn]}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
 
-          {BENEFIT_CATEGORY_ORDER.map((key) => {
-            const meta = categoryMeta(key);
-            const on = category === key;
-            return (
+          <View style={[styles.railBlock, styles.railBrowse]}>
+            <LText variant="label" tone="muted" style={styles.railEyebrow}>
+              Browse
+            </LText>
+            <View
+              style={styles.catRow}
+              accessibilityRole="tablist"
+              accessibilityLabel="Filter by category"
+            >
               <Pressable
-                key={key}
                 onPress={() => {
-                  const next = on ? "" : key;
-                  setCategory(next);
-                  syncParams({ cat: next });
+                  setCategory("");
+                  syncParams({ cat: "" });
                 }}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                accessibilityLabel={`${meta.label} offers`}
-                style={({ hovered }) => [
-                  styles.chip,
-                  on && { backgroundColor: meta.accent, borderColor: meta.accent },
-                  hovered && !on && styles.chipHover,
+                accessibilityRole="tab"
+                accessibilityState={{ selected: category === "" }}
+                accessibilityLabel="All categories"
+                hitSlop={6}
+                style={({ hovered, pressed }) => [
+                  styles.catItem,
+                  (hovered || pressed) && category !== "" && styles.catItemHover,
                 ]}
               >
-                <Ionicons
-                  name={meta.icon}
-                  size={14}
-                  color={on ? Skoun.color.surface : meta.accent}
+                <View style={styles.catItemInner}>
+                  <View
+                    style={[
+                      styles.catMark,
+                      category === "" && styles.catMarkOnPrimary,
+                    ]}
+                  >
+                    <Ionicons
+                      name="apps-outline"
+                      size={14}
+                      color={
+                        category === ""
+                          ? Skoun.color.surface
+                          : Skoun.color.primary
+                      }
+                    />
+                  </View>
+                  <LText
+                    variant="body"
+                    style={[
+                      styles.catLabel,
+                      category === "" && styles.catLabelOn,
+                    ]}
+                  >
+                    All
+                  </LText>
+                </View>
+                <View
+                  style={[
+                    styles.catUnderline,
+                    category === "" && styles.catUnderlineOn,
+                  ]}
                 />
-                <LText
-                  variant="caption"
-                  style={[styles.chipLabel, on && styles.chipLabelOn]}
-                >
-                  {meta.label}
-                </LText>
               </Pressable>
-            );
-          })}
+
+              {BENEFIT_CATEGORY_ORDER.map((key) => {
+                const meta = categoryMeta(key);
+                const on = category === key;
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => {
+                      const next = on ? "" : key;
+                      setCategory(next);
+                      syncParams({ cat: next });
+                    }}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`${meta.label} offers`}
+                    hitSlop={6}
+                    style={({ hovered, pressed }) => [
+                      styles.catItem,
+                      (hovered || pressed) && !on && styles.catItemHover,
+                    ]}
+                  >
+                    <View style={styles.catItemInner}>
+                      <View
+                        style={[
+                          styles.catMark,
+                          { backgroundColor: meta.tint },
+                          on && { backgroundColor: meta.accent },
+                        ]}
+                      >
+                        <Ionicons
+                          name={meta.icon}
+                          size={14}
+                          color={on ? Skoun.color.surface : meta.accent}
+                        />
+                      </View>
+                      <LText
+                        variant="body"
+                        style={[styles.catLabel, on && styles.catLabelOn]}
+                      >
+                        {meta.label}
+                      </LText>
+                    </View>
+                    <View
+                      style={[
+                        styles.catUnderline,
+                        on && { backgroundColor: meta.accent },
+                      ]}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         </View>
 
         {benefits.isLoading ? (
@@ -374,18 +483,22 @@ export function StudentBenefitsPage() {
           />
         ) : (
           <View style={styles.results}>
-            <LText variant="caption" tone="muted" style={styles.count}>
-              {searched.length} {searched.length === 1 ? "offer" : "offers"}
-              {uni ? ` for ${uni} students` : " across Lebanon"}
-            </LText>
-
             {exclusive.length > 0 ? (
               <View style={styles.section}>
                 <View style={styles.sectionHead}>
-                  <LText variant="subtitle" style={styles.sectionTitle}>
-                    {uni ? `Exclusive to ${uni}` : "Campus exclusives"}
-                  </LText>
-                  <LText variant="caption" tone="muted">
+                  <View style={styles.sectionTitleRow}>
+                    <LText variant="subtitle" style={styles.sectionTitle}>
+                      {uni ? `Exclusive to ${uni}` : "Campus exclusives"}
+                    </LText>
+                    <LText variant="caption" tone="muted" style={styles.count}>
+                      {countLabel}
+                    </LText>
+                  </View>
+                  <LText
+                    variant="caption"
+                    tone="muted"
+                    style={styles.sectionSub}
+                  >
                     Not available anywhere else
                   </LText>
                 </View>
@@ -396,10 +509,21 @@ export function StudentBenefitsPage() {
             {open.length > 0 ? (
               <View style={styles.section}>
                 <View style={styles.sectionHead}>
-                  <LText variant="subtitle" style={styles.sectionTitle}>
-                    Open to all students in Lebanon
-                  </LText>
-                  <LText variant="caption" tone="muted">
+                  <View style={styles.sectionTitleRow}>
+                    <LText variant="subtitle" style={styles.sectionTitle}>
+                      Open to all students in Lebanon
+                    </LText>
+                    {exclusive.length === 0 ? (
+                      <LText variant="caption" tone="muted" style={styles.count}>
+                        {countLabel}
+                      </LText>
+                    ) : null}
+                  </View>
+                  <LText
+                    variant="caption"
+                    tone="muted"
+                    style={styles.sectionSub}
+                  >
                     Any accredited university
                   </LText>
                 </View>
@@ -409,6 +533,19 @@ export function StudentBenefitsPage() {
           </View>
         )}
       </View>
+  );
+
+  if (Platform.OS === "web") {
+    return pageInner;
+  }
+
+  return (
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
+      {pageInner}
     </ScrollView>
   );
 }
@@ -423,8 +560,8 @@ const styles = StyleSheet.create({
   page: {
     gap: 24,
     width: "100%",
-    maxWidth: 1160,
-    alignSelf: "center",
+    alignSelf: "stretch",
+    minWidth: 0,
   },
   hero: {
     gap: 10,
@@ -451,11 +588,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
     textAlign: "center",
   },
-  lede: {
-    fontSize: 16,
-    lineHeight: 24,
-    maxWidth: 520,
-    textAlign: "center",
+  titleCompact: {
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.5,
   },
   searchWrap: {
     flexDirection: "row",
@@ -474,82 +610,188 @@ const styles = StyleSheet.create({
       ? ({ boxShadow: "0 4px 16px rgba(18, 24, 38, 0.06)" } as object)
       : null),
   },
+  searchWrapCompact: {
+    minHeight: 52,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+  },
   searchInput: {
     flex: 1,
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 15,
     color: Skoun.color.ink,
     padding: 0,
+    minWidth: 0,
     ...(Platform.OS === "web"
       ? ({ outlineStyle: "none" } as object)
       : null),
   },
   clearBtn: {
-    padding: 2,
+    padding: 6,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
-  filterRow: {
+  filterRail: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 16,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    flexWrap: "wrap",
+    columnGap: 28,
+    rowGap: 16,
     width: "100%",
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  filterRowStack: {
+  filterRailStack: {
     flexDirection: "column",
     alignItems: "stretch",
+    gap: 16,
+    paddingBottom: 14,
   },
-  uniField: {
-    flex: 1,
+  railBlock: {
+    gap: 4,
+    justifyContent: "flex-start",
     minWidth: 0,
   },
-  scopeField: {
-    flex: 1,
+  railUni: {
+    flexGrow: 0,
+    flexShrink: 0,
+    maxWidth: "100%",
+  },
+  railScope: {
+    flexGrow: 0,
+    flexShrink: 0,
+    maxWidth: "100%",
+  },
+  railScopeStack: {
+    alignItems: "flex-start",
+  },
+  railBrowse: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 320,
     minWidth: 0,
-    gap: 8,
   },
-  fieldLabel: {
-    letterSpacing: 0.35,
+  railEyebrow: {
+    letterSpacing: 0.8,
+    fontSize: 11,
+    lineHeight: 14,
+    height: 14,
+    marginBottom: 0,
   },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    width: "100%",
-  },
-  chip: {
+  scopeTabs: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.surface,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+    gap: 2,
+    minHeight: 44,
+  },
+  scopeTabsWrap: {
+    flexWrap: "wrap",
+    rowGap: 4,
+  },
+  scopeTab: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 6,
+    minHeight: 44,
+    justifyContent: "center",
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+  },
+  scopeTabHover: {
+    opacity: 0.75,
+  },
+  scopeTabLabel: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 15,
+    lineHeight: 20,
+    color: Skoun.color.inkMuted,
+  },
+  scopeTabLabelOn: {
+    fontFamily: Skoun.type.bodyBold,
+    color: Skoun.color.ink,
+  },
+  scopeUnderline: {
+    marginTop: 4,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "transparent",
+  },
+  scopeUnderlineOn: {
+    backgroundColor: Skoun.color.primary,
+  },
+  catRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    columnGap: 4,
+    rowGap: 6,
+    width: "100%",
+    minHeight: 44,
+  },
+  catItem: {
+    alignItems: "stretch",
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    minHeight: 44,
+    justifyContent: "center",
     ...(Platform.OS === "web"
       ? ({
           cursor: "pointer",
-          transitionProperty: "background-color, border-color",
+          transitionProperty: "opacity",
+          transitionDuration: "160ms",
+          transitionTimingFunction: "ease-out",
+        } as object)
+      : null),
+  },
+  catItemHover: {
+    opacity: 0.72,
+  },
+  catItemInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingBottom: 4,
+    minHeight: 32,
+  },
+  catMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Skoun.color.primaryMist,
+    ...(Platform.OS === "web"
+      ? ({
+          transitionProperty: "background-color",
           transitionDuration: "180ms",
           transitionTimingFunction: "ease-out",
         } as object)
       : null),
   },
-  chipOn: {
+  catMarkOnPrimary: {
     backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
   },
-  chipHover: {
-    borderColor: Skoun.color.borderStrong,
-    backgroundColor: Skoun.color.surfaceMuted,
-  },
-  chipLabel: {
-    color: Skoun.color.inkMuted,
+  catLabel: {
     fontFamily: Skoun.type.bodyMedium,
+    fontSize: 14,
+    lineHeight: 18,
+    color: Skoun.color.inkMuted,
   },
-  chipLabelOn: {
-    color: Skoun.color.surface,
-    fontFamily: Skoun.type.bodySemi,
+  catLabelOn: {
+    fontFamily: Skoun.type.bodyBold,
+    color: Skoun.color.ink,
+  },
+  catUnderline: {
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "transparent",
+  },
+  catUnderlineOn: {
+    backgroundColor: Skoun.color.primary,
   },
   results: {
     gap: 28,
@@ -557,6 +799,7 @@ const styles = StyleSheet.create({
   },
   count: {
     fontFamily: Skoun.type.bodyMedium,
+    flexShrink: 0,
   },
   section: {
     gap: 14,
@@ -564,19 +807,33 @@ const styles = StyleSheet.create({
   sectionHead: {
     gap: 2,
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "baseline",
+    columnGap: 10,
+    rowGap: 2,
+  },
   sectionTitle: {
     fontFamily: Skoun.type.bodyBold,
     color: Skoun.color.ink,
   },
+  sectionSub: {
+    flexShrink: 1,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -8,
-    rowGap: 16,
+    marginHorizontal: -6,
+    rowGap: 14,
+    width: "100%",
   },
   cell: {
     flexGrow: 0,
     flexShrink: 0,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
+    alignSelf: "stretch",
+    minWidth: 0,
+    maxWidth: "100%",
   },
 });

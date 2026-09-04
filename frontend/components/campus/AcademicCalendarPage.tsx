@@ -135,6 +135,7 @@ function SpotlightWash({ active }: { active: boolean }) {
 export function AcademicCalendarPage() {
   const { width } = useWindowDimensions();
   const stacked = width < 720;
+  const compact = width < 640;
   const today = useMemo(() => toIsoDate(new Date()), []);
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
@@ -201,21 +202,28 @@ export function AcademicCalendarPage() {
 
   return (
     <View style={styles.page}>
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
+      <View style={[styles.header, compact && styles.headerCompact]}>
+        <View style={[styles.headerCopy, compact && styles.headerCopyCompact]}>
           <LText variant="label" tone="muted">
             National days off · Lebanon
           </LText>
-          <LText variant="display" style={styles.title}>
+          <LText
+            variant="display"
+            style={[styles.title, compact && styles.titleCompact]}
+          >
             When campuses close
           </LText>
-          <LText variant="body" tone="muted" style={styles.lede}>
+          <LText
+            variant="body"
+            tone="muted"
+            style={[styles.lede, compact && styles.ledeCompact]}
+          >
             Official public holidays every university follows. When the exact
             dates are not confirmed, an orange light slides across the possible
             days — only the lit pair (or day) is the holiday.
           </LText>
         </View>
-        <View style={styles.legend}>
+        <View style={[styles.legend, compact && styles.legendCompact]}>
           <LegendDot color={Skoun.color.primary} label="Official holiday" />
           <LegendLine label="Possible day (TBC)" />
           <LegendDot color={Skoun.color.borderStrong} label="Weekend" />
@@ -223,7 +231,7 @@ export function AcademicCalendarPage() {
       </View>
 
       <View style={[styles.board, stacked && styles.boardStacked]}>
-        <View style={styles.monthCard}>
+        <View style={[styles.monthCard, compact && styles.monthCardCompact]}>
           <View style={styles.monthBar}>
             <Pressable
               onPress={() => {
@@ -272,7 +280,7 @@ export function AcademicCalendarPage() {
                 tone="faint"
                 style={styles.weekHead}
               >
-                {w}
+                {compact ? w.slice(0, 1) : w}
               </LText>
             ))}
           </View>
@@ -489,26 +497,53 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
   },
+  headerCompact: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 12,
+  },
   headerCopy: {
     gap: 6,
     flex: 1,
     minWidth: 280,
+  },
+  headerCopyCompact: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
+    minWidth: 0,
+    width: "100%",
   },
   title: {
     fontSize: 36,
     lineHeight: 44,
     letterSpacing: -0.6,
   },
+  titleCompact: {
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.4,
+  },
   lede: {
     fontSize: 16,
     lineHeight: 24,
     maxWidth: 520,
+  },
+  ledeCompact: {
+    fontSize: 14,
+    lineHeight: 21,
+    maxWidth: "100%",
   },
   legend: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 16,
     paddingBottom: 4,
+  },
+  legendCompact: {
+    gap: 10,
+    paddingBottom: 0,
+    width: "100%",
   },
   legendItem: {
     flexDirection: "row",
@@ -544,6 +579,10 @@ const styles = StyleSheet.create({
     borderRadius: Skoun.radius.lg,
     padding: 20,
     gap: 12,
+  },
+  monthCardCompact: {
+    padding: 12,
+    gap: 8,
   },
   monthBar: {
     flexDirection: "row",

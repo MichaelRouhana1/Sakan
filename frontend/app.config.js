@@ -15,9 +15,19 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.skoun.app",
+      infoPlist: {
+        // Dev: listing photos are served over LAN http:// (Expo Go uses its own
+        // ATS; this applies to custom/dev builds).
+        NSAppTransportSecurity: {
+          NSAllowsLocalNetworking: true,
+          NSAllowsArbitraryLoads: true,
+        },
+      },
     },
     android: {
       package: "com.skoun.app",
+      // Listing photos are served over LAN http:// during local/dev.
+      usesCleartextTraffic: true,
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
         foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -37,6 +47,11 @@ export default {
     },
     plugins: [
       "expo-router",
+      "expo-font",
+      "expo-image",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-web-browser",
       "@react-native-community/datetimepicker",
       [
         "expo-image-picker",

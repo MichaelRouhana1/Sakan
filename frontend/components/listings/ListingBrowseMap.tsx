@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -13,7 +12,6 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -25,7 +23,6 @@ import MapView, {
   PROVIDER_GOOGLE,
   type Region,
 } from "react-native-maps";
-import { captureRef } from "react-native-view-shot";
 import { LText } from "@/components/lister/Typography";
 import {
   ListingMapCarousel,
@@ -131,32 +128,9 @@ const MARKER_W = 88;
 const MARKER_H = 78;
 const PIN_HEAD_CENTER_Y = 48;
 const DIST_BADGE_W = 72;
-const DIST_BADGE_H = 28;
 const SELECTED_LINE = "#C23B2E";
 const CLUSTER_FILL = "#C23B2E";
 const ROUTE_COLOR = "#FF3B30";
-const CLEAR_PIN_KEY = "__clear__";
-
-type PinVariant = {
-  amount: number;
-  count: number;
-  selected: boolean;
-};
-
-function pinVariantKey(amount: number, count: number, selected: boolean) {
-  return `${amount}|${count}|${selected ? 1 : 0}`;
-}
-
-/** Same `{ uri }` object for a given file — MapKit treats a new object as reload. */
-const PIN_IMAGE_SRC = new Map<string, { uri: string }>();
-function pinImageSrc(uri: string | undefined): { uri: string } | undefined {
-  if (!uri) return undefined;
-  const hit = PIN_IMAGE_SRC.get(uri);
-  if (hit) return hit;
-  const src = { uri };
-  PIN_IMAGE_SRC.set(uri, src);
-  return src;
-}
 
 function shortPriceLabel(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
@@ -180,52 +154,6 @@ function ClusterBubble({ count }: { count: number }) {
       >
         {String(count)}
       </LText>
-    </View>
-  );
-}
-
-function ClusterSnapshot({
-  count,
-  onCaptured,
-}: {
-  count: number;
-  onCaptured: (count: number, uri: string) => void;
-}) {
-  const shotRef = useRef<View>(null);
-  useEffect(() => {
-    let alive = true;
-    const t = setTimeout(() => {
-      if (!shotRef.current) return;
-      captureRef(shotRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      })
-        .then((uri) => {
-          if (!alive) return;
-          onCaptured(count, uri);
-        })
-        .catch(() => {});
-    }, 120);
-    return () => {
-      alive = false;
-      clearTimeout(t);
-    };
-  }, [count, onCaptured]);
-  const size = clusterBubbleSize(count);
-  return (
-    <View
-      ref={shotRef}
-      collapsable={false}
-      pointerEvents="none"
-      style={{
-        width: size,
-        height: size,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <ClusterBubble count={count} />
     </View>
   );
 }
@@ -307,139 +235,7 @@ function DistanceBadge({ label }: { label: string }) {
   );
 }
 
-function DistBadgeSnapshot({
-  label,
-  onCaptured,
-}: {
-  label: string;
-  onCaptured: (label: string, uri: string) => void;
-}) {
-  const shotRef = useRef<View>(null);
-  useEffect(() => {
-    let alive = true;
-    const t = setTimeout(() => {
-      if (!shotRef.current) return;
-      captureRef(shotRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      })
-        .then((uri) => {
-          if (!alive) return;
-          onCaptured(label, uri);
-        })
-        .catch(() => {});
-    }, 120);
-    return () => {
-      alive = false;
-      clearTimeout(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- capture once per label
-  }, [label]);
-  return (
-    <View
-      ref={shotRef}
-      collapsable={false}
-      pointerEvents="none"
-      style={styles.distSnapshotBox}
-    >
-      <DistanceBadge label={label} />
-    </View>
-  );
-}
-
-/**
- * Offscreen pin → PNG. Markers use native `image` prop so MapKit never syncs
- * live React views (custom children + animateToRegion = iOS crash).
- */
-function PinSnapshot({
-  variantKey,
-  variant,
-  onCaptured,
-}: {
-  variantKey: string;
-  variant: PinVariant;
-  onCaptured: (key: string, uri: string) => void;
-}) {
-  const shotRef = useRef<View>(null);
-  useEffect(() => {
-    let alive = true;
-    const t = setTimeout(() => {
-      if (!shotRef.current) return;
-      captureRef(shotRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      })
-        .then((uri) => {
-          if (!alive) return;
-          onCaptured(variantKey, uri);
-        })
-        .catch(() => {});
-    }, 120);
-    return () => {
-      alive = false;
-      clearTimeout(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- capture once per variant
-  }, [variantKey]);
-  return (
-    <View
-      ref={shotRef}
-      collapsable={false}
-      pointerEvents="none"
-      style={styles.snapshotBox}
-    >
-      <PriceMarker
-        amount={variant.amount}
-        count={variant.count}
-        selected={variant.selected}
-      />
-    </View>
-  );
-}
-
-/** Transparent PNG so clustered leaves stay mounted without a visible price pin. */
-function ClearPinSnapshot({
-  onCaptured,
-}: {
-  onCaptured: (key: string, uri: string) => void;
-}) {
-  const shotRef = useRef<View>(null);
-  useEffect(() => {
-    let alive = true;
-    const t = setTimeout(() => {
-      if (!shotRef.current) return;
-      captureRef(shotRef, {
-        format: "png",
-        quality: 1,
-        result: "tmpfile",
-      })
-        .then((uri) => {
-          if (!alive) return;
-          onCaptured(CLEAR_PIN_KEY, uri);
-        })
-        .catch(() => {});
-    }, 120);
-    return () => {
-      alive = false;
-      clearTimeout(t);
-    };
-  }, [onCaptured]);
-  return (
-    <View
-      ref={shotRef}
-      collapsable={false}
-      pointerEvents="none"
-      style={styles.snapshotBox}
-    />
-  );
-}
-
-/**
- * Cluster / campus markers still use children — thaw briefly only.
- * Listing pins use static images (see PinSnapshot).
- */
+/** Thaw marker bitmaps briefly when the view key changes, then freeze. */
 function useTracksViewChanges(deps: unknown[]): boolean {
   const [tracks, setTracks] = useState(true);
   useEffect(() => {
@@ -493,7 +289,6 @@ const PIN_CENTER_OFFSET = {
   y: MARKER_H / 2 - PIN_HEAD_CENTER_Y,
 };
 const CLUSTER_ANCHOR = { x: 0.5, y: 0.5 };
-const CLUSTER_PARK = pinCoord("__cluster_park__", -85, 0);
 
 const MAP_HEIGHT_COLLAPSED = 320;
 
@@ -582,8 +377,16 @@ export function ListingBrowseMap({
     null,
   );
   const [mapReady, setMapReady] = useState(false);
+  const [shellSize, setShellSize] = useState({ width: 0, height: 0 });
   /** True while animateToRegion fly runs — freeze marker tracks/coords churn. */
   const [cameraBusy, setCameraBusy] = useState(false);
+
+  // Expo Go / New Arch occasionally skips onMapReady; don't leave the mist overlay forever.
+  useEffect(() => {
+    if (mapReady) return;
+    const t = setTimeout(() => setMapReady(true), 2500);
+    return () => clearTimeout(t);
+  }, [mapReady]);
 
   const win = Dimensions.get("window");
   const mapWidthPx = win.width;
@@ -702,37 +505,6 @@ export function ListingBrowseMap({
     return null;
   }, [sheet, groups]);
 
-  const [pinImages, setPinImages] = useState<Record<string, string>>({});
-  const pinVariants = useMemo(() => {
-    const map = new Map<string, PinVariant>();
-    for (const g of groups) {
-      for (const selected of [false, true] as const) {
-        const key = pinVariantKey(g.displayPriceUsd, g.count, selected);
-        if (!map.has(key)) {
-          map.set(key, {
-            amount: g.displayPriceUsd,
-            count: g.count,
-            selected,
-          });
-        }
-      }
-    }
-    return map;
-  }, [groups]);
-
-  const pendingVariants = useMemo(
-    () => [...pinVariants.entries()].filter(([key]) => !pinImages[key]),
-    [pinVariants, pinImages],
-  );
-
-  const pinsReady = useMemo(
-    () =>
-      groups.every(
-        (g) => pinImages[pinVariantKey(g.displayPriceUsd, g.count, false)],
-      ),
-    [groups, pinImages],
-  );
-
   const listingIdsKey = useMemo(
     () => mappable.map((l) => l.id).join(","),
     [mappable],
@@ -740,26 +512,11 @@ export function ListingBrowseMap({
 
   const [listingTracks, setListingTracks] = useState(true);
   useEffect(() => {
-    if (!mapReady || !pinsReady) return;
+    if (!mapReady) return;
     setListingTracks(true);
     const t = setTimeout(() => setListingTracks(false), 800);
     return () => clearTimeout(t);
-  }, [mapReady, pinsReady]);
-
-  const [clusterImages, setClusterImages] = useState<Record<number, string>>(
-    {},
-  );
-  const pendingClusterCounts = useMemo(() => {
-    const counts = new Set<number>();
-    for (const c of clusterSlots) counts.add(c.pointCount);
-    return [...counts].filter((n) => !clusterImages[n]);
-  }, [clusterSlots, clusterImages]);
-  const onClusterCaptured = useCallback((count: number, uri: string) => {
-    const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
-    setClusterImages((prev) =>
-      prev[count] ? prev : { ...prev, [count]: normalized },
-    );
-  }, []);
+  }, [mapReady, clusteredIds.size]);
 
   const [clusterTracks, setClusterTracks] = useState(true);
   useEffect(() => {
@@ -775,21 +532,6 @@ export function ListingBrowseMap({
 
   const flyScheduleTokenRef = useRef(0);
   const lastFocusRef = useRef<{ id: string; t: number } | null>(null);
-
-  const onPinCaptured = useCallback((key: string, uri: string) => {
-    const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
-    setPinImages((prev) =>
-      prev[key] ? prev : { ...prev, [key]: normalized },
-    );
-  }, []);
-
-  const [distImages, setDistImages] = useState<Record<string, string>>({});
-  const onDistCaptured = useCallback((label: string, uri: string) => {
-    const normalized = uri.startsWith("file://") ? uri : `file://${uri}`;
-    setDistImages((prev) =>
-      prev[label] ? prev : { ...prev, [label]: normalized },
-    );
-  }, []);
 
   const campusesKey = useMemo(
     () => campuses.map((c) => c.slug).join(","),
@@ -874,35 +616,12 @@ export function ListingBrowseMap({
     return formatDistanceShort(dist);
   }, [selectedListing, focusCampus, walkingRoute]);
 
-  const pendingDistLabels = useMemo(() => {
-    if (!universityMode || !midpointLabel) return [] as string[];
-    return distImages[midpointLabel] ? [] : [midpointLabel];
-  }, [universityMode, midpointLabel, distImages]);
-
-  const distReadyUri =
-    midpointLabel && midpointCoord ? distImages[midpointLabel] : undefined;
-  const lastDistUri = useRef<string | undefined>(undefined);
-  if (distReadyUri) lastDistUri.current = distReadyUri;
-  const anyDistUri = Object.values(distImages)[0];
-  const distMarkerUri = distReadyUri ?? lastDistUri.current ?? anyDistUri;
-  const distMarkerCoord =
-    distReadyUri && midpointCoord
-      ? midpointCoord
-      : focusCampus
-        ? pinCoord("dist-park-campus", focusCampus.lat, focusCampus.lng)
-        : null;
-  const [distTracks, setDistTracks] = useState(false);
-  const prevDistReady = useRef(false);
+  const [distTracks, setDistTracks] = useState(true);
   useEffect(() => {
-    const ready = Boolean(distReadyUri);
-    if (ready && !prevDistReady.current) {
-      setDistTracks(true);
-      const t = setTimeout(() => setDistTracks(false), 700);
-      prevDistReady.current = ready;
-      return () => clearTimeout(t);
-    }
-    prevDistReady.current = ready;
-  }, [distReadyUri]);
+    setDistTracks(true);
+    const t = setTimeout(() => setDistTracks(false), 700);
+    return () => clearTimeout(t);
+  }, [midpointLabel]);
 
   function clearFlyTimers() {
     for (const t of flyTimersRef.current) clearTimeout(t);
@@ -1309,6 +1028,10 @@ export function ListingBrowseMap({
           fillContainer ? styles.mapShellFill : { height: heightAnim },
         ]}
         collapsable={false}
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setShellSize({ width, height });
+        }}
       >
         {!mapReady || loading ? (
           <View style={styles.mapLoading}>
@@ -1331,11 +1054,17 @@ export function ListingBrowseMap({
 
         <MapView
           ref={mapRef}
-          style={styles.map}
+          style={{
+            width: shellSize.width > 0 ? shellSize.width : mapWidthPx,
+            height: shellSize.height > 0 ? shellSize.height : mapHeightPx,
+          }}
           provider={MAP_PROVIDER}
           initialRegion={initialRegion}
           pitchEnabled
           rotateEnabled
+          onLayout={() => {
+            if (!mapReady) setMapReady(true);
+          }}
           onMapReady={() => {
             setMapReady(true);
           }}
@@ -1479,23 +1208,10 @@ export function ListingBrowseMap({
               })
             : null}
 
-          {pinsReady
-            ? groups.map((group) => {
+          {groups.map((group) => {
                 const clustered = clusteredIds.has(group.id);
+                if (clustered) return null;
                 const selected = selectedGroupId === group.id;
-                const uri =
-                  (selected
-                    ? pinImages[
-                        pinVariantKey(
-                          group.displayPriceUsd,
-                          group.count,
-                          true,
-                        )
-                      ]
-                    : undefined) ??
-                  pinImages[
-                    pinVariantKey(group.displayPriceUsd, group.count, false)
-                  ];
                 const a11y =
                   group.count > 1
                     ? `${group.count} listings from ${shortPriceLabel(group.displayPriceUsd)}`
@@ -1508,69 +1224,56 @@ export function ListingBrowseMap({
                     anchor={PIN_ANCHOR}
                     centerOffset={PIN_CENTER_OFFSET}
                     zIndex={1}
-                    opacity={clustered ? 0 : 1}
-                    tappable={!clustered}
+                    tappable
                     tracksViewChanges={listingTracks}
-                    image={pinImageSrc(uri)}
-                    onPress={() => {
-                      if (clustered) return;
-                      onGroupPress(group);
-                    }}
+                    onPress={() => onGroupPress(group)}
                     accessibilityLabel={a11y}
-                  />
+                  >
+                    <PriceMarker
+                      amount={group.displayPriceUsd}
+                      count={group.count}
+                      selected={selected}
+                    />
+                  </Marker>
                 );
-              })
-            : null}
+              })}
 
           {clusterSlots.map((cluster, slot) => {
-            const uri = clusterImages[cluster.pointCount];
-            if (!uri) return null;
             const parked = cluster.hidden;
+            if (parked) return null;
             return (
               <Marker
                 key={`cluster-slot-${slot}`}
                 identifier={`cluster-slot-${slot}`}
-                coordinate={
-                  parked
-                    ? CLUSTER_PARK
-                    : pinCoord(
-                        `cluster-slot-${slot}`,
-                        cluster.lat,
-                        cluster.lng,
-                      )
-                }
+                coordinate={pinCoord(
+                  `cluster-slot-${slot}`,
+                  cluster.lat,
+                  cluster.lng,
+                )}
                 anchor={CLUSTER_ANCHOR}
                 zIndex={120}
-                tappable={!parked}
+                tappable
                 tracksViewChanges={clusterTracks}
-                image={pinImageSrc(uri)}
-                onPress={() => {
-                  if (parked) return;
-                  onClusterPress(cluster);
-                }}
-                accessibilityLabel={
-                  parked
-                    ? undefined
-                    : `${cluster.pointCount} places — tap to zoom`
-                }
-              />
+                onPress={() => onClusterPress(cluster)}
+                accessibilityLabel={`${cluster.pointCount} places — tap to zoom`}
+              >
+                <ClusterBubble count={cluster.pointCount} />
+              </Marker>
             );
           })}
 
-          {universityMode && distMarkerUri && distMarkerCoord ? (
+          {universityMode && midpointLabel && midpointCoord ? (
             <Marker
               identifier="campus-distance"
-              coordinate={distMarkerCoord}
+              coordinate={midpointCoord}
               anchor={{ x: 0.5, y: 0.5 }}
               zIndex={200}
-              opacity={distReadyUri ? 1 : 0}
-              tracksViewChanges={
-                !cameraBusy && (distTracks || Boolean(distReadyUri))
-              }
-              image={pinImageSrc(distMarkerUri)}
+              tracksViewChanges={!cameraBusy && distTracks}
               tappable={false}
               accessibilityElementsHidden
-            />
+            >
+              <DistanceBadge label={midpointLabel} />
+            </Marker>
           ) : null}
         </MapView>
 
@@ -1590,51 +1293,6 @@ export function ListingBrowseMap({
           </Pressable>
         ) : null}
       </Animated.View>
-
-      {pendingVariants.length > 0 ||
-      pendingDistLabels.length > 0 ||
-      pendingClusterCounts.length > 0 ||
-      !pinImages[CLEAR_PIN_KEY] ? (
-        <View style={styles.snapshotLayer} pointerEvents="none">
-          {!pinImages[CLEAR_PIN_KEY] ? (
-            <ClearPinSnapshot onCaptured={onPinCaptured} />
-          ) : null}
-          {pendingVariants.map(([key, variant]) => (
-            <PinSnapshot
-              key={key}
-              variantKey={key}
-              variant={variant}
-              onCaptured={onPinCaptured}
-            />
-          ))}
-          {pendingClusterCounts.map((count) => (
-            <ClusterSnapshot
-              key={`cluster:${count}`}
-              count={count}
-              onCaptured={onClusterCaptured}
-            />
-          ))}
-          {pendingDistLabels.map((label) => (
-            <DistBadgeSnapshot
-              key={`dist:${label}`}
-              label={label}
-              onCaptured={onDistCaptured}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      {Object.keys(distImages).length > 0 ? (
-        <View style={styles.snapshotLayer} pointerEvents="none">
-          {Object.entries(distImages).map(([label, uri]) => (
-            <Image
-              key={`warm:${label}`}
-              source={{ uri }}
-              style={styles.distSnapshotBox}
-            />
-          ))}
-        </View>
-      ) : null}
 
       {!sheetOpen ? (
         <View
@@ -1722,22 +1380,6 @@ const styles = StyleSheet.create({
     height: MARKER_H,
     alignItems: "center",
     justifyContent: "flex-end",
-  },
-  snapshotLayer: {
-    position: "absolute",
-    top: 0,
-    left: -MARKER_W * 20,
-    width: MARKER_W,
-  },
-  snapshotBox: {
-    width: MARKER_W,
-    height: MARKER_H,
-  },
-  distSnapshotBox: {
-    width: DIST_BADGE_W,
-    height: DIST_BADGE_H,
-    alignItems: "center",
-    justifyContent: "center",
   },
   markerInner: {
     alignItems: "center",

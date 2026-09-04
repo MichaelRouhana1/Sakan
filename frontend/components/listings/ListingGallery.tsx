@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
+import { resolveMediaUrls } from "@/lib/mediaUrl";
 import type { ListingPhoto } from "@/types/listing";
 
 type Props = {
@@ -33,12 +34,13 @@ export function ListingGallery({
   onIndexChange,
 }: Props) {
   const { width } = useWindowDimensions();
-  const urls =
+  const urls = resolveMediaUrls(
     photos.length > 0
       ? photos.map((p) => p.url)
       : coverUrl
         ? [coverUrl]
-        : [];
+        : [],
+  );
   const [index, setIndex] = useState(0);
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
 

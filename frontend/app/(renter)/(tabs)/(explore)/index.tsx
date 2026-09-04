@@ -5,13 +5,13 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
   TextInput,
   Pressable,
   useWindowDimensions,
   Linking,
   Platform,
 } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -77,6 +77,7 @@ export default function RenterNewHomeScreen() {
       )
     : null;
   const { width } = useWindowDimensions();
+  const [heroBox, setHeroBox] = useState({ width: 0, height: 0 });
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
@@ -209,12 +210,26 @@ export default function RenterNewHomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* HERO SECTION WITH IMAGE BACKGROUND */}
-        <View style={styles.hero}>
+        <View
+          style={styles.hero}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setHeroBox({ width, height });
+          }}
+        >
+          {heroBox.width > 0 ? (
           <Image
             source={{ uri: HERO.heroImage }}
-            style={styles.heroImg}
-            resizeMode="cover"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: heroBox.width,
+              height: heroBox.height,
+            }}
+            contentFit="cover"
           />
+          ) : null}
           <LinearGradient
             colors={["rgba(18,24,38,0.2)", "rgba(18,24,38,0.85)"]}
             style={styles.heroOverlay}
@@ -377,7 +392,11 @@ export default function RenterNewHomeScreen() {
                     { width: fitTileWidth, height: fitTileWidth * 1.15 },
                   ]}
                 >
-                  <Image source={{ uri: tile.image }} style={styles.cityImg} />
+                  <Image
+                    source={{ uri: tile.image }}
+                    style={{ width: fitTileWidth, height: fitTileWidth * 1.15 }}
+                    contentFit="cover"
+                  />
                   <LinearGradient
                     colors={["transparent", "rgba(18,24,38,0.75)"]}
                     style={styles.cityOverlay}
@@ -469,7 +488,11 @@ export default function RenterNewHomeScreen() {
                 onPress={() => handleSearchQuick(item.area, "area")}
               >
                 <View style={styles.listingImgContainer}>
-                  <Image source={{ uri: item.images[0] }} style={styles.listingImg} />
+                  <Image
+                    source={{ uri: item.images[0] }}
+                    style={{ width: 220, height: 130 }}
+                    contentFit="cover"
+                  />
                   {item.tag ? (
                     <View style={styles.listingTag}>
                       <Text style={styles.listingTagText}>{item.tag}</Text>

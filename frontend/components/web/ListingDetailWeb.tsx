@@ -38,6 +38,7 @@ import {
 } from "@/features/saved/useSavedListings";
 import { formatFreshUsd } from "@/lib/format";
 import { formatDistanceMeters } from "@/lib/formatDistance";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
   labelElectricity,
   labelListingType,
@@ -118,14 +119,23 @@ export function ListingDetailWeb({ listingId }: Props) {
 
   // Dynamic photos depending on selected room or main property
   const currentPhotos: ListingPhoto[] = useMemo(() => {
+    const resolve = (photos: ListingPhoto[]) =>
+      photos
+        .map((p) => {
+          const url = resolveMediaUrl(p.url);
+          return url ? { ...p, url } : null;
+        })
+        .filter((p): p is ListingPhoto => Boolean(p));
+
     if (selectedRoom && selectedRoom.photos && selectedRoom.photos.length > 0) {
-      return selectedRoom.photos;
+      return resolve(selectedRoom.photos);
     }
     if (listing?.photos && listing.photos.length > 0) {
-      return listing.photos;
+      return resolve(listing.photos);
     }
     if (listing?.coverUrl) {
-      return [{ id: "cover", url: listing.coverUrl, sortOrder: 0 }];
+      const url = resolveMediaUrl(listing.coverUrl);
+      if (url) return [{ id: "cover", url, sortOrder: 0 }];
     }
     return [];
   }, [selectedRoom, listing?.photos, listing?.coverUrl]);
@@ -609,7 +619,14 @@ export function ListingDetailWeb({ listingId }: Props) {
                                   }}
                                 >
                                   <Image
-                                    source={{ uri: room.photos[0]?.url || listing.coverUrl || "" }}
+                                    source={{
+                                      uri:
+                                        resolveMediaUrl(
+                                          room.photos[0]?.url ||
+                                            listing.coverUrl ||
+                                            null,
+                                        ) || "",
+                                    }}
                                     style={styles.roomCardThumbImg}
                                     contentFit="cover"
                                   />

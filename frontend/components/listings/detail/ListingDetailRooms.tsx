@@ -6,6 +6,7 @@ import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { labelListingType } from "@/lib/listingLabels";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
   buildWhatsAppListingUrl,
   hasUsableWhatsAppPhone,
@@ -138,14 +139,18 @@ export function ListingDetailRooms({ listing, posterPhone }: Props) {
                 <LText variant="subtitle">{room.name}</LText>
                 {photos.length > 0 ? (
                   <View style={styles.thumbs}>
-                    {photos.slice(0, 2).map((p) => (
-                      <Image
-                        key={p.id}
-                        source={{ uri: p.url }}
-                        style={styles.thumb}
-                        contentFit="cover"
-                      />
-                    ))}
+                    {photos.slice(0, 2).map((p) => {
+                      const uri = resolveMediaUrl(p.url);
+                      if (!uri) return null;
+                      return (
+                        <Image
+                          key={p.id}
+                          source={{ uri }}
+                          style={styles.thumb}
+                          contentFit="cover"
+                        />
+                      );
+                    })}
                   </View>
                 ) : null}
                 {room.availableFrom ? (

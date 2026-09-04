@@ -1,14 +1,24 @@
 import { Link, type Href } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 export function CampusFooter() {
+  const { width } = useWindowDimensions();
+  const padX = width < 640 ? 16 : width < 900 ? 20 : WEB_CONTENT_PAD_X;
+  const stacked = width < 640;
+
   return (
     <View style={styles.footer}>
-      <View style={styles.inner}>
-        <View style={styles.brandCol}>
+      <View
+        style={[
+          styles.inner,
+          { paddingHorizontal: padX },
+          stacked && styles.innerStacked,
+        ]}
+      >
+        <View style={[styles.brandCol, stacked && styles.brandColStacked]}>
           <LText variant="subtitle" style={styles.brand}>
             Skoun
           </LText>
@@ -17,16 +27,16 @@ export function CampusFooter() {
             estimates, then rooms near campus.
           </LText>
         </View>
-        <View style={styles.links}>
+        <View style={[styles.links, stacked && styles.linksStacked]}>
           <Link href={"/campus/calculator" as Href} asChild>
-            <Pressable accessibilityRole="link">
+            <Pressable accessibilityRole="link" style={styles.linkHit}>
               <LText variant="caption" style={styles.link}>
                 Tuition calculator
               </LText>
             </Pressable>
           </Link>
           <Link href="/search" asChild>
-            <Pressable accessibilityRole="link">
+            <Pressable accessibilityRole="link" style={styles.linkHit}>
               <LText variant="caption" style={styles.link}>
                 Find a room
               </LText>
@@ -34,8 +44,12 @@ export function CampusFooter() {
           </Link>
         </View>
       </View>
-      <View style={styles.bottom}>
-        <LText variant="caption" tone="faint">
+      <View style={[styles.bottom, { paddingHorizontal: padX }]}>
+        <LText
+          variant="caption"
+          tone="faint"
+          style={[styles.copyright, stacked && styles.copyrightStacked]}
+        >
           © {new Date().getFullYear()} Skoun · Lebanon · Estimates are not
           invoices
         </LText>
@@ -50,6 +64,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
+    width: "100%",
   },
   inner: {
     maxWidth: WEB_CONTENT_MAX,
@@ -63,9 +78,18 @@ const styles = StyleSheet.create({
     gap: 32,
     flexWrap: "wrap",
   },
+  innerStacked: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 20,
+    paddingTop: 28,
+  },
   brandCol: {
     maxWidth: 360,
     gap: 8,
+  },
+  brandColStacked: {
+    maxWidth: "100%",
   },
   brand: {
     color: Skoun.color.primaryDeep,
@@ -80,6 +104,16 @@ const styles = StyleSheet.create({
     gap: 20,
     alignItems: "center",
   },
+  linksStacked: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
+  },
+  linkHit: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingVertical: 8,
+  },
   link: {
     color: Skoun.color.ink,
     fontFamily: Skoun.type.bodyMedium,
@@ -90,5 +124,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: "center",
+  },
+  copyright: {
+    textAlign: "center",
+  },
+  copyrightStacked: {
+    lineHeight: 18,
   },
 });
