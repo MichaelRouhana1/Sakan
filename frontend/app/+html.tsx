@@ -15,12 +15,22 @@ const CAMPUS_CSS = `
 .skoun-campus [role="link"],
 #skoun-campus [role="button"],
 #skoun-campus [role="link"] { cursor: pointer; }
+@keyframes sk-campus-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.sk-campus-in { animation: sk-campus-in 240ms ease-out both; }
+.sk-campus-bar {
+  transform-origin: left center;
+  transition: width 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
 @media (prefers-reduced-motion: reduce) {
   .skoun-campus *,
   #skoun-campus * {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+  .sk-campus-in { animation: none !important; }
 }
 `;
 

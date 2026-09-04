@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { campusKeys } from "./keys";
 import type { ProgramCosts } from "./types";
@@ -15,6 +15,7 @@ export function useProgramCosts(
   return useQuery({
     queryKey: campusKeys.costs(programId ?? "", credits, period),
     enabled: Boolean(programId),
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const { data } = await api.get<Response>(
         `/api/campus/programs/${programId}/costs`,

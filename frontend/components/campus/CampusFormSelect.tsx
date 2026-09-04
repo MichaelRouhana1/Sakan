@@ -357,9 +357,13 @@ export function CampusFormSelect({
           accessibilityRole="text"
           accessibilityLabel={`${a11y}: ${display?.label ?? ""}`}
         >
-          <View style={styles.lockedIcon}>
-            <Ionicons name="checkmark" size={14} color={Skoun.color.primary} />
-          </View>
+          {display?.slug || display?.logoUrl || display?.website ? (
+            <OptionMark option={display} size={28} />
+          ) : (
+            <View style={styles.lockedIcon}>
+              <Ionicons name="checkmark" size={14} color={Skoun.color.primary} />
+            </View>
+          )}
           <View style={styles.triggerCopy}>
             <Text style={styles.triggerValue} numberOfLines={2}>
               {display?.label}
@@ -385,25 +389,32 @@ export function CampusFormSelect({
         accessibilityRole="button"
         accessibilityLabel={a11y}
         accessibilityState={{ disabled: !canOpen, expanded: open }}
-        style={[
+        style={({ hovered, pressed }) => [
           styles.trigger,
           selected ? styles.triggerFilled : null,
           open ? styles.triggerOpen : null,
           !canOpen ? styles.triggerDisabled : null,
+          (hovered || pressed) && canOpen && !open
+            ? styles.triggerHover
+            : null,
         ]}
       >
+        {selected &&
+        (selected.slug || selected.logoUrl || selected.website) ? (
+          <OptionMark option={selected} size={28} />
+        ) : null}
         <View style={styles.triggerCopy}>
           <Text
             style={[
               styles.triggerValue,
               !selected && styles.triggerPlaceholder,
             ]}
-            numberOfLines={1}
+            numberOfLines={narrow ? 2 : 1}
           >
             {selected?.label ?? placeholder}
           </Text>
           {selected?.detail ? (
-            <Text style={styles.triggerDetail} numberOfLines={1}>
+            <Text style={styles.triggerDetail} numberOfLines={narrow ? 2 : 1}>
               {selected.detail}
             </Text>
           ) : null}
@@ -535,6 +546,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     cursor: "pointer",
+  },
+  triggerHover: {
+    borderColor: Skoun.color.primarySoft,
   },
   triggerOpen: {
     borderColor: Skoun.color.primary,

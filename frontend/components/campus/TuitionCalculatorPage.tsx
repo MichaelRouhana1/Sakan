@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -16,13 +17,16 @@ import {
 import { CampusFormSelect } from "@/components/campus/CampusFormSelect";
 import { LButton } from "@/components/lister/Button";
 import { SegmentedPillTrack } from "@/components/listings/SegmentedPillTrack";
+import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
+import { ACADEMIC_CATALOG, CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 import { Skoun } from "@/constants/theme";
+import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useCampusHousingStats } from "@/features/campus/useCampusHousingStats";
 import { useCampusInstitutions } from "@/features/campus/useCampusInstitutions";
 import { useProgramCosts } from "@/features/campus/useProgramCosts";
+import type { CostLine } from "@/features/campus/types";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 
 function money(n: number): string {
   return `$${n.toLocaleString("en-US")}`;
@@ -34,6 +38,18 @@ function paramStr(value: string | string[] | undefined): string {
 }
 
 type CostPeriod = "semester" | "year" | "degree";
+
+const PERIOD_COPY: Record<CostPeriod, string> = {
+  semester: "One semester",
+  year: "Academic year",
+  degree: "Full degree",
+};
+
+const BAR_COLOR: Record<CostLine["kind"], string> = {
+  tuition: Skoun.color.primary,
+  fee: "#3D4F73",
+  living: Skoun.color.primarySoft,
+};
 
 function parsePeriod(
   period: string | string[] | undefined,
@@ -75,6 +91,9 @@ export function TuitionCalculatorPage() {
   const [period, setPeriod] = useState<CostPeriod>(
     parsePeriod(params.period, params.terms),
   );
+  const [copied, setCopied] = useState(false);
+  const [creditFocused, setCreditFocused] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const institution = useMemo(
     () => catalog.data?.find((row) => row.slug === uniSlug) ?? null,
@@ -95,6 +114,9 @@ export function TuitionCalculatorPage() {
         value: row.slug,
         label: row.shortName,
         detail: row.name,
+        slug: row.slug,
+        logoUrl: row.logoUrl,
+        website: row.website,
       })),
     [catalog.data],
   );
@@ -119,6 +141,7 @@ export function TuitionCalculatorPage() {
       (institution?.campuses ?? []).map((row) => ({
         value: row.slug,
         label: row.name,
+        detail: row.city ?? undefined,
       })),
     [institution],
   );
@@ -129,6 +152,12 @@ export function TuitionCalculatorPage() {
       institution.campuses.find((c) => c.isMain) ?? institution.campuses[0];
     if (main) setCampusSlug(main.slug);
   }, [institution, campusSlug]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    };
+  }, []);
 
   const writeParams = useCallback(
     (next: {
@@ -229,6 +258,9 @@ export function TuitionCalculatorPage() {
   const housing = useCampusHousingStats(campusSlug || null);
 
   const grandTotal = costs.data?.totalUsd ?? 0;
+  const campusName =
+    institution?.campuses.find((row) => row.slug === campusSlug)?.name ??
+    "campus";
 
   const onSeeRooms = () => {
     router.push(
@@ -245,8 +277,43 @@ export function TuitionCalculatorPage() {
         : `https://skoun.app/campus/calculator?uni=${uniSlug}&faculty=${facultySlug}&program=${programSlug}`;
     if (Platform.OS === "web" && navigator.clipboard) {
       await navigator.clipboard.writeText(url);
+      setCopied(true);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const setCustomCredits = (next: number) => {
+    const clamped = Math.min(totalMajorCredits, Math.max(0, next));
+    setCredits(clamped);
+    writeParams({ custom: true, credits: clamped });
+  };
+
+  const toggleCustomLoad = () => {
+    const next = !customLoad;
+    setCustomLoad(next);
+    const nextCredits = next
+      ? credits >= 1
+        ? credits
+        : defaultLoadCredits
+      : defaultLoadCredits;
+    setCredits(nextCredits);
+    writeParams({
+      custom: next,
+      credits: next ? nextCredits : 0,
+    });
+  };
+
+  const steps = [
+    { key: "uni", label: "University", done: Boolean(institution) },
+    { key: "faculty", label: "Faculty", done: Boolean(faculty) },
+    {
+      key: "major",
+      label: "Major",
+      done: Boolean(program),
+    },
+    { key: "campus", label: "Campus", done: Boolean(campusSlug) },
+  ];
 
   const formColumn = (
     <View style={[styles.formCol, wide && styles.formColWide]}>
@@ -256,9 +323,9 @@ export function TuitionCalculatorPage() {
         <Text style={[styles.title, compact && styles.titleCompact]}>
           What will this major cost?
         </Text>
-        <Text style={[styles.lede, compact && styles.ledeCompact]}>
-          Estimate published USD tuition for private universities in Lebanon,
-          then jump to rooms near that campus.
+        <Text style={styles.heroMeta}>
+          {CAMPUS_CATALOG.universities} universities · {ACADEMIC_CATALOG.programs}{" "}
+          programs · {ACADEMIC_CATALOG.tuitionYear}
         </Text>
       </View>
 
@@ -269,9 +336,22 @@ export function TuitionCalculatorPage() {
           end={{ x: 1, y: 1 }}
           style={[styles.formCardFill, compact && styles.formCardFillCompact]}
         >
+          <View style={styles.formOrb} pointerEvents="none" />
+
           {catalog.isLoading ? (
-            <ActivityIndicator color={Skoun.color.primary} />
+            <View style={styles.catalogStatus}>
+              <ActivityIndicator color={Skoun.color.primary} />
+              <Text style={styles.hint}>Loading universities…</Text>
+            </View>
           ) : null}
+
+          {catalog.isError ? (
+            <Text style={styles.error} accessibilityRole="alert">
+              Couldn’t load the university catalog. Refresh and try again.
+            </Text>
+          ) : null}
+
+          <ProgressRail steps={steps} compact={compact} />
 
           <CampusFormSelect
             label="University"
@@ -360,11 +440,143 @@ export function TuitionCalculatorPage() {
                   writeParams({ period: next });
                 }}
                 accessibilityLabel="Semester, year, or full degree"
+                appearance="well"
                 fill
               />
 
               <View style={styles.loadCard}>
-                <Text style={styles.loadTitle}>Credit load</Text>
+                <View style={styles.loadHead}>
+                  <Text style={styles.loadTitle}>Credit load</Text>
+                  <Pressable
+                    onPress={toggleCustomLoad}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: customLoad }}
+                    accessibilityLabel="Customize credit load"
+                    style={({ hovered, pressed }) => [
+                      styles.customToggle,
+                      (hovered || pressed) && styles.customToggleHover,
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.switchTrack,
+                        customLoad && styles.switchTrackOn,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.switchThumb,
+                          customLoad && styles.switchThumbOn,
+                          !reduced && styles.switchThumbMotion,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.customToggleLabel}>Customize</Text>
+                  </Pressable>
+                </View>
+
+                {customLoad ? (
+                  <View style={styles.stepperRow}>
+                    <Pressable
+                      onPress={() => setCustomCredits(effectiveCredits - 1)}
+                      disabled={effectiveCredits <= 0}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Decrease ${creditUnit}`}
+                      style={({ hovered, pressed }) => [
+                        styles.stepperBtn,
+                        (hovered || pressed) &&
+                          effectiveCredits > 0 &&
+                          styles.stepperBtnHover,
+                        effectiveCredits <= 0 && styles.stepperBtnDisabled,
+                      ]}
+                    >
+                      <Ionicons
+                        name="remove"
+                        size={18}
+                        color={
+                          effectiveCredits <= 0
+                            ? Skoun.color.inkFaint
+                            : Skoun.color.ink
+                        }
+                      />
+                    </Pressable>
+                    <TextInput
+                      value={
+                        customLoad && credits === 0
+                          ? "0"
+                          : credits
+                            ? String(credits)
+                            : ""
+                      }
+                      onChangeText={(text) => {
+                        const digits = text.replace(/[^\d]/g, "");
+                        if (digits === "") {
+                          setCustomCredits(0);
+                          return;
+                        }
+                        setCustomCredits(Number(digits));
+                      }}
+                      onFocus={() => setCreditFocused(true)}
+                      onBlur={() => setCreditFocused(false)}
+                      keyboardType="number-pad"
+                      inputMode="numeric"
+                      maxLength={3}
+                      placeholder="0"
+                      placeholderTextColor={Skoun.color.inkFaint}
+                      accessibilityLabel={`Custom ${creditUnit}`}
+                      style={[
+                        styles.creditInput,
+                        creditFocused && styles.creditInputFocus,
+                      ]}
+                    />
+                    <Pressable
+                      onPress={() => setCustomCredits(effectiveCredits + 1)}
+                      disabled={effectiveCredits >= totalMajorCredits}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Increase ${creditUnit}`}
+                      style={({ hovered, pressed }) => [
+                        styles.stepperBtn,
+                        (hovered || pressed) &&
+                          effectiveCredits < totalMajorCredits &&
+                          styles.stepperBtnHover,
+                        effectiveCredits >= totalMajorCredits &&
+                          styles.stepperBtnDisabled,
+                      ]}
+                    >
+                      <Ionicons
+                        name="add"
+                        size={18}
+                        color={
+                          effectiveCredits >= totalMajorCredits
+                            ? Skoun.color.inkFaint
+                            : Skoun.color.ink
+                        }
+                      />
+                    </Pressable>
+                    <Text style={styles.loadUnit}>
+                      {creditUnit}
+                      {period === "degree" ? " in this major" : " this semester"}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.loadMeter}>
+                    <Text
+                      style={[
+                        styles.loadFigure,
+                        compact && styles.loadFigureCompact,
+                      ]}
+                    >
+                      {defaultLoadCredits}
+                    </Text>
+                    <Text style={styles.loadUnit}>
+                      {creditUnit}
+                      {period === "degree"
+                        ? " required for this major"
+                        : " typical full-time load"}
+                    </Text>
+                  </View>
+                )}
+
                 <Text style={styles.loadBody}>
                   {period === "degree" ? (
                     <>
@@ -387,87 +599,14 @@ export function TuitionCalculatorPage() {
                       .
                     </>
                   )}
+                  {customLoad
+                    ? ` Enter from 0 to ${totalMajorCredits}${
+                        program.maxBilledCredits
+                          ? `. Billing caps at ${program.maxBilledCredits} per term`
+                          : ""
+                      }.`
+                    : null}
                 </Text>
-
-                <Pressable
-                  onPress={() => {
-                    const next = !customLoad;
-                    setCustomLoad(next);
-                    const nextCredits = next
-                      ? credits >= 1
-                        ? credits
-                        : defaultLoadCredits
-                      : defaultLoadCredits;
-                    setCredits(nextCredits);
-                    writeParams({
-                      custom: next,
-                      credits: next ? nextCredits : 0,
-                    });
-                  }}
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: customLoad }}
-                  accessibilityLabel="Customize credit load"
-                  style={styles.customToggle}
-                >
-                  <View
-                    style={[
-                      styles.switchTrack,
-                      customLoad && styles.switchTrackOn,
-                    ]}
-                  >
-                    <View style={styles.switchThumb} />
-                  </View>
-                  <Text style={styles.customToggleLabel}>
-                    Enter a custom credit load
-                  </Text>
-                </Pressable>
-
-                {customLoad ? (
-                  <View style={styles.customField}>
-                    <Text style={styles.customFieldLabel}>
-                      {period === "degree"
-                        ? `${creditUnit} in this major`
-                        : `${creditUnit} this semester`}
-                    </Text>
-                    <TextInput
-                      value={
-                        customLoad && credits === 0
-                          ? "0"
-                          : credits
-                            ? String(credits)
-                            : ""
-                      }
-                      onChangeText={(text) => {
-                        const digits = text.replace(/[^\d]/g, "");
-                        if (digits === "") {
-                          setCredits(0);
-                          writeParams({ custom: true, credits: 0 });
-                          return;
-                        }
-                        const next = Math.min(
-                          totalMajorCredits,
-                          Math.max(0, Number(digits)),
-                        );
-                        setCredits(next);
-                        writeParams({ custom: true, credits: next });
-                      }}
-                      keyboardType="number-pad"
-                      inputMode="numeric"
-                      maxLength={3}
-                      placeholder="0"
-                      placeholderTextColor={Skoun.color.inkFaint}
-                      accessibilityLabel={`Custom ${creditUnit}`}
-                      style={styles.creditInput}
-                    />
-                    <Text style={styles.hint}>
-                      From 0 to {totalMajorCredits} {creditUnit} for this
-                      major.
-                      {program.maxBilledCredits
-                        ? ` Billing caps at ${program.maxBilledCredits} per term.`
-                        : ""}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
             </>
           ) : null}
@@ -476,66 +615,142 @@ export function TuitionCalculatorPage() {
     </View>
   );
 
+  const noTable = Boolean(faculty && faculty.programs.length === 0);
+  const hasProgram = Boolean(program && institution);
+  const ledgerReady = Boolean(hasProgram && costs.data);
+
   const ledgerCard = (
-    <View style={[styles.ledger, wide && styles.ledgerWide]}>
-      <LinearGradient
-        colors={["#E6EEFA", "#FFFFFF", "#F5F7FA"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.ledgerFill, compact && styles.ledgerFillCompact]}
-      >
+    <View
+      nativeID="tuition-ledger"
+      style={[styles.ledger, wide && styles.ledgerWide]}
+      {...(Platform.OS === "web" && hasProgram && !reduced
+        ? ({ className: "sk-campus-in" } as object)
+        : null)}
+    >
+      <View style={[styles.mast, compact && styles.mastCompact]}>
+        <Text style={styles.mastKicker}>
+          {hasProgram
+            ? PERIOD_COPY[period]
+            : noTable
+              ? "No published table yet"
+              : "Published ledger"}
+        </Text>
+        {hasProgram && institution && program ? (
+          <View style={styles.mastIdentity}>
+            <InstitutionLogo
+              shortName={institution.shortName}
+              slug={institution.slug}
+              logoUrl={institution.logoUrl}
+              size={36}
+              fallbackStyle={styles.mastLogoFrame}
+            />
+            <View style={styles.mastIdentityCopy}>
+              <Text style={styles.mastSchool} numberOfLines={1}>
+                {institution.shortName}
+              </Text>
+              <Text style={styles.mastProgram} numberOfLines={2}>
+                {program.name}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.mastIdentity}>
+            <View style={styles.mastGhostMark}>
+              <Ionicons
+                name="calculator-outline"
+                size={18}
+                color="rgba(255,255,255,0.55)"
+              />
+            </View>
+            <Text style={styles.mastGhostLabel}>
+              {noTable
+                ? "This faculty isn’t in the tuition table yet."
+                : !institution
+                  ? "Waiting on a university, faculty, and major."
+                  : !faculty
+                    ? "University set. Choose a faculty and major."
+                    : "Faculty set. Choose a major to print the statement."}
+            </Text>
+          </View>
+        )}
+        <Text
+          style={[
+            styles.total,
+            compact && styles.totalCompact,
+            !ledgerReady && styles.totalPending,
+          ]}
+          accessibilityRole="text"
+          accessibilityLiveRegion="polite"
+        >
+          {ledgerReady
+            ? money(grandTotal)
+            : hasProgram
+              ? "…"
+              : "$\u2014"}
+        </Text>
+        <Text style={styles.totalSub}>
+          {hasProgram
+            ? `${PERIOD_COPY[period]} · fresh USD`
+            : "Fresh USD · official published rates"}
+        </Text>
+      </View>
+
+      <View style={[styles.ledgerBody, compact && styles.ledgerBodyCompact]}>
         {!program ? (
           <>
             <Text style={styles.placeholder}>
-              {faculty && faculty.programs.length === 0
+              {noTable
                 ? "Tuition for this faculty isn’t in Skoun yet. You can still browse rooms near campus."
-                : "Pick a university, faculty, and major to see the ledger."}
+                : "Choose a university, faculty, and major. The statement prints as soon as a program is set."}
             </Text>
+            <View style={styles.checklist}>
+              {steps.map((step) => (
+                <View key={step.key} style={styles.checkRow}>
+                  <Ionicons
+                    name={step.done ? "checkmark-circle" : "ellipse-outline"}
+                    size={18}
+                    color={
+                      step.done ? Skoun.color.primary : Skoun.color.inkFaint
+                    }
+                  />
+                  <Text
+                    style={[
+                      styles.checkLabel,
+                      step.done && styles.checkLabelDone,
+                    ]}
+                  >
+                    {step.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
             {campusSlug ? (
               <LButton
-                label="See rooms near campus"
+                label={`See rooms near ${campusName}`}
                 onPress={onSeeRooms}
                 accessibilityHint="Opens housing search near this campus"
                 style={styles.housingCta}
               />
             ) : null}
           </>
-        ) : costs.isLoading ? (
-          <ActivityIndicator color={Skoun.color.primary} />
+        ) : !costs.data && (costs.isLoading || costs.isFetching) ? (
+          <View style={styles.ledgerWait}>
+            <ActivityIndicator color={Skoun.color.primary} />
+            <Text style={styles.placeholder}>Adding up published rates…</Text>
+          </View>
         ) : costs.isError ? (
           <Text style={styles.error} accessibilityRole="alert">
             Couldn’t load this estimate. Try again.
           </Text>
         ) : costs.data ? (
           <>
-            <Text style={styles.ledgerKicker}>
-              {costs.data.institution.shortName} · {costs.data.program.name}
-            </Text>
-            <Text
-              style={[
-                styles.total,
-                compact && styles.totalCompact,
-                !reduced && styles.totalEnter,
-              ]}
-            >
-              {money(grandTotal)}
-            </Text>
-            <Text style={styles.totalSub}>
-              {period === "degree"
-                ? "Full degree"
-                : period === "year"
-                  ? "Academic year"
-                  : "One semester"}{" "}
-              · fresh USD
-            </Text>
-
-            <View style={styles.rule} />
-
             {costs.data.lines.map((line) => (
-              <View key={line.label} style={styles.line}>
-                <Text style={styles.lineLabel}>{line.label}</Text>
-                <Text style={styles.lineAmt}>{money(line.amountUsd)}</Text>
-              </View>
+              <CostBar
+                key={line.label}
+                line={line}
+                total={grandTotal}
+                reduced={reduced}
+              />
             ))}
 
             <Text style={styles.disclaimer}>{costs.data.disclaimer}</Text>
@@ -548,46 +763,94 @@ export function TuitionCalculatorPage() {
                   void Linking.openURL(costs.data!.program.sourceUrl)
                 }
                 accessibilityRole="link"
+                style={({ hovered, pressed }) => [
+                  styles.textBtn,
+                  (hovered || pressed) && styles.textBtnHover,
+                ]}
               >
-                <Text style={styles.sourceLink}>Open tuition source</Text>
+                <Ionicons
+                  name="open-outline"
+                  size={16}
+                  color={Skoun.color.primary}
+                />
+                <Text style={styles.textBtnLabel}>Open tuition source</Text>
               </Pressable>
             ) : null}
 
-            <View style={styles.rule} />
+            <View style={styles.housingRule} />
+            <View style={styles.housingBlock}>
+              <View style={styles.housingTop}>
+                <Ionicons
+                  name="home-outline"
+                  size={16}
+                  color={Skoun.color.primary}
+                />
+                <Text style={styles.housingTitle}>Housing near {campusName}</Text>
+              </View>
+              {housing.data && housing.data.count > 0 ? (
+                <View style={styles.housingStats}>
+                  <View style={styles.housingStat}>
+                    <Text style={styles.housingStatValue}>
+                      {money(housing.data.minUsd ?? 0)}
+                    </Text>
+                    <Text style={styles.housingStatLabel}>from / mo</Text>
+                  </View>
+                  <View style={styles.housingStatRule} />
+                  <View style={styles.housingStat}>
+                    <Text style={styles.housingStatValue}>
+                      {money(housing.data.medianUsd ?? 0)}
+                    </Text>
+                    <Text style={styles.housingStatLabel}>median / mo</Text>
+                  </View>
+                  <View style={styles.housingStatRule} />
+                  <View style={styles.housingStat}>
+                    <Text style={styles.housingStatValue}>
+                      {housing.data.count}
+                    </Text>
+                    <Text style={styles.housingStatLabel}>
+                      within {(housing.data.radiusMeters / 1000).toFixed(1)} km
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={styles.housingBody}>
+                  No live rooms near this campus yet. You can still browse
+                  housing.
+                </Text>
+              )}
+              <LButton
+                label="See rooms near campus"
+                onPress={onSeeRooms}
+                accessibilityHint="Opens housing search near this campus"
+                style={styles.housingCta}
+              />
+            </View>
 
-            <Text style={styles.housingTitle}>Housing near campus</Text>
-            {housing.data && housing.data.count > 0 ? (
-              <Text style={styles.housingBody}>
-                Live listings from {money(housing.data.minUsd ?? 0)}/mo ·
-                median {money(housing.data.medianUsd ?? 0)}/mo (
-                {housing.data.count} within{" "}
-                {(housing.data.radiusMeters / 1000).toFixed(1)} km)
-              </Text>
-            ) : (
-              <Text style={styles.housingBody}>
-                No live rooms near this campus yet. You can still browse
-                housing.
-              </Text>
-            )}
-            <LButton
-              label="See rooms near campus"
-              onPress={onSeeRooms}
-              accessibilityHint="Opens housing search near this campus"
-              style={styles.housingCta}
-            />
             {Platform.OS === "web" ? (
               <Pressable
                 onPress={() => void copyLink()}
                 accessibilityRole="button"
+                accessibilityLabel={
+                  copied ? "Link copied" : "Copy link to this estimate"
+                }
+                style={({ hovered, pressed }) => [
+                  styles.textBtn,
+                  (hovered || pressed) && styles.textBtnHover,
+                ]}
               >
-                <Text style={styles.sourceLink}>
-                  Copy link to this estimate
+                <Ionicons
+                  name={copied ? "checkmark" : "link-outline"}
+                  size={16}
+                  color={copied ? Skoun.color.primary : Skoun.color.primary}
+                />
+                <Text style={styles.textBtnLabel}>
+                  {copied ? "Copied" : "Copy link to this estimate"}
                 </Text>
               </Pressable>
             ) : null}
           </>
         ) : null}
-      </LinearGradient>
+      </View>
     </View>
   );
 
@@ -616,6 +879,98 @@ export function TuitionCalculatorPage() {
     </ScrollView>
   );
 }
+
+function ProgressRail({
+  steps,
+  compact,
+}: {
+  steps: { key: string; label: string; done: boolean }[];
+  compact: boolean;
+}) {
+  return (
+    <View
+      style={styles.rail}
+      accessibilityRole="progressbar"
+      accessibilityLabel={`Calculator steps, ${steps.filter((s) => s.done).length} of ${steps.length} complete`}
+    >
+      {steps.map((step, index) => (
+        <Fragment key={step.key}>
+          {index > 0 ? (
+            <View
+              style={[
+                styles.railLine,
+                steps[index - 1]!.done && styles.railLineDone,
+              ]}
+            />
+          ) : null}
+          <View style={styles.railStep}>
+            <View
+              style={[styles.railDot, step.done && styles.railDotDone]}
+            >
+              {step.done ? (
+                <Ionicons name="checkmark" size={10} color="#fff" />
+              ) : (
+                <Text style={styles.railIndex}>{index + 1}</Text>
+              )}
+            </View>
+            {compact ? null : (
+              <Text
+                style={[styles.railLabel, step.done && styles.railLabelDone]}
+              >
+                {step.label}
+              </Text>
+            )}
+          </View>
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+function CostBar({
+  line,
+  total,
+  reduced,
+}: {
+  line: CostLine;
+  total: number;
+  reduced: boolean;
+}) {
+  const pct = total > 0 ? Math.max(2, (line.amountUsd / total) * 100) : 0;
+  return (
+    <View style={styles.line}>
+      <View style={styles.lineHead}>
+        <Text style={styles.lineLabel}>{line.label}</Text>
+        <Text style={styles.lineAmt}>{money(line.amountUsd)}</Text>
+      </View>
+      <View style={styles.barTrack}>
+        <View
+          {...(Platform.OS === "web" && !reduced
+            ? ({ className: "sk-campus-bar" } as object)
+            : null)}
+          style={[
+            styles.barFill,
+            {
+              width: `${pct}%`,
+              backgroundColor: BAR_COLOR[line.kind],
+            },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
+const webShadow = Platform.OS === "web"
+  ? ({
+      boxShadow: "0 2px 8px rgba(18, 24, 38, 0.05)",
+    } as object)
+  : {
+      shadowColor: "#121826",
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 3 },
+    };
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
@@ -650,7 +1005,7 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: Skoun.color.inkMuted,
   },
   title: {
@@ -665,52 +1020,102 @@ const styles = StyleSheet.create({
     lineHeight: 34,
     letterSpacing: -0.5,
   },
-  lede: {
-    fontFamily: Skoun.type.body,
-    fontSize: 16,
-    lineHeight: 24,
-    color: Skoun.color.inkMuted,
-    maxWidth: 520,
-  },
-  ledeCompact: {
-    fontSize: 15,
-    lineHeight: 22,
+  heroMeta: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.2,
+    color: Skoun.color.inkFaint,
   },
   formCard: {
-    position: 'relative',
+    position: "relative",
     marginTop: 4,
     borderWidth: 1,
-    borderColor: '#D5DCE7',
+    borderColor: "#D5DCE7",
     borderRadius: Skoun.radius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: Skoun.color.surface,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 2px 8px rgba(18, 24, 38, 0.05)',
-        } as object)
-      : {
-          shadowColor: '#121826',
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 3 },
-        }),
+    ...webShadow,
   },
   formCardFill: {
-    paddingTop: 26,
+    paddingTop: 22,
     paddingBottom: 24,
     paddingHorizontal: 22,
     gap: 18,
     overflow: "hidden",
   },
   formCardFillCompact: {
-    paddingTop: 20,
+    paddingTop: 18,
     paddingBottom: 18,
     paddingHorizontal: 14,
     gap: 14,
   },
+  formOrb: {
+    position: "absolute",
+    bottom: -70,
+    right: -48,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: "rgba(47, 111, 237, 0.08)",
+  },
+  catalogStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    zIndex: 1,
+  },
+  rail: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 0,
+    marginBottom: 4,
+    zIndex: 1,
+  },
+  railStep: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  railDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: "#C5D6F5",
+    backgroundColor: Skoun.color.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  railDotDone: {
+    backgroundColor: Skoun.color.primary,
+    borderColor: Skoun.color.primary,
+  },
+  railIndex: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 10,
+    color: Skoun.color.inkMuted,
+  },
+  railLabel: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 12,
+    color: Skoun.color.inkFaint,
+  },
+  railLabelDone: {
+    color: Skoun.color.ink,
+  },
+  railLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: "#D9E3F4",
+    marginHorizontal: 8,
+  },
+  railLineDone: {
+    backgroundColor: Skoun.color.primarySoft,
+  },
   formDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: "#E2E8F0",
     marginTop: 4,
     marginBottom: 4,
   },
@@ -734,18 +1139,49 @@ const styles = StyleSheet.create({
   },
   loadCard: {
     gap: 12,
-    padding: 14,
+    padding: 16,
     borderRadius: Skoun.radius.md,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: "rgba(255,255,255,0.82)",
     borderWidth: 1,
-    borderColor: '#D9E3F4',
+    borderColor: "#D9E3F4",
+  },
+  loadHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
   loadTitle: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.35,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     color: Skoun.color.inkMuted,
+  },
+  loadMeter: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  loadFigure: {
+    fontFamily: Skoun.type.display,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -0.8,
+    color: Skoun.color.ink,
+    fontVariant: ["tabular-nums"],
+  },
+  loadFigureCompact: {
+    fontSize: 32,
+    lineHeight: 36,
+  },
+  loadUnit: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Skoun.color.inkMuted,
+    flexShrink: 1,
   },
   loadBody: {
     fontFamily: Skoun.type.body,
@@ -758,11 +1194,19 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
   },
   customToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     paddingVertical: 4,
-    cursor: 'pointer',
+    cursor: "pointer",
+  },
+  customToggleHover: {
+    opacity: 0.85,
+  },
+  customToggleLabel: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 13,
+    color: Skoun.color.ink,
   },
   switchTrack: {
     width: 44,
@@ -770,13 +1214,10 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: Skoun.color.border,
     paddingHorizontal: 3,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: "center",
   },
   switchTrackOn: {
     backgroundColor: Skoun.color.primary,
-    justifyContent: 'flex-end',
   },
   switchThumb: {
     width: 20,
@@ -784,175 +1225,320 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: Skoun.color.surface,
   },
-  customToggleLabel: {
-    flex: 1,
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 14,
-    color: Skoun.color.ink,
+  switchThumbOn: {
+    transform: [{ translateX: 18 }],
   },
-  customField: {
+  switchThumbMotion:
+    Platform.OS === "web"
+      ? ({
+          transitionProperty: "transform",
+          transitionDuration: "180ms",
+          transitionTimingFunction: "ease-out",
+        } as object)
+      : {},
+  stepperRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    paddingTop: 4,
+    flexWrap: "wrap",
   },
-  customFieldLabel: {
-    fontFamily: Skoun.type.bodySemi,
-    fontSize: 13,
-    color: Skoun.color.ink,
+  stepperBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Skoun.color.border,
+    backgroundColor: Skoun.color.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+  stepperBtnHover: {
+    borderColor: Skoun.color.primarySoft,
+    backgroundColor: Skoun.color.primaryMist,
+  },
+  stepperBtnDisabled: {
+    opacity: 0.45,
+    cursor: "not-allowed",
   },
   creditInput: {
     borderWidth: 1.5,
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
     borderRadius: Skoun.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     fontFamily: Skoun.type.bodySemi,
-    fontSize: 16,
+    fontSize: 22,
+    lineHeight: 28,
     color: Skoun.color.ink,
     minHeight: 48,
-    maxWidth: 160,
-    outlineStyle: 'none' as unknown as undefined,
+    minWidth: 72,
+    maxWidth: 96,
+    textAlign: "center",
+    fontVariant: ["tabular-nums"],
+    outlineStyle: "none" as unknown as undefined,
+  },
+  creditInputFocus: {
+    borderColor: Skoun.color.primary,
+    ...(Platform.OS === "web"
+      ? ({
+          boxShadow: `0 0 0 3px ${Skoun.color.primaryMist}`,
+        } as object)
+      : null),
   },
   ledger: {
     borderWidth: 1,
-    borderColor: '#D5DCE7',
+    borderColor: "#D5DCE7",
     borderRadius: Skoun.radius.lg,
-    overflow: 'hidden',
-    backgroundColor: Skoun.color.surface,
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 2px 8px rgba(18, 24, 38, 0.05)',
-        } as object)
-      : {
-          shadowColor: '#121826',
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 3 },
-        }),
-  },
-  ledgerFill: {
-    padding: 24,
-    gap: 8,
     overflow: "hidden",
-    minHeight: 180,
-  },
-  ledgerFillCompact: {
-    padding: 16,
+    backgroundColor: Skoun.color.surface,
+    ...webShadow,
   },
   ledgerWide: {
-    width: 400,
+    width: 420,
     flexShrink: 0,
     alignSelf: "flex-start",
     position: "sticky" as unknown as "relative",
     top: WEB_NAV_HEIGHT + 16,
-    maxHeight: `calc(100vh - ${WEB_NAV_HEIGHT + 32}px)` as unknown as number,
-    overflow: "auto" as unknown as "visible",
     zIndex: 5,
   },
-  placeholder: {
-    fontFamily: Skoun.type.body,
-    fontSize: 15,
-    color: Skoun.color.inkFaint,
-    lineHeight: 22,
-    zIndex: 1,
+  mast: {
+    backgroundColor: Skoun.color.primaryDeep,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 14,
+    gap: 8,
   },
-  error: {
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.danger,
-    zIndex: 1,
+  mastCompact: {
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
   },
-  ledgerKicker: {
+  mastKicker: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 11,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.55)",
+  },
+  mastIdentity: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  mastIdentityCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  mastLogoFrame: {
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  mastSchool: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
-    zIndex: 1,
+    color: "rgba(255,255,255,0.72)",
+  },
+  mastProgram: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#FFFFFF",
+  },
+  mastGhostMark: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mastGhostLabel: {
+    flex: 1,
+    fontFamily: Skoun.type.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "rgba(255,255,255,0.62)",
   },
   total: {
     fontFamily: Skoun.type.display,
-    fontSize: 48,
-    lineHeight: 54,
-    letterSpacing: -0.8,
-    color: Skoun.color.ink,
-    fontVariant: ['tabular-nums'],
-    zIndex: 1,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -1.2,
+    color: "#FFFFFF",
+    fontVariant: ["tabular-nums"],
   },
   totalCompact: {
     fontSize: 36,
     lineHeight: 42,
   },
-  totalEnter: {},
+  totalPending: {
+    letterSpacing: 0,
+    opacity: 0.42,
+  },
   totalSub: {
     fontFamily: Skoun.type.body,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
-    marginBottom: 8,
-    zIndex: 1,
+    color: "rgba(255,255,255,0.62)",
   },
-  rule: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 8,
-    zIndex: 1,
+  ledgerBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
+    gap: 8,
+    backgroundColor: Skoun.color.surface,
+  },
+  ledgerBodyCompact: {
+    padding: 16,
+  },
+  ledgerWait: {
+    gap: 12,
+    paddingVertical: 8,
+  },
+  placeholder: {
+    fontFamily: Skoun.type.body,
+    fontSize: 15,
+    color: Skoun.color.inkMuted,
+    lineHeight: 22,
+  },
+  checklist: {
+    gap: 10,
+    paddingVertical: 4,
+  },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  checkLabel: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 14,
+    color: Skoun.color.inkFaint,
+  },
+  checkLabelDone: {
+    color: Skoun.color.ink,
+  },
+  error: {
+    fontFamily: Skoun.type.bodyMedium,
+    color: Skoun.color.danger,
   },
   line: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 6,
+    paddingBottom: 4,
+  },
+  lineHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: 12,
-    paddingVertical: 4,
-    zIndex: 1,
+    alignItems: "flex-start",
   },
   lineLabel: {
     flex: 1,
     fontFamily: Skoun.type.body,
     fontSize: 13,
+    lineHeight: 18,
     color: Skoun.color.inkMuted,
   },
   lineAmt: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 14,
     color: Skoun.color.ink,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
+  },
+  barTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Skoun.color.primaryMist,
+    overflow: "hidden",
+  },
+  barFill: {
+    height: 6,
+    borderRadius: 3,
+    minWidth: 6,
   },
   disclaimer: {
     fontFamily: Skoun.type.body,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     color: Skoun.color.inkFaint,
-    marginTop: 8,
-    zIndex: 1,
   },
   years: {
     fontFamily: Skoun.type.bodyMedium,
     fontSize: 12,
     color: Skoun.color.inkMuted,
-    zIndex: 1,
   },
-  sourceLink: {
+  textBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingVertical: 2,
+    cursor: "pointer",
+  },
+  textBtnHover: {
+    opacity: 0.8,
+  },
+  textBtnLabel: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 13,
     color: Skoun.color.primary,
-    textDecorationLine: 'underline',
-    marginTop: 4,
-    zIndex: 1,
+  },
+  housingRule: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  housingBlock: {
+    gap: 10,
+  },
+  housingTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   housingTitle: {
+    flex: 1,
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 15,
+    fontSize: 14,
     color: Skoun.color.ink,
-    marginTop: 4,
-    zIndex: 1,
+  },
+  housingStats: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 0,
+  },
+  housingStat: {
+    flex: 1,
+    gap: 2,
+  },
+  housingStatValue: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 16,
+    color: Skoun.color.ink,
+    fontVariant: ["tabular-nums"],
+  },
+  housingStatLabel: {
+    fontFamily: Skoun.type.body,
+    fontSize: 11,
+    color: Skoun.color.inkFaint,
+  },
+  housingStatRule: {
+    width: 1,
+    backgroundColor: "#D9E3F4",
+    marginHorizontal: 10,
   },
   housingBody: {
     fontFamily: Skoun.type.body,
     fontSize: 14,
     lineHeight: 20,
     color: Skoun.color.inkMuted,
-    zIndex: 1,
   },
   housingCta: {
-    marginTop: 8,
-    alignSelf: 'stretch',
-    zIndex: 1,
+    marginTop: 2,
+    alignSelf: "stretch",
+    minHeight: 44,
   },
 });
-
