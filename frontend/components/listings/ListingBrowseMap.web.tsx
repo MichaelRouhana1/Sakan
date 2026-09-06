@@ -50,7 +50,14 @@ import {
   type Marker,
   type Popup,
 } from "@/lib/skounMapbox.web";
+import { CampusOffscreenArrow } from "@/components/listings/CampusOffscreenArrow";
 import { campusPinLabel, CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
+import {
+  OFFSCREEN_BEACON_SIZE,
+  offscreenEdgeBeacon,
+  sameOffscreenBeacon,
+  type OffscreenBeacon,
+} from "@/lib/offscreenBeacon";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { CampusMeta, Listing } from "@/types/listing";
 
@@ -294,8 +301,13 @@ export function ListingBrowseMap({
   const [visibleFeatures, setVisibleFeatures] = useState<VisibleMapFeature[]>(
     [],
   );
+  const [campusBeacon, setCampusBeacon] = useState<OffscreenBeacon | null>(
+    null,
+  );
   const sheetKindRef = useRef(sheet.kind);
   sheetKindRef.current = sheet.kind;
+  const fillContainerRef = useRef(fillContainer);
+  fillContainerRef.current = fillContainer;
 
   function dismissPreview() {
     const map = mapRef.current;
@@ -555,6 +567,9 @@ export function ListingBrowseMap({
     () => campuses.find((c) => c.slug === focusCampusSlug) ?? null,
     [campuses, focusCampusSlug],
   );
+  const beaconCampus = universityMode
+    ? (focusCampus ?? campuses[0] ?? null)
+    : null;
   const focusCampusKey = focusCampus
     ? `${focusCampus.slug}:${focusCampus.lng}:${focusCampus.lat}`
     : "";
@@ -696,9 +711,71 @@ export function ListingBrowseMap({
       mapboxRef.current = null;
       setMapReady(false);
       setVisibleFeatures([]);
+      setCampusBeacon(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- client init once
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !universityMode) {
+      setCampusBeacon(null);
+      return;
+    }
+
+    let raf = 0;
+    const sync = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const live = mapRef.current;
+        if (!live || !universityModeRef.current) {
+          setCampusBeacon((prev) => (prev ? null : prev));
+          return;
+        }
+        const list = campusesRef.current;
+        const slug = focusCampusSlugRef.current;
+        const campus =
+          (slug ? list.find((c) => c.slug === slug) : null) ?? list[0] ?? null;
+        if (!campus) {
+          setCampusBeacon((prev) => (prev ? null : prev));
+          return;
+        }
+        const el = live.getContainer();
+        const w = el.clientWidth;
+        const h = el.clientHeight;
+        const pt = live.project(toLngLat(campus));
+        const fill = fillContainerRef.current;
+        const next = offscreenEdgeBeacon(
+          { x: pt.x, y: pt.y },
+          { width: w, height: h },
+          {
+            size: OFFSCREEN_BEACON_SIZE,
+            hideInset: 12,
+            pad: { top: 16, left: 14, bottom: 26, right: 14 },
+            avoid: fill
+              ? [
+                  { left: w - 160, top: 0, right: w, bottom: 64 },
+                  { left: w - 72, top: 48, right: w, bottom: 236 },
+                ]
+              : [{ left: w - 62, top: 0, right: w, bottom: 58 }],
+          },
+        );
+        setCampusBeacon((prev) =>
+          sameOffscreenBeacon(prev, next) ? prev : next,
+        );
+      });
+    };
+
+    map.on("move", sync);
+    map.on("resize", sync);
+    sync();
+    return () => {
+      map.off("move", sync);
+      map.off("resize", sync);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [mapReady, universityMode, focusCampusSlug, campusesKey]);
 
   useEffect(() => {
     if (!mapReady || !clusterIndex) {
@@ -1317,6 +1394,24 @@ export function ListingBrowseMap({
               color={Skoun.color.primary}
             />
           </Pressable>
+        ) : null}
+        {campusBeacon && beaconCampus ? (
+          <CampusOffscreenArrow
+            x={campusBeacon.x}
+            y={campusBeacon.y}
+            angleDeg={campusBeacon.angleDeg}
+            accessibilityLabel={`Show ${campusPinLabel(beaconCampus)} on the map`}
+            onPress={() => {
+              const map = mapRef.current;
+              const campus = beaconCampus;
+              if (!map || !campus) return;
+              map.stop();
+              map.easeTo({
+                center: toLngLat(campus),
+                duration: reduceMotionRef.current ? 0 : 550,
+              });
+            }}
+          />
         ) : null}
         {fillContainer && !sheetOpen ? (
           <View style={styles.hintOverlay} accessibilityRole="text">

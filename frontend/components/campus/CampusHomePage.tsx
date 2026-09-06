@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
@@ -8,22 +8,40 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { HeroCap } from "@/components/campus/HeroCap";
+import { HeroRipple } from "@/components/campus/HeroRipple";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
-import { useReducedMotion } from "@/lib/useReducedMotion";
 
-type Tool = {
+type PressState = { pressed: boolean; hovered?: boolean };
+type IonName = React.ComponentProps<typeof Ionicons>["name"];
+
+const web = Platform.OS === "web";
+
+function useLayoutWidth() {
+  const { width } = useWindowDimensions();
+  const [inner, setInner] = useState(() =>
+    web && typeof window !== "undefined" ? window.innerWidth : width,
+  );
+  useEffect(() => {
+    if (!web || typeof window === "undefined") return;
+    const sync = () => setInner(window.innerWidth);
+    sync();
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
+  }, []);
+  return web ? inner : width;
+}
+
+const TOOLS: readonly {
   id: string;
   live: boolean;
   href?: string;
   title: string;
   body: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  gradient: readonly [string, string, string];
-};
-
-const TOOLS: readonly Tool[] = [
+  icon: IonName;
+}[] = [
   {
     id: "calculator",
     live: true,
@@ -31,15 +49,13 @@ const TOOLS: readonly Tool[] = [
     title: "Tuition calculator",
     body: "Estimate a major’s total tuition, cost per year and per semester, in USD.",
     icon: "calculator-outline",
-    gradient: ["#EAF1FC", "#FFFFFF", "#F7F9FC"],
   },
   {
     id: "universities",
     live: false,
     title: "Universities",
-    body: "Campuses, faculties, buildings, and amenities.",
+    body: "Campuses, faculties, buildings, and amenities — coming later.",
     icon: "school-outline",
-    gradient: ["#EEF1F5", "#F5F7FA", "#F8F9FB"],
   },
   {
     id: "calendar",
@@ -48,136 +64,157 @@ const TOOLS: readonly Tool[] = [
     title: "Academic calendar",
     body: "Official Lebanese holidays — the days campuses close.",
     icon: "calendar-outline",
-    gradient: ["#E6EEFA", "#FFFFFF", "#F5F7FA"],
   },
   {
     id: "benefits",
     live: true,
     href: "/campus/benefits",
     title: "Student benefits",
-    body: "Verified student discounts on software, food, transport, and telecom — plus campus-only offers.",
+    body: "Verified student discounts on software, food, transport, and telecom.",
     icon: "pricetag-outline",
-    gradient: ["#E6EEFA", "#FFFFFF", "#F5F7FA"],
   },
 ];
 
 export function CampusHomePage() {
   const router = useRouter();
   const { user } = useAuthSession();
-  const { width } = useWindowDimensions();
-  const reduced = useReducedMotion();
+  const width = useLayoutWidth();
   const uni =
     user?.campus?.institutionShortName?.trim() ||
     user?.campus?.institutionName?.trim() ||
     null;
 
-  const twoCol = width >= 900;
   const compact = width < 640;
+  const stacked = width < 980;
+  // 4 across on desktop, 2x2 on tablet, 1 column on phones.
+  const perRow = compact ? 1 : stacked ? 2 : 4;
+
+  const go = (href: string) => router.push(href as never);
 
   return (
     <View style={styles.page}>
-      <View style={styles.hero}>
-        <View style={styles.heroRule} />
-        <LText variant="label" tone="muted" style={styles.kicker}>
-          {uni ? `Your campus · ${uni}` : "Student tools · Lebanon"}
-        </LText>
-        <LText
-          variant="display"
-          style={[styles.title, compact && styles.titleCompact]}
+      <View
+        style={[styles.hero, stacked && styles.heroStacked]}
+        pointerEvents="box-none"
+      >
+        <View style={styles.rippleHost} pointerEvents="auto">
+          <HeroRipple />
+        </View>
+
+        <View style={styles.copy} pointerEvents="box-none">
+          <View style={styles.copyRead} pointerEvents="none">
+            <View style={styles.badge}>
+              <Ionicons name="school" size={13} color="#FFFFFF" />
+              <LText style={styles.badgeText}>
+                {uni ? `Campus · ${uni}` : "Campus · Lebanon"}
+              </LText>
+            </View>
+            <LText
+              accessibilityRole="header"
+              variant="display"
+              style={[styles.title, compact && styles.titleCompact]}
+            >
+              {uni ? `Your ${uni} student home` : "Your student home"}
+            </LText>
+            <LText
+              variant="body"
+              tone="muted"
+              style={[styles.lede, compact && styles.ledeCompact]}
+            >
+              {uni
+                ? `Free tools for ${uni} students — tuition, calendar, benefits, and housing nearby.`
+                : "Free tools for UA students — tuition, calendar, benefits, and housing nearby."}
+            </LText>
+          </View>
+          <Pressable
+            onPress={() => go("/campus/calculator")}
+            accessibilityRole="link"
+            accessibilityLabel="Open tuition calculator"
+            style={({ pressed, hovered }: PressState) => [
+              styles.cta,
+              styles.motion,
+              (hovered || pressed) && styles.ctaHover,
+            ]}
+          >
+            <LText style={styles.ctaText}>Open tuition calculator</LText>
+            <Ionicons name="arrow-forward" size={16} color={Skoun.color.ink} />
+          </Pressable>
+        </View>
+
+        <View
+          style={[styles.visual, stacked && styles.visualStacked]}
+          pointerEvents="box-none"
         >
-          {uni ? `Your ${uni} student home` : "Your student home"}
-        </LText>
-        <LText
-          variant="body"
-          tone="muted"
-          style={[styles.lede, compact && styles.ledeCompact]}
-        >
-          {uni
-            ? `Free tools for ${uni} students — tuition, calendar, benefits, and housing nearby.`
-            : "Free tools for your university — tuition, calendar, benefits, and housing nearby."}
-        </LText>
+          <HeroCap />
+        </View>
       </View>
 
-      <View style={styles.grid}>
-        {TOOLS.map((tool) => {
-          const inner = (
-            <LinearGradient
-              colors={[...tool.gradient]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.cardFill, compact && styles.cardFillCompact]}
-            >
-              <View style={styles.cardOrb} pointerEvents="none" />
-              <View style={styles.cardTop}>
-                <View
-                  style={[styles.iconWell, !tool.live && styles.iconWellSoon]}
+      <View style={styles.tools}>
+        <View style={[styles.divider, compact && styles.dividerCompact]} />
+
+        <View style={styles.cols}>
+          {TOOLS.map((tool, i) => {
+            const lastInRow = (i + 1) % perRow === 0;
+            const lastRow = i >= TOOLS.length - perRow;
+            const inner = (
+              <>
+                <Ionicons
+                  name={tool.icon}
+                  size={22}
+                  color={tool.live ? Skoun.color.primary : Skoun.color.inkFaint}
+                />
+                <LText
+                  variant="subtitle"
+                  tone={tool.live ? undefined : "muted"}
+                  style={styles.colTitle}
                 >
-                  <Ionicons
-                    name={tool.icon}
-                    size={22}
-                    color={
-                      tool.live ? Skoun.color.primary : Skoun.color.inkFaint
-                    }
-                  />
-                </View>
-                {tool.live ? (
-                  <View style={styles.arrowWell}>
-                    <Ionicons
-                      name="arrow-forward"
-                      size={16}
-                      color={Skoun.color.primary}
-                    />
-                  </View>
-                ) : null}
-              </View>
-              <LText
-                variant="subtitle"
-                tone={tool.live ? undefined : "muted"}
-                style={styles.cardTitle}
-              >
-                {tool.title}
-              </LText>
-              <LText variant="caption" tone="muted" style={styles.cardBody}>
-                {tool.body}
-              </LText>
-            </LinearGradient>
-          );
+                  {tool.title}
+                </LText>
+                <LText variant="caption" tone="muted" style={styles.colBody}>
+                  {tool.body}
+                </LText>
+              </>
+            );
 
-          const shellStyle = [
-            styles.card,
-            twoCol ? styles.cardHalf : styles.cardFull,
-            !tool.live && styles.cardSoon,
-          ];
+            const colStyle = [
+              styles.col,
+              perRow === 4 && styles.colQuarter,
+              perRow === 2 && styles.colHalf,
+              perRow === 1 && styles.colFull,
+              compact && styles.colCompact,
+              !lastInRow && styles.colRule,
+              !lastRow && styles.colRuleBottom,
+            ];
 
-          if (tool.live && tool.href) {
+            if (tool.live && tool.href) {
+              return (
+                <Pressable
+                  key={tool.id}
+                  onPress={() => go(tool.href!)}
+                  accessibilityRole="link"
+                  accessibilityLabel={tool.title}
+                  style={({ pressed, hovered }: PressState) => [
+                    ...colStyle,
+                    styles.motion,
+                    (hovered || pressed) && styles.colHover,
+                  ]}
+                >
+                  {inner}
+                </Pressable>
+              );
+            }
+
             return (
-              <Pressable
+              <View
                 key={tool.id}
-                onPress={() => router.push(tool.href as never)}
-                accessibilityRole="link"
-                accessibilityLabel={tool.title}
-                style={({ pressed, hovered }) => [
-                  ...shellStyle,
-                  !reduced && styles.cardMotion,
-                  hovered && styles.cardHover,
-                  pressed && styles.pressed,
-                ]}
+                style={[...colStyle, styles.colSoon]}
+                accessibilityLabel={`${tool.title}, coming later`}
               >
                 {inner}
-              </Pressable>
+              </View>
             );
-          }
-
-          return (
-            <View
-              key={tool.id}
-              style={shellStyle}
-              accessibilityLabel={`${tool.title}, coming later`}
-            >
-              {inner}
-            </View>
-          );
-        })}
+          })}
+        </View>
       </View>
     </View>
   );
@@ -185,184 +222,204 @@ export function CampusHomePage() {
 
 const styles = StyleSheet.create({
   page: {
-    gap: 28,
     width: "100%",
-    maxWidth: 880,
-    alignSelf: "center",
+    alignSelf: "stretch",
+    flexGrow: 1,
+    justifyContent: "space-between",
+    gap: 8,
   },
   hero: {
-    gap: 10,
-    maxWidth: 640,
-    alignSelf: "center",
-    alignItems: "center",
-    width: "100%",
-  },
-  heroRule: {
-    width: 40,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: Skoun.color.primary,
-    marginBottom: 2,
-  },
-  kicker: {
-    letterSpacing: 0.6,
-    textAlign: "center",
-  },
-  title: {
-    fontSize: 40,
-    lineHeight: 46,
-    letterSpacing: -0.8,
-    textAlign: "center",
-  },
-  titleCompact: {
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -0.5,
-  },
-  lede: {
-    fontSize: 16,
-    lineHeight: 24,
-    maxWidth: 520,
-    textAlign: "center",
-  },
-  ledeCompact: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    width: "100%",
-    justifyContent: "center",
-  },
-  card: {
-    borderRadius: Skoun.radius.lg,
-    borderWidth: 1,
-    borderColor: "#D5DCE7",
+    position: "relative",
     overflow: "hidden",
-    backgroundColor: Skoun.color.surface,
-    cursor: "pointer",
-    minWidth: 0,
-    ...(Platform.OS === "web"
-      ? ({
-          boxShadow: "0 2px 8px rgba(18, 24, 38, 0.05)",
-        } as object)
-      : {
-          shadowColor: "#121826",
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 3 },
-        }),
-  },
-  cardHalf: {
-    flexGrow: 1,
-    flexBasis: "47%",
-    maxWidth: "48.8%",
-    minWidth: 280,
-  },
-  cardFull: {
-    width: "100%",
-  },
-  cardFill: {
-    minHeight: 176,
-    paddingVertical: 22,
-    paddingHorizontal: 22,
-    gap: 12,
-    overflow: "hidden",
-  },
-  cardFillCompact: {
-    minHeight: 152,
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    gap: 10,
-  },
-  cardOrb: {
-    position: "absolute",
-    top: -56,
-    right: -40,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: "rgba(47, 111, 237, 0.09)",
-  },
-  cardMotion:
-    Platform.OS === "web"
-      ? ({
-          transitionProperty: "transform, box-shadow, border-color",
-          transitionDuration: "200ms",
-          transitionTimingFunction: "ease",
-        } as object)
-      : {},
-  cardHover:
-    Platform.OS === "web"
-      ? ({
-          borderColor: Skoun.color.primarySoft,
-          transform: [{ translateY: -3 }],
-          boxShadow: "0 16px 36px rgba(18, 24, 38, 0.11)",
-        } as object)
-      : {
-          borderColor: Skoun.color.primarySoft,
-          shadowOpacity: 0.12,
-          shadowRadius: 14,
-          elevation: 4,
-        },
-  cardSoon: {
-    cursor: "default",
-    borderColor: "#DCE2EA",
-  },
-  pressed: {
-    opacity: 0.92,
-  },
-  cardTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 48,
+    width: "100%",
+    // No vertical padding: the cap fills the full 424px hero height that
+    // the old 28 + 360 + 36 layout occupied, so the page below doesn't move.
+    paddingTop: 0,
+    paddingBottom: 0,
+    minHeight: 424,
+  },
+  rippleHost: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  heroStacked: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 28,
+    minHeight: 0,
+    paddingTop: 8,
+    paddingBottom: 36,
+  },
+  copy: {
+    flex: 1,
+    maxWidth: 560,
+    gap: 18,
+    minWidth: 0,
     zIndex: 1,
   },
-  iconWell: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D4E0F4",
+  copyRead: {
+    gap: 18,
+  },
+  badge: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    ...(Platform.OS === "web"
-      ? ({
-          boxShadow: "0 4px 14px rgba(47, 111, 237, 0.1)",
-        } as object)
-      : null),
+    alignSelf: "flex-start",
+    gap: 7,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: Skoun.color.primary,
   },
-  iconWellSoon: {
-    backgroundColor: Skoun.color.surfaceMuted,
-    borderColor: "#D5DBE4",
-    ...(Platform.OS === "web"
-      ? ({
-          boxShadow: "none",
-        } as object)
-      : null),
+  badgeText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.2,
+    color: "#FFFFFF",
   },
-  arrowWell: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.85)",
-    borderWidth: 1,
-    borderColor: "#D9E3F4",
+  title: {
+    fontSize: 48,
+    lineHeight: 54,
+    letterSpacing: -1.4,
+  },
+  titleCompact: {
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -0.7,
+  },
+  lede: {
+    fontSize: 16,
+    lineHeight: 26,
+    maxWidth: 460,
+  },
+  ledeCompact: {
+    fontSize: 15,
+    lineHeight: 23,
+  },
+  cta: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    alignSelf: "flex-start",
+    gap: 10,
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: Skoun.color.ink,
+    cursor: "pointer",
   },
-  cardTitle: {
-    zIndex: 1,
-    fontSize: 18,
-    lineHeight: 24,
+  ctaHover: {
+    borderColor: Skoun.color.primary,
+    backgroundColor: Skoun.color.primaryMist,
   },
-  cardBody: {
-    zIndex: 1,
+  ctaText: {
+    fontFamily: Skoun.type.bodySemi,
     fontSize: 14,
-    lineHeight: 21,
-    maxWidth: 360,
+    lineHeight: 18,
+    color: Skoun.color.ink,
+  },
+  visual: {
+    flex: 1.4,
+    minWidth: 0,
+    minHeight: 320,
+    maxWidth: 760,
+    height: 424,
+    zIndex: 1,
+  },
+  visualStacked: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 280,
+    width: "100%",
+    maxWidth: "100%",
+    minHeight: 280,
+    height: 280,
+  },
+  motion: web
+    ? ({
+        transitionProperty: "background-color, border-color",
+        transitionDuration: "160ms",
+        transitionTimingFunction: "ease",
+      } as object)
+    : {},
+  tools: {
+    width: "100%",
+  },
+  // Rule sits above the tools with clear air before them.
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: Skoun.color.border,
+    marginBottom: 24,
+  },
+  dividerCompact: {
+    marginBottom: 8,
+  },
+  cols: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "stretch",
+    width: "100%",
+    // Bottom space lives on the grid, not the cards, so the vertical
+    // rules end just under the text instead of running to the bottom.
+    paddingBottom: 28,
+  },
+  col: {
+    minWidth: 0,
+    gap: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 28,
+    cursor: "pointer",
+  },
+  colQuarter: {
+    flexBasis: "25%",
+    maxWidth: "25%",
+  },
+  colHalf: {
+    flexBasis: "50%",
+    maxWidth: "50%",
+  },
+  colFull: {
+    width: "100%",
+  },
+  colCompact: {
+    paddingTop: 22,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
+  },
+  colRule: {
+    borderRightWidth: 1,
+    borderRightColor: Skoun.color.border,
+  },
+  colRuleBottom: {
+    borderBottomWidth: 1,
+    borderBottomColor: Skoun.color.border,
+  },
+  colHover: {
+    backgroundColor: "rgba(47, 111, 237, 0.04)",
+  },
+  colSoon: {
+    cursor: "auto",
+    opacity: 0.72,
+  },
+  colTitle: {
+    fontSize: 17,
+    lineHeight: 24,
+    marginTop: 4,
+  },
+  colBody: {
+    fontSize: 14,
+    lineHeight: 22,
+    maxWidth: 280,
   },
 });

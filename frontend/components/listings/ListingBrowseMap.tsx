@@ -30,6 +30,7 @@ import {
   MAP_CAROUSEL_CLOSE_H,
 } from "@/components/listings/ListingMapCarousel";
 import { SwapHorizIcon } from "@/components/icons/SwapHorizIcon";
+import { CampusOffscreenArrow } from "@/components/listings/CampusOffscreenArrow";
 import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
@@ -56,6 +57,13 @@ import {
   fitCoords,
   type MapRegion,
 } from "@/lib/nativeMapCamera";
+import {
+  OFFSCREEN_BEACON_SIZE,
+  offscreenEdgeBeacon,
+  projectOnRegion,
+  sameOffscreenBeacon,
+  type OffscreenBeacon,
+} from "@/lib/offscreenBeacon";
 import { rentPriceTypeCompact } from "@/lib/rentPriceType";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -418,6 +426,9 @@ export function ListingBrowseMap({
   );
 
   const [mapRegion, setMapRegion] = useState<MapRegion | null>(null);
+  const [campusBeacon, setCampusBeacon] = useState<OffscreenBeacon | null>(
+    null,
+  );
 
   const visibleFeatures = useMemo((): VisibleMapFeature[] => {
     // Keep Supercluster while carousel open. Forcing all leaves + mass thaw
@@ -552,6 +563,17 @@ export function ListingBrowseMap({
     () => resolveNearestCampus(selectedListing, campuses),
     [selectedListing, campuses],
   );
+  const beaconCampus = universityMode
+    ? ((focusCampusSlug
+        ? campuses.find((c) => c.slug === focusCampusSlug)
+        : null) ??
+      campuses[0] ??
+      null)
+    : null;
+  const beaconCampusRef = useRef(beaconCampus);
+  beaconCampusRef.current = beaconCampus;
+  const universityModeRef = useRef(universityMode);
+  universityModeRef.current = universityMode;
 
   const walkingRoute = useWalkingRoute({
     enabled: Boolean(universityMode && selectedListing && focusCampus),
@@ -652,6 +674,42 @@ export function ListingBrowseMap({
   function scheduleAnim(region: MapRegion, durationMs: number) {
     animateRegion(mapRef.current, region, durationMs);
   }
+
+  function applyCampusBeacon(region: MapRegion, width: number, height: number) {
+    const campus = beaconCampusRef.current;
+    if (!universityModeRef.current || !campus || width < 40 || height < 40) {
+      setCampusBeacon((prev) => (prev ? null : prev));
+      return;
+    }
+    const pt = projectOnRegion(campus, region, { width, height });
+    const next = offscreenEdgeBeacon(pt, { width, height }, {
+      size: OFFSCREEN_BEACON_SIZE,
+      hideInset: 16,
+      pad: { top: 16, left: 14, bottom: 24, right: 14 },
+      avoid: [{ left: width - 62, top: 0, right: width, bottom: 58 }],
+    });
+    setCampusBeacon((prev) => (sameOffscreenBeacon(prev, next) ? prev : next));
+  }
+
+  useEffect(() => {
+    if (!mapRegion) {
+      setCampusBeacon(null);
+      return;
+    }
+    applyCampusBeacon(
+      mapRegion,
+      shellSize.width || mapWidthPx,
+      shellSize.height || mapHeightPx,
+    );
+  }, [
+    mapRegion,
+    shellSize.width,
+    shellSize.height,
+    universityMode,
+    beaconCampus,
+    mapWidthPx,
+    mapHeightPx,
+  ]);
 
   useEffect(() => {
     return () => clearFlyTimers();
@@ -1070,6 +1128,19 @@ export function ListingBrowseMap({
           }}
           onPress={onMapPress}
           onPanDrag={() => cancelFly()}
+          onRegionChange={(region: Region) => {
+            const next: MapRegion = {
+              latitude: region.latitude,
+              longitude: region.longitude,
+              latitudeDelta: region.latitudeDelta,
+              longitudeDelta: region.longitudeDelta,
+            };
+            applyCampusBeacon(
+              next,
+              shellSize.width || mapWidthPx,
+              shellSize.height || mapHeightPx,
+            );
+          }}
           onRegionChangeComplete={(region: Region) => {
             const next: MapRegion = {
               latitude: region.latitude,
@@ -1291,6 +1362,26 @@ export function ListingBrowseMap({
               color={Skoun.color.primary}
             />
           </Pressable>
+        ) : null}
+        {campusBeacon && beaconCampus ? (
+          <CampusOffscreenArrow
+            x={campusBeacon.x}
+            y={campusBeacon.y}
+            angleDeg={campusBeacon.angleDeg}
+            accessibilityLabel={`Show ${campusPinLabel(beaconCampus)} on the map`}
+            onPress={() => {
+              const current = mapRegion;
+              if (!current) return;
+              scheduleAnim(
+                {
+                  ...current,
+                  latitude: beaconCampus.lat,
+                  longitude: beaconCampus.lng,
+                },
+                reduceMotion ? 0 : 500,
+              );
+            }}
+          />
         ) : null}
       </Animated.View>
 
