@@ -8,10 +8,16 @@ type Props = {
   children: React.ReactNode;
 };
 
+/** Gap between the top nav and page content. Pages that want to sit flush
+ *  against the nav (e.g. the home hero) can negate this. */
+export function campusShellPadTop(width: number): number {
+  return width < 640 ? 16 : 28;
+}
+
 export function CampusShell({ children }: Props) {
   const { width } = useWindowDimensions();
   const padX = width < 640 ? 16 : width < 900 ? 20 : WEB_CONTENT_PAD_X;
-  const padTop = width < 640 ? 16 : 28;
+  const padTop = campusShellPadTop(width);
   const padBottom = width < 640 ? 32 : 48;
 
   return (

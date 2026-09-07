@@ -13,19 +13,34 @@ type Props = {
 };
 
 /**
- * Web site chrome. Default: natural document height so the *window*
- * scrollbar scrolls the page (Amber-style). Map mode sets `lockScroll`
- * to freeze the shell to the viewport and scroll only the list column.
+ * Web site chrome. Expo Router's stack screen is viewport-bounded with
+ * overflow hidden, so the window cannot grow. This shell is therefore the
+ * page scroller (same pattern as CampusShell). Map mode sets `lockScroll`
+ * to freeze the shell and scroll only the list column.
  */
 export function WebShell({ children, showNavSearch = false, showFooter }: Props) {
-  const { fullBleed, hideFooter } = useWebShellChrome();
+  const { fullBleed, hideFooter, lockScroll } = useWebShellChrome();
   const shouldHideFooter = showFooter === false || hideFooter;
 
   return (
-    <View style={styles.root}>
+    <View
+      nativeID="skoun-web-shell"
+      {...({
+        className: lockScroll
+          ? "skoun-web-shell skoun-web-shell-locked"
+          : "skoun-web-shell",
+      } as object)}
+      style={[styles.root, lockScroll && styles.rootLocked]}
+    >
       <WebTopNav showSearch={showNavSearch} />
-      <View style={styles.body}>
-        <View style={[styles.main, fullBleed && styles.mainBleed]}>
+      <View style={[styles.body, lockScroll && styles.bodyLocked]}>
+        <View
+          style={[
+            styles.main,
+            fullBleed && styles.mainBleed,
+            lockScroll && styles.mainLocked,
+          ]}
+        >
           {children}
         </View>
         {shouldHideFooter ? null : <WebFooter />}
@@ -37,18 +52,34 @@ export function WebShell({ children, showNavSearch = false, showFooter }: Props)
 const styles = StyleSheet.create({
   root: {
     width: "100%",
-    minHeight: "100vh" as unknown as number,
+    flex: 1,
+    minHeight: 0,
+    height: "100vh" as unknown as number,
+    maxHeight: "100vh" as unknown as number,
     backgroundColor: "#F9FAFB",
     boxSizing: "border-box",
     display: "flex" as unknown as "flex",
     flexDirection: "column",
+    overflowX: "hidden",
+    overflowY: "scroll",
+    WebkitOverflowScrolling: "touch",
+  } as object,
+  rootLocked: {
+    overflow: "hidden",
   },
   body: {
     width: "100%",
     flexGrow: 1,
+    flexShrink: 0,
     display: "flex" as unknown as "flex",
     flexDirection: "column",
     boxSizing: "border-box",
+    overflow: "visible",
+  },
+  bodyLocked: {
+    flexShrink: 1,
+    minHeight: 0,
+    overflow: "hidden",
   },
   main: {
     width: "100%",
@@ -59,13 +90,20 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     boxSizing: "border-box",
     flexGrow: 1,
+    flexShrink: 0,
     display: "flex" as unknown as "flex",
     flexDirection: "column",
+    overflow: "visible",
   },
   mainBleed: {
     maxWidth: "100%" as unknown as number,
     paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  mainLocked: {
+    flexShrink: 1,
+    minHeight: 0,
+    overflow: "hidden",
   },
 });

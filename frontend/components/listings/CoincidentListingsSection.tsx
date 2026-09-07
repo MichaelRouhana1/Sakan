@@ -23,7 +23,6 @@ export function CoincidentListingsSection({ listings }: Props) {
 
   return (
     <View
-      style={styles.shell}
       accessibilityRole="summary"
       accessibilityLabel={`${listings.length} more listings at this location`}
     >
@@ -34,8 +33,10 @@ export function CoincidentListingsSection({ listings }: Props) {
         </LText>
       </View>
 
-      <View style={styles.list}>
-        {listings.map((listing) => {
+      <View
+        style={styles.list}
+      >
+        {listings.map((listing, i) => {
           const cover = resolveMediaUrl(
             listing.coverUrl ?? listing.photos[0]?.url ?? null,
           );
@@ -50,6 +51,7 @@ export function CoincidentListingsSection({ listings }: Props) {
               }
               style={({ pressed }) => [
                 styles.row,
+                i === listings.length - 1 && styles.rowLast,
                 pressed && styles.rowPressed,
               ]}
             >
@@ -106,31 +108,23 @@ export function CoincidentListingsSection({ listings }: Props) {
 }
 
 const styles = StyleSheet.create({
-  shell: {
-    borderRadius: Skoun.radius.lg,
-    backgroundColor: Skoun.color.surface,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-    overflow: "hidden",
-  },
   header: {
     gap: 2,
-    paddingHorizontal: Skoun.space.md,
-    paddingTop: 14,
     paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
-    backgroundColor: Skoun.color.primaryMist,
+    paddingHorizontal: 24,
   },
-  list: { paddingVertical: 4 },
+  list: {},
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: Skoun.space.md,
     paddingVertical: 10,
+    paddingHorizontal: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Skoun.color.border,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   rowPressed: {
     backgroundColor: Skoun.color.primaryMist,

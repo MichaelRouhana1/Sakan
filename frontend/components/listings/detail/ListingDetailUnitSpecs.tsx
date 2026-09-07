@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { ComponentProps } from "react";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
@@ -10,6 +11,22 @@ type Props = {
   listing: Listing;
 };
 
+type Ion = ComponentProps<typeof Ionicons>["name"];
+type Row = { label: string; value: string; icon: Ion };
+
+function typeIcon(type: Listing["listingType"]): Ion {
+  switch (type) {
+    case "private_room":
+      return "bed-outline";
+    case "shared_dorm_bed":
+      return "people-outline";
+    case "pbsa_building":
+      return "business-outline";
+    default:
+      return "home-outline";
+  }
+}
+
 export function ListingDetailUnitSpecs({ listing }: Props) {
   const specs = listing.unitSpecs;
   const floor = specs?.floorLevel;
@@ -17,114 +34,132 @@ export function ListingDetailUnitSpecs({ listing }: Props) {
   const roommates = specs?.roommateDetails;
   const contract = specs?.minContractMonths;
 
+  const rows: Row[] = [
+    {
+      label: "Type",
+      value: labelListingType(listing.listingType),
+      icon: typeIcon(listing.listingType),
+    },
+  ];
+  if (listing.bedrooms != null) {
+    rows.push({
+      label: "Bedrooms",
+      value: listing.bedrooms === 0 ? "Studio" : String(listing.bedrooms),
+      icon: "bed-outline",
+    });
+  }
+  if (listing.bathrooms != null && listing.bathrooms > 0) {
+    rows.push({ label: "Baths", value: String(listing.bathrooms), icon: "water-outline" });
+  }
+  if (listing.areaSqm != null) {
+    rows.push({
+      label: "Size",
+      value: `${listing.areaSqm} m²`,
+      icon: "resize-outline",
+    });
+  }
+  if (floor != null && String(floor).length > 0) {
+    rows.push({ label: "Floor", value: String(floor), icon: "layers-outline" });
+  }
+  if (roommates) {
+    rows.push({
+      label: "Roommates",
+      value: roommates.occupations
+        ? `${roommates.count} · ${roommates.occupations}`
+        : String(roommates.count),
+      icon: "people-outline",
+    });
+  }
+  if (deposit != null) {
+    rows.push({
+      label: "Deposit",
+      value: formatFreshUsd(deposit),
+      icon: "cash-outline",
+    });
+  }
+  if (contract != null && contract > 0) {
+    rows.push({
+      label: "Min stay",
+      value: contract === 1 ? "1 month" : `${contract} months`,
+      icon: "calendar-outline",
+    });
+  }
+
+  if (rows.length === 0) return null;
+
   return (
-    <View style={styles.card}>
+    <View>
       <LText variant="title" style={styles.heading}>
-        Unit specs
+        The unit
       </LText>
-      <View style={styles.grid}>
-        <Tile
-          icon="home-outline"
-          label="Type"
-          value={labelListingType(listing.listingType)}
-        />
-        {listing.bedrooms != null ? (
-          <Tile
-            icon="bed-outline"
-            label="Bedrooms"
-            value={listing.bedrooms === 0 ? "Studio" : String(listing.bedrooms)}
-          />
-        ) : null}
-        {listing.bathrooms != null && listing.bathrooms > 0 ? (
-          <Tile
-            icon="water-outline"
-            label="Baths"
-            value={String(listing.bathrooms)}
-          />
-        ) : null}
-        {listing.areaSqm != null ? (
-          <Tile
-            icon="resize-outline"
-            label="Size"
-            value={`${listing.areaSqm} m²`}
-          />
-        ) : null}
-        {floor != null && String(floor).length > 0 ? (
-          <Tile icon="layers-outline" label="Floor" value={String(floor)} />
-        ) : null}
-        {roommates ? (
-          <Tile
-            icon="people-outline"
-            label="Roommates"
-            value={
-              roommates.occupations
-                ? `${roommates.count} · ${roommates.occupations}`
-                : `${roommates.count}`
-            }
-          />
-        ) : null}
-        {deposit != null ? (
-          <Tile
-            icon="cash-outline"
-            label="Deposit"
-            value={formatFreshUsd(deposit)}
-          />
-        ) : null}
-        {contract != null ? (
-          <Tile
-            icon="calendar-outline"
-            label="Min stay"
-            value={`${contract} months`}
-          />
-        ) : null}
+      <View style={styles.list}>
+        {rows.map((row, i) => (
+          <View
+            key={row.label}
+            style={[styles.row, i === rows.length - 1 && styles.rowLast]}
+          >
+            <View style={styles.labelRow}>
+              <Ionicons
+                name={row.icon}
+                size={16}
+                color={Skoun.color.inkMuted}
+              />
+              <LText variant="caption" tone="muted" style={styles.label}>
+                {row.label}
+              </LText>
+            </View>
+            <LText variant="body" style={styles.value}>
+              {row.value}
+            </LText>
+          </View>
+        ))}
       </View>
     </View>
   );
 }
 
-function Tile({
-  icon,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-}) {
-  return (
-    <View style={styles.tile}>
-      <Ionicons name={icon} size={18} color={Skoun.color.primary} />
-      <LText variant="caption" tone="muted">
-        {label}
-      </LText>
-      <LText variant="subtitle">{value}</LText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
-    padding: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+  heading: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    fontFamily: Skoun.type.bodyBold,
+    marginBottom: 4,
+    paddingHorizontal: 24,
   },
-  heading: { fontSize: 18 },
-  grid: {
+  list: {
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+  row: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  tile: {
-    width: "47%",
-    flexGrow: 1,
-    gap: 4,
-    padding: 12,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+  rowLast: {
+    borderBottomWidth: 0,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
+  },
+  label: {
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  value: {
+    flex: 1,
+    textAlign: "right",
+    fontFamily: Skoun.type.bodySemi,
+    color: Skoun.color.ink,
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

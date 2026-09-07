@@ -42,7 +42,14 @@ export default {
     },
     web: {
       bundler: "metro",
-      output: "static",
+      // Production export stays static HTML. Local `expo start` uses a SPA so
+      // Metro does not server-render every route (that was the black screen
+      // with the lightning bolt when a page or HMR reload failed in Node).
+      output:
+        process.env.EXPO_WEB_OUTPUT ??
+        (process.argv.includes("export") || process.env.EAS_BUILD === "true"
+          ? "static"
+          : "single"),
       favicon: "./assets/images/favicon.png",
     },
     plugins: [

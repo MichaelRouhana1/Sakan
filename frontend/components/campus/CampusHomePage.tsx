@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { campusShellPadTop } from "@/components/campus/CampusShell";
 import { HeroCap } from "@/components/campus/HeroCap";
 import { HeroRipple } from "@/components/campus/HeroRipple";
 import { LText } from "@/components/lister/Typography";
@@ -88,13 +89,23 @@ export function CampusHomePage() {
   const stacked = width < 980;
   // 4 across on desktop, 2x2 on tablet, 1 column on phones.
   const perRow = compact ? 1 : stacked ? 2 : 4;
+  // Pull the hero up under the top nav so its background runs flush against
+  // it, then give back the same distance as inner top padding so the copy,
+  // the cap and everything below stay exactly where they were.
+  const { width: windowWidth } = useWindowDimensions();
+  const lift = campusShellPadTop(windowWidth);
+  const heroLift = {
+    marginTop: -lift,
+    paddingTop: (stacked ? 8 : 0) + lift,
+    ...(stacked ? null : { minHeight: 424 + lift }),
+  };
 
   const go = (href: string) => router.push(href as never);
 
   return (
     <View style={styles.page}>
       <View
-        style={[styles.hero, stacked && styles.heroStacked]}
+        style={[styles.hero, stacked && styles.heroStacked, heroLift]}
         pointerEvents="box-none"
       >
         <View style={styles.rippleHost} pointerEvents="auto">
@@ -236,8 +247,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 48,
     width: "100%",
-    // No vertical padding: the cap fills the full 424px hero height that
-    // the old 28 + 360 + 36 layout occupied, so the page below doesn't move.
+    // No vertical padding of its own: the cap fills the full 424px hero height
+    // that the old 28 + 360 + 36 layout occupied, so the page below doesn't
+    // move. The shell's top gap is folded in at render time (see heroLift).
     paddingTop: 0,
     paddingBottom: 0,
     minHeight: 424,

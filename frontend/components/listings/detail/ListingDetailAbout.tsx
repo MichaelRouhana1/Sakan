@@ -16,7 +16,7 @@ export function ListingDetailAbout({ description }: Props) {
     !open && long ? `${description.slice(0, PREVIEW).trim()}…` : description;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.wrap}>
       <LText variant="title" style={styles.heading}>
         About the property
       </LText>
@@ -38,15 +38,16 @@ export function ListingDetailAbout({ description }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
-    padding: 16,
+  wrap: {
     gap: 10,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+    paddingHorizontal: 24,
   },
-  heading: { fontSize: 18 },
+  heading: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    fontFamily: Skoun.type.bodyBold,
+  },
   body: { lineHeight: 22 },
   more: {
     color: Skoun.color.primary,

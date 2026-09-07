@@ -60,7 +60,7 @@ export function ListingDetailAmenities({ listing }: Props) {
   if (all.length === 0) return null;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.wrap}>
       <LText variant="title" style={styles.heading}>
         Amenities
       </LText>
@@ -93,15 +93,16 @@ export function ListingDetailAmenities({ listing }: Props) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
-    padding: 16,
+  wrap: {
     gap: 12,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+    paddingHorizontal: 24,
   },
-  heading: { fontSize: 18 },
+  heading: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    fontFamily: Skoun.type.bodyBold,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -123,6 +124,5 @@ const styles = StyleSheet.create({
   more: {
     color: Skoun.color.primary,
     fontFamily: Skoun.type.bodySemi,
-    textAlign: "center",
   },
 });

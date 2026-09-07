@@ -41,7 +41,7 @@ export function ListingDetailHouseRules({
   if (rows.length === 0) return null;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.wrap}>
       <LText variant="title" style={styles.heading}>
         House rules
       </LText>
@@ -86,15 +86,17 @@ export function ListingDetailHouseRules({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
-    padding: 16,
+  wrap: {
     gap: 4,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+    paddingHorizontal: 24,
   },
-  heading: { fontSize: 18, marginBottom: 8 },
+  heading: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    fontFamily: Skoun.type.bodyBold,
+    marginBottom: 8,
+  },
   row: {
     flexDirection: "row",
     alignItems: "flex-start",

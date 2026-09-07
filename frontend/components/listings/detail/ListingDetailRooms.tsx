@@ -96,7 +96,7 @@ export function ListingDetailRooms({ listing, posterPhone }: Props) {
   };
 
   return (
-    <View style={styles.card}>
+    <View style={styles.wrap}>
       <LText variant="title" style={styles.heading}>
         Room types ({rooms.length})
       </LText>
@@ -217,15 +217,16 @@ function Feat({
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
-    padding: 16,
+  wrap: {
     gap: 12,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+    paddingHorizontal: 24,
   },
-  heading: { fontSize: 18 },
+  heading: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.3,
+    fontFamily: Skoun.type.bodyBold,
+  },
   pills: { gap: 8, paddingVertical: 2 },
   pill: {
     paddingHorizontal: 14,

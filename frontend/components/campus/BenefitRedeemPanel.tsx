@@ -7,30 +7,25 @@ import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { categoryMeta } from "@/features/benefits/categories";
+import { REDEMPTION_META, readyItems } from "@/features/benefits/detailCopy";
 import type {
   BenefitRedemption,
   StudentBenefit,
 } from "@/features/benefits/types";
 import { useBenefitRedemption } from "@/features/benefits/useBenefitRedemption";
+import { TICKET_SHADOW, ticketMaskStyle } from "@/lib/ticketMask";
 
 type Props = {
   benefit: StudentBenefit;
 };
 
-const CTA_LABEL: Record<StudentBenefit["redemptionType"], string> = {
-  promo_code: "Reveal my code",
-  link: "Open the student offer",
-  show_id: "Show me how to redeem",
-};
-
-const CTA_ICON: Record<
-  StudentBenefit["redemptionType"],
-  React.ComponentProps<typeof Ionicons>["name"]
-> = {
-  promo_code: "pricetag-outline",
-  link: "open-outline",
-  show_id: "card-outline",
-};
+const IS_WEB = Platform.OS === "web";
+const SUPPORT_EMAIL = "hello@skoun.app";
+/** Same bite geometry as the hero ticket and list cards. */
+const NOTCH = 24;
+const CORNER = 28;
+const PAGE_BG = Skoun.color.bg;
 
 export function BenefitRedeemPanel({ benefit }: Props) {
   const { isSignedIn } = useAuthSession();
@@ -39,6 +34,12 @@ export function BenefitRedeemPanel({ benefit }: Props) {
   const [authOpen, setAuthOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const meta = REDEMPTION_META[benefit.redemptionType];
+  const cat = categoryMeta(benefit.category);
+  const ready = readyItems(benefit);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [headH, setHeadH] = useState(0);
 
   // Signing out mid-visit must put the payoff back behind the gate.
   useEffect(() => {
@@ -79,69 +80,120 @@ export function BenefitRedeemPanel({ benefit }: Props) {
     }
   };
 
-  if (!isSignedIn) {
-    return (
-      <View style={[styles.panel, styles.panelLocked]}>
-        <View style={styles.lockRow}>
-          <View style={styles.lockWell}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={18}
-              color={Skoun.color.primary}
-            />
-          </View>
-          <View style={styles.lockCopy}>
-            <LText variant="subtitle" style={styles.panelTitle}>
-              Sign in to unlock this offer
-            </LText>
-            <LText variant="body" tone="muted">
-              Skoun keeps redemption codes and partner links behind a student
-              account so partners honour them.
-            </LText>
-          </View>
-        </View>
-        <LButton
-          label="Sign in to unlock"
-          onPress={() => setAuthOpen(true)}
-          accessibilityHint="Opens the Skoun sign-in dialog"
-        />
-        <SkounAuthModal
-          visible={authOpen}
-          onClose={() => setAuthOpen(false)}
-          onSuccess={() => setAuthOpen(false)}
-          title="Sign in to unlock student benefits"
-        />
-      </View>
+  const report = () => {
+    const subject = encodeURIComponent(
+      `Benefit issue: ${benefit.companyName} — ${benefit.title}`,
     );
-  }
+    void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}`).catch(
+      () => undefined,
+    );
+  };
 
   return (
-    <View style={styles.panel}>
-      <View style={styles.lockRow}>
-        <View style={styles.lockWell}>
-          <Ionicons
-            name={CTA_ICON[benefit.redemptionType]}
-            size={18}
-            color={Skoun.color.primary}
-          />
+    <View style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}>
+    <View
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        if (w !== size.w || h !== size.h) setSize({ w, h });
+      }}
+      style={[
+        styles.ticket,
+        ticketMaskStyle({
+          w: size.w,
+          h: size.h,
+          corner: CORNER,
+          notch: NOTCH,
+          tear: headH > 0 ? { axis: "horizontal", y: headH } : null,
+        }),
+      ]}
+    >
+      {/* Header stub — category-tinted like the hero's stub */}
+      <View
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h !== headH) setHeadH(h);
+        }}
+        style={[styles.head, { backgroundColor: cat.tint }]}
+      >
+        <View style={styles.headRow}>
+          <View style={styles.iconWell}>
+            <Ionicons
+              name={isSignedIn ? meta.icon : "lock-closed-outline"}
+              size={18}
+              color={cat.accent}
+            />
+          </View>
+          <View style={styles.headCopy}>
+            <LText variant="label" style={[styles.eyebrow, { color: cat.accent }]}>
+              {meta.label}
+            </LText>
+            <LText variant="subtitle" style={styles.title}>
+              {isSignedIn ? "Redeem this offer" : "Sign in to redeem"}
+            </LText>
+          </View>
         </View>
-        <View style={styles.lockCopy}>
-          <LText variant="subtitle" style={styles.panelTitle}>
-            How to redeem
-          </LText>
-          <LText variant="body" tone="muted">
-            {benefit.eligibility}
-          </LText>
+        <LText variant="caption" style={styles.how}>
+          {meta.how(benefit.companyName)}
+        </LText>
+      </View>
+
+      {/* Perforation */}
+      <View
+        style={styles.rail}
+        pointerEvents="none"
+        accessibilityElementsHidden
+      >
+        {!IS_WEB ? <View style={[styles.notch, styles.notchLeft]} /> : null}
+        <View style={styles.dash} />
+        {!IS_WEB ? <View style={[styles.notch, styles.notchRight]} /> : null}
+      </View>
+
+      <View style={styles.body}>
+      <View style={styles.readyBlock}>
+        <LText variant="label" tone="muted" style={styles.readyLabel}>
+          Have ready
+        </LText>
+        <View style={styles.readyList}>
+          {ready.map((item) => (
+            <View key={item} style={styles.readyRow}>
+              <Ionicons
+                name="checkmark"
+                size={14}
+                color={Skoun.color.primary}
+              />
+              <LText variant="body" style={styles.readyText}>
+                {item}
+              </LText>
+            </View>
+          ))}
         </View>
       </View>
 
-      {revealed ? (
+      {!isSignedIn ? (
+        <View style={styles.lockBlock}>
+          <LText variant="caption" tone="muted" style={styles.lockNote}>
+            Codes and partner links stay behind a student account so partners
+            keep honouring them.
+          </LText>
+          <LButton
+            label="Sign in to unlock"
+            onPress={() => setAuthOpen(true)}
+            accessibilityHint="Opens the Skoun sign-in dialog"
+          />
+          <SkounAuthModal
+            visible={authOpen}
+            onClose={() => setAuthOpen(false)}
+            onSuccess={() => setAuthOpen(false)}
+            title="Sign in to unlock student benefits"
+          />
+        </View>
+      ) : revealed ? (
         <View style={styles.revealWrap}>
           {revealed.redemptionType === "promo_code" ? (
             <View style={styles.codeRow}>
               <View style={styles.codeBox}>
                 <LText variant="caption" tone="muted" style={styles.codeLabel}>
-                  Promo code
+                  Your code
                 </LText>
                 <LText
                   variant="subtitle"
@@ -179,23 +231,35 @@ export function BenefitRedeemPanel({ benefit }: Props) {
                 )
               }
               accessibilityRole="link"
-              accessibilityLabel="Open the student offer"
+              accessibilityLabel="Open the student offer again"
               style={({ hovered }) => [
                 styles.linkBox,
                 hovered && styles.linkBoxHover,
               ]}
             >
+              <View style={styles.linkCopy}>
+                <LText variant="caption" tone="muted" style={styles.codeLabel}>
+                  {IS_WEB ? "Opened in a new tab" : "Opened in your browser"}
+                </LText>
+                <LText
+                  variant="body"
+                  style={styles.linkText}
+                  numberOfLines={2}
+                >
+                  {revealed.redemptionData.replace(/^https?:\/\//, "")}
+                </LText>
+              </View>
               <Ionicons
                 name="open-outline"
-                size={16}
+                size={18}
                 color={Skoun.color.primary}
               />
-              <LText variant="body" style={styles.linkText} numberOfLines={2}>
-                {revealed.redemptionData}
-              </LText>
             </Pressable>
           ) : (
             <View style={styles.instructionBox}>
+              <LText variant="caption" tone="muted" style={styles.codeLabel}>
+                At the counter
+              </LText>
               <LText variant="body" style={styles.instructionText}>
                 {revealed.redemptionData}
               </LText>
@@ -204,7 +268,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
         </View>
       ) : (
         <LButton
-          label={CTA_LABEL[benefit.redemptionType]}
+          label={meta.cta}
           onPress={() => void reveal()}
           loading={redemption.isFetching}
           disabled={redemption.isFetching}
@@ -212,7 +276,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
       )}
 
       {error ? (
-        <View style={styles.errorRow}>
+        <View style={styles.errorRow} accessibilityLiveRegion="polite">
           <Ionicons
             name="alert-circle-outline"
             size={15}
@@ -223,49 +287,187 @@ export function BenefitRedeemPanel({ benefit }: Props) {
           </LText>
         </View>
       ) : null}
+
+      <View style={styles.divider} />
+
+      <Pressable
+        onPress={report}
+        accessibilityRole="link"
+        accessibilityLabel="Report a problem with this offer by email"
+        style={({ hovered }) => [styles.report, hovered && styles.reportHover]}
+      >
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={14}
+          color={Skoun.color.inkMuted}
+        />
+        <LText variant="caption" tone="muted" style={styles.reportText}>
+          Not honoured, or the deal changed? Tell us
+        </LText>
+      </Pressable>
+      </View>
+
+      {!IS_WEB ? (
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          style={styles.cornerLayer}
+        >
+          <View style={[styles.bite, styles.biteTL]} />
+          <View style={[styles.bite, styles.biteTR]} />
+          <View style={[styles.bite, styles.biteBL]} />
+          <View style={[styles.bite, styles.biteBR]} />
+        </View>
+      ) : null}
+    </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: {
-    gap: 16,
-    padding: 20,
-    borderRadius: Skoun.radius.lg,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+  shadowWrap: {
+    width: "100%",
+  },
+  shadowWrapWeb: {
+    ...(IS_WEB ? ({ filter: TICKET_SHADOW } as object) : null),
+  },
+  ticket: {
+    width: "100%",
     backgroundColor: Skoun.color.surface,
-    ...(Platform.OS === "web"
-      ? ({ boxShadow: "0 4px 18px rgba(18, 24, 38, 0.06)" } as object)
-      : null),
+    overflow: IS_WEB ? "visible" : "hidden",
+    ...(IS_WEB
+      ? null
+      : {
+          shadowColor: "#121826",
+          shadowOpacity: 0.2,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 10 },
+          elevation: 8,
+        }),
   },
-  panelLocked: {
-    borderColor: "#C5D6F5",
-    backgroundColor: Skoun.color.primaryMist,
+
+  head: {
+    gap: 12,
+    paddingTop: 24,
+    paddingBottom: 22,
+    paddingHorizontal: 24,
   },
-  lockRow: {
+  headRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
   },
-  lockWell: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: Skoun.color.surface,
-    borderWidth: 1,
-    borderColor: "#D9E3F5",
+  iconWell: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  lockCopy: {
+  headCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 4,
+    gap: 2,
   },
-  panelTitle: {
+  eyebrow: {
+    fontSize: 11,
+    letterSpacing: 0.9,
+  },
+  title: {
     fontFamily: Skoun.type.bodyBold,
     color: Skoun.color.ink,
+    fontSize: 19,
+    lineHeight: 25,
+    letterSpacing: -0.2,
+  },
+  how: {
+    color: Skoun.color.inkMuted,
+    lineHeight: 19,
+  },
+
+  rail: {
+    height: 0,
+    alignSelf: "stretch",
+    position: "relative",
+    zIndex: 2,
+  },
+  dash: {
+    position: "absolute",
+    left: NOTCH / 2,
+    right: NOTCH / 2,
+    top: -1,
+    borderTopWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(197, 205, 216, 0.95)",
+  },
+  notch: {
+    position: "absolute",
+    width: NOTCH,
+    height: NOTCH,
+    borderRadius: NOTCH / 2,
+    backgroundColor: PAGE_BG,
+    zIndex: 3,
+    top: -NOTCH / 2,
+  },
+  notchLeft: { left: -NOTCH / 2 },
+  notchRight: { right: -NOTCH / 2 },
+
+  body: {
+    gap: 18,
+    paddingTop: 22,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+  },
+
+  cornerLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 4,
+  },
+  bite: {
+    position: "absolute",
+    width: CORNER,
+    height: CORNER,
+    borderRadius: CORNER / 2,
+    backgroundColor: PAGE_BG,
+  },
+  biteTL: { top: -CORNER / 2, left: -CORNER / 2 },
+  biteTR: { top: -CORNER / 2, right: -CORNER / 2 },
+  biteBL: { bottom: -CORNER / 2, left: -CORNER / 2 },
+  biteBR: { bottom: -CORNER / 2, right: -CORNER / 2 },
+  readyBlock: {
+    gap: 8,
+  },
+  readyLabel: {
+    fontSize: 11,
+    letterSpacing: 0.8,
+  },
+  readyList: {
+    gap: 8,
+  },
+  readyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  readyText: {
+    flex: 1,
+    minWidth: 0,
+    color: Skoun.color.ink,
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  lockBlock: {
+    gap: 12,
+  },
+  lockNote: {
+    lineHeight: 18,
   },
   revealWrap: {
     gap: 10,
@@ -288,16 +490,18 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.primaryMist,
   },
   codeLabel: {
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
     textTransform: "uppercase",
     fontFamily: Skoun.type.bodySemi,
-    fontSize: 11,
+    fontSize: 10.5,
+    lineHeight: 14,
   },
   codeValue: {
     fontFamily: Skoun.type.bodyBold,
     color: Skoun.color.primaryDeep,
-    fontSize: 18,
-    letterSpacing: 0.5,
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: 0.6,
   },
   copyBtn: {
     paddingHorizontal: 14,
@@ -308,7 +512,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
-    ...(Platform.OS === "web"
+    ...(IS_WEB
       ? ({
           cursor: "pointer",
           transitionProperty: "background-color, border-color",
@@ -327,27 +531,37 @@ const styles = StyleSheet.create({
   linkBox: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: Skoun.radius.md,
     borderWidth: 1,
     borderColor: "#C5D6F5",
     backgroundColor: Skoun.color.primaryMist,
-    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+    ...(IS_WEB
+      ? ({
+          cursor: "pointer",
+          transitionProperty: "border-color",
+          transitionDuration: "180ms",
+        } as object)
+      : null),
   },
   linkBoxHover: {
     borderColor: Skoun.color.primary,
   },
-  linkText: {
+  linkCopy: {
     flex: 1,
     minWidth: 0,
+    gap: 2,
+  },
+  linkText: {
     color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Skoun.type.bodySemi,
   },
   instructionBox: {
+    gap: 4,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: Skoun.radius.md,
     backgroundColor: Skoun.color.surfaceMuted,
     borderWidth: 1,
@@ -355,10 +569,31 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     color: Skoun.color.ink,
+    lineHeight: 23,
   },
   errorRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#E2E8F0",
+  },
+  report: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    alignSelf: "flex-start",
+    marginTop: -4,
+    marginBottom: -4,
+    paddingVertical: 4,
+    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
+  },
+  reportHover: {
+    opacity: 0.7,
+  },
+  reportText: {
+    fontFamily: Skoun.type.bodyMedium,
   },
 });

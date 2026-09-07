@@ -328,6 +328,9 @@ body {
   flex-direction: column;
   box-sizing: border-box;
 }
+#skoun-web-shell {
+  scrollbar-gutter: stable;
+}
 *, *::before, *::after { box-sizing: border-box; }
 a { text-decoration: none; color: inherit; }
 button, [role="button"], [role="link"] { cursor: pointer; }
