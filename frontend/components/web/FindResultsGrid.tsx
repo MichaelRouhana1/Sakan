@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   } as Record<string, unknown>,
   list: {
     flexDirection: "column",
-    gap: 14,
+    gap: 18,
   },
   skeleton: {
     backgroundColor: Skoun.color.surface,

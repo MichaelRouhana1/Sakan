@@ -5,7 +5,7 @@ import { savedService } from "./saved.service.js";
 export class SavedController {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await savedService.list(req.user!.id, req.user!.role);
+      const data = await savedService.list(req.user!.id);
       res.json({ data });
     } catch (err) {
       next(err);
@@ -16,7 +16,6 @@ export class SavedController {
     try {
       const data = await savedService.isSaved(
         req.user!.id,
-        req.user!.role,
         req.params.listingId as string,
       );
       res.json({ data });
@@ -29,7 +28,6 @@ export class SavedController {
     try {
       const data = await savedService.save(
         req.user!.id,
-        req.user!.role,
         req.params.listingId as string,
       );
       res.status(201).json({ data });
@@ -42,7 +40,6 @@ export class SavedController {
     try {
       const data = await savedService.unsave(
         req.user!.id,
-        req.user!.role,
         req.params.listingId as string,
       );
       res.json({ data });
@@ -55,7 +52,6 @@ export class SavedController {
     try {
       const data = await savedService.importLocal(
         req.user!.id,
-        req.user!.role,
         req.body as ImportSavedInput,
       );
       res.json({ data });

@@ -152,9 +152,6 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
             {rentLabel}
             <Text style={styles.priceUnit}> / month</Text>
           </Text>
-          <View style={styles.cta}>
-            <Text style={styles.ctaText}>View Listing</Text>
-          </View>
         </Pressable>
       </View>
     </View>
@@ -279,18 +276,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Skoun.type.bodyMedium,
     color: Skoun.color.inkMuted,
-  },
-  cta: {
-    marginTop: 8,
-    backgroundColor: Skoun.color.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  ctaText: {
-    fontFamily: Skoun.type.bodyBold,
-    fontSize: 11,
-    color: "#FFFFFF",
   },
 });

@@ -194,9 +194,10 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
 
   return (
     <View style={styles.sticky}>
-      <View style={styles.card}>
-        {/* Edge-to-edge map header */}
-        <View style={styles.mapHeader} accessibilityLabel="Map of Beirut">
+      <View style={styles.cardShadow}>
+        <View style={styles.card}>
+          {/* Edge-to-edge map header */}
+          <View style={styles.mapHeader} accessibilityLabel="Map of Beirut">
           <MapPreviewBackdrop listings={listings} />
           <View style={styles.mapScrim} pointerEvents="none" />
           <View style={styles.mapCtaWrap} pointerEvents="box-none">
@@ -262,6 +263,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
               </View>
             );
           })}
+          </View>
         </View>
       </View>
     </View>
@@ -277,7 +279,12 @@ const styles = StyleSheet.create({
     position: "sticky" as unknown as "relative",
     top: WEB_SIDEBAR_STICKY_TOP,
     maxHeight: "calc(100vh - 160px)" as unknown as number,
-    overflowY: "auto" as unknown as "scroll",
+    overflow: "visible",
+    paddingBottom: 20,
+  },
+  cardShadow: {
+    borderRadius: 16,
+    boxShadow: "0 8px 24px rgba(18, 24, 38, 0.08)",
   },
   card: {
     width: "100%",
@@ -286,11 +293,6 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#121826",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
   },
   mapHeader: {
     width: "100%",

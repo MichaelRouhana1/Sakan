@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
@@ -150,6 +151,7 @@ export function ListingResultCard({
   const router = useRouter();
   const isList = variant === "list";
   const coarsePointer = useCoarsePointer();
+  const [listHovered, setListHovered] = useState(false);
   const touchPanX =
     Platform.OS === "web" && coarsePointer
       ? ({ touchAction: "pan-x" } as object)
@@ -183,74 +185,107 @@ export function ListingResultCard({
     Number.isFinite(listing.rating);
 
   if (isList) {
+    const listHoverProps =
+      Platform.OS === "web"
+        ? ({
+            onMouseEnter: (
+              e: Parameters<typeof hoverPointFromEvent>[0],
+            ) => {
+              setListHovered(true);
+              onHoverListing?.(listing.id, hoverPointFromEvent(e));
+            },
+            onMouseLeave: () => {
+              setListHovered(false);
+              onHoverListing?.(null);
+            },
+          } as object)
+        : mapHoverHandlers;
     return (
-      <View style={[styles.card, styles.cardList]} {...mapHoverHandlers}>
-        <View style={[touchPanX, styles.mediaShell, styles.mediaList]}>
-          <ListingCardCarousel urls={urls} onPressCard={onOpen} minHeight={220} />
-          <ImageCornerBadge listing={listing} variant="list" />
-        </View>
-
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`${title}, ${rentLabel} per month`}
-          onPress={onOpen}
-          style={({ hovered, pressed }) => [
-            styles.listBodyContent,
-            (hovered || pressed) && styles.cardHover,
-          ]}
-        >
-          <View style={[styles.middle, styles.middleList]}>
-            <Text style={styles.title} numberOfLines={2}>
-              {title}
-            </Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              {subtitle}
-              {listing.landmark ? ` · ${typeBadge}` : ""}
-            </Text>
-
-            {proximity ? (
-              <View style={styles.proximityRow}>
-                <MapPin size={12} color={Skoun.color.inkMuted} strokeWidth={2} />
-                <Text style={styles.proximityText} numberOfLines={2}>
-                  {proximity}
-                </Text>
-              </View>
-            ) : null}
-
-            <View style={styles.divider} />
-
-            <PillRow pills={highlights} highlight />
-            <PillRow pills={amenities} />
+      <View
+        style={[
+          styles.card,
+          styles.cardList,
+          Platform.OS === "web" && styles.listHoverShell,
+          Platform.OS === "web" && listHovered && styles.listHoverShellActive,
+        ]}
+        {...listHoverProps}
+      >
+        {Platform.OS === "web" ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.listBottomShadowWindow,
+              listHovered && styles.listBottomGlowOn,
+            ]}
+          >
+            <View style={styles.listBottomShadowShape} />
+          </View>
+        ) : null}
+        <View style={styles.listClip}>
+          <View style={[touchPanX, styles.mediaShell, styles.mediaList]}>
+            <ListingCardCarousel urls={urls} onPressCard={onOpen} minHeight={220} />
+            <ImageCornerBadge listing={listing} variant="list" />
           </View>
 
-          <View style={[styles.rightCol, styles.rightColList]}>
-            <View style={styles.listHeaderRow}>
-              {hasRating ? (
-                <ListingListRatingDisplay
-                  rating={listing.rating!}
-                  reviewCount={listing.reviewCount!}
-                />
-              ) : (
-                <View />
-              )}
-              <HeartButton
-                isSaved={isSaved}
-                onToggle={onToggleSave}
-                style={styles.heart}
-              />
-            </View>
-            <View style={styles.priceBlock}>
-              <Text style={styles.priceFrom}>From</Text>
-              <Text style={styles.price}>
-                {rentLabel}
-                <Text style={styles.priceUnit}> / month</Text>
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${title}, ${rentLabel} per month`}
+            onPress={onOpen}
+            style={styles.listBodyContent}
+          >
+            <View style={[styles.middle, styles.middleList]}>
+              <Text style={styles.title} numberOfLines={2}>
+                {title}
               </Text>
-              <View style={styles.cta}>
-                <Text style={styles.ctaText}>View Listing</Text>
+              <Text style={styles.meta} numberOfLines={1}>
+                {subtitle}
+                {listing.landmark ? ` · ${typeBadge}` : ""}
+              </Text>
+
+              {proximity ? (
+                <View style={styles.proximityRow}>
+                  <MapPin size={12} color={Skoun.color.inkMuted} strokeWidth={2} />
+                  <Text style={styles.proximityText} numberOfLines={2}>
+                    {proximity}
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={styles.divider} />
+
+              <PillRow pills={highlights} highlight />
+              <PillRow pills={amenities} />
+            </View>
+
+            <View style={[styles.rightCol, styles.rightColList]}>
+              <View style={styles.listHeaderRow}>
+                {hasRating ? (
+                  <ListingListRatingDisplay
+                    rating={listing.rating!}
+                    reviewCount={listing.reviewCount!}
+                  />
+                ) : (
+                  <View />
+                )}
+                <HeartButton
+                  isSaved={isSaved}
+                  onToggle={onToggleSave}
+                  style={styles.heart}
+                />
+              </View>
+              <View style={styles.priceBlock}>
+                <Text style={styles.priceFrom}>From</Text>
+                <Text style={styles.price}>
+                  {rentLabel}
+                  <Text style={styles.priceUnit}> / month</Text>
+                </Text>
+                <View style={styles.cta}>
+                  <Text style={styles.ctaText}>View Listing</Text>
+                </View>
               </View>
             </View>
-          </View>
-        </Pressable>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -342,9 +377,48 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
   },
   cardList: {
+    alignSelf: "stretch",
+    minHeight: 220,
+    overflow: "visible",
+  },
+  listClip: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "stretch",
     minHeight: 220,
+    overflow: "hidden",
+    borderRadius: 15,
+  },
+  listHoverShell: {
+    position: "relative",
+  },
+  listHoverShellActive: {
+    zIndex: 1,
+  },
+  listBottomShadowWindow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -8,
+    height: 24,
+    overflow: "hidden",
+    opacity: 0,
+    transitionProperty: "opacity",
+    transitionDuration: "220ms",
+    transitionTimingFunction: "ease-in",
+  },
+  listBottomShadowShape: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 8,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: Skoun.color.surface,
+    boxShadow: "0 3px 8px rgba(18, 24, 38, 0.28)",
+  },
+  listBottomGlowOn: {
+    opacity: 1,
   },
   cardGrid: {
     flexDirection: "column",

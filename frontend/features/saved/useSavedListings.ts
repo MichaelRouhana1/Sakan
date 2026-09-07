@@ -1,19 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import * as Haptics from "expo-haptics";
 import { useEffect, useRef } from "react";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { api } from "@/lib/api";
 import {
   getLocalSavedListingIds,
   hasMigratedLocalSaved,
   markLocalSavedMigrated,
 } from "@/lib/savedListingsLocal";
-import { getSession } from "@/lib/session";
 import type { Listing } from "@/types/listing";
 import { normalizeListing } from "@/features/listings/normalizeListing";
 import { savedKeys } from "./keys";
 
 type ListResponse = { data: unknown };
-type SavedFlagResponse = { data: { saved: boolean } };
 type ToggleResponse = { data: { saved: boolean; listingId: string } };
 
 async function fetchSavedListings(): Promise<Listing[]> {
@@ -24,28 +24,29 @@ async function fetchSavedListings(): Promise<Listing[]> {
   );
 }
 
-async function fetchIsSaved(id: string): Promise<boolean> {
-  try {
-    const { data } = await api.get<SavedFlagResponse>(`/api/saved/${id}`);
-    return Boolean(data.data?.saved);
-  } catch {
-    return false;
-  }
+function isAuthStatusError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  const status = error.response?.status;
+  return status === 401 || status === 403;
 }
+
+let localSavedMigrationStarted = false;
 
 /** One-time merge of device AsyncStorage IDs into the account shortlist. */
 export function useMigrateLocalSaved() {
   const queryClient = useQueryClient();
-  const ran = useRef(false);
+  const { isSignedIn } = useAuthSession();
 
   useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
+    if (!isSignedIn) {
+      localSavedMigrationStarted = false;
+      return;
+    }
+    if (localSavedMigrationStarted) return;
+    localSavedMigrationStarted = true;
 
     void (async () => {
       try {
-        const session = await getSession();
-        if (!session || session.role !== "renter") return;
         if (await hasMigratedLocalSaved()) return;
 
         const ids = await getLocalSavedListingIds();
@@ -55,27 +56,36 @@ export function useMigrateLocalSaved() {
         await markLocalSavedMigrated();
         void queryClient.invalidateQueries({ queryKey: savedKeys.all });
       } catch {
-        ran.current = false;
+        localSavedMigrationStarted = false;
       }
     })();
-  }, [queryClient]);
+  }, [isSignedIn, queryClient]);
 }
 
 export function useSavedListings() {
+  const { isSignedIn, isLoading: authLoading } = useAuthSession();
   useMigrateLocalSaved();
 
   return useQuery({
     queryKey: savedKeys.list(),
     queryFn: fetchSavedListings,
+    enabled: isSignedIn && !authLoading,
+    retry: (failureCount, error) => {
+      if (isAuthStatusError(error)) return false;
+      return failureCount < 1;
+    },
   });
 }
 
+/** Heart state from the shortlist query — one GET /api/saved, not one per card. */
 export function useIsSaved(id: string) {
-  return useQuery({
-    queryKey: savedKeys.one(id),
-    queryFn: () => fetchIsSaved(id),
-    enabled: Boolean(id),
-  });
+  const { data: listings, isLoading, isFetching, isError } = useSavedListings();
+  return {
+    data: listings?.some((listing) => listing.id === id) ?? false,
+    isLoading,
+    isFetching,
+    isError,
+  };
 }
 
 export function useToggleSaved() {
@@ -86,7 +96,9 @@ export function useToggleSaved() {
     mutationFn: async (listing: Listing) => {
       const currentlySaved =
         preMutationState.current.get(listing.id) ??
-        queryClient.getQueryData<boolean>(savedKeys.one(listing.id)) ??
+        queryClient
+          .getQueryData<Listing[]>(savedKeys.list())
+          ?.some((item) => item.id === listing.id) ??
         false;
 
       if (currentlySaved) {
@@ -102,33 +114,26 @@ export function useToggleSaved() {
       return data.data.saved;
     },
     onMutate: async (listing) => {
-      await queryClient.cancelQueries({ queryKey: savedKeys.one(listing.id) });
       await queryClient.cancelQueries({ queryKey: savedKeys.list() });
 
-      const previousOne = queryClient.getQueryData<boolean>(
-        savedKeys.one(listing.id),
-      );
       const previousList = queryClient.getQueryData<Listing[]>(
         savedKeys.list(),
       );
 
       const currentlySaved =
-        previousOne ??
-        previousList?.some((l) => l.id === listing.id) ??
-        false;
+        previousList?.some((item) => item.id === listing.id) ?? false;
 
       preMutationState.current.set(listing.id, currentlySaved);
 
       const nextSaved = !currentlySaved;
 
-      queryClient.setQueryData(savedKeys.one(listing.id), nextSaved);
       queryClient.setQueryData<Listing[]>(savedKeys.list(), (prev) => {
         const list = prev ?? [];
         if (nextSaved) {
-          if (list.some((l) => l.id === listing.id)) return list;
+          if (list.some((item) => item.id === listing.id)) return list;
           return [listing, ...list];
         }
-        return list.filter((l) => l.id !== listing.id);
+        return list.filter((item) => item.id !== listing.id);
       });
 
       void Haptics.impactAsync(
@@ -137,15 +142,11 @@ export function useToggleSaved() {
           : Haptics.ImpactFeedbackStyle.Light,
       ).catch(() => undefined);
 
-      return { previousOne, previousList, listingId: listing.id };
+      return { previousList, listingId: listing.id };
     },
     onError: (_err, listing, context) => {
       preMutationState.current.delete(listing.id);
       if (!context) return;
-      queryClient.setQueryData(
-        savedKeys.one(context.listingId),
-        context.previousOne,
-      );
       queryClient.setQueryData(savedKeys.list(), context.previousList);
     },
     onSettled: (_data, _err, listing) => {

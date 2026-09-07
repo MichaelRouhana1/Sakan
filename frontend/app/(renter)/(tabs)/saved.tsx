@@ -1,10 +1,13 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   View,
 } from "react-native";
+import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { Enter } from "@/components/lister/Enter";
 import { EmptyState } from "@/components/lister/EmptyState";
 import { ListerScreen } from "@/components/lister/Screen";
@@ -14,9 +17,9 @@ import {
   CarouselListScrollContext,
   useCarouselListScrollController,
 } from "@/components/listings/carouselListScroll";
-import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
 import type { Listing } from "@/types/listing";
 
@@ -53,8 +56,10 @@ function SavedCard({
 }
 
 export default function SavedScreen() {
+  const { isSignedIn, isLoading: authLoading } = useAuthSession();
   const { data, isLoading, isError, refetch, isFetching } = useSavedListings();
   const carouselScroll = useCarouselListScrollController();
+  const [authOpen, setAuthOpen] = useState(false);
 
   return (
     <CarouselListScrollContext.Provider value={carouselScroll.value}>
@@ -89,10 +94,18 @@ export default function SavedScreen() {
           <SavedCard listing={item} index={index} />
         )}
         ListEmptyComponent={
-          isLoading ? (
+          authLoading || (isSignedIn && isLoading) ? (
             <ActivityIndicator
               color={Skoun.color.primary}
               style={{ marginTop: 40 }}
+            />
+          ) : !isSignedIn ? (
+            <EmptyState
+              title="Sign in to see saved"
+              body="Hearts sync to your account so you can compare places across devices."
+              ctaLabel="Sign in"
+              onCta={() => setAuthOpen(true)}
+              icon="heart-outline"
             />
           ) : isError ? (
             <EmptyState
@@ -113,6 +126,12 @@ export default function SavedScreen() {
           )
         }
         ListFooterComponent={<View style={{ height: 24 }} />}
+      />
+      <SkounAuthModal
+        visible={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSuccess={() => setAuthOpen(false)}
+        title="Sign in to save listings"
       />
     </ListerScreen>
     </CarouselListScrollContext.Provider>

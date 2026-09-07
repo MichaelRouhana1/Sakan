@@ -1,20 +1,45 @@
 import { router } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { LText } from "@/components/lister/Typography";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
 import type { Listing } from "@/types/listing";
 
 export function SavedWeb() {
+  const { isSignedIn, isLoading: authLoading } = useAuthSession();
   const { data, isLoading, isError, refetch, isFetching } = useSavedListings();
+  const [authOpen, setAuthOpen] = useState(false);
 
-  if (isLoading) {
+  if (authLoading || (isSignedIn && isLoading)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={Skoun.color.primary} size="large" />
       </View>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <>
+        <WebEmptyState
+          icon="heart-outline"
+          title="Sign in to see saved listings"
+          message="Hearts sync to your account so you can compare places across devices."
+          actionLabel="Sign in"
+          onAction={() => setAuthOpen(true)}
+        />
+        <SkounAuthModal
+          visible={authOpen}
+          onClose={() => setAuthOpen(false)}
+          onSuccess={() => setAuthOpen(false)}
+          title="Sign in to save listings"
+        />
+      </>
     );
   }
 
