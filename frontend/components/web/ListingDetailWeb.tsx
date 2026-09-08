@@ -617,22 +617,26 @@ export function ListingDetailWeb({ listingId }: Props) {
 
           {hasRooms ? (
             <View nativeID="listing-unit" style={[styles.anchor, styles.stackRoomy]}>
-              <ListingDetailRooms listing={listing} posterPhone={posterPhone} />
+              <ListingDetailRooms
+                listing={listing}
+                posterPhone={posterPhone}
+                variant="web"
+              />
             </View>
           ) : (
             <View nativeID="listing-unit" style={[styles.anchor, styles.stackRoomy]}>
-              <ListingDetailUnitSpecs listing={listing} />
+              <ListingDetailUnitSpecs listing={listing} variant="web" />
             </View>
           )}
 
           {description ? (
             <View nativeID="listing-about" style={[styles.anchor, styles.stackRoomy]}>
-              <ListingDetailAbout description={description} />
+              <ListingDetailAbout description={description} variant="web" />
             </View>
           ) : null}
 
           <View nativeID="listing-amenities" style={[styles.anchor, styles.stackRoomy]}>
-            <ListingDetailAmenities listing={listing} />
+            <ListingDetailAmenities listing={listing} variant="web" />
           </View>
 
           {hasRules ? (
@@ -640,13 +644,14 @@ export function ListingDetailWeb({ listingId }: Props) {
               <ListingDetailHouseRules
                 houseRules={listing.houseRules}
                 cancellationPolicy={listing.cancellationPolicy}
+                variant="web"
               />
             </View>
           ) : null}
 
           {hasPin ? (
             <View nativeID="listing-map" style={[styles.anchor, styles.stackRoomy]}>
-              <ListingDetailMapSection listing={listing} />
+              <ListingDetailMapSection listing={listing} variant="web" />
             </View>
           ) : null}
 

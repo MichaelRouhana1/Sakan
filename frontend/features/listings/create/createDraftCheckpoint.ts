@@ -201,15 +201,38 @@ export async function writeWorkingCheckpoint(
   return writeCheckpointToSlot("working", draft, committedStep, savedStep);
 }
 
+export type FreshStartPlan = "fresh" | "resume-working";
+
+/**
+ * Decide whether "+" can start an empty working draft, or must resume the
+ * existing working draft because both slots already have progress.
+ */
+export function planFreshStart(
+  working: DraftCheckpoint | null,
+  main: DraftCheckpoint | null,
+): FreshStartPlan {
+  if (
+    draftHasMeaningfulProgress(working) &&
+    draftHasMeaningfulProgress(main)
+  ) {
+    return "resume-working";
+  }
+  return "fresh";
+}
+
 /**
  * + always writes the working slot. Park that draft on main first so a
- * new listing cannot overwrite the only copy.
+ * new listing cannot overwrite the only copy. If both slots already have
+ * progress, leave them intact and resume working instead of wiping one.
  */
-export async function parkWorkingDraftBeforeFresh(): Promise<void> {
+export async function parkWorkingDraftBeforeFresh(): Promise<FreshStartPlan> {
   const [working, main] = await Promise.all([
     readWorkingCheckpoint(),
     readCheckpoint(),
   ]);
+  const plan = planFreshStart(working, main);
+  if (plan === "resume-working") return plan;
+
   if (
     working &&
     draftHasMeaningfulProgress(working) &&
@@ -222,6 +245,7 @@ export async function parkWorkingDraftBeforeFresh(): Promise<void> {
     );
     await clearWorkingCheckpoint();
   }
+  return "fresh";
 }
 
 export async function clearWorkingCheckpoint(): Promise<void> {
@@ -230,8 +254,20 @@ export async function clearWorkingCheckpoint(): Promise<void> {
 }
 
 export async function clearMainCheckpoint(): Promise<void> {
-  await AsyncStorage.removeItem(CREATE_DRAFT_CHECKPOINT_KEY);
+  await Promise.all([
+    AsyncStorage.removeItem(CREATE_DRAFT_CHECKPOINT_KEY),
+    AsyncStorage.removeItem(CREATE_DRAFT_STORAGE_KEY),
+  ]);
   setCheckpointCache(null);
+}
+
+/** Clear only the slot that was just published or discarded. */
+export async function clearDraftSlot(slot: DraftSlot): Promise<void> {
+  if (slot === "working") {
+    await clearWorkingCheckpoint();
+    return;
+  }
+  await clearMainCheckpoint();
 }
 
 export async function clearAllDraftStorage(): Promise<void> {

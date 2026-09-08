@@ -145,6 +145,27 @@ export function reorderPhotos(
   return copy;
 }
 
+export async function addPhotosFromUris(
+  uris: string[],
+  remaining: number,
+  setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>,
+) {
+  if (remaining <= 0 || uris.length === 0) return;
+
+  const slots = uris.slice(0, remaining);
+  const drafts: DraftPhoto[] = slots.map((uri, index) => ({
+    localId: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+    uri,
+    status: "uploading",
+  }));
+
+  setPhotos((prev) => [...prev, ...drafts]);
+
+  await Promise.all(
+    drafts.map((draft) => uploadDraft(draft.localId, draft.uri, setPhotos)),
+  );
+}
+
 export async function pickAndUploadPhotos(
   remaining: number,
   setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>,
@@ -163,17 +184,10 @@ export async function pickAndUploadPhotos(
 
   if (result.canceled || result.assets.length === 0) return;
 
-  const slots = result.assets.slice(0, remaining);
-  const drafts: DraftPhoto[] = slots.map((asset, index) => ({
-    localId: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
-    uri: asset.uri,
-    status: "uploading",
-  }));
-
-  setPhotos((prev) => [...prev, ...drafts]);
-
-  await Promise.all(
-    drafts.map((draft) => uploadDraft(draft.localId, draft.uri, setPhotos)),
+  await addPhotosFromUris(
+    result.assets.map((asset) => asset.uri),
+    remaining,
+    setPhotos,
   );
 }
 
@@ -315,28 +329,37 @@ export function AddPhotoTile({
   remaining,
   index,
   onPress,
+  dropActive,
 }: {
   remaining: number;
   index: number;
   onPress: () => void;
+  dropActive?: boolean;
 }) {
   return (
     <View style={photoPickerStyles.cell}>
       <TileEnter index={index}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Add photos, ${remaining} slots remaining`}
+          accessibilityLabel={`Add photos, ${remaining} slots remaining. Drop images here.`}
           onPress={onPress}
-          style={photoPickerStyles.addTile}
+          style={[
+            photoPickerStyles.addTile,
+            dropActive && photoPickerStyles.addTileDropOn,
+          ]}
         >
           <View style={photoPickerStyles.addIcon}>
             <Ionicons name="images-outline" size={26} color={Lister.color.primary} />
           </View>
           <LText variant="caption" tone="primary" style={photoPickerStyles.addLabel}>
-            Add photos
+            {dropActive ? "Drop photos" : "Add photos"}
           </LText>
           <LText variant="caption" tone="faint">
-            {remaining} left
+            {dropActive
+              ? "Release to upload"
+              : Platform.OS === "web"
+                ? `Drop or browse · ${remaining} left`
+                : `${remaining} left`}
           </LText>
         </Pressable>
       </TileEnter>
@@ -357,7 +380,9 @@ export function PhotoGridHeader({
         <View style={photoPickerStyles.headerCopy}>
           <LText variant="subtitle">Photos of the place</LText>
           <LText variant="body" tone="muted">
-            Drag to reorder. First photo is the cover renters see in search.
+            {Platform.OS === "web"
+              ? "Drop images here or click to add. Drag photos to reorder. First is the search cover."
+              : "Drag to reorder. First photo is the cover renters see in search."}
           </LText>
         </View>
         <View
@@ -557,6 +582,29 @@ export const photoPickerStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     padding: 12,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as ViewStyle) : null),
+  },
+  addTileDropOn: {
+    borderStyle: "solid",
+    backgroundColor: Lister.color.primarySoft,
+  },
+  dropCatcher: {
+    position: "relative",
+  },
+  fileDropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: Lister.radius.lg,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: Lister.color.primary,
+    backgroundColor: "rgba(47, 111, 237, 0.14)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 6,
+  },
+  fileDropOverlayText: {
+    color: Lister.color.primaryDeep,
+    fontFamily: Lister.type.bodySemi,
   },
   addIcon: {
     width: 48,

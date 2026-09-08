@@ -16,6 +16,15 @@ export class UsersRepository {
     return row ?? null;
   }
 
+  async findByPhone(phone: string) {
+    const [row] = await db
+      .select()
+      .from(users)
+      .where(eq(users.phone, phone))
+      .limit(1);
+    return row ?? null;
+  }
+
   async findByClerkId(clerkId: string) {
     const [row] = await db
       .select()
@@ -101,6 +110,30 @@ export class UsersRepository {
     const [row] = await db
       .update(users)
       .set({ gender, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return row ?? null;
+  }
+
+  async syncIdentity(
+    id: string,
+    input: {
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    },
+  ) {
+    const [row] = await db
+      .update(users)
+      .set({
+        firstName: input.firstName || null,
+        lastName: input.lastName || null,
+        email: input.email || null,
+        phone: input.phone || null,
+        emailVerifiedAt: input.email ? new Date() : null,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, id))
       .returning();
     return row ?? null;

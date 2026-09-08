@@ -428,11 +428,11 @@ export function BrowseFiltersPanel({
       statusBarTranslucent
       onRequestClose={handleRequestClose}
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, isSheet && styles.backdropSheet]}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Dismiss filters"
-          style={StyleSheet.absoluteFill}
+          style={isSheet ? styles.sheetDismiss : StyleSheet.absoluteFill}
           onPress={handleClose}
         />
         <Animated.View
@@ -440,7 +440,7 @@ export function BrowseFiltersPanel({
             isSheet ? styles.panelSheet : styles.panel,
             {
               paddingTop: isSheet ? 8 : insets.top + 8,
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingBottom: isSheet ? 20 : Math.max(insets.bottom, 12),
               transform: isSheet
                 ? [{ translateY: slide }]
                 : [{ translateX: slide }],
@@ -852,6 +852,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Skoun.color.overlay,
   },
+  backdropSheet: {
+    justifyContent: "flex-end",
+  },
+  sheetDismiss: {
+    flex: 1,
+  },
   panel: {
     position: "absolute",
     top: 0,
@@ -863,10 +869,6 @@ const styles = StyleSheet.create({
     borderRightColor: Skoun.color.border,
   },
   panelSheet: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     height: "88%",
     maxHeight: "88%",
     width: "100%",

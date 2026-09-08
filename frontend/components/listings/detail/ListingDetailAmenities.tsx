@@ -2,6 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import {
+  listingDetailChrome as chrome,
+  type ListingDetailVariant,
+} from "@/components/listings/detail/listingDetailChrome";
 import { amenityLabel } from "@/constants/listingWizard";
 import { Skoun } from "@/constants/theme";
 import { labelElectricity, labelWater } from "@/lib/listingLabels";
@@ -9,6 +13,7 @@ import type { Listing } from "@/types/listing";
 
 type Props = {
   listing: Listing;
+  variant?: ListingDetailVariant;
 };
 
 const PREVIEW = 8;
@@ -47,7 +52,7 @@ function fallbackAmenities(listing: Listing): string[] {
   return items;
 }
 
-export function ListingDetailAmenities({ listing }: Props) {
+export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
   const all = useMemo(() => {
     const listed = (listing.amenities ?? [])
       .map((s) => amenityLabel(s).trim())
@@ -56,12 +61,13 @@ export function ListingDetailAmenities({ listing }: Props) {
   }, [listing]);
   const [open, setOpen] = useState(false);
   const shown = open || all.length <= PREVIEW ? all : all.slice(0, PREVIEW);
+  const web = variant === "web";
 
   if (all.length === 0) return null;
 
   return (
-    <View style={styles.wrap}>
-      <LText variant="title" style={styles.heading}>
+    <View style={[web ? chrome.web : chrome.card, styles.gap]}>
+      <LText variant="title" style={web ? chrome.webHeading : chrome.cardHeading}>
         Amenities
       </LText>
       <View style={styles.grid}>
@@ -83,7 +89,10 @@ export function ListingDetailAmenities({ listing }: Props) {
           accessibilityRole="button"
           onPress={() => setOpen((v) => !v)}
         >
-          <LText variant="caption" style={styles.more}>
+          <LText
+            variant="caption"
+            style={[styles.more, !web && styles.moreCenter]}
+          >
             {open ? "Show less" : `View all amenities (${all.length})`}
           </LText>
         </Pressable>
@@ -93,16 +102,7 @@ export function ListingDetailAmenities({ listing }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    gap: 12,
-    paddingHorizontal: 24,
-  },
-  heading: {
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: -0.3,
-    fontFamily: Skoun.type.bodyBold,
-  },
+  gap: { gap: 12 },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -125,4 +125,5 @@ const styles = StyleSheet.create({
     color: Skoun.color.primary,
     fontFamily: Skoun.type.bodySemi,
   },
+  moreCenter: { textAlign: "center" },
 });

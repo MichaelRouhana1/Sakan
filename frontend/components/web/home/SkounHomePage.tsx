@@ -395,21 +395,6 @@ function HomeNav({
                       }
                     }}
                   >
-                    <Ionicons name="calendar-outline" size={18} color="#334155" />
-                    <Text style={styles.homeMenuText}>Bookings</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={styles.homeMenuItem}
-                    onPress={() => {
-                      setMenuOpen(false);
-                      if (isSignedIn) {
-                        router.push("/saved" as never);
-                      } else {
-                        onRequestAuth();
-                      }
-                    }}
-                  >
                     <Ionicons name="heart-outline" size={18} color="#334155" />
                     <Text style={styles.homeMenuText}>Shortlist</Text>
                   </Pressable>

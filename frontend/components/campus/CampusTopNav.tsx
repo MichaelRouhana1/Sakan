@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     marginHorizontal: "auto" as unknown as number,
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
-    paddingVertical: 14,
+    paddingVertical: 11,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

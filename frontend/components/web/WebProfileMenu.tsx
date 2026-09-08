@@ -142,22 +142,6 @@ export function WebProfileMenu({
                 onPress={() => requireAuthOr(() => router.push("/saved"))}
               >
                 <Ionicons
-                  name="calendar-outline"
-                  size={20}
-                  color="#334155"
-                  style={styles.menuIcon}
-                />
-                <Text style={styles.menuText}>Bookings</Text>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.menuItem,
-                  pressed && styles.menuItemHover,
-                ]}
-                onPress={() => requireAuthOr(() => router.push("/saved"))}
-              >
-                <Ionicons
                   name="heart-outline"
                   size={20}
                   color="#334155"

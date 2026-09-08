@@ -1,12 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
-import { ListingDetailWeb } from "@/components/web/ListingDetailWeb";
-import { WebShell } from "@/components/web/WebShell";
+import { ListingDetailRoute } from "@/components/listings/detail/ListingDetailRoute";
 
 export default function PosterListingDetailWebScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return (
-    <WebShell showFooter={false}>
-      <ListingDetailWeb listingId={id ?? ""} />
-    </WebShell>
-  );
+  return <ListingDetailRoute listingId={id ?? ""} />;
 }

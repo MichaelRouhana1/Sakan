@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Zap } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "expo-router/react-navigation";
+import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { LText } from "@/components/lister/Typography";
 import { LButton } from "@/components/lister/Button";
 import RenterListingDetailScreen from "@/app/(renter)/listing/[id]";
@@ -76,8 +77,41 @@ const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
   { value: "distance", label: "Nearest Campus" },
 ];
 
+function FilterSheet({
+  visible,
+  onClose,
+  dismissLabel,
+  children,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  dismissLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={styles.sheetOverlay}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={dismissLabel}
+          style={styles.sheetDismiss}
+          onPress={onClose}
+        />
+        <View style={styles.sheet}>{children}</View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function RenterSearchScreen() {
   const insets = useSafeAreaInsets();
+  const floatingPillBottom = Math.max(insets.bottom + 16, 28);
   const carouselScroll = useCarouselListScrollController();
   const params = useLocalSearchParams<{
     q?: string;
@@ -101,6 +135,30 @@ export default function RenterSearchScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [uniOpen, setUniOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+
+  const closeSheets = useCallback(() => {
+    setFiltersOpen(false);
+    setSortOpen(false);
+    setUniOpen(false);
+  }, []);
+
+  const openUni = useCallback(() => {
+    setFiltersOpen(false);
+    setSortOpen(false);
+    setUniOpen(true);
+  }, []);
+
+  const openSort = useCallback(() => {
+    setFiltersOpen(false);
+    setUniOpen(false);
+    setSortOpen(true);
+  }, []);
+
+  const openFilters = useCallback(() => {
+    setUniOpen(false);
+    setSortOpen(false);
+    setFiltersOpen(true);
+  }, []);
   const [mapModalShown, setMapModalShown] = useState(false);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
@@ -478,11 +536,23 @@ export default function RenterSearchScreen() {
     ? `Student Accommodations near ${campusFilterLabel(activeUni)}`
     : null;
 
-  const clearAllFilters = () => {
-    resetSearch();
-  };
+  const clearAllFilters = useCallback(() => {
+    setSearchVal("");
+    setFocusPoint(null);
+    setBrowseFilters(EMPTY_BROWSE_FILTERS);
+    setSort("newest");
+    setMode("university");
+    closeSheets();
+    syncUrl({
+      q: null,
+      campusId: null,
+      areas: [],
+      universitySlugs: [],
+    });
+  }, [closeSheets, syncUrl]);
 
   const badgeCount = browseFilterBadgeCount(browseFilters, mode);
+  const filtersActive = badgeCount > 0 || sort !== "newest";
 
   const searchField = (
     <SearchAutocomplete
@@ -536,9 +606,55 @@ export default function RenterSearchScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRail}
         >
-          {/* University Pill — primary search */}
+          {/* Filters — first, with clear-X when anything is applied */}
+          <View
+            style={[styles.filterPill, filtersActive && styles.filterPillActive]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                badgeCount > 0 ? `Filters, ${badgeCount} active` : "Filters"
+              }
+              onPress={openFilters}
+              style={styles.filterPillMain}
+            >
+              <Ionicons
+                name="options-outline"
+                size={15}
+                color={filtersActive ? "#ffffff" : Skoun.color.inkMuted}
+              />
+              <Text
+                style={[
+                  styles.filterPillLabel,
+                  filtersActive && styles.filterPillLabelActive,
+                ]}
+              >
+                Filters{badgeCount > 0 ? ` (${badgeCount})` : ""}
+              </Text>
+            </Pressable>
+            {filtersActive ? (
+              <>
+                <View
+                  style={styles.filterPillSep}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no"
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear all filters"
+                  onPress={clearAllFilters}
+                  hitSlop={6}
+                  style={styles.filterPillClear}
+                >
+                  <Ionicons name="close" size={14} color="#ffffff" />
+                </Pressable>
+              </>
+            ) : null}
+          </View>
+
+          {/* University */}
           <Pressable
-            onPress={() => setUniOpen(true)}
+            onPress={openUni}
             style={[styles.filterPill, activeUniSlug != null && styles.filterPillActive]}
           >
             <Ionicons
@@ -554,24 +670,9 @@ export default function RenterSearchScreen() {
             </Text>
           </Pressable>
 
-          {/* Main Filters Drawer Button */}
+          {/* Sort */}
           <Pressable
-            onPress={() => setFiltersOpen(true)}
-            style={[styles.filterPill, badgeCount > 0 && styles.filterPillActive]}
-          >
-            <Ionicons
-              name="options-outline"
-              size={15}
-              color={badgeCount > 0 ? "#ffffff" : Skoun.color.inkMuted}
-            />
-            <Text style={[styles.filterPillLabel, badgeCount > 0 && styles.filterPillLabelActive]}>
-              Filters {badgeCount > 0 ? `(${badgeCount})` : ""}
-            </Text>
-          </Pressable>
-
-          {/* Sort Pill */}
-          <Pressable
-            onPress={() => setSortOpen(true)}
+            onPress={openSort}
             style={[styles.filterPill, sort !== "newest" && styles.filterPillActive]}
           >
             <Ionicons
@@ -587,7 +688,7 @@ export default function RenterSearchScreen() {
           {/* Budget Quick Info */}
           {(browseFilters.minRentUsd != null || browseFilters.maxRentUsd != null) ? (
             <Pressable
-              onPress={() => setFiltersOpen(true)}
+              onPress={openFilters}
               style={[styles.filterPill, styles.filterPillActive]}
             >
               <Text style={[styles.filterPillLabel, styles.filterPillLabelActive]}>
@@ -603,7 +704,7 @@ export default function RenterSearchScreen() {
           {/* Room Type Quick Info */}
           {browseFilters.listingTypes.length > 0 ? (
             <Pressable
-              onPress={() => setFiltersOpen(true)}
+              onPress={openFilters}
               style={[styles.filterPill, styles.filterPillActive]}
             >
               <Text style={[styles.filterPillLabel, styles.filterPillLabelActive]}>
@@ -619,7 +720,7 @@ export default function RenterSearchScreen() {
           {/* Electricity Quick Info */}
           {browseFilters.electricity.length > 0 ? (
             <Pressable
-              onPress={() => setFiltersOpen(true)}
+              onPress={openFilters}
               style={[styles.filterPill, styles.filterPillActive]}
             >
               <View style={styles.filterPillLabelRow}>
@@ -715,7 +816,7 @@ export default function RenterSearchScreen() {
                 }}
                 style={({ pressed }) => [
                   styles.floatingPill,
-                  { bottom: Math.max(insets.bottom + 16, 28) },
+                  { bottom: floatingPillBottom },
                   pressed && styles.floatingPillPressed,
                 ]}
               >
@@ -811,6 +912,7 @@ export default function RenterSearchScreen() {
           />
         </View>
       ) : (
+        <HideIosTabScrollFade style={styles.listFadeWrap}>
         <FlatList
           ref={carouselScroll.listRef}
           data={browseRows}
@@ -849,6 +951,7 @@ export default function RenterSearchScreen() {
           refreshing={listingsQuery.isRefetching}
           onRefresh={() => void listingsQuery.refetch()}
         />
+        </HideIosTabScrollFade>
       )}
 
       {/* FLOATING MAP TOGGLE — list only; map has its own List pill in the Modal */}
@@ -856,10 +959,13 @@ export default function RenterSearchScreen() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Show map view"
-        onPress={() => setViewMode("map")}
+        onPress={() => {
+          closeSheets();
+          setViewMode("map");
+        }}
         style={({ pressed }) => [
           styles.floatingPill,
-          { bottom: Math.max(insets.bottom + 62, 68) },
+          { bottom: floatingPillBottom },
           pressed && styles.floatingPillPressed,
         ]}
       >
@@ -885,134 +991,126 @@ export default function RenterSearchScreen() {
         }}
       />
 
-      {/* SORT BOTTOM SHEET / MODAL DIALOG */}
-      {sortOpen ? (
-        <View style={styles.sheetOverlay}>
-          <Pressable style={styles.sheetBackdrop} onPress={() => setSortOpen(false)} />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHeader}>
-              <LText variant="subtitle" style={{ fontWeight: "700" }}>Sort listings by</LText>
-              <Pressable onPress={() => setSortOpen(false)}>
-                <Ionicons name="close" size={24} color={Skoun.color.ink} />
-              </Pressable>
-            </View>
-            <View style={styles.sheetOptions}>
-              {SORT_OPTIONS.map((opt) => {
-                const active = sort === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.sheetOption, active && styles.sheetOptionActive]}
-                    onPress={() => {
-                      setSort(opt.value);
-                      setSortOpen(false);
-                    }}
-                  >
-                    <LText style={[styles.sheetOptionLabel, active && styles.sheetOptionLabelActive]}>
-                      {opt.label}
-                    </LText>
-                    {active ? (
-                      <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+      {/* SORT BOTTOM SHEET */}
+      <FilterSheet
+        visible={sortOpen}
+        onClose={() => setSortOpen(false)}
+        dismissLabel="Dismiss sort"
+      >
+        <View style={styles.sheetHeader}>
+          <LText variant="subtitle" style={{ fontWeight: "700" }}>
+            Sort listings by
+          </LText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close sort"
+            onPress={() => setSortOpen(false)}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={24} color={Skoun.color.ink} />
+          </Pressable>
         </View>
-      ) : null}
+        <View style={styles.sheetOptions}>
+          {SORT_OPTIONS.map((opt) => {
+            const active = sort === opt.value;
+            return (
+              <Pressable
+                key={opt.value}
+                style={[styles.sheetOption, active && styles.sheetOptionActive]}
+                onPress={() => {
+                  setSort(opt.value);
+                  setSortOpen(false);
+                }}
+              >
+                <LText
+                  style={[
+                    styles.sheetOptionLabel,
+                    active && styles.sheetOptionLabelActive,
+                  ]}
+                >
+                  {opt.label}
+                </LText>
+                {active ? (
+                  <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </FilterSheet>
 
       {/* UNIVERSITY SELECTOR BOTTOM SHEET */}
-      {uniOpen ? (
-        <View style={styles.sheetOverlay}>
-          <Pressable style={styles.sheetBackdrop} onPress={() => setUniOpen(false)} />
-          <View style={[styles.sheet, { maxHeight: "80%" }]}>
-            <View style={styles.sheetHeader}>
-              <View style={{ gap: 2 }}>
-                <LText variant="subtitle" style={{ fontWeight: "700" }}>
-                  Select University
-                </LText>
-                <LText variant="caption" tone="muted">
-                  University first, then campus — required
-                </LText>
-              </View>
-              <Pressable onPress={() => setUniOpen(false)}>
-                <Ionicons name="close" size={24} color={Skoun.color.ink} />
-              </Pressable>
-            </View>
-
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-              <View style={styles.sheetOptions}>
-                {/* Clear / All Universities Option */}
-                <Pressable
-                  style={[
-                    styles.sheetOption,
-                    activeUniSlug == null && styles.sheetOptionActive,
-                  ]}
-                  onPress={() => {
-                    setBrowseFilters((prev) => ({
-                      ...prev,
-                      universitySlugs: [],
-                      institutionSlug: null,
-                    }));
-                    setMode("university");
-                    setUniOpen(false);
-                  }}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                    <Ionicons
-                      name="globe-outline"
-                      size={18}
-                      color={activeUniSlug == null ? Skoun.color.primary : Skoun.color.inkMuted}
-                    />
-                    <LText
-                      style={[
-                        styles.sheetOptionLabel,
-                        activeUniSlug == null && styles.sheetOptionLabelActive,
-                      ]}
-                    >
-                      All / No University Filter
-                    </LText>
-                  </View>
-                  {activeUniSlug == null ? (
-                    <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
-                  ) : null}
-                </Pressable>
-
-                <UniversityCampusFilter
-                  hideHeading
-                  selectedCampusSlug={activeUniSlug}
-                  selectedInstitutionSlug={browseFilters.institutionSlug}
-                  onSelectInstitutionSlug={(slug) => {
-                    setBrowseFilters((prev) => ({
-                      ...prev,
-                      institutionSlug: slug,
-                      universitySlugs: [],
-                    }));
-                    setMode("university");
-                  }}
-                  onSelectCampusSlug={(slug) => {
-                    if (slug) {
-                      setBrowseFilters((prev) => ({
-                        ...prev,
-                        universitySlugs: [slug],
-                      }));
-                      setMode("university");
-                      setSort("distance");
-                      setUniOpen(false);
-                    } else {
-                      setBrowseFilters((prev) => ({
-                        ...prev,
-                        universitySlugs: [],
-                      }));
-                    }
-                  }}
-                />
-              </View>
-            </ScrollView>
+      <FilterSheet
+        visible={uniOpen}
+        onClose={() => setUniOpen(false)}
+        dismissLabel="Dismiss university picker"
+      >
+        <View style={styles.sheetHeader}>
+          <View style={{ gap: 2, flex: 1 }}>
+            <LText variant="subtitle" style={{ fontWeight: "700" }}>
+              Select university
+            </LText>
+            <LText variant="caption" tone="muted">
+              Search, then pick a campus
+            </LText>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close university picker"
+            onPress={() => setUniOpen(false)}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={24} color={Skoun.color.ink} />
+          </Pressable>
         </View>
-      ) : null}
+
+        <ScrollView
+          style={styles.uniSheetScroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.sheetOptions}>
+            <UniversityCampusFilter
+              hideHeading
+              selectedCampusSlug={activeUniSlug}
+              selectedInstitutionSlug={browseFilters.institutionSlug}
+              onSelectInstitutionSlug={(slug) => {
+                setBrowseFilters((prev) => ({
+                  ...prev,
+                  institutionSlug: slug,
+                  universitySlugs: [],
+                }));
+                setMode("university");
+              }}
+              onSelectAll={() => {
+                setBrowseFilters((prev) => ({
+                  ...prev,
+                  universitySlugs: [],
+                  institutionSlug: null,
+                }));
+                setMode("university");
+                setUniOpen(false);
+              }}
+              onSelectCampusSlug={(slug) => {
+                if (slug) {
+                  setBrowseFilters((prev) => ({
+                    ...prev,
+                    universitySlugs: [slug],
+                  }));
+                  setMode("university");
+                  setSort("distance");
+                  setUniOpen(false);
+                } else {
+                  setBrowseFilters((prev) => ({
+                    ...prev,
+                    universitySlugs: [],
+                  }));
+                }
+              }}
+            />
+          </View>
+        </ScrollView>
+      </FilterSheet>
 
     </View>
     </CarouselListScrollContext.Provider>
@@ -1076,12 +1174,30 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
+    paddingLeft: 14,
+    paddingRight: 14,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: "#EEF1F6",
     borderWidth: 1,
     borderColor: "#E5E7EB",
+  },
+  filterPillMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  filterPillSep: {
+    width: 1,
+    alignSelf: "stretch",
+    marginVertical: 2,
+    backgroundColor: "rgba(255,255,255,0.55)",
+  },
+  filterPillClear: {
+    paddingLeft: 2,
+    paddingRight: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterPillActive: {
     backgroundColor: Skoun.color.primary,
@@ -1106,6 +1222,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  listFadeWrap: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -1126,20 +1245,24 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   sheetOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     backgroundColor: "rgba(18,24,38,0.4)",
     justifyContent: "flex-end",
-    zIndex: 100,
   },
-  sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+  sheetDismiss: {
+    flex: 1,
   },
   sheet: {
     backgroundColor: "#ffffff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
     gap: 16,
+  },
+  uniSheetScroll: {
+    maxHeight: 220,
   },
   sheetHeader: {
     flexDirection: "row",

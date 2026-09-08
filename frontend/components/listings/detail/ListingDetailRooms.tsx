@@ -3,6 +3,10 @@ import { Image } from "expo-image";
 import { useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import {
+  listingDetailChrome as chrome,
+  type ListingDetailVariant,
+} from "@/components/listings/detail/listingDetailChrome";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { labelListingType } from "@/lib/listingLabels";
@@ -47,9 +51,14 @@ const CAT_ORDER: Category[] = [
 type Props = {
   listing: Listing;
   posterPhone: string | null;
+  variant?: ListingDetailVariant;
 };
 
-export function ListingDetailRooms({ listing, posterPhone }: Props) {
+export function ListingDetailRooms({
+  listing,
+  posterPhone,
+  variant = "card",
+}: Props) {
   const rooms = listing.pbsaRoomTypes ?? [];
   const grouped = useMemo(() => {
     const map: Record<Category, PbsaRoomType[]> = {
@@ -68,6 +77,7 @@ export function ListingDetailRooms({ listing, posterPhone }: Props) {
 
   const [filter, setFilter] = useState<"all" | Category>("all");
   const canContact = hasUsableWhatsAppPhone(posterPhone);
+  const web = variant === "web";
 
   if (rooms.length === 0) return null;
 
@@ -96,8 +106,8 @@ export function ListingDetailRooms({ listing, posterPhone }: Props) {
   };
 
   return (
-    <View style={styles.wrap}>
-      <LText variant="title" style={styles.heading}>
+    <View style={[web ? chrome.web : chrome.card, styles.gap]}>
+      <LText variant="title" style={web ? chrome.webHeading : chrome.cardHeading}>
         Room types ({rooms.length})
       </LText>
       <ScrollView
@@ -217,16 +227,7 @@ function Feat({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    gap: 12,
-    paddingHorizontal: 24,
-  },
-  heading: {
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: -0.3,
-    fontFamily: Skoun.type.bodyBold,
-  },
+  gap: { gap: 12 },
   pills: { gap: 8, paddingVertical: 2 },
   pill: {
     paddingHorizontal: 14,

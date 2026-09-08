@@ -18,6 +18,7 @@ import {
   useCarouselListScrollController,
 } from "@/components/listings/carouselListScroll";
 import { appleTabScrollInset } from "@/components/ui/Glass";
+import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
@@ -64,6 +65,7 @@ export default function SavedScreen() {
   return (
     <CarouselListScrollContext.Provider value={carouselScroll.value}>
     <ListerScreen>
+      <HideIosTabScrollFade style={styles.listFadeWrap}>
       <FlatList
         ref={carouselScroll.listRef}
         data={data ?? []}
@@ -127,6 +129,7 @@ export default function SavedScreen() {
         }
         ListFooterComponent={<View style={{ height: 24 }} />}
       />
+      </HideIosTabScrollFade>
       <SkounAuthModal
         visible={authOpen}
         onClose={() => setAuthOpen(false)}
@@ -139,6 +142,9 @@ export default function SavedScreen() {
 }
 
 const styles = StyleSheet.create({
+  listFadeWrap: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: Skoun.space.lg,
     paddingBottom: appleTabScrollInset,

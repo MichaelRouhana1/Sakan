@@ -23,6 +23,7 @@ export default function RenterTabsLayout() {
       tintColor={tint}
       labelStyle={{ color: Skoun.color.inkMuted }}
       minimizeBehavior="onScrollDown"
+      disableTransparentOnScrollEdge
     >
       <NativeTabs.Trigger name="(explore)">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>

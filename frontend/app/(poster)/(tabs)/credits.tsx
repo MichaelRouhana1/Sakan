@@ -9,6 +9,7 @@ import {
   appleTabScrollInset,
   GlassSurface,
 } from "@/components/ui/Glass";
+import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { CREDIT_BUNDLES } from "@/constants/bundles";
 import { Lister } from "@/constants/listerTheme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -47,6 +48,7 @@ export default function CreditsScreen() {
 
   return (
     <ListerScreen>
+      <HideIosTabScrollFade style={styles.scrollFadeWrap}>
       <ScrollView contentContainerStyle={styles.content}>
         <Enter>
           <LText variant="label" tone="brass">
@@ -133,11 +135,15 @@ export default function CreditsScreen() {
           </View>
         </Enter>
       </ScrollView>
+      </HideIosTabScrollFade>
     </ListerScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollFadeWrap: {
+    flex: 1,
+  },
   content: {
     padding: Lister.space.lg,
     paddingBottom: appleTabScrollInset,

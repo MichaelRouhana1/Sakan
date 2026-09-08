@@ -64,7 +64,7 @@ export function CreateStepReview() {
       onSuccess: async (listing) => {
         await refreshUser();
         setPublished(true);
-        reset();
+        await reset();
         setTimeout(() => {
           router.replace({
             pathname: "/(poster)/listing/[id]",

@@ -2,11 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import {
+  listingDetailChrome as chrome,
+  type ListingDetailVariant,
+} from "@/components/listings/detail/listingDetailChrome";
 import { Skoun } from "@/constants/theme";
 
 type Props = {
   houseRules?: string[] | null;
   cancellationPolicy?: string | null;
+  variant?: ListingDetailVariant;
 };
 
 type Row = { title: string; body: string };
@@ -14,6 +19,7 @@ type Row = { title: string; body: string };
 export function ListingDetailHouseRules({
   houseRules,
   cancellationPolicy,
+  variant = "card",
 }: Props) {
   const rows = useMemo(() => {
     const next: Row[] = [];
@@ -38,11 +44,16 @@ export function ListingDetailHouseRules({
 
   const [open, setOpen] = useState<Record<number, boolean>>({});
 
+  const web = variant === "web";
+
   if (rows.length === 0) return null;
 
   return (
-    <View style={styles.wrap}>
-      <LText variant="title" style={styles.heading}>
+    <View style={[web ? chrome.web : chrome.card, styles.gap]}>
+      <LText
+        variant="title"
+        style={[web ? chrome.webHeading : chrome.cardHeading, styles.heading]}
+      >
         House rules
       </LText>
       {rows.map((row, i) => {
@@ -86,17 +97,8 @@ export function ListingDetailHouseRules({
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    gap: 4,
-    paddingHorizontal: 24,
-  },
-  heading: {
-    fontSize: 20,
-    lineHeight: 26,
-    letterSpacing: -0.3,
-    fontFamily: Skoun.type.bodyBold,
-    marginBottom: 8,
-  },
+  gap: { gap: 4 },
+  heading: { marginBottom: 8 },
   row: {
     flexDirection: "row",
     alignItems: "flex-start",

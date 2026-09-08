@@ -28,9 +28,10 @@ usersRouter.patch(
   (req, res, next) => usersController.setGender(req, res, next),
 );
 
-usersRouter.patch(
-  "/me/campus",
-  requireAuth,
-  validate(setCampusSchema),
-  (req, res, next) => usersController.setCampus(req, res, next),
+usersRouter.patch("/me/campus", requireAuth, validate(setCampusSchema), (req, res, next) =>
+  usersController.setCampus(req, res, next),
+);
+
+usersRouter.patch("/me/identity", requireAuth, (req, res, next) =>
+  usersController.syncIdentity(req, res, next),
 );

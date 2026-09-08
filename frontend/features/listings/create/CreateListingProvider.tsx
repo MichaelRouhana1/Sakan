@@ -17,7 +17,7 @@ import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { createListingReducer } from "./createListingReducer";
 import {
-  clearAllDraftStorage,
+  clearDraftSlot,
   draftHasMeaningfulProgress,
   parkWorkingDraftBeforeFresh,
   readCheckpoint,
@@ -40,7 +40,7 @@ type Ctx = {
   goNext: () => boolean;
   goBack: () => void;
   saveAndExit: () => Promise<void>;
-  reset: () => void;
+  reset: () => Promise<void>;
   showValidation: boolean;
   fieldErrors: string[];
   fieldInvalid: (field: string) => boolean;
@@ -63,6 +63,7 @@ export function CreateListingProvider({
   const committedStepRef = useRef(-1);
   const draftRef = useRef(draft);
   const draftSlotRef = useRef(draftSlot);
+  const releasedRef = useRef(false);
 
   useEffect(() => {
     draftSlotRef.current = draftSlot;
@@ -75,25 +76,38 @@ export function CreateListingProvider({
   useEffect(() => {
     let cancelled = false;
     const slot = draftSlot;
-    const readForSlot = slot === "working" ? readWorkingCheckpoint : readCheckpoint;
 
-    if (startFresh) {
-      void parkWorkingDraftBeforeFresh().then(() => {
+    async function hydrate() {
+      if (startFresh) {
+        const plan = await parkWorkingDraftBeforeFresh();
         if (cancelled) return;
+        if (plan === "resume-working") {
+          const checkpoint = await readWorkingCheckpoint();
+          if (cancelled) return;
+          if (checkpoint) {
+            committedStepRef.current = checkpoint.committedStep;
+            const resumeStep = resumeStepFromCheckpoint(checkpoint);
+            dispatch({
+              type: "hydrate",
+              draft: { ...checkpoint.draft, step: resumeStep },
+            });
+            setHydrated(true);
+            return;
+          }
+        }
         committedStepRef.current = -1;
         dispatch({ type: "reset" });
         setHydrated(true);
-      });
-      return;
-    }
+        return;
+      }
 
-    void readForSlot().then((checkpoint) => {
+      const readForSlot =
+        slot === "working" ? readWorkingCheckpoint : readCheckpoint;
+      const checkpoint = await readForSlot();
       if (cancelled) return;
       if (checkpoint) {
         committedStepRef.current = checkpoint.committedStep;
-        if (slot === "working") {
-          // working cache updated on write; main cache unchanged
-        } else {
+        if (slot !== "working") {
           setCheckpointCache(checkpoint);
         }
         const resumeStep = resumeStepFromCheckpoint(checkpoint);
@@ -105,7 +119,9 @@ export function CreateListingProvider({
         setCheckpointCache(null);
       }
       setHydrated(true);
-    });
+    }
+
+    void hydrate();
     return () => {
       cancelled = true;
     };
@@ -143,6 +159,7 @@ export function CreateListingProvider({
       committedStep: number,
       savedStep?: number,
     ) => {
+      if (releasedRef.current) return;
       committedStepRef.current = committedStep;
       const slot = draftSlotRef.current;
       const write =
@@ -189,11 +206,12 @@ export function CreateListingProvider({
     }
   }, [persistCheckpoint]);
 
-  const reset = useCallback(() => {
+  const reset = useCallback(async () => {
+    releasedRef.current = true;
+    draftRef.current = INITIAL_DRAFT;
     dispatch({ type: "reset" });
     committedStepRef.current = -1;
-    setCheckpointCache(null);
-    void clearAllDraftStorage();
+    await clearDraftSlot(draftSlotRef.current);
   }, []);
 
   const value = useMemo(

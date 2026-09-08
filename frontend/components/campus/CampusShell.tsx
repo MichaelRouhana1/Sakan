@@ -1,8 +1,10 @@
+import { useLayoutEffect } from "react";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { CampusFooter } from "@/components/campus/CampusFooter";
 import { CampusTopNav } from "@/components/campus/CampusTopNav";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+import { CAMPUS_CSS } from "@/styles/campusCssText";
 
 type Props = {
   children: React.ReactNode;
@@ -19,6 +21,22 @@ export function CampusShell({ children }: Props) {
   const padX = width < 640 ? 16 : width < 900 ? 20 : WEB_CONTENT_PAD_X;
   const padTop = campusShellPadTop(width);
   const padBottom = width < 640 ? 32 : 48;
+
+  // SPA web (`output: "single"`) never mounts `app/+html.tsx`, so cuby/calendar
+  // CSS would otherwise never load. Same fallback pattern as AdminNeuShell.
+  useLayoutEffect(() => {
+    if (typeof document === "undefined") return;
+    const id = "skoun-campus-css";
+    let style = document.getElementById(id) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = id;
+      document.head.appendChild(style);
+    }
+    if (style.textContent !== CAMPUS_CSS) {
+      style.textContent = CAMPUS_CSS;
+    }
+  }, []);
 
   return (
     <View

@@ -223,7 +223,12 @@ export function ListingResultCard({
         ) : null}
         <View style={styles.listClip}>
           <View style={[touchPanX, styles.mediaShell, styles.mediaList]}>
-            <ListingCardCarousel urls={urls} onPressCard={onOpen} minHeight={220} />
+            <ListingCardCarousel
+              urls={urls}
+              onPressCard={onOpen}
+              minHeight={220}
+              fill
+            />
             <ImageCornerBadge listing={listing} variant="list" />
           </View>
 
@@ -435,11 +440,13 @@ const styles = StyleSheet.create({
     position: "relative",
     flexShrink: 0,
     alignSelf: "stretch",
+    alignItems: "stretch",
     overflow: "hidden",
   },
   mediaList: {
     width: 280,
     minHeight: 220,
+    alignSelf: "stretch",
   },
   middle: {
     backgroundColor: "#FFFFFF",

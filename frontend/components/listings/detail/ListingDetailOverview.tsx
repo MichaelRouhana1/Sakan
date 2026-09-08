@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBadge";
-import { ListingNearbyCampuses } from "@/components/listings/detail/ListingNearbyCampuses";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
+import { formatDistanceMeters } from "@/lib/formatDistance";
 import {
   labelElectricity,
   labelGenderRestriction,
@@ -25,6 +25,11 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
     listing.title?.trim() ||
     listing.pbsaBuildingName?.trim() ||
     listing.area;
+  const hasPin = listing.lat != null && listing.lng != null;
+  const distance = formatDistanceMeters(
+    listing.distanceMeters,
+    listing.nearestCampusName,
+  );
   const rating = listing.rating;
   const reviewCount = listing.reviewCount ?? 0;
   const elec = listing.infrastructure?.electricity.status ?? listing.electricity;
@@ -70,10 +75,34 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
         </View>
       ) : null}
 
-      <ListingNearbyCampuses listing={listing} onViewMap={onViewMap} />
+      {distance || hasPin ? (
+        <View style={styles.distanceRow}>
+          <Ionicons name="location" size={20} color={Skoun.color.primary} />
+          <View style={{ flex: 1 }}>
+            {distance ? (
+              <LText variant="subtitle" style={styles.distanceText}>
+                {distance}
+              </LText>
+            ) : (
+              <LText variant="caption" tone="muted">
+                Pin on map
+              </LText>
+            )}
+          </View>
+          {hasPin && onViewMap ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="View map"
+              onPress={onViewMap}
+            >
+              <LText variant="caption" style={styles.viewMap}>
+                View map
+              </LText>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
-      {listing.targetAudience === "students_only" ||
-      listing.genderRestriction !== "anyone" ? (
       <View style={styles.chipWrap}>
         {listing.targetAudience === "students_only" ? (
           <View style={[styles.chip, styles.chipAccent]}>
@@ -90,8 +119,22 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
             </LText>
           </View>
         ) : null}
+        {listing.nearestCampusName ? (
+          <View style={styles.chip}>
+            <Ionicons name="school" size={13} color={Skoun.color.primary} />
+            <LText variant="caption" style={styles.chipText} numberOfLines={1}>
+              {listing.nearestCampusName}
+              {listing.distanceMeters != null
+                ? ` · ${
+                    listing.distanceMeters < 1000
+                      ? `${Math.round(listing.distanceMeters)} m`
+                      : `${(listing.distanceMeters / 1000).toFixed(1)} km`
+                  }`
+                : ""}
+            </LText>
+          </View>
+        ) : null}
       </View>
-      ) : null}
       <UtilityBadges listing={listing} />
 
       <View style={styles.infra}>
@@ -190,6 +233,16 @@ const styles = StyleSheet.create({
   priceCol: { alignItems: "flex-end", minWidth: 96 },
   price: { fontSize: 22, lineHeight: 26 },
   ratingRow: { paddingTop: 2 },
+  distanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  distanceText: { fontSize: 14 },
+  viewMap: {
+    color: Skoun.color.primary,
+    fontFamily: Skoun.type.bodySemi,
+  },
   chipWrap: {
     flexDirection: "row",
     flexWrap: "wrap",

@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errors.js";
+import { getClerkClient } from "../../lib/clerk.js";
 import { universitiesRepository } from "../universities/universities.repository.js";
 import { universitiesService } from "../universities/universities.service.js";
 import { toPublicUser } from "./users.public.js";
@@ -54,6 +55,46 @@ export class UsersService {
       );
     }
     const user = await usersRepository.setGender(userId, input.gender);
+    if (!user) {
+      throw new AppError(404, "User not found", "NOT_FOUND");
+    }
+    return this.withCampus(toPublicUser(user));
+  }
+
+  async syncIdentityFromClerk(userId: string, clerkId: string) {
+    const existing = await usersRepository.findById(userId);
+    if (!existing) {
+      throw new AppError(404, "User not found", "NOT_FOUND");
+    }
+
+    const clerkUser = await getClerkClient().users.getUser(clerkId);
+    const primaryEmail =
+      clerkUser.emailAddresses.find(
+        (entry) => entry.id === clerkUser.primaryEmailAddressId,
+      )?.emailAddress ?? null;
+    const primaryPhone =
+      clerkUser.phoneNumbers.find(
+        (entry) => entry.id === clerkUser.primaryPhoneNumberId,
+      )?.phoneNumber ?? null;
+
+    let email = primaryEmail;
+    if (email) {
+      const taken = await usersRepository.findByEmail(email);
+      if (taken && taken.id !== userId) email = existing.email;
+    }
+
+    let phone = primaryPhone;
+    if (phone) {
+      const taken = await usersRepository.findByPhone(phone);
+      if (taken && taken.id !== userId) phone = existing.phone;
+    }
+
+    const user = await usersRepository.syncIdentity(userId, {
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      email,
+      phone,
+    });
     if (!user) {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }

@@ -35,6 +35,11 @@ function useLayoutWidth() {
   return web ? inner : width;
 }
 
+/** Desktop hero floor. Grows past this with leftover viewport so the grid
+ *  fills the empty band that used to sit between the cap and the tools. */
+const HERO_DESKTOP = 560;
+const HERO_STACKED_VISUAL = 340;
+
 const TOOLS: readonly {
   id: string;
   live: boolean;
@@ -97,7 +102,7 @@ export function CampusHomePage() {
   const heroLift = {
     marginTop: -lift,
     paddingTop: (stacked ? 8 : 0) + lift,
-    ...(stacked ? null : { minHeight: 424 + lift }),
+    ...(stacked ? null : { minHeight: HERO_DESKTOP + lift }),
   };
 
   const go = (href: string) => router.push(href as never);
@@ -243,16 +248,16 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "stretch",
     justifyContent: "space-between",
     gap: 48,
     width: "100%",
-    // No vertical padding of its own: the cap fills the full 424px hero height
-    // that the old 28 + 360 + 36 layout occupied, so the page below doesn't
-    // move. The shell's top gap is folded in at render time (see heroLift).
+    flexGrow: 1,
+    // Floor only — leftover viewport is absorbed here so the grid, copy,
+    // and cap scale together. Shell top gap is folded in via heroLift.
     paddingTop: 0,
     paddingBottom: 0,
-    minHeight: 424,
+    minHeight: HERO_DESKTOP,
   },
   rippleHost: {
     position: "absolute",
@@ -265,6 +270,7 @@ const styles = StyleSheet.create({
   heroStacked: {
     flexDirection: "column",
     alignItems: "stretch",
+    flexGrow: 0,
     gap: 28,
     minHeight: 0,
     paddingTop: 8,
@@ -273,7 +279,8 @@ const styles = StyleSheet.create({
   copy: {
     flex: 1,
     maxWidth: 560,
-    gap: 18,
+    justifyContent: "center",
+    gap: 22,
     minWidth: 0,
     zIndex: 1,
   },
@@ -298,14 +305,14 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   title: {
-    fontSize: 48,
-    lineHeight: 54,
-    letterSpacing: -1.4,
+    fontSize: 56,
+    lineHeight: 62,
+    letterSpacing: -1.6,
   },
   titleCompact: {
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.7,
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -0.8,
   },
   lede: {
     fontSize: 16,
@@ -321,9 +328,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     gap: 10,
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    marginTop: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
     borderRadius: 999,
     borderWidth: 1.5,
     borderColor: Skoun.color.ink,
@@ -342,19 +349,20 @@ const styles = StyleSheet.create({
   visual: {
     flex: 1.4,
     minWidth: 0,
-    minHeight: 320,
-    maxWidth: 760,
-    height: 424,
+    minHeight: 400,
+    maxWidth: 860,
+    alignSelf: "stretch",
     zIndex: 1,
   },
   visualStacked: {
     flexGrow: 0,
     flexShrink: 0,
-    flexBasis: 280,
+    flexBasis: HERO_STACKED_VISUAL,
     width: "100%",
     maxWidth: "100%",
-    minHeight: 280,
-    height: 280,
+    minHeight: HERO_STACKED_VISUAL,
+    height: HERO_STACKED_VISUAL,
+    alignSelf: "auto",
   },
   motion: web
     ? ({

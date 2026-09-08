@@ -22,6 +22,7 @@ export default function PosterTabsLayout() {
       tintColor={tint}
       labelStyle={{ color: Lister.color.inkMuted }}
       minimizeBehavior="onScrollDown"
+      disableTransparentOnScrollEdge
     >
       <NativeTabs.Trigger name="index">
         <Label>Listings</Label>

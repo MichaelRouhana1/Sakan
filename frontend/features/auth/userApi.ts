@@ -38,3 +38,12 @@ export async function fetchMe(): Promise<User> {
     throw toApiError(err, "Could not load your account.");
   }
 }
+
+export async function syncIdentityFromClerk(): Promise<User> {
+  try {
+    const { data } = await api.patch<{ data: User }>("/api/users/me/identity");
+    return data.data;
+  } catch (err) {
+    throw toApiError(err, "Could not sync your account.");
+  }
+}

@@ -386,29 +386,6 @@ export function WebTopNav({ showSearch = false }: Props) {
                     }}
                   >
                     <Ionicons
-                      name="calendar-outline"
-                      size={20}
-                      color="#334155"
-                      style={styles.menuIcon}
-                    />
-                    <Text style={styles.menuText}>Bookings</Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.menuItem,
-                      pressed && styles.menuItemHover,
-                    ]}
-                    onPress={() => {
-                      setMenuOpen(false);
-                      if (isSignedIn) {
-                        router.push("/saved");
-                      } else {
-                        setAuthModalOpen(true);
-                      }
-                    }}
-                  >
-                    <Ionicons
                       name="heart-outline"
                       size={20}
                       color="#334155"
@@ -498,7 +475,7 @@ const styles = StyleSheet.create({
     marginHorizontal: "auto" as unknown as number,
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
-    paddingVertical: 14,
+    paddingVertical: 11,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

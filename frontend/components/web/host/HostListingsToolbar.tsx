@@ -9,9 +9,14 @@ export type HostListingsLayout = "grid" | "list";
 type Props = {
   layout: HostListingsLayout;
   onLayoutChange: (layout: HostListingsLayout) => void;
+  createDisabled?: boolean;
 };
 
-export function HostListingsToolbar({ layout, onLayoutChange }: Props) {
+export function HostListingsToolbar({
+  layout,
+  onLayoutChange,
+  createDisabled = false,
+}: Props) {
   const router = useRouter();
   const nextLayout = layout === "grid" ? "list" : "grid";
 
@@ -35,9 +40,21 @@ export function HostListingsToolbar({ layout, onLayoutChange }: Props) {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Create listing"
-          onPress={() => openNewCreateListing(router)}
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+          accessibilityLabel={
+            createDisabled
+              ? "Finish or remove a draft before starting another listing"
+              : "Create listing"
+          }
+          disabled={createDisabled}
+          onPress={() => {
+            if (createDisabled) return;
+            openNewCreateListing(router);
+          }}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            pressed && !createDisabled && styles.pressed,
+            createDisabled && styles.disabled,
+          ]}
         >
           <Ionicons name="add" size={20} color={Skoun.color.ink} />
         </Pressable>
@@ -78,5 +95,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.88,
     backgroundColor: "#F8FAFC",
+  },
+  disabled: {
+    opacity: 0.4,
+    cursor: "default",
   },
 });

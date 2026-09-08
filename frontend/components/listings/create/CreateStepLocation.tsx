@@ -1,11 +1,10 @@
-import { useMemo } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { LocationPicker } from "@/components/listings/LocationPicker";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
+import { WizardCampusSearch } from "@/components/listings/create/WizardCampusSearch";
 import {
-  WizardFieldGroup,
   WizardFieldLabel,
   useWizardFieldInvalid,
   wizardInputStyle,
@@ -49,17 +48,6 @@ export function CreateStepLocation() {
           uni.displayName ?? uni.name,
         )
       : null;
-
-  const campusOptions = useMemo(
-    () =>
-      (campuses.data ?? []).map((c) => ({
-        value: c.id,
-        label: c.institutionShortName
-          ? `${c.institutionShortName} · ${c.city ?? c.name}`
-          : c.displayName ?? c.name,
-      })),
-    [campuses.data],
-  );
 
   return (
     <View style={{ gap: 16 }}>
@@ -124,30 +112,11 @@ export function CreateStepLocation() {
       <Enter delay={180}>
         <WizardFieldLabel required>Primary campus</WizardFieldLabel>
         <View style={{ height: 8 }} />
-        <WizardFieldGroup field="primaryCampusId">
-          <View style={styles.campusWrap}>
-            {campusOptions.map((opt) => {
-              const on = opt.value === draft.primaryCampusId;
-              return (
-                <Pressable
-                  key={opt.value}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: on }}
-                  onPress={() => patch({ primaryCampusId: opt.value })}
-                  style={[
-                    styles.campus,
-                    on && styles.campusOn,
-                    campusInvalid && !on && styles.campusError,
-                  ]}
-                >
-                  <LText variant="caption" style={on ? styles.campusLabelOn : undefined}>
-                    {opt.label}
-                  </LText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </WizardFieldGroup>
+        <WizardCampusSearch
+          selectedCampusId={draft.primaryCampusId}
+          onSelectCampusId={(primaryCampusId) => patch({ primaryCampusId })}
+          invalid={campusInvalid}
+        />
         {walk ? (
           <LText variant="caption" tone="primary" style={{ marginTop: 8 }}>
             {walk}
@@ -157,25 +126,3 @@ export function CreateStepLocation() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  campusWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  campus: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: Lister.radius.pill,
-    borderWidth: 1.5,
-    borderColor: Lister.color.border,
-    backgroundColor: Lister.color.surface,
-    cursor: "pointer",
-  },
-  campusOn: {
-    borderColor: Lister.color.primary,
-    backgroundColor: Lister.color.primaryMist,
-  },
-  campusError: {
-    borderColor: Lister.color.danger,
-    backgroundColor: Lister.color.dangerSoft,
-  },
-  campusLabelOn: { color: Lister.color.primaryDeep, fontFamily: Lister.type.bodySemi },
-});

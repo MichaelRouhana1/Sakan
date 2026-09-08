@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { Skoun } from "@/constants/theme";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -46,6 +47,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <HideIosTabScrollFade style={styles.scrollFadeWrap}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -152,27 +154,6 @@ export default function ProfileScreen() {
 
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => {
-              if (isSignedIn) {
-                router.push("/saved" as never);
-              } else {
-                handleOpenLogin();
-              }
-            }}
-          >
-            <View style={styles.menuLeft}>
-              <View style={styles.menuIconBg}>
-                <Ionicons name="calendar-outline" size={20} color={Skoun.color.ink} />
-              </View>
-              <Text style={styles.menuLabel}>My Bookings</Text>
-            </View>
-            <View style={styles.chevronCircle}>
-              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
-            </View>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
@@ -220,6 +201,7 @@ export default function ProfileScreen() {
           ) : null}
         </View>
       </ScrollView>
+      </HideIosTabScrollFade>
 
       <SkounAuthModal
         visible={authModalOpen}
@@ -271,6 +253,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
+  },
+  scrollFadeWrap: {
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 16,

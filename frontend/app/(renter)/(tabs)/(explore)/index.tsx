@@ -19,6 +19,7 @@ import { router } from "expo-router";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { useHostingNavState } from "@/features/listings/useHostingNavState";
@@ -204,6 +205,7 @@ export default function RenterNewHomeScreen() {
 
   return (
     <View style={styles.container}>
+      <HideIosTabScrollFade style={styles.scroll}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -748,6 +750,7 @@ export default function RenterNewHomeScreen() {
         </View>
 
       </ScrollView>
+      </HideIosTabScrollFade>
 
       <SkounAuthModal
         visible={authModalOpen}

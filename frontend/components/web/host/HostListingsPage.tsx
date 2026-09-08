@@ -27,6 +27,7 @@ import {
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
 import { draftHasMeaningfulProgress } from "@/features/listings/create/createDraftCheckpoint";
 import { useCreateDraftMeta } from "@/features/listings/useHostingNavState";
@@ -51,8 +52,11 @@ const GRID_GAP = 16;
 export function HostListingsPage() {
   const bp = useBreakpoint();
   const compact = bp === "mobile" || Platform.OS !== "web";
+  const { isSignedIn } = useAuthSession();
   const { checkpoint, workingCheckpoint, refresh } = useCreateDraftMeta();
-  const { data, isLoading, isError, refetch, isFetching } = useMyListings();
+  const { data, isLoading, isError, refetch, isFetching } = useMyListings(
+    isSignedIn,
+  );
   const [layout, setLayout] = useState<HostListingsLayout>("grid");
   const [draftModal, setDraftModal] = useState<DraftModalTarget | null>(null);
 
@@ -163,14 +167,18 @@ export function HostListingsPage() {
         }
       >
         <View style={[styles.page, compact && styles.pageCompact]}>
-          <HostListingsToolbar layout={layout} onLayoutChange={setLayout} />
+          <HostListingsToolbar
+            layout={layout}
+            onLayoutChange={setLayout}
+            createDisabled={showMainDraft && showWorkingDraft}
+          />
 
-          {isLoading ? (
+          {isLoading && items.length === 0 ? (
             <ActivityIndicator
               color={Skoun.color.primary}
               style={styles.loader}
             />
-          ) : isError ? (
+          ) : isError && items.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Couldn’t load listings</Text>
               <Text style={styles.emptyBody}>
@@ -196,47 +204,65 @@ export function HostListingsPage() {
                 <Text style={styles.retryText}>Create a listing</Text>
               </Pressable>
             </View>
-          ) : layout === "list" ? (
-            <HostListingListView
-              rows={listRows}
-              compact={compact}
-              onDraftPress={(row) => {
-                if (row.kind === "local-draft") {
-                  openLocalDraftModal(row.slot, row.checkpoint);
-                } else {
-                  openServerDraftModal(row.listing);
-                }
-              }}
-              onListingPress={handleListingPress}
-            />
           ) : (
-            <View style={[styles.grid, compact && styles.gridCompact]}>
-              {items.map((item) =>
-                item.kind === "draft" ? (
-                  <View
-                    key={item.key}
-                    style={[styles.cell, compact && styles.cellCompact]}
+            <>
+              {isError ? (
+                <View style={styles.inlineError}>
+                  <Text style={styles.emptyBody}>
+                    Couldn’t refresh published listings. Your drafts are still
+                    here.
+                  </Text>
+                  <Pressable
+                    onPress={() => void refetch()}
+                    style={styles.retryBtn}
                   >
-                    <HostDraftGridCard
-                      checkpoint={item.checkpoint}
-                      onPress={() =>
-                        openLocalDraftModal(item.slot, item.checkpoint)
-                      }
-                    />
-                  </View>
-                ) : item.kind === "listing" ? (
-                  <View
-                    key={item.key}
-                    style={[styles.cell, compact && styles.cellCompact]}
-                  >
-                    <HostListingGridCard
-                      listing={item.listing}
-                      onPress={() => handleListingPress(item.listing)}
-                    />
-                  </View>
-                ) : null,
+                    <Text style={styles.retryText}>Retry</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              {layout === "list" ? (
+                <HostListingListView
+                  rows={listRows}
+                  compact={compact}
+                  onDraftPress={(row) => {
+                    if (row.kind === "local-draft") {
+                      openLocalDraftModal(row.slot, row.checkpoint);
+                    } else {
+                      openServerDraftModal(row.listing);
+                    }
+                  }}
+                  onListingPress={handleListingPress}
+                />
+              ) : (
+                <View style={[styles.grid, compact && styles.gridCompact]}>
+                  {items.map((item) =>
+                    item.kind === "draft" ? (
+                      <View
+                        key={item.key}
+                        style={[styles.cell, compact && styles.cellCompact]}
+                      >
+                        <HostDraftGridCard
+                          checkpoint={item.checkpoint}
+                          onPress={() =>
+                            openLocalDraftModal(item.slot, item.checkpoint)
+                          }
+                        />
+                      </View>
+                    ) : item.kind === "listing" ? (
+                      <View
+                        key={item.key}
+                        style={[styles.cell, compact && styles.cellCompact]}
+                      >
+                        <HostListingGridCard
+                          listing={item.listing}
+                          onPress={() => handleListingPress(item.listing)}
+                        />
+                      </View>
+                    ) : null,
+                  )}
+                </View>
               )}
-            </View>
+            </>
           )}
 
           {isFetching && !isLoading ? (
@@ -301,6 +327,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 64,
     gap: 12,
+  },
+  inlineError: {
+    alignItems: "center",
+    paddingBottom: 20,
+    gap: 8,
   },
   emptyTitle: {
     fontFamily: Skoun.type.bodyBold,

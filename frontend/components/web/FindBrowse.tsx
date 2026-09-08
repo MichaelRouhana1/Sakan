@@ -2,9 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
-  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -36,14 +34,9 @@ import {
   type HoverPoint,
 } from "@/components/web/HoverCommitCursor";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
-import {
-  useLiveLebanonAreaGroups,
-  useLiveLebanonAreas,
-} from "@/constants/areas";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
-import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import {
   campusFilterLabel,
   campusPinsFromInstitution,
@@ -63,7 +56,6 @@ import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { CampusMeta, Listing } from "@/types/listing";
 
 type ResultsLayout = "grid" | "list";
-type ChipSheet = "areas" | "universities" | "sort" | null;
 
 function apiSortFromBrowse(sort: BrowseSortKey): ListingSort {
   return sort === "rent_asc" ? "price_asc" : "newest";
@@ -92,13 +84,6 @@ function cityLabelFromFilters(filters: BrowseFiltersValue): string {
   if (filters.areas.length === 1) return filters.areas[0]!;
   return "Lebanon";
 }
-
-const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
-  { value: "newest", label: "Newest" },
-  { value: "rent_asc", label: "Price: low to high" },
-  { value: "rent_desc", label: "Price: high to low" },
-  { value: "distance", label: "Nearest campus" },
-];
 
 export function FindBrowse() {
   const bp = useStableBreakpoint();
@@ -134,9 +119,6 @@ export function FindBrowse() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterSection, setFilterSection] =
     useState<FilterSection>("university");
-  const [chipSheet, setChipSheet] = useState<ChipSheet>(null);
-  const liveAreas = useLiveLebanonAreas();
-  const liveAreaGroups = useLiveLebanonAreaGroups();
 
   const deferredFilters = useDeferredValue(filters);
   const deferredMode = useDeferredValue(mode);
@@ -414,15 +396,6 @@ export function FindBrowse() {
     [syncUrl, universities.data],
   );
 
-  const toggleArea = (area: string) => {
-    setFilters((prev) => {
-      const next = prev.areas.includes(area)
-        ? prev.areas.filter((a) => a !== area)
-        : [...prev.areas, area];
-      return { ...prev, areas: next };
-    });
-  };
-
   const heading = (
     <View style={[styles.headingBlock, isMap && styles.headingBlockMap]}>
       {!isMap ? (
@@ -581,14 +554,8 @@ export function FindBrowse() {
         filters={filters}
         sort={browseSort}
         onOpenFilters={() => openFilters("university")}
-        onOpenSort={() => setChipSheet("sort")}
-        onOpenAreas={() =>
-          isDesktop ? openFilters("area") : setChipSheet("areas")
-        }
-        onOpenUniversities={() => openFilters("university")}
-        onOpenBudget={() => openFilters("budget")}
-        onOpenRoomType={() => openFilters("roomType")}
-        onOpenUtilities={() => openFilters("utilities")}
+        onApplyFilters={applyBrowseFilters}
+        onChangeSort={setBrowseSort}
         onClearAll={clearAll}
         hasActiveFilters={hasActiveFilters}
       />
@@ -705,143 +672,6 @@ export function FindBrowse() {
           onApply={applyBrowseFilters}
         />
       )}
-
-      <Modal
-        visible={chipSheet != null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setChipSheet(null)}
-      >
-        <View style={styles.sheetOverlay}>
-          <Pressable
-            style={styles.sheetBackdrop}
-            accessibilityLabel="Close"
-            onPress={() => setChipSheet(null)}
-          />
-          <View style={styles.sheet}>
-            <View style={styles.sheetHeader}>
-              <LText variant="title">
-                {chipSheet === "areas"
-                  ? "Area"
-                  : chipSheet === "universities"
-                    ? "University"
-                    : "Sort"}
-              </LText>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setChipSheet(null)}
-              >
-                <Ionicons name="close" size={22} color={Skoun.color.ink} />
-              </Pressable>
-            </View>
-
-            {chipSheet === "sort" ? (
-              <View style={styles.sheetOptions}>
-                {SORT_OPTIONS.map((opt) => {
-                  const active = browseSort === opt.value;
-                  return (
-                    <Pressable
-                      key={opt.value}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      onPress={() => {
-                        setBrowseSort(opt.value);
-                        setChipSheet(null);
-                      }}
-                      style={[
-                        styles.sheetOption,
-                        active && styles.sheetOptionActive,
-                      ]}
-                    >
-                      <LText
-                        variant="subtitle"
-                        style={active ? styles.sheetOptionLabelOn : undefined}
-                      >
-                        {opt.label}
-                      </LText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
-
-            {chipSheet === "areas" ? (
-              <ScrollView style={styles.sheetScroll}>
-                {liveAreaGroups.map((group) => (
-                  <View key={group.governorate} style={styles.areaGroup}>
-                    <LText variant="caption" tone="muted" style={styles.areaGroupLabel}>
-                      {group.governorate}
-                    </LText>
-                    <View style={styles.chipWrap}>
-                      {group.areas.map((area) => {
-                        const active = filters.areas.includes(area);
-                        return (
-                          <Pressable
-                            key={area}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: active }}
-                            onPress={() => toggleArea(area)}
-                            style={[
-                              styles.choiceChip,
-                              active && styles.choiceChipActive,
-                            ]}
-                          >
-                            <LText
-                              variant="caption"
-                              style={
-                                active ? styles.choiceChipLabelOn : undefined
-                              }
-                            >
-                              {area}
-                            </LText>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : null}
-
-            {chipSheet === "universities" ? (
-              <ScrollView style={styles.sheetScroll}>
-                <UniversityCampusFilter
-                  hideHeading
-                  selectedCampusSlug={filters.universitySlugs[0] ?? null}
-                  selectedInstitutionSlug={filters.institutionSlug}
-                  onSelectInstitutionSlug={(slug) => {
-                    setFilters((prev) => ({
-                      ...prev,
-                      institutionSlug: slug,
-                      universitySlugs: [],
-                    }));
-                    setMode("university");
-                  }}
-                  onSelectCampusSlug={(slug) => {
-                    setFilters((prev) => ({
-                      ...prev,
-                      universitySlugs: slug ? [slug] : [],
-                    }));
-                    setMode("university");
-                  }}
-                />
-              </ScrollView>
-            ) : null}
-
-            {chipSheet === "areas" || chipSheet === "universities" ? (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setChipSheet(null)}
-                style={styles.sheetDone}
-              >
-                <LText variant="subtitle" style={styles.sheetDoneLabel}>
-                  Done
-                </LText>
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1045,88 +875,5 @@ const styles = StyleSheet.create({
   mapListContent: {
     gap: 16,
     paddingBottom: 32,
-  },
-  sheetOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  sheetBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
-  },
-  sheet: {
-    width: "min(440px, 100%)" as unknown as number,
-    maxHeight: "80%" as unknown as number,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: 16,
-    padding: 20,
-    gap: 14,
-    zIndex: 2,
-  },
-  sheetHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  sheetScroll: {
-    maxHeight: 360,
-  },
-  sheetOptions: {
-    gap: 8,
-  },
-  sheetOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-  },
-  sheetOptionActive: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
-  },
-  sheetOptionLabelOn: {
-    color: Skoun.color.primaryDeep,
-  },
-  chipWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  areaGroup: {
-    marginBottom: 12,
-    gap: 6,
-  },
-  areaGroupLabel: {
-    marginBottom: 4,
-    fontFamily: Skoun.type.bodyMedium,
-  },
-  choiceChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
-  },
-  choiceChipActive: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
-  },
-  choiceChipLabelOn: {
-    color: Skoun.color.primaryDeep,
-    fontFamily: Skoun.type.bodyMedium,
-  },
-  sheetDone: {
-    marginTop: 4,
-    backgroundColor: Skoun.color.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  sheetDoneLabel: {
-    color: "#FFFFFF",
   },
 });

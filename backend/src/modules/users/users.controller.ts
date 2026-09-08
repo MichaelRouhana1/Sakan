@@ -51,6 +51,18 @@ export class UsersController {
       next(err);
     }
   }
+
+  async syncIdentity(req: Request, res: Response, next: NextFunction) {
+    try {
+      const user = await usersService.syncIdentityFromClerk(
+        req.user!.id,
+        req.user!.clerkId,
+      );
+      res.json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const usersController = new UsersController();

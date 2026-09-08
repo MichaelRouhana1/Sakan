@@ -1,66 +1,150 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { LText } from "@/components/lister/Typography";
 import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
+import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
+import {
+  FILTER_BAR_HEIGHT,
+  BudgetRangeControl,
+  FilterDropdownBackdrop,
+  FilterDropdownShell,
+  MenuChip,
+  MenuRow,
+  MenuSearch,
+} from "@/components/web/FindFilterDropdown";
+import {
+  MAX_LISTING_AREAS,
+  useLiveLebanonAreaGroups,
+} from "@/constants/areas";
+import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { Skoun } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
   WEB_CONTENT_PAD_X,
   WEB_FILTER_BAR_STICKY_TOP,
 } from "@/constants/webLayout";
+import { LISTING_TYPE_LABELS } from "@/lib/listingLabels";
+import type {
+  ElectricityStatus,
+  ListingType,
+  WaterStatus,
+} from "@/types/listing";
 
 export type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
+
+type MenuId =
+  | "university"
+  | "sort"
+  | "budget"
+  | "roomType"
+  | "utilities"
+  | "area";
+
+type Anchor = { top: number; left: number };
+
+const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
+  { value: "newest", label: "Newest" },
+  { value: "rent_asc", label: "Price: low to high" },
+  { value: "rent_desc", label: "Price: high to low" },
+  { value: "distance", label: "Nearest campus" },
+];
+
+const LISTING_TYPE_OPTIONS = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
+const ELECTRICITY_OPTIONS = Object.keys(
+  ELECTRICITY_LABELS,
+) as ElectricityStatus[];
+const WATER_OPTIONS = Object.keys(WATER_LABELS) as WaterStatus[];
 
 type PillProps = {
   label: string;
   active?: boolean;
+  open?: boolean;
+  muted?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
-  onPress: () => void;
+  chevron?: boolean;
+  measure?: boolean;
+  onPress: (anchor: Anchor) => void;
 };
 
-function FilterPill({ label, active, icon, onPress }: PillProps) {
+function FilterPill({
+  label,
+  active,
+  open,
+  muted,
+  icon,
+  chevron = true,
+  measure = true,
+  onPress,
+}: PillProps) {
+  const ref = useRef<View>(null);
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ hovered, pressed }) => [
-        styles.pill,
-        active && styles.pillActive,
-        (hovered || pressed) && !active && styles.pillHover,
-      ]}
-    >
-      {icon ? (
-        <Ionicons
-          name={icon}
-          size={15}
-          color={active ? Skoun.color.primaryDeep : Skoun.color.inkMuted}
-        />
-      ) : null}
-      <LText
-        variant="caption"
-        style={[styles.pillLabel, active && styles.pillLabelActive]}
+    <View ref={ref} collapsable={false}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected: Boolean(active || open) }}
+        onPress={() => {
+          if (!measure) {
+            onPress({ top: 0, left: 0 });
+            return;
+          }
+          ref.current?.measureInWindow((x, y, _w, h) => {
+            onPress({ top: Math.round(y + h + 8), left: Math.round(x) });
+          });
+        }}
+        style={({ hovered, pressed }) => [
+          styles.pill,
+          muted && styles.pillMuted,
+          (active || open) && styles.pillActive,
+          (hovered || pressed) && !active && !open && styles.pillHover,
+        ]}
       >
-        {label}
-      </LText>
-      <Ionicons
-        name="chevron-down"
-        size={12}
-        color={active ? Skoun.color.primaryDeep : Skoun.color.inkFaint}
-      />
-    </Pressable>
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={15}
+            color={
+              active || open ? Skoun.color.primaryDeep : Skoun.color.inkMuted
+            }
+          />
+        ) : null}
+        <LText
+          variant="caption"
+          style={[styles.pillLabel, (active || open) && styles.pillLabelActive]}
+        >
+          {label}
+        </LText>
+        {chevron ? (
+          <Ionicons
+            name="chevron-down"
+            size={12}
+            color={
+              active || open ? Skoun.color.primaryDeep : Skoun.color.inkFaint
+            }
+          />
+        ) : null}
+      </Pressable>
+    </View>
   );
+}
+
+function toggleInList<T extends string>(list: T[], value: T, max: number): T[] {
+  if (list.includes(value)) return list.filter((item) => item !== value);
+  if (list.length >= max) return list;
+  return [...list, value];
 }
 
 type Props = {
   filters: BrowseFiltersValue;
   sort: BrowseSortKey;
   onOpenFilters: () => void;
-  onOpenSort: () => void;
-  onOpenAreas: () => void;
-  onOpenUniversities: () => void;
-  onOpenBudget: () => void;
-  onOpenRoomType: () => void;
-  onOpenUtilities: () => void;
+  onApplyFilters: (next: BrowseFiltersValue) => void;
+  onChangeSort: (sort: BrowseSortKey) => void;
   onClearAll: () => void;
   hasActiveFilters: boolean;
 };
@@ -91,17 +175,40 @@ export function FindFilterBar({
   filters,
   sort,
   onOpenFilters,
-  onOpenSort,
-  onOpenAreas,
-  onOpenUniversities,
-  onOpenBudget,
-  onOpenRoomType,
-  onOpenUtilities,
+  onApplyFilters,
+  onChangeSort,
   onClearAll,
   hasActiveFilters,
 }: Props) {
+  const [menu, setMenu] = useState<MenuId | null>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const [areaQuery, setAreaQuery] = useState("");
+  const areaGroups = useLiveLebanonAreaGroups(areaQuery);
+  const pendingInstSlug = useRef(filters.institutionSlug);
+
   const uniActive =
     filters.universitySlugs.length > 0 || Boolean(filters.institutionSlug);
+
+  const openMenu = (id: MenuId, nextAnchor: Anchor) => {
+    if (menu === id) {
+      setMenu(null);
+      setAnchor(null);
+      return;
+    }
+    setMenu(id);
+    setAnchor(nextAnchor);
+  };
+
+  const closeMenu = () => {
+    setMenu(null);
+    setAnchor(null);
+  };
+
+  const patch = (partial: Partial<BrowseFiltersValue>) => {
+    onApplyFilters({ ...filters, ...partial });
+  };
+
+  const filteredAreas = useMemo(() => areaGroups, [areaGroups]);
 
   return (
     <View style={styles.bar}>
@@ -110,58 +217,49 @@ export function FindFilterBar({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="University"
-          onPress={onOpenUniversities}
-          style={({ hovered, pressed }) => [
-            styles.modePill,
-            uniActive && styles.modePillActive,
-            (hovered || pressed) && styles.pillHover,
-          ]}
-        >
-          <Ionicons
-            name="school-outline"
-            size={15}
-            color={
-              uniActive ? Skoun.color.primaryDeep : Skoun.color.inkMuted
-            }
-          />
-          <LText
-            variant="caption"
-            style={[styles.pillLabel, uniActive && styles.pillLabelActive]}
-          >
-            University
-          </LText>
-        </Pressable>
-
         <FilterPill
           label="Filters"
-          icon="options-outline"
+          icon="funnel"
+          chevron={false}
+          measure={false}
+          muted
           active={hasActiveFilters}
-          onPress={onOpenFilters}
+          onPress={() => {
+            closeMenu();
+            onOpenFilters();
+          }}
+        />
+        <FilterPill
+          label="University"
+          icon="school-outline"
+          active={uniActive}
+          open={menu === "university"}
+          onPress={(event) => openMenu("university", event)}
         />
         <FilterPill
           label={sortLabel(sort)}
           icon="swap-vertical-outline"
           active={sort !== "newest"}
-          onPress={onOpenSort}
+          open={menu === "sort"}
+          onPress={(event) => openMenu("sort", event)}
         />
         <FilterPill
           label={budgetLabel(filters)}
           active={filters.minRentUsd != null || filters.maxRentUsd != null}
-          onPress={onOpenBudget}
+          open={menu === "budget"}
+          onPress={(event) => openMenu("budget", event)}
         />
         <FilterPill
           label={
             filters.listingTypes.length
               ? filters.listingTypes.length === 1
-                ? "1 room type"
+                ? LISTING_TYPE_LABELS[filters.listingTypes[0]!]
                 : `${filters.listingTypes.length} types`
               : "Room type"
           }
           active={filters.listingTypes.length > 0}
-          onPress={onOpenRoomType}
+          open={menu === "roomType"}
+          onPress={(event) => openMenu("roomType", event)}
         />
         <FilterPill
           label={
@@ -176,7 +274,8 @@ export function FindFilterBar({
             filters.water.length > 0 ||
             filters.wifiIncluded
           }
-          onPress={onOpenUtilities}
+          open={menu === "utilities"}
+          onPress={(event) => openMenu("utilities", event)}
         />
         <FilterPill
           label={
@@ -187,7 +286,8 @@ export function FindFilterBar({
               : "Area"
           }
           active={filters.areas.length > 0}
-          onPress={onOpenAreas}
+          open={menu === "area"}
+          onPress={(event) => openMenu("area", event)}
         />
 
         {filters.q?.trim() ? (
@@ -216,7 +316,10 @@ export function FindFilterBar({
         {hasActiveFilters ? (
           <Pressable
             accessibilityRole="button"
-            onPress={onClearAll}
+            onPress={() => {
+              closeMenu();
+              onClearAll();
+            }}
             style={({ hovered }) => [
               styles.clearBtn,
               hovered && styles.clearHover,
@@ -228,6 +331,231 @@ export function FindFilterBar({
           </Pressable>
         ) : null}
       </ScrollView>
+
+      {menu && anchor ? (
+        <>
+          <FilterDropdownBackdrop onClose={closeMenu} />
+          {menu === "university" ? (
+            <FilterDropdownShell
+              title="University"
+              width={320}
+              anchor={anchor}
+              canReset={uniActive}
+              onReset={() => {
+                pendingInstSlug.current = null;
+                patch({
+                  universitySlugs: [],
+                  institutionSlug: null,
+                  campusId: null,
+                });
+              }}
+              onClose={closeMenu}
+            >
+              <ScrollView
+                style={styles.menuScroll}
+                keyboardShouldPersistTaps="handled"
+              >
+                <UniversityCampusFilter
+                  hideHeading
+                  selectedCampusSlug={filters.universitySlugs[0] ?? null}
+                  selectedInstitutionSlug={filters.institutionSlug}
+                  onSelectInstitutionSlug={(slug) => {
+                    pendingInstSlug.current = slug;
+                  }}
+                  onSelectCampusSlug={(slug) =>
+                    patch({
+                      universitySlugs: slug ? [slug] : [],
+                      campusId: null,
+                      institutionSlug: slug ? pendingInstSlug.current : null,
+                    })
+                  }
+                />
+              </ScrollView>
+            </FilterDropdownShell>
+          ) : null}
+          {menu === "sort" ? (
+            <FilterDropdownShell
+              title="Sort"
+              width={260}
+              anchor={anchor}
+              canReset={sort !== "newest"}
+              onReset={() => onChangeSort("newest")}
+              onClose={closeMenu}
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <MenuRow
+                  key={opt.value}
+                  label={opt.label}
+                  selected={sort === opt.value}
+                  onPress={() => onChangeSort(opt.value)}
+                />
+              ))}
+            </FilterDropdownShell>
+          ) : null}
+          {menu === "budget" ? (
+            <FilterDropdownShell
+              title="Budget (per month)"
+              width={340}
+              anchor={anchor}
+              canReset={
+                filters.minRentUsd != null || filters.maxRentUsd != null
+              }
+              onReset={() => patch({ minRentUsd: null, maxRentUsd: null })}
+              onClose={closeMenu}
+            >
+              <BudgetRangeControl
+                minRentUsd={filters.minRentUsd}
+                maxRentUsd={filters.maxRentUsd}
+                onChange={(minRentUsd, maxRentUsd) =>
+                  patch({ minRentUsd, maxRentUsd })
+                }
+              />
+            </FilterDropdownShell>
+          ) : null}
+          {menu === "roomType" ? (
+            <FilterDropdownShell
+              title="Room type"
+              width={360}
+              anchor={anchor}
+              canReset={filters.listingTypes.length > 0}
+              onReset={() => patch({ listingTypes: [] })}
+              onClose={closeMenu}
+            >
+              <View style={styles.chipWrap}>
+                {LISTING_TYPE_OPTIONS.map((type) => (
+                  <MenuChip
+                    key={type}
+                    label={LISTING_TYPE_LABELS[type]}
+                    selected={filters.listingTypes.includes(type)}
+                    onPress={() =>
+                      patch({
+                        listingTypes: toggleInList(
+                          filters.listingTypes,
+                          type,
+                          LISTING_TYPE_OPTIONS.length,
+                        ),
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            </FilterDropdownShell>
+          ) : null}
+          {menu === "utilities" ? (
+            <FilterDropdownShell
+              title="Utilities"
+              width={380}
+              anchor={anchor}
+              canReset={
+                filters.electricity.length > 0 ||
+                filters.water.length > 0 ||
+                filters.wifiIncluded
+              }
+              onReset={() =>
+                patch({ electricity: [], water: [], wifiIncluded: false })
+              }
+              onClose={closeMenu}
+            >
+              <LText variant="caption" style={styles.groupLabel}>
+                Electricity
+              </LText>
+              <View style={styles.chipWrap}>
+                {ELECTRICITY_OPTIONS.map((value) => (
+                  <MenuChip
+                    key={value}
+                    label={ELECTRICITY_LABELS[value]}
+                    selected={filters.electricity.includes(value)}
+                    onPress={() =>
+                      patch({
+                        electricity: toggleInList(
+                          filters.electricity,
+                          value,
+                          ELECTRICITY_OPTIONS.length,
+                        ),
+                      })
+                    }
+                  />
+                ))}
+              </View>
+              <LText variant="caption" style={styles.groupLabel}>
+                Water
+              </LText>
+              <View style={styles.chipWrap}>
+                {WATER_OPTIONS.map((value) => (
+                  <MenuChip
+                    key={value}
+                    label={WATER_LABELS[value]}
+                    selected={filters.water.includes(value)}
+                    onPress={() =>
+                      patch({
+                        water: toggleInList(
+                          filters.water,
+                          value,
+                          WATER_OPTIONS.length,
+                        ),
+                      })
+                    }
+                  />
+                ))}
+              </View>
+              <LText variant="caption" style={styles.groupLabel}>
+                Wi‑Fi
+              </LText>
+              <View style={styles.chipWrap}>
+                <MenuChip
+                  label="Wi‑Fi included"
+                  selected={filters.wifiIncluded}
+                  onPress={() => patch({ wifiIncluded: !filters.wifiIncluded })}
+                />
+              </View>
+            </FilterDropdownShell>
+          ) : null}
+          {menu === "area" ? (
+            <FilterDropdownShell
+              title="Area"
+              width={320}
+              anchor={anchor}
+              canReset={filters.areas.length > 0}
+              onReset={() => patch({ areas: [] })}
+              onClose={closeMenu}
+            >
+              <MenuSearch
+                value={areaQuery}
+                onChange={setAreaQuery}
+                placeholder="Search area"
+              />
+              <ScrollView
+                style={styles.menuScroll}
+                keyboardShouldPersistTaps="handled"
+              >
+                {filteredAreas.map((group) => (
+                  <View key={group.governorate} style={styles.areaGroup}>
+                    <LText variant="caption" style={styles.areaGroupLabel}>
+                      {group.governorate}
+                    </LText>
+                    {group.areas.map((area) => (
+                      <MenuRow
+                        key={area}
+                        label={area}
+                        selected={filters.areas.includes(area)}
+                        onPress={() =>
+                          patch({
+                            areas: toggleInList(
+                              filters.areas,
+                              area,
+                              MAX_LISTING_AREAS,
+                            ),
+                          })
+                        }
+                      />
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            </FilterDropdownShell>
+          ) : null}
+        </>
+      ) : null}
     </View>
   );
 }
@@ -239,9 +567,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     width: "100%",
-    height: 64,
-    minHeight: 64,
-    zIndex: 45,
+    height: FILTER_BAR_HEIGHT,
+    minHeight: FILTER_BAR_HEIGHT,
+    zIndex: 100,
     flexGrow: 0,
     flexShrink: 0,
     backgroundColor: "#FFFFFF",
@@ -253,6 +581,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
     boxSizing: "border-box",
+    overflow: "visible",
   },
   row: {
     flexDirection: "row",
@@ -263,20 +592,23 @@ const styles = StyleSheet.create({
     marginHorizontal: "auto" as unknown as number,
     alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
-    paddingVertical: 12,
+    paddingVertical: 8,
     boxSizing: "border-box",
   },
   pill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: Skoun.color.border,
     backgroundColor: Skoun.color.surface,
     flexShrink: 0,
+  },
+  pillMuted: {
+    backgroundColor: Skoun.color.surfaceMuted,
   },
   pillActive: {
     borderColor: Skoun.color.primary,
@@ -293,25 +625,9 @@ const styles = StyleSheet.create({
   pillLabelActive: {
     color: Skoun.color.primaryDeep,
   },
-  modePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
-    flexShrink: 0,
-  },
-  modePillActive: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
-  },
   clearBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 4,
     flexShrink: 0,
   },
   clearHover: {
@@ -320,6 +636,32 @@ const styles = StyleSheet.create({
   clearLabel: {
     color: Skoun.color.primary,
     fontWeight: "700",
+    fontSize: 15,
+  },
+  menuScroll: {
+    maxHeight: 320,
+  },
+  chipWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  groupLabel: {
+    marginTop: 4,
+    marginBottom: 2,
+    color: Skoun.color.ink,
+    fontWeight: "700",
     fontSize: 13,
+  },
+  areaGroup: {
+    marginBottom: 8,
+  },
+  areaGroupLabel: {
+    color: Skoun.color.inkFaint,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    fontSize: 11,
+    marginBottom: 2,
   },
 });

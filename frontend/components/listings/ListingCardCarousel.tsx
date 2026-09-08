@@ -28,6 +28,8 @@ type Props = {
   onPressCard?: () => void;
   /** Floor height for list/side cards. Grid uses 16/10 from measured width. */
   minHeight?: number;
+  /** Stretch to the parent column (list cards whose body can grow). */
+  fill?: boolean;
 };
 
 function stopCardNav(e?: GestureResponderEvent) {
@@ -53,6 +55,7 @@ export function ListingCardCarousel({
   alwaysShowArrows = false,
   onPressCard,
   minHeight = 0,
+  fill = false,
 }: Props) {
   const photos = resolveMediaUrls(urls).slice(0, MAX_PHOTOS);
   const [index, setIndex] = useState(0);
@@ -146,19 +149,24 @@ export function ListingCardCarousel({
       style={[
         styles.root,
         isWeb && coarsePointer ? ({ touchAction: "pan-x" } as ViewStyle) : null,
-        cardHeight > 0
-          ? { height: cardHeight }
-          : { aspectRatio: PHOTO_ASPECT },
+        fill
+          ? styles.fill
+          : cardHeight > 0
+            ? { height: cardHeight }
+            : { aspectRatio: PHOTO_ASPECT },
+        !fill && minHeight > 0 ? { minHeight } : null,
         style,
       ]}
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         if (width <= 0) return;
         const nextH = Math.round(
-          Math.max(height > 1 ? height : width / PHOTO_ASPECT, minHeight),
+          fill
+            ? Math.max(height, minHeight)
+            : Math.max(height > 1 ? height : width / PHOTO_ASPECT, minHeight),
         );
-        setCardWidth(width);
-        setCardHeight(nextH);
+        if (width !== cardWidth) setCardWidth(width);
+        if (nextH !== cardHeight) setCardHeight(nextH);
       }}
       {...webHoverHandlers}
     >
@@ -327,6 +335,9 @@ const styles = StyleSheet.create({
     position: "relative",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
+  },
+  fill: {
+    ...StyleSheet.absoluteFillObject,
   },
   singleContent: {
     flexGrow: 1,
