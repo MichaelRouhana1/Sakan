@@ -38,6 +38,7 @@ function paramStr(value: string | string[] | undefined): string {
 }
 
 type CostPeriod = "semester" | "year" | "degree";
+type WizardKey = "uni" | "faculty" | "major" | "campus";
 
 const PERIOD_COPY: Record<CostPeriod, string> = {
   semester: "One semester",
@@ -93,6 +94,7 @@ export function TuitionCalculatorPage() {
   );
   const [copied, setCopied] = useState(false);
   const [creditFocused, setCreditFocused] = useState(false);
+  const [focusStep, setFocusStep] = useState<WizardKey | null>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const institution = useMemo(
@@ -148,9 +150,8 @@ export function TuitionCalculatorPage() {
 
   useEffect(() => {
     if (!institution || campusSlug) return;
-    const main =
-      institution.campuses.find((c) => c.isMain) ?? institution.campuses[0];
-    if (main) setCampusSlug(main.slug);
+    if (institution.campuses.length !== 1) return;
+    setCampusSlug(institution.campuses[0]!.slug);
   }, [institution, campusSlug]);
 
   useEffect(() => {
@@ -203,15 +204,17 @@ export function TuitionCalculatorPage() {
     setUniSlug(row.slug);
     setFacultySlug("");
     setProgramSlug("");
-    const main = row.campuses.find((c) => c.isMain) ?? row.campuses[0];
-    setCampusSlug(main?.slug ?? "");
+    const campus =
+      row.campuses.length === 1 ? (row.campuses[0]?.slug ?? "") : "";
+    setCampusSlug(campus);
     setCredits(0);
     setCustomLoad(false);
+    setFocusStep(null);
     writeParams({
       uni: row.slug,
       faculty: "",
       program: "",
-      campus: main?.slug ?? "",
+      campus: campus || "",
       credits: 0,
       custom: false,
     });
@@ -222,6 +225,7 @@ export function TuitionCalculatorPage() {
     setProgramSlug("");
     setCustomLoad(false);
     setCredits(0);
+    setFocusStep(null);
     writeParams({ faculty: slug, program: "", custom: false, credits: 0 });
   };
 
@@ -231,6 +235,7 @@ export function TuitionCalculatorPage() {
     setProgramSlug(row.slug);
     setCredits(row.defaultCredits);
     setCustomLoad(false);
+    setFocusStep(null);
     writeParams({
       program: row.slug,
       credits: 0,
@@ -240,6 +245,7 @@ export function TuitionCalculatorPage() {
 
   const pickCampus = (slug: string) => {
     setCampusSlug(slug);
+    setFocusStep(null);
     writeParams({ campus: slug });
   };
 
@@ -315,19 +321,60 @@ export function TuitionCalculatorPage() {
     { key: "campus", label: "Campus", done: Boolean(campusSlug) },
   ];
 
+  const needsCampusPick = (institution?.campuses.length ?? 0) > 1;
+  const wizardSteps = needsCampusPick ? 4 : 3;
+  const blockingStep: WizardKey | null = !institution
+    ? "uni"
+    : !faculty
+      ? "faculty"
+      : !program
+        ? "major"
+        : needsCampusPick && !campusSlug
+          ? "campus"
+          : null;
+  const focusAllowed =
+    focusStep === "uni" ||
+    (focusStep === "faculty" && Boolean(institution)) ||
+    (focusStep === "major" && Boolean(faculty)) ||
+    (focusStep === "campus" && Boolean(institution));
+  const activeStep: WizardKey | null = compact
+    ? focusAllowed && focusStep
+      ? focusStep
+      : blockingStep
+    : null;
+  const showSelect = (key: WizardKey) => !compact || activeStep === key;
+  const stepCue =
+    activeStep === "uni"
+      ? `1 of ${wizardSteps} · University`
+      : activeStep === "faculty"
+        ? `2 of ${wizardSteps} · Faculty`
+        : activeStep === "major"
+          ? `3 of ${wizardSteps} · Major`
+          : activeStep === "campus"
+            ? needsCampusPick
+              ? `${wizardSteps} of ${wizardSteps} · Campus`
+              : "Campus for housing"
+            : program
+              ? "Tap to change"
+              : null;
+
+  const heroBlock = (
+    <View style={compact ? styles.heroInCard : styles.hero}>
+      {compact ? null : <View style={styles.heroRule} />}
+      <Text style={styles.kicker}>Tuition & study cost</Text>
+      <Text style={[styles.title, compact && styles.titleCompact]}>
+        What will this major cost?
+      </Text>
+      <Text style={styles.heroMeta}>
+        {CAMPUS_CATALOG.universities} universities · {ACADEMIC_CATALOG.programs}{" "}
+        programs · {ACADEMIC_CATALOG.tuitionYear}
+      </Text>
+    </View>
+  );
+
   const formColumn = (
-    <View style={[styles.formCol, wide && styles.formColWide]}>
-      <View style={styles.hero}>
-        <View style={styles.heroRule} />
-        <Text style={styles.kicker}>Tuition & study cost</Text>
-        <Text style={[styles.title, compact && styles.titleCompact]}>
-          What will this major cost?
-        </Text>
-        <Text style={styles.heroMeta}>
-          {CAMPUS_CATALOG.universities} universities · {ACADEMIC_CATALOG.programs}{" "}
-          programs · {ACADEMIC_CATALOG.tuitionYear}
-        </Text>
-      </View>
+    <View style={[styles.formCol, wide && styles.formColWide, compact && styles.formColCompact]}>
+      {compact ? null : heroBlock}
 
       <View style={styles.formCard}>
         <LinearGradient
@@ -337,6 +384,8 @@ export function TuitionCalculatorPage() {
           style={[styles.formCardFill, compact && styles.formCardFillCompact]}
         >
           <View style={styles.formOrb} pointerEvents="none" />
+
+          {compact && program ? null : compact ? heroBlock : null}
 
           {catalog.isLoading ? (
             <View style={styles.catalogStatus}>
@@ -351,59 +400,116 @@ export function TuitionCalculatorPage() {
             </Text>
           ) : null}
 
-          <ProgressRail steps={steps} compact={compact} />
+          {compact ? (
+            <>
+              <MobilePath
+                items={[
+                  {
+                    key: "uni",
+                    label: "University",
+                    value: institution?.shortName,
+                    slug: institution?.slug,
+                    logoUrl: institution?.logoUrl,
+                  },
+                  {
+                    key: "faculty",
+                    label: "Faculty",
+                    value: faculty?.name,
+                  },
+                  {
+                    key: "major",
+                    label: "Major",
+                    value: program?.name,
+                  },
+                  {
+                    key: "campus",
+                    label: "Campus",
+                    value:
+                      campusSlug && (program || needsCampusPick)
+                        ? campusName
+                        : undefined,
+                  },
+                ]}
+                hiddenKey={activeStep}
+                onEdit={setFocusStep}
+              />
+              {stepCue ? (
+                <Text style={styles.stepCue} accessibilityRole="text">
+                  {stepCue}
+                </Text>
+              ) : null}
+            </>
+          ) : (
+            <ProgressRail steps={steps} compact={compact} />
+          )}
 
-          <CampusFormSelect
-            label="University"
-            value={uniSlug}
-            options={uniOptions}
-            placeholder="Choose a university"
-            searchable
-            searchPlaceholder="Search universities…"
-            onChange={pickUni}
-          />
+          {showSelect("uni") ? (
+            <CampusFormSelect
+              label="University"
+              value={uniSlug}
+              options={uniOptions}
+              placeholder="Choose a university"
+              searchable
+              searchPlaceholder="Search universities…"
+              hideLabel={compact}
+              onChange={pickUni}
+            />
+          ) : null}
 
-          <CampusFormSelect
-            label="Faculty"
-            value={facultySlug}
-            options={facultyOptions}
-            placeholder={
-              institution ? "Choose a faculty" : "Select a university first"
-            }
-            disabled={!institution}
-            searchable={facultyOptions.length > 8}
-            searchPlaceholder="Search faculties…"
-            onChange={pickFaculty}
-          />
+          {showSelect("faculty") ? (
+            <CampusFormSelect
+              label="Faculty"
+              value={facultySlug}
+              options={facultyOptions}
+              placeholder={
+                institution ? "Choose a faculty" : "Select a university first"
+              }
+              disabled={!institution}
+              searchable={facultyOptions.length > 8}
+              searchPlaceholder="Search faculties…"
+              hideLabel={compact}
+              onChange={pickFaculty}
+            />
+          ) : null}
 
-          <CampusFormSelect
-            label="Major / program"
-            value={programSlug}
-            options={programOptions}
-            placeholder={
-              !faculty
-                ? "Select a faculty first"
-                : faculty.programs.length === 0
-                  ? "No tuition table for this faculty yet"
-                  : "Choose a major or program"
-            }
-            disabled={!faculty || faculty.programs.length === 0}
-            searchable={programOptions.length > 8}
-            searchPlaceholder="Search programs…"
-            onChange={pickProgram}
-          />
+          {showSelect("major") && faculty && faculty.programs.length === 0 ? null : showSelect("major") ? (
+            <CampusFormSelect
+              label="Major / program"
+              value={programSlug}
+              options={programOptions}
+              placeholder={
+                !faculty
+                  ? "Select a faculty first"
+                  : faculty.programs.length === 0
+                    ? "No tuition table for this faculty yet"
+                    : "Choose a major or program"
+              }
+              disabled={!faculty || faculty.programs.length === 0}
+              searchable={programOptions.length > 8}
+              searchPlaceholder="Search programs…"
+              hideLabel={compact}
+              onChange={pickProgram}
+            />
+          ) : null}
 
-          <CampusFormSelect
-            label="Campus"
-            value={campusSlug}
-            options={campusOptions}
-            placeholder={
-              institution ? "Choose a campus" : "Select a university first"
-            }
-            disabled={!institution || campusOptions.length === 0}
-            onChange={pickCampus}
-          />
-          {institution ? (
+          {showSelect("campus") ? (
+            <CampusFormSelect
+              label="Campus"
+              value={campusSlug}
+              options={campusOptions}
+              placeholder={
+                institution ? "Choose a campus" : "Select a university first"
+              }
+              disabled={!institution || campusOptions.length === 0}
+              hideLabel={compact}
+              onChange={pickCampus}
+            />
+          ) : null}
+          {!compact && institution ? (
+            <Text style={styles.fieldNote}>
+              Used to find housing near this campus.
+            </Text>
+          ) : compact && activeStep === "campus" ? (
             <Text style={styles.fieldNote}>
               Used to find housing near this campus.
             </Text>
@@ -416,7 +522,28 @@ export function TuitionCalculatorPage() {
             </Text>
           ) : null}
 
-          {program ? (
+          {compact && campusSlug && !program ? (
+            <Pressable
+              onPress={onSeeRooms}
+              accessibilityRole="link"
+              accessibilityHint="Opens housing search near this campus"
+              style={({ hovered, pressed }) => [
+                styles.textBtn,
+                (hovered || pressed) && styles.textBtnHover,
+              ]}
+            >
+              <Ionicons
+                name="home-outline"
+                size={16}
+                color={Skoun.color.primary}
+              />
+              <Text style={styles.textBtnLabel}>
+                See rooms nearby
+              </Text>
+            </Pressable>
+          ) : null}
+
+          {!compact && program ? (
             <>
               <View style={styles.formDivider} />
 
@@ -641,18 +768,28 @@ export function TuitionCalculatorPage() {
               shortName={institution.shortName}
               slug={institution.slug}
               logoUrl={institution.logoUrl}
-              size={36}
+              size={compact ? 32 : 36}
               fallbackStyle={styles.mastLogoFrame}
             />
             <View style={styles.mastIdentityCopy}>
               <Text style={styles.mastSchool} numberOfLines={1}>
                 {institution.shortName}
               </Text>
-              <Text style={styles.mastProgram} numberOfLines={2}>
+              <Text style={styles.mastProgram} numberOfLines={compact ? 1 : 2}>
                 {program.name}
               </Text>
             </View>
           </View>
+        ) : compact ? (
+          <Text style={styles.mastGhostLabel}>
+            {noTable
+              ? "This faculty isn’t in the tuition table yet."
+              : !institution
+                ? "Choose a university to start."
+                : !faculty
+                  ? "Next: pick a faculty."
+                  : "Pick a major to print this."}
+          </Text>
         ) : (
           <View style={styles.mastIdentity}>
             <View style={styles.mastGhostMark}>
@@ -695,7 +832,153 @@ export function TuitionCalculatorPage() {
         </Text>
       </View>
 
+      {compact && !program ? null : (
       <View style={[styles.ledgerBody, compact && styles.ledgerBodyCompact]}>
+        {compact && program ? (
+          <View style={styles.compactEstimate}>
+            <Text style={styles.label}>Estimate for</Text>
+            <SegmentedPillTrack
+              value={period}
+              options={[
+                { value: "semester", label: "Semester" },
+                { value: "year", label: "Year" },
+                { value: "degree", label: "Full degree" },
+              ]}
+              onChange={(next) => {
+                setPeriod(next);
+                if (!customLoad && program) {
+                  setCredits(
+                    next === "degree"
+                      ? totalMajorCredits
+                      : program.defaultCredits,
+                  );
+                }
+                writeParams({ period: next });
+              }}
+              accessibilityLabel="Semester, year, or full degree"
+              appearance="well"
+              fill
+            />
+            <View style={styles.compactLoad}>
+              <View style={styles.compactLoadCopy}>
+                <Text style={styles.compactLoadFigure}>
+                  {effectiveCredits}
+                </Text>
+                <Text style={styles.loadUnit}>
+                  {creditUnit}
+                  {period === "degree" ? " in this major" : " this semester"}
+                </Text>
+              </View>
+              <Pressable
+                onPress={toggleCustomLoad}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: customLoad }}
+                accessibilityLabel="Customize credit load"
+                style={({ hovered, pressed }) => [
+                  styles.customToggle,
+                  (hovered || pressed) && styles.customToggleHover,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.switchTrack,
+                    customLoad && styles.switchTrackOn,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.switchThumb,
+                      customLoad && styles.switchThumbOn,
+                      !reduced && styles.switchThumbMotion,
+                    ]}
+                  />
+                </View>
+                <Text style={styles.customToggleLabel}>Customize</Text>
+              </Pressable>
+            </View>
+            {customLoad ? (
+              <View style={styles.stepperRow}>
+                <Pressable
+                  onPress={() => setCustomCredits(effectiveCredits - 1)}
+                  disabled={effectiveCredits <= 0}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Decrease ${creditUnit}`}
+                  style={({ hovered, pressed }) => [
+                    styles.stepperBtn,
+                    (hovered || pressed) &&
+                      effectiveCredits > 0 &&
+                      styles.stepperBtnHover,
+                    effectiveCredits <= 0 && styles.stepperBtnDisabled,
+                  ]}
+                >
+                  <Ionicons
+                    name="remove"
+                    size={18}
+                    color={
+                      effectiveCredits <= 0
+                        ? Skoun.color.inkFaint
+                        : Skoun.color.ink
+                    }
+                  />
+                </Pressable>
+                <TextInput
+                  value={
+                    customLoad && credits === 0
+                      ? "0"
+                      : credits
+                        ? String(credits)
+                        : ""
+                  }
+                  onChangeText={(text) => {
+                    const digits = text.replace(/[^\d]/g, "");
+                    if (digits === "") {
+                      setCustomCredits(0);
+                      return;
+                    }
+                    setCustomCredits(Number(digits));
+                  }}
+                  onFocus={() => setCreditFocused(true)}
+                  onBlur={() => setCreditFocused(false)}
+                  keyboardType="number-pad"
+                  inputMode="numeric"
+                  maxLength={3}
+                  placeholder="0"
+                  placeholderTextColor={Skoun.color.inkFaint}
+                  accessibilityLabel={`Custom ${creditUnit}`}
+                  style={[
+                    styles.creditInput,
+                    creditFocused && styles.creditInputFocus,
+                  ]}
+                />
+                <Pressable
+                  onPress={() => setCustomCredits(effectiveCredits + 1)}
+                  disabled={effectiveCredits >= totalMajorCredits}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Increase ${creditUnit}`}
+                  style={({ hovered, pressed }) => [
+                    styles.stepperBtn,
+                    (hovered || pressed) &&
+                      effectiveCredits < totalMajorCredits &&
+                      styles.stepperBtnHover,
+                    effectiveCredits >= totalMajorCredits &&
+                      styles.stepperBtnDisabled,
+                  ]}
+                >
+                  <Ionicons
+                    name="add"
+                    size={18}
+                    color={
+                      effectiveCredits >= totalMajorCredits
+                        ? Skoun.color.inkFaint
+                        : Skoun.color.ink
+                    }
+                  />
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
         {!program ? (
           <>
             <Text style={styles.placeholder}>
@@ -785,9 +1068,17 @@ export function TuitionCalculatorPage() {
                   size={16}
                   color={Skoun.color.primary}
                 />
-                <Text style={styles.housingTitle}>Housing near {campusName}</Text>
+                <Text style={styles.housingTitle}>
+                  {campusSlug
+                    ? `Housing near ${campusName}`
+                    : "Housing near campus"}
+                </Text>
               </View>
-              {housing.data && housing.data.count > 0 ? (
+              {!campusSlug ? (
+                <Text style={styles.housingBody}>
+                  Choose a campus to see rooms nearby.
+                </Text>
+              ) : housing.data && housing.data.count > 0 ? (
                 <View style={styles.housingStats}>
                   <View style={styles.housingStat}>
                     <Text style={styles.housingStatValue}>
@@ -818,12 +1109,14 @@ export function TuitionCalculatorPage() {
                   housing.
                 </Text>
               )}
-              <LButton
-                label="See rooms near campus"
-                onPress={onSeeRooms}
-                accessibilityHint="Opens housing search near this campus"
-                style={styles.housingCta}
-              />
+              {campusSlug ? (
+                <LButton
+                  label="See rooms near campus"
+                  onPress={onSeeRooms}
+                  accessibilityHint="Opens housing search near this campus"
+                  style={styles.housingCta}
+                />
+              ) : null}
             </View>
 
             {Platform.OS === "web" ? (
@@ -851,6 +1144,7 @@ export function TuitionCalculatorPage() {
           </>
         ) : null}
       </View>
+      )}
     </View>
   );
 
@@ -858,7 +1152,7 @@ export function TuitionCalculatorPage() {
   if (Platform.OS === "web") {
     return (
       <View style={styles.page}>
-        <View style={[styles.content, wide && styles.contentWide]}>
+        <View style={[styles.content, wide && styles.contentWide, compact && styles.contentCompact]}>
           {formColumn}
           {ledgerCard}
         </View>
@@ -872,11 +1166,84 @@ export function TuitionCalculatorPage() {
       contentContainerStyle={styles.page}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.content}>
+      <View style={[styles.content, compact && styles.contentCompact]}>
         {formColumn}
         {ledgerCard}
       </View>
     </ScrollView>
+  );
+}
+
+function MobilePath({
+  items,
+  hiddenKey,
+  onEdit,
+}: {
+  items: {
+    key: WizardKey;
+    label: string;
+    value?: string;
+    slug?: string | null;
+    logoUrl?: string | null;
+  }[];
+  hiddenKey: WizardKey | null;
+  onEdit: (key: WizardKey) => void;
+}) {
+  const visible = items.filter((item) => item.value && item.key !== hiddenKey);
+  if (visible.length === 0) return null;
+
+  return (
+    <View
+      style={styles.path}
+      accessibilityLabel="Selected calculator path"
+    >
+      {visible.map((item) => (
+        <Pressable
+          key={item.key}
+          onPress={() => onEdit(item.key)}
+          accessibilityRole="button"
+          accessibilityLabel={`Change ${item.label}, currently ${item.value}`}
+          style={({ hovered, pressed }) => [
+            styles.pathRow,
+            (hovered || pressed) && styles.pathRowHover,
+          ]}
+        >
+          {item.slug || item.logoUrl ? (
+            <InstitutionLogo
+              shortName={item.value ?? item.label}
+              slug={item.slug}
+              logoUrl={item.logoUrl}
+              size={28}
+            />
+          ) : (
+            <View style={styles.pathMark}>
+              <Ionicons
+                name={
+                  item.key === "campus"
+                    ? "location-outline"
+                    : item.key === "major"
+                      ? "school-outline"
+                      : "layers-outline"
+                }
+                size={14}
+                color={Skoun.color.primary}
+              />
+            </View>
+          )}
+          <View style={styles.pathCopy}>
+            <Text style={styles.pathLabel}>{item.label}</Text>
+            <Text style={styles.pathValue} numberOfLines={1}>
+              {item.value}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={Skoun.color.inkFaint}
+          />
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -983,12 +1350,16 @@ const styles = StyleSheet.create({
     gap: 28,
     width: "100%",
   },
+  contentCompact: {
+    gap: 12,
+  },
+  formCol: { flex: 1, gap: 16, minWidth: 0 },
+  formColCompact: { gap: 0 },
   contentWide: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 32,
   },
-  formCol: { flex: 1, gap: 16, minWidth: 0 },
   formColWide: { flex: 1.15 },
   hero: {
     gap: 10,
@@ -1016,9 +1387,17 @@ const styles = StyleSheet.create({
     color: Skoun.color.ink,
   },
   titleCompact: {
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -0.5,
+    fontSize: 24,
+    lineHeight: 28,
+    letterSpacing: -0.45,
+  },
+  heroInCard: {
+    gap: 6,
+    zIndex: 1,
+    paddingBottom: 10,
+    marginBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
   heroMeta: {
     fontFamily: Skoun.type.bodyMedium,
@@ -1045,10 +1424,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   formCardFillCompact: {
-    paddingTop: 18,
-    paddingBottom: 18,
+    paddingTop: 16,
+    paddingBottom: 16,
     paddingHorizontal: 14,
-    gap: 14,
+    gap: 12,
   },
   formOrb: {
     position: "absolute",
@@ -1064,6 +1443,68 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     zIndex: 1,
+  },
+  path: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    zIndex: 1,
+  },
+  pathRow: {
+    flexGrow: 1,
+    flexBasis: "47%",
+    minWidth: "47%",
+    minHeight: 44,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: Skoun.radius.md,
+    borderWidth: 1,
+    borderColor: "#C5D6F5",
+    backgroundColor: "rgba(255,255,255,0.88)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+  },
+  pathRowHover: {
+    borderColor: Skoun.color.primarySoft,
+    backgroundColor: Skoun.color.primaryMist,
+  },
+  pathMark: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: Skoun.color.primaryMist,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  pathCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
+  },
+  pathLabel: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 10,
+    letterSpacing: 0.45,
+    textTransform: "uppercase",
+    color: Skoun.color.inkMuted,
+  },
+  pathValue: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 15,
+    lineHeight: 20,
+    color: Skoun.color.ink,
+  },
+  stepCue: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 12,
+    letterSpacing: 0.35,
+    textTransform: "uppercase",
+    color: Skoun.color.primary,
+    zIndex: 1,
+    marginTop: 2,
   },
   rail: {
     flexDirection: "row",
@@ -1311,9 +1752,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   mastCompact: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    gap: 6,
   },
   mastKicker: {
     fontFamily: Skoun.type.bodySemi,
@@ -1371,8 +1813,8 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   totalCompact: {
-    fontSize: 36,
-    lineHeight: 42,
+    fontSize: 32,
+    lineHeight: 36,
   },
   totalPending: {
     letterSpacing: 0,
@@ -1392,6 +1834,36 @@ const styles = StyleSheet.create({
   },
   ledgerBodyCompact: {
     padding: 16,
+    gap: 12,
+  },
+  compactEstimate: {
+    gap: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    marginBottom: 4,
+  },
+  compactLoad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  compactLoadCopy: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  compactLoadFigure: {
+    fontFamily: Skoun.type.display,
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.6,
+    color: Skoun.color.ink,
+    fontVariant: ["tabular-nums"],
   },
   ledgerWait: {
     gap: 12,

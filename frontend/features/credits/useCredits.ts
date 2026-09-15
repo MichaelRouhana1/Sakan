@@ -5,7 +5,7 @@ import type { User } from "@/types/user";
 type MeResponse = { data: User };
 
 /** Credits live on the poster user record. */
-export function useCredits() {
+export function useCredits(enabled = true) {
   return useQuery({
     queryKey: ["credits", "me"],
     queryFn: async () => {
@@ -15,5 +15,6 @@ export function useCredits() {
         boostCredits: data.data.boostCredits,
       };
     },
+    enabled,
   });
 }

@@ -57,7 +57,12 @@ function PageScroll({ children }: { children: React.ReactNode }) {
     return <View style={styles.content}>{children}</View>;
   }
   return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={styles.content}
+      // iOS UIScrollView clips by default; side shadows need room inside
+      // this box (vertical shadows already paint into the section gaps).
+    >
       {children}
     </ScrollView>
   );
@@ -629,6 +634,9 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 64,
+    // Native ScrollView clips overflow. Tickets are width 100%, so a
+    // downward shadow still shows in the gaps, but left/right gets cut.
+    ...(IS_WEB ? null : { paddingHorizontal: 20 }),
   },
   centered: {
     flex: 1,
@@ -804,6 +812,7 @@ const styles = StyleSheet.create({
   columns: {
     gap: 28,
     width: "100%",
+    overflow: "visible",
   },
   // Text column keeps a reading measure; the panel pins to the right edge so
   // any slack sits between them rather than at the page margins.
@@ -816,12 +825,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 28,
+    overflow: "visible",
   },
   sections: {
     gap: 36,
   },
   sideCol: {
     width: "100%",
+    overflow: "visible",
   },
   sideColWide: {
     width: SIDE_W,

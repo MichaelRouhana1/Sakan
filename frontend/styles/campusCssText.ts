@@ -1,3 +1,5 @@
+import { TICKET_SHADOW } from "@/lib/ticketMask";
+
 /** Campus web CSS. Injected from CampusShell in SPA mode (`web.output: "single"`
  *  skips `app/+html.tsx`) and still inlined there for static export. */
 export const CAMPUS_CSS = `
@@ -90,6 +92,13 @@ export const CAMPUS_CSS = `
   .campus-cal-ticket { width: 100% !important; }
   .campus-cal-split { flex-direction: column !important; }
   .campus-cal-ledger { max-width: 100% !important; }
+}
+@media (max-width: 639px) {
+  #skoun-campus, .skoun-campus { touch-action: manipulation; }
+  .skoun-benefit-card-shadow {
+    filter: ${TICKET_SHADOW};
+    -webkit-filter: ${TICKET_SHADOW};
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .skoun-campus *,

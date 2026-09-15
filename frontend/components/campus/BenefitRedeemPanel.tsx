@@ -3,6 +3,7 @@ import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { TicketBackdrop } from "@/components/campus/TicketBackdrop";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
@@ -14,7 +15,7 @@ import type {
   StudentBenefit,
 } from "@/features/benefits/types";
 import { useBenefitRedemption } from "@/features/benefits/useBenefitRedemption";
-import { TICKET_SHADOW, ticketMaskStyle } from "@/lib/ticketMask";
+import { TICKET_SHADOW, ticketNativeShadow, ticketMaskStyle } from "@/lib/ticketMask";
 
 type Props = {
   benefit: StudentBenefit;
@@ -25,7 +26,6 @@ const SUPPORT_EMAIL = "hello@skoun.app";
 /** Same bite geometry as the hero ticket and list cards. */
 const NOTCH = 24;
 const CORNER = 28;
-const PAGE_BG = Skoun.color.bg;
 
 export function BenefitRedeemPanel({ benefit }: Props) {
   const { isSignedIn } = useAuthSession();
@@ -90,7 +90,10 @@ export function BenefitRedeemPanel({ benefit }: Props) {
   };
 
   return (
-    <View style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}>
+    <View
+      style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}
+      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+    >
     <View
       onLayout={(e) => {
         const { width: w, height: h } = e.nativeEvent.layout;
@@ -107,13 +110,24 @@ export function BenefitRedeemPanel({ benefit }: Props) {
         }),
       ]}
     >
+      {!IS_WEB ? (
+        <TicketBackdrop
+          w={size.w}
+          h={size.h}
+          corner={CORNER}
+          notch={NOTCH}
+          tear={{ axis: "horizontal", at: headH || 80 }}
+          fill={cat.tint}
+          stubFill={Skoun.color.surface}
+        />
+      ) : null}
       {/* Header stub — category-tinted like the hero's stub */}
       <View
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           if (h !== headH) setHeadH(h);
         }}
-        style={[styles.head, { backgroundColor: cat.tint }]}
+        style={[styles.head, IS_WEB ? { backgroundColor: cat.tint } : null]}
       >
         <View style={styles.headRow}>
           <View style={styles.iconWell}>
@@ -143,9 +157,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
         pointerEvents="none"
         accessibilityElementsHidden
       >
-        {!IS_WEB ? <View style={[styles.notch, styles.notchLeft]} /> : null}
         <View style={styles.dash} />
-        {!IS_WEB ? <View style={[styles.notch, styles.notchRight]} /> : null}
       </View>
 
       <View style={styles.body}>
@@ -306,19 +318,6 @@ export function BenefitRedeemPanel({ benefit }: Props) {
         </LText>
       </Pressable>
       </View>
-
-      {!IS_WEB ? (
-        <View
-          pointerEvents="none"
-          accessibilityElementsHidden
-          style={styles.cornerLayer}
-        >
-          <View style={[styles.bite, styles.biteTL]} />
-          <View style={[styles.bite, styles.biteTR]} />
-          <View style={[styles.bite, styles.biteBL]} />
-          <View style={[styles.bite, styles.biteBR]} />
-        </View>
-      ) : null}
     </View>
     </View>
   );
@@ -327,23 +326,18 @@ export function BenefitRedeemPanel({ benefit }: Props) {
 const styles = StyleSheet.create({
   shadowWrap: {
     width: "100%",
+    overflow: "visible",
+    ...(IS_WEB ? null : ticketNativeShadow()),
   },
   shadowWrapWeb: {
-    ...(IS_WEB ? ({ filter: TICKET_SHADOW } as object) : null),
+    ...(IS_WEB
+      ? ({ filter: TICKET_SHADOW, WebkitFilter: TICKET_SHADOW } as object)
+      : null),
   },
   ticket: {
     width: "100%",
-    backgroundColor: Skoun.color.surface,
-    overflow: IS_WEB ? "visible" : "hidden",
-    ...(IS_WEB
-      ? null
-      : {
-          shadowColor: "#121826",
-          shadowOpacity: 0.2,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 10 },
-          elevation: 8,
-        }),
+    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    overflow: "visible",
   },
 
   head: {
@@ -402,17 +396,6 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderColor: "rgba(197, 205, 216, 0.95)",
   },
-  notch: {
-    position: "absolute",
-    width: NOTCH,
-    height: NOTCH,
-    borderRadius: NOTCH / 2,
-    backgroundColor: PAGE_BG,
-    zIndex: 3,
-    top: -NOTCH / 2,
-  },
-  notchLeft: { left: -NOTCH / 2 },
-  notchRight: { right: -NOTCH / 2 },
 
   body: {
     gap: 18,
@@ -421,25 +404,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
 
-  cornerLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 4,
-  },
-  bite: {
-    position: "absolute",
-    width: CORNER,
-    height: CORNER,
-    borderRadius: CORNER / 2,
-    backgroundColor: PAGE_BG,
-  },
-  biteTL: { top: -CORNER / 2, left: -CORNER / 2 },
-  biteTR: { top: -CORNER / 2, right: -CORNER / 2 },
-  biteBL: { bottom: -CORNER / 2, left: -CORNER / 2 },
-  biteBR: { bottom: -CORNER / 2, right: -CORNER / 2 },
   readyBlock: {
     gap: 8,
   },

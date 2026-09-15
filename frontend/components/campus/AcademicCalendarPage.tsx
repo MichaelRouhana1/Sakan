@@ -11,7 +11,6 @@ import { useMemo, useState, type ReactNode } from "react";
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -310,6 +309,7 @@ export function AcademicCalendarPage() {
         count={row.count}
         hasTbc={row.hasTbc}
         heatMax={heatMax}
+        compact={compact}
         isNow={
           cursor.year === now.getFullYear() && row.month === now.getMonth()
         }
@@ -348,6 +348,7 @@ export function AcademicCalendarPage() {
               accessibilityLabel={`${year}`}
               style={({ pressed, hovered }: PressState) => [
                 styles.yearChip,
+                compact && styles.yearChipCompact,
                 on && styles.yearChipOn,
                 (hovered || pressed) && !on && styles.yearChipHover,
               ]}
@@ -368,6 +369,7 @@ export function AcademicCalendarPage() {
         accessibilityLabel="Jump to today"
         style={({ pressed, hovered }: PressState) => [
           styles.todayBtn,
+          compact && styles.todayBtnCompact,
           viewingTodayMonth && styles.todayBtnOn,
           (hovered || pressed) && !viewingTodayMonth && styles.todayBtnHover,
         ]}
@@ -375,23 +377,26 @@ export function AcademicCalendarPage() {
       >
         <Ionicons
           name="locate-outline"
-          size={15}
+          size={compact ? 18 : 15}
           color={viewingTodayMonth ? C.inverse : C.primary}
         />
-        <Ink
-          style={[
-            styles.todayBtnText,
-            viewingTodayMonth && styles.todayBtnTextOn,
-          ]}
-        >
-          Today
-        </Ink>
+        {compact ? null : (
+          <Ink
+            style={[
+              styles.todayBtnText,
+              viewingTodayMonth && styles.todayBtnTextOn,
+            ]}
+          >
+            Today
+          </Ink>
+        )}
       </Pressable>
     </>
   );
 
   return (
-    <View style={styles.page}>
+    <View style={[styles.page, compact && styles.pageCompact]}>
+      {compact ? null : (
       <View
         style={[styles.heroRow, stacked && styles.heroRowCompact]}
         {...webProps("campus-cal-hero")}
@@ -403,7 +408,7 @@ export function AcademicCalendarPage() {
           </Ink>
           <Ink
             accessibilityRole="header"
-            style={[styles.title, compact && styles.titleCompact]}
+            style={styles.title}
           >
             When campuses{" "}
             <Text style={styles.titleAccent}>close</Text>
@@ -422,7 +427,7 @@ export function AcademicCalendarPage() {
             ]}
             {...webProps("campus-cal-ticket")}
           >
-            <Ink style={[styles.metricNum, compact && styles.metricNumCompact]}>
+            <Ink style={styles.metricNum}>
               {daysToNext}
             </Ink>
             <View style={styles.metricCopy}>
@@ -435,6 +440,7 @@ export function AcademicCalendarPage() {
           </Pressable>
         ) : null}
       </View>
+      )}
 
       <View
         style={[styles.board, compact && styles.boardCompact]}
@@ -448,28 +454,48 @@ export function AcademicCalendarPage() {
         >
           <View pointerEvents="none" style={styles.boardOrb} />
 
-          {stacked ? (
+          {compact ? (
+            <View style={styles.heroInBoard} {...webProps("campus-cal-hero")}>
+              <Ink style={styles.kicker}>
+                Academic calendar · {yearCloses} closes in {cursor.year}
+              </Ink>
+              <Ink accessibilityRole="header" style={styles.titleCompact}>
+                When campuses{" "}
+                <Text style={styles.titleAccent}>close</Text>
+              </Ink>
+            </View>
+          ) : null}
+
+          {compact && upcoming && daysToNext != null ? (
+            <Pressable
+              onPress={() => goToIso(upcoming.start)}
+              accessibilityRole="button"
+              accessibilityLabel={`Next close: ${upcoming.title}, ${awayLabel(daysToNext)}`}
+              style={({ pressed, hovered }: PressState) => [
+                styles.metric,
+                styles.metricCompact,
+                (hovered || pressed) && styles.metricHover,
+              ]}
+              {...webProps("campus-cal-ticket")}
+            >
+              <Ink style={[styles.metricNum, styles.metricNumCompact]}>
+                {daysToNext}
+              </Ink>
+              <View style={styles.metricCopy}>
+                <Ink style={styles.metricUnit} numberOfLines={1}>
+                  {daysToNext === 1 ? "day" : "days"} to {upcoming.title}
+                </Ink>
+                <Ink style={styles.metricRange}>{formatRange(upcoming)}</Ink>
+              </View>
+              <Ionicons name="arrow-forward" size={16} color={C.inverse} />
+            </Pressable>
+          ) : null}
+
+          {stacked && !compact ? (
             <View style={styles.toolbar}>{legend}</View>
           ) : null}
 
-          {!stacked ? null : compact ? (
-            <View style={styles.heatWrap}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.heatScroll}
-              >
-                {heat(false)}
-              </ScrollView>
-              <LinearGradient
-                pointerEvents="none"
-                colors={["rgba(244,248,255,0)", "#F7F9FC"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.heatFade}
-              />
-            </View>
-          ) : (
+          {stacked && !compact ? (
             <View
               style={styles.heatRail}
               accessibilityRole="tablist"
@@ -477,7 +503,7 @@ export function AcademicCalendarPage() {
             >
               {heat(true)}
             </View>
-          )}
+          ) : null}
 
           <View
             style={[styles.split, stacked && styles.splitStacked]}
@@ -498,7 +524,7 @@ export function AcademicCalendarPage() {
               {...webProps("campus-cal-month-swap")}
               key={`${cursor.year}-${cursor.month}`}
             >
-              <View style={styles.monthHead}>
+              <View style={[styles.monthHead, compact && styles.monthHeadCompact]}>
                 <View style={styles.monthHeadCopy}>
                   <Ink
                     style={[
@@ -508,7 +534,9 @@ export function AcademicCalendarPage() {
                   >
                     {MONTHS[cursor.month]}
                   </Ink>
-                  <Ink style={styles.monthYear}>{cursor.year}</Ink>
+                  {compact ? null : (
+                    <Ink style={styles.monthYear}>{cursor.year}</Ink>
+                  )}
                   {monthHolidays.length > 0 ? (
                     <View style={styles.monthBadge}>
                       <Ink style={styles.monthBadgeText}>
@@ -520,7 +548,12 @@ export function AcademicCalendarPage() {
                     <Ink style={styles.monthQuiet}>Quiet month</Ink>
                   )}
                 </View>
-                <View style={styles.monthNavGroup}>
+                <View
+                  style={[
+                    styles.monthNavGroup,
+                    compact && styles.compactNav,
+                  ]}
+                >
                   {!stacked ? legend : null}
                   {!stacked ? <View style={styles.monthNavDivider} /> : null}
                   {yearControls}
@@ -533,6 +566,7 @@ export function AcademicCalendarPage() {
                     accessibilityState={{ disabled: atStart }}
                     style={({ pressed, hovered }: PressState) => [
                       styles.monthNav,
+                      compact && styles.monthNavCompact,
                       atStart && styles.monthNavDisabled,
                       (hovered || pressed) && !atStart && styles.monthNavHover,
                     ]}
@@ -552,6 +586,7 @@ export function AcademicCalendarPage() {
                     accessibilityState={{ disabled: atEnd }}
                     style={({ pressed, hovered }: PressState) => [
                       styles.monthNav,
+                      compact && styles.monthNavCompact,
                       atEnd && styles.monthNavDisabled,
                       (hovered || pressed) && !atEnd && styles.monthNavHover,
                     ]}
@@ -662,7 +697,7 @@ export function AcademicCalendarPage() {
                         >
                           {date.getDate()}
                         </Ink>
-                        {inMonth && isToday ? (
+                        {inMonth && isToday && !compact ? (
                           <Ink
                             style={[
                               styles.todayTag,
@@ -701,19 +736,47 @@ export function AcademicCalendarPage() {
             </View>
             </View>
 
+            {compact ? (
+              <View
+                style={styles.heatGrid}
+                accessibilityRole="tablist"
+                accessibilityLabel="Closes by month"
+              >
+                {heat(false)}
+              </View>
+            ) : null}
+
+            {compact ? (
+              <View style={styles.toolbar}>{legend}</View>
+            ) : null}
+
             <View
               style={[styles.desk, stacked && styles.deskStacked]}
               {...webProps("campus-cal-ledger")}
             >
-              <View style={styles.deskCap}>
-                <Ink style={styles.deskWeekday}>{deskWeekday}</Ink>
-                <Ink
-                  style={[styles.deskDay, compact && styles.deskDayCompact]}
-                >
-                  {selectedDate ? selectedDate.getDate() : MONTH_SHORT[cursor.month]}
-                </Ink>
-                <Ink style={styles.deskMonth}>{deskMonth}</Ink>
-              </View>
+              {compact ? (
+                <View style={[styles.deskCap, styles.deskCapCompact]}>
+                  <Ink style={[styles.deskDay, styles.deskDayCompact]}>
+                    {selectedDate
+                      ? selectedDate.getDate()
+                      : MONTH_SHORT[cursor.month]}
+                  </Ink>
+                  <View style={styles.deskCapCopy}>
+                    <Ink style={styles.deskWeekday}>{deskWeekday}</Ink>
+                    <Ink style={styles.deskMonth}>{deskMonth}</Ink>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.deskCap}>
+                  <Ink style={styles.deskWeekday}>{deskWeekday}</Ink>
+                  <Ink style={styles.deskDay}>
+                    {selectedDate
+                      ? selectedDate.getDate()
+                      : MONTH_SHORT[cursor.month]}
+                  </Ink>
+                  <Ink style={styles.deskMonth}>{deskMonth}</Ink>
+                </View>
+              )}
 
               <View style={styles.deskBody}>
                 {!selectedInMonth ? (
@@ -763,7 +826,7 @@ export function AcademicCalendarPage() {
                       No further national holidays in this calendar.
                     </Ink>
                   ) : (
-                    comingUp.slice(0, 5).map((h) => (
+                    comingUp.slice(0, compact ? 4 : 5).map((h) => (
                       <ComingRow
                         key={h.id}
                         holiday={h}
@@ -798,6 +861,7 @@ function HeatMonth({
   heatMax,
   isNow,
   fill,
+  compact,
   onPress,
 }: {
   label: string;
@@ -807,6 +871,7 @@ function HeatMonth({
   heatMax: number;
   isNow: boolean;
   fill?: boolean;
+  compact?: boolean;
   onPress: () => void;
 }) {
   const pct = count === 0 ? 0 : Math.max(22, Math.round((count / heatMax) * 100));
@@ -819,6 +884,7 @@ function HeatMonth({
       style={({ pressed, hovered }: PressState) => [
         styles.heatMonth,
         fill && styles.heatMonthFill,
+        compact && styles.heatMonthCompact,
         active && styles.heatMonthOn,
         (hovered || pressed) && !active && styles.heatMonthHover,
       ]}
@@ -827,19 +893,21 @@ function HeatMonth({
       <Ink style={[styles.heatLabel, active && styles.heatLabelOn]}>
         {label}
       </Ink>
-      <View style={styles.heatTrack}>
-        <View
-          style={[
-            styles.heatFill,
-            {
-              width: `${pct}%`,
-              backgroundColor:
-                count === 0 ? "transparent" : hasTbc ? C.tbc : C.holiday,
-            },
-          ]}
-          {...webProps("campus-cal-heat")}
-        />
-      </View>
+      {compact ? null : (
+        <View style={styles.heatTrack}>
+          <View
+            style={[
+              styles.heatFill,
+              {
+                width: `${pct}%`,
+                backgroundColor:
+                  count === 0 ? "transparent" : hasTbc ? C.tbc : C.holiday,
+              },
+            ]}
+            {...webProps("campus-cal-heat")}
+          />
+        </View>
+      )}
       <Ink
         style={[
           styles.heatCount,
@@ -950,6 +1018,9 @@ const styles = StyleSheet.create({
     width: "100%",
     flexGrow: 1,
   },
+  pageCompact: {
+    gap: 0,
+  },
   heroRow: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -989,9 +1060,11 @@ const styles = StyleSheet.create({
     color: C.ink,
   },
   titleCompact: {
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -0.5,
+    fontSize: 24,
+    lineHeight: 28,
+    letterSpacing: -0.45,
+    fontFamily: Type.displaySemi,
+    color: C.ink,
   },
   titleAccent: {
     fontFamily: Type.display,
@@ -1016,6 +1089,15 @@ const styles = StyleSheet.create({
   metricStacked: {
     width: "100%",
   },
+  metricCompact: {
+    minHeight: 48,
+    paddingVertical: 8,
+    paddingLeft: 12,
+    paddingRight: 12,
+    gap: 8,
+    width: "100%",
+    zIndex: 1,
+  },
   metricHover: {
     backgroundColor: "#2560D6",
   },
@@ -1029,9 +1111,9 @@ const styles = StyleSheet.create({
     minWidth: 44,
   },
   metricNumCompact: {
-    fontSize: 30,
-    lineHeight: 34,
-    minWidth: 36,
+    fontSize: 22,
+    lineHeight: 26,
+    minWidth: 28,
   },
   metricCopy: {
     flex: 1,
@@ -1067,7 +1149,12 @@ const styles = StyleSheet.create({
   },
   boardFillCompact: {
     padding: 12,
-    gap: 12,
+    gap: 10,
+  },
+  heroInBoard: {
+    gap: 6,
+    zIndex: 1,
+    paddingBottom: 2,
   },
   boardOrb: {
     position: "absolute",
@@ -1103,6 +1190,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     cursor: "pointer",
   },
+  yearChipCompact: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
   yearChipOn: {
     backgroundColor: C.primary,
   },
@@ -1132,6 +1223,12 @@ const styles = StyleSheet.create({
   todayBtnOn: {
     backgroundColor: C.primary,
     borderColor: C.primary,
+  },
+  todayBtnCompact: {
+    width: 44,
+    minHeight: 44,
+    paddingHorizontal: 0,
+    justifyContent: "center",
   },
   todayBtnHover: {
     backgroundColor: C.mist,
@@ -1183,6 +1280,23 @@ const styles = StyleSheet.create({
   heatWrap: {
     position: "relative",
     zIndex: 1,
+  },
+  heatGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    zIndex: 1,
+    gap: 0,
+  },
+  heatMonthCompact: {
+    minWidth: "16.66%",
+    flexBasis: "16.66%",
+    maxWidth: "16.66%",
+    minHeight: 44,
+    paddingHorizontal: 2,
+    paddingVertical: 8,
+    gap: 2,
+    borderRadius: 8,
+    alignItems: "center",
   },
   heatFade: {
     position: "absolute",
@@ -1287,6 +1401,17 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 8,
   },
+  monthHeadCompact: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: 8,
+    paddingBottom: 4,
+  },
+  compactNav: {
+    width: "100%",
+    justifyContent: "space-between",
+    flexWrap: "nowrap",
+  },
   monthHeadCopy: {
     flexDirection: "row",
     alignItems: "baseline",
@@ -1302,8 +1427,8 @@ const styles = StyleSheet.create({
     color: C.ink,
   },
   monthNameCompact: {
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 22,
+    lineHeight: 26,
   },
   monthYear: {
     fontFamily: Type.sansMed,
@@ -1353,6 +1478,10 @@ const styles = StyleSheet.create({
   monthNavHover: {
     borderColor: C.soft,
     backgroundColor: C.mist,
+  },
+  monthNavCompact: {
+    width: 44,
+    height: 44,
   },
   monthNavDisabled: {
     opacity: 0.4,
@@ -1529,6 +1658,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     gap: 2,
   },
+  deskCapCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  deskCapCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
   deskWeekday: {
     fontFamily: Type.sansSemi,
     fontSize: 11,
@@ -1544,8 +1685,9 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   deskDayCompact: {
-    fontSize: 52,
-    lineHeight: 56,
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.8,
   },
   deskMonth: {
     fontFamily: Type.sans,

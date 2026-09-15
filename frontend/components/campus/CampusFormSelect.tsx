@@ -17,6 +17,8 @@ import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 export type CampusFormOption = {
   value: string;
   label: string;
+  /** Shorter trigger text for tight toolbars. Menu still uses `label`. */
+  shortLabel?: string;
   /** Secondary line in the menu (e.g. full university name). */
   detail?: string;
   slug?: string | null;
@@ -24,7 +26,7 @@ export type CampusFormOption = {
   website?: string | null;
 };
 
-type Appearance = "field" | "passport";
+type Appearance = "field" | "passport" | "rail";
 
 type Props = {
   label: string;
@@ -35,7 +37,7 @@ type Props = {
   searchable?: boolean;
   searchPlaceholder?: string;
   accessibilityLabel?: string;
-  /** `passport` = identity chip (monogram), no form chrome. */
+  /** `passport` = identity chip (monogram), no form chrome. `rail` = tight toolbar dropdown. */
   appearance?: Appearance;
   /** Hide the field label (useful when a parent rail supplies its own eyebrow). */
   hideLabel?: boolean;
@@ -150,8 +152,11 @@ export function CampusFormSelect({
   };
 
   const isPassport = appearance === "passport";
-  const showLabel = !hideLabel && !isPassport;
+  const isRail = appearance === "rail";
+  const showLabel = !hideLabel && !isPassport && !isRail;
   const primaryLabel = display?.label ?? selected?.label ?? placeholder;
+  const triggerLabel =
+    display?.shortLabel ?? selected?.shortLabel ?? primaryLabel;
   const secondaryLabel = display?.detail ?? selected?.detail;
   const mark = monogram(display?.label ?? selected?.label ?? label);
   const passportA11y = secondaryLabel
@@ -348,6 +353,64 @@ export function CampusFormSelect({
     );
   }
 
+  if (isRail) {
+    const railBody = (
+      <>
+        <Text
+          style={[styles.railValue, !display && !selected && styles.triggerPlaceholder]}
+          numberOfLines={1}
+        >
+          {triggerLabel}
+        </Text>
+        {canOpen ? (
+          <Ionicons
+            name={open ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={open ? Skoun.color.primary : Skoun.color.inkMuted}
+            style={styles.passportChevron}
+          />
+        ) : null}
+      </>
+    );
+
+    if (singleOnly && !disabled) {
+      return (
+        <View style={styles.railField}>
+          <View
+            style={styles.railTrigger}
+            accessibilityRole="text"
+            accessibilityLabel={`${a11y}: ${triggerLabel}`}
+          >
+            <Text style={styles.railValue} numberOfLines={1}>
+              {triggerLabel}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.railField}>
+        <Pressable
+          disabled={!canOpen}
+          onPress={() => setOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${a11y}: ${triggerLabel}`}
+          accessibilityState={{ disabled: !canOpen, expanded: open }}
+          style={({ hovered, pressed }) => [
+            styles.railTrigger,
+            open && styles.passportTriggerOpen,
+            !canOpen && styles.passportTriggerDisabled,
+            (hovered || pressed) && canOpen && styles.passportTriggerHover,
+          ]}
+        >
+          {railBody}
+        </Pressable>
+        {modal}
+      </View>
+    );
+  }
+
   if (singleOnly && !disabled) {
     return (
       <View style={styles.field}>
@@ -444,6 +507,30 @@ const styles = StyleSheet.create({
     gap: 0,
     alignSelf: "flex-start",
     maxWidth: "100%",
+  },
+  railField: {
+    gap: 0,
+    width: "100%",
+    minWidth: 0,
+  },
+  railTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    minHeight: 40,
+    width: "100%",
+    paddingVertical: 4,
+    paddingRight: 0,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+  },
+  railValue: {
+    flex: 1,
+    minWidth: 0,
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 14,
+    lineHeight: 18,
+    letterSpacing: -0.2,
+    color: Skoun.color.ink,
   },
   label: {
     fontFamily: Skoun.type.bodySemi,

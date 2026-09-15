@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Image, Platform, StyleSheet, View } from "react-native";
 import { stubStamp } from "@/components/campus/BenefitCard";
+import { TicketBackdrop } from "@/components/campus/TicketBackdrop";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { categoryMeta } from "@/features/benefits/categories";
@@ -10,7 +11,7 @@ import {
   type StudentBenefit,
 } from "@/features/benefits/types";
 import { benefitCompanyLogo } from "@/lib/benefitCompanyLogos";
-import { TICKET_SHADOW, ticketMaskStyle } from "@/lib/ticketMask";
+import { TICKET_SHADOW, ticketNativeShadow, ticketMaskStyle } from "@/lib/ticketMask";
 
 type Props = {
   benefit: StudentBenefit;
@@ -25,7 +26,6 @@ const NOTCH = 24;
 const CORNER = 28;
 const STUB_W = 212;
 const STUB_STACK_H = 92;
-const PAGE_BG = Skoun.color.bg;
 
 function ticketMask(stack: boolean, w: number, h: number): object {
   return ticketMaskStyle({
@@ -51,6 +51,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
   const logo = benefitCompanyLogo(benefit.companyName);
   const stamp = stubStamp(benefit.title);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [stubH, setStubH] = useState(0);
 
   const holderLabel = exclusive
     ? benefit.applicableUniversities.join(" · ")
@@ -59,7 +60,10 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
       : "Lebanon students";
 
   return (
-    <View style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}>
+    <View
+      style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}
+      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+    >
       <View
         onLayout={(e) => {
           const { width: w, height: h } = e.nativeEvent.layout;
@@ -71,6 +75,21 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
           stack ? styles.ticketStack : styles.ticketRow,
         ]}
       >
+        {!IS_WEB ? (
+          <TicketBackdrop
+            w={size.w}
+            h={size.h}
+            corner={CORNER}
+            notch={NOTCH}
+            tear={
+              stack
+                ? { axis: "horizontal", at: size.h - (stubH || STUB_STACK_H) }
+                : { axis: "vertical", at: size.w - STUB_W }
+            }
+            fill={Skoun.color.surface}
+            stubFill={meta.tint}
+          />
+        ) : null}
         {/* Body */}
         <View style={[styles.body, compact && styles.bodyCompact]}>
           <View style={[styles.brandRow, compact && styles.brandRowCompact]}>
@@ -162,33 +181,24 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
           pointerEvents="none"
           accessibilityElementsHidden
         >
-          {!IS_WEB ? (
-            <View
-              style={[styles.notch, stack ? styles.notchLeft : styles.notchTop]}
-            />
-          ) : null}
           <View
             style={[
               styles.dash,
               stack ? styles.dashHorizontal : styles.dashVertical,
             ]}
           />
-          {!IS_WEB ? (
-            <View
-              style={[
-                styles.notch,
-                stack ? styles.notchRight : styles.notchBottom,
-              ]}
-            />
-          ) : null}
         </View>
 
         {/* Stub — category-tinted, carries the value and who it's for */}
         <View
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h !== stubH) setStubH(h);
+          }}
           style={[
             styles.stub,
             stack ? styles.stubStack : styles.stubRow,
-            { backgroundColor: meta.tint },
+            IS_WEB ? { backgroundColor: meta.tint } : null,
           ]}
         >
           <View style={[styles.stampBadge, { borderColor: meta.accent }]}>
@@ -222,19 +232,6 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
             </LText>
           </View>
         </View>
-
-        {!IS_WEB ? (
-          <View
-            pointerEvents="none"
-            accessibilityElementsHidden
-            style={styles.cornerLayer}
-          >
-            <View style={[styles.bite, styles.biteTL]} />
-            <View style={[styles.bite, styles.biteTR]} />
-            <View style={[styles.bite, styles.biteBL]} />
-            <View style={[styles.bite, styles.biteBR]} />
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -243,23 +240,18 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
 const styles = StyleSheet.create({
   shadowWrap: {
     width: "100%",
+    overflow: "visible",
+    ...(IS_WEB ? null : ticketNativeShadow()),
   },
   shadowWrapWeb: {
-    ...(IS_WEB ? ({ filter: TICKET_SHADOW } as object) : null),
+    ...(IS_WEB
+      ? ({ filter: TICKET_SHADOW, WebkitFilter: TICKET_SHADOW } as object)
+      : null),
   },
   ticket: {
     width: "100%",
-    backgroundColor: Skoun.color.surface,
-    overflow: IS_WEB ? "visible" : "hidden",
-    ...(IS_WEB
-      ? null
-      : {
-          shadowColor: "#121826",
-          shadowOpacity: 0.2,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 10 },
-          elevation: 8,
-        }),
+    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    overflow: "visible",
   },
   ticketRow: {
     flexDirection: "row",
@@ -396,19 +388,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderStyle: "dashed",
   },
-  notch: {
-    position: "absolute",
-    width: NOTCH,
-    height: NOTCH,
-    borderRadius: NOTCH / 2,
-    backgroundColor: PAGE_BG,
-    zIndex: 3,
-  },
-  notchTop: { top: -NOTCH / 2, left: -NOTCH / 2 },
-  notchBottom: { bottom: -NOTCH / 2, left: -NOTCH / 2 },
-  notchLeft: { left: -NOTCH / 2, top: -NOTCH / 2 },
-  notchRight: { right: -NOTCH / 2, top: -NOTCH / 2 },
-
   stub: {
     flexShrink: 0,
     gap: 14,
@@ -465,24 +444,4 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodySemi,
     textAlign: "center",
   },
-
-  cornerLayer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 4,
-  },
-  bite: {
-    position: "absolute",
-    width: CORNER,
-    height: CORNER,
-    borderRadius: CORNER / 2,
-    backgroundColor: PAGE_BG,
-  },
-  biteTL: { top: -CORNER / 2, left: -CORNER / 2 },
-  biteTR: { top: -CORNER / 2, right: -CORNER / 2 },
-  biteBL: { bottom: -CORNER / 2, left: -CORNER / 2 },
-  biteBR: { bottom: -CORNER / 2, right: -CORNER / 2 },
 });

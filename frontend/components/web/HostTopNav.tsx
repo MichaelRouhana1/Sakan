@@ -1,7 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
+import { HOST_CREDITS_PATH } from "@/constants/hostRoutes";
 import { Skoun } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
@@ -9,15 +11,28 @@ import {
   WEB_NAV_HEIGHT,
 } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { useCredits } from "@/features/credits/useCredits";
 
 export function HostTopNav() {
   const router = useRouter();
-  const { user } = useAuthSession();
+  const { user, isSignedIn } = useAuthSession();
+  const credits = useCredits(isSignedIn);
 
   const initial =
     user?.firstName?.charAt(0)?.toUpperCase() ||
     user?.email?.charAt(0)?.toUpperCase() ||
     "S";
+
+  const postCredits = credits.data?.postCredits ?? user?.postCredits ?? 0;
+  const boostCredits = credits.data?.boostCredits ?? user?.boostCredits ?? 0;
+  const creditsLabel =
+    boostCredits > 0
+      ? `${postCredits} credit${postCredits === 1 ? "" : "s"} · ${boostCredits} boost`
+      : `${postCredits} credit${postCredits === 1 ? "" : "s"}`;
+
+  function openTopUp() {
+    router.push(HOST_CREDITS_PATH as never);
+  }
 
   return (
     <View style={styles.bar}>
@@ -42,6 +57,33 @@ export function HostTopNav() {
           >
             <Text style={styles.switchLinkText}>Switch to renting</Text>
           </Pressable>
+
+          {isSignedIn ? (
+            <View style={styles.credits}>
+              <Pressable
+                onPress={openTopUp}
+                accessibilityRole="button"
+                accessibilityLabel={`${creditsLabel}. Open top up`}
+                style={({ pressed }) => [
+                  styles.creditsHit,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.creditsText}>{creditsLabel}</Text>
+              </Pressable>
+              <Pressable
+                onPress={openTopUp}
+                accessibilityRole="button"
+                accessibilityLabel="Top up credits"
+                style={({ pressed }) => [
+                  styles.creditsPlus,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Ionicons name="add" size={18} color={Skoun.color.ink} />
+              </Pressable>
+            </View>
+          ) : null}
 
           <WebProfileMenu initial={initial} avatarBackgroundColor="#FCE7F3" />
         </View>
@@ -107,6 +149,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Skoun.color.ink,
     textDecorationLine: "underline",
+  },
+  credits: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  creditsHit: {
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    cursor: "pointer",
+  },
+  creditsText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 15,
+    color: Skoun.color.ink,
+  },
+  creditsPlus: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#DDDDDD",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    cursor: "pointer",
   },
   pressed: {
     opacity: 0.85,

@@ -1,8 +1,35 @@
-import { Platform } from "react-native";
+import { Platform, type ViewStyle } from "react-native";
 
 /** Web drop-shadow for masked tickets — follows the cutout silhouette. */
 export const TICKET_SHADOW =
   "drop-shadow(0 6px 12px rgba(18, 24, 38, 0.16)) drop-shadow(0 16px 32px rgba(18, 24, 38, 0.22))";
+
+/**
+ * Tighter lift for stacked / full-bleed cards. Same layers as desktop —
+ * a hard 0-offset ring reads as a dirty outline on tickets, not a shadow.
+ */
+export const TICKET_SHADOW_COMPACT = TICKET_SHADOW;
+
+/** iOS traces the content alpha so the shadow follows the cutouts. */
+export const TICKET_NATIVE_SHADOW_IOS: ViewStyle = {
+  shadowColor: "#121826",
+  shadowOpacity: 0.16,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 6 },
+};
+
+/** Android elevation — no fill, or a gray slab shows through the bites. */
+export const TICKET_NATIVE_SHADOW_ANDROID: ViewStyle = {
+  elevation: 5,
+};
+
+export function ticketNativeShadow(): ViewStyle {
+  if (Platform.OS === "ios") return TICKET_NATIVE_SHADOW_IOS;
+  return {
+    ...TICKET_NATIVE_SHADOW_IOS,
+    ...TICKET_NATIVE_SHADOW_ANDROID,
+  };
+}
 
 export type TicketTear =
   | { axis: "vertical"; x: number }

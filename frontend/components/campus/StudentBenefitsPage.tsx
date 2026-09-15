@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   Platform,
   Pressable,
@@ -32,8 +32,8 @@ type Scope = "all" | "lebanon" | "global";
 const ALL_UNIS = "";
 
 const SCOPE_OPTIONS = [
-  { value: "all" as const, label: "All offers" },
-  { value: "lebanon" as const, label: "In Lebanon" },
+  { value: "all" as const, label: "All offers", shortLabel: "All" },
+  { value: "lebanon" as const, label: "In Lebanon", shortLabel: "Lebanon" },
   { value: "global" as const, label: "Global" },
 ];
 
@@ -111,7 +111,7 @@ export function StudentBenefitsPage() {
 
   const uniOptions = useMemo(() => {
     const rows = [
-      { value: ALL_UNIS, label: "All universities" },
+      { value: ALL_UNIS, label: "All universities", shortLabel: "All" },
       ...(institutions.data ?? []).map((row) => ({
         value: row.shortName,
         label: row.shortName,
@@ -129,6 +129,17 @@ export function StudentBenefitsPage() {
     }
     return rows;
   }, [institutions.data, uni]);
+
+  const categoryOptions = useMemo(
+    () => [
+      { value: "", label: "All" },
+      ...BENEFIT_CATEGORY_ORDER.map((key) => {
+        const meta = categoryMeta(key);
+        return { value: key, label: meta.label };
+      }),
+    ],
+    [],
+  );
 
   // The list endpoint returns every active offer in one response, so matching
   // on company/title here beats a round-trip per keystroke.
@@ -179,11 +190,15 @@ export function StudentBenefitsPage() {
   const hasFilters = Boolean(query.trim() || uni || category || scope !== "all");
 
   const renderGrid = (rows: typeof searched, offset: number) => (
-    <View style={styles.grid}>
+    <View style={[styles.grid, compact && styles.gridCompact]}>
       {rows.map((benefit, i) => (
         <View
           key={benefit.id}
-          style={[styles.cell, { flexBasis: `${100 / columns}%` }]}
+          style={[
+            styles.cell,
+            compact && styles.cellCompact,
+            { flexBasis: `${100 / columns}%` },
+          ]}
         >
           <BenefitCard
             benefit={benefit}
@@ -199,6 +214,7 @@ export function StudentBenefitsPage() {
       <View
         style={[
           styles.page,
+          compact && styles.pageCompact,
           Platform.OS === "web"
             ? ({
                 width: "100vw",
@@ -207,7 +223,7 @@ export function StudentBenefitsPage() {
                 paddingHorizontal: pagePadX,
                 boxSizing: "border-box",
               } as object)
-            : { paddingHorizontal: 12 },
+            : { paddingHorizontal: 0 },
         ]}
       >
         <View style={styles.hero}>
@@ -261,193 +277,164 @@ export function StudentBenefitsPage() {
           ) : null}
         </View>
 
-        <View style={[styles.filterRail, columns === 1 && styles.filterRailStack]}>
-          <View style={[styles.railBlock, styles.railUni]}>
-            <LText variant="label" tone="muted" style={styles.railEyebrow}>
-              Studying at
-            </LText>
-            <CampusFormSelect
-              appearance="passport"
-              hideLabel
-              label="University"
-              value={uni}
-              options={uniOptions}
-              disabled={institutions.isLoading}
-              searchable
-              searchPlaceholder="Search universities…"
-              accessibilityLabel="Filter by university"
-              onChange={(next) => {
-                setUni(next);
-                syncParams({ uni: next });
-              }}
-            />
-          </View>
-
-          <View
-            style={[
-              styles.railBlock,
-              styles.railScope,
-              columns === 1 && styles.railScopeStack,
-            ]}
-          >
-            <LText variant="label" tone="muted" style={styles.railEyebrow}>
-              Show
-            </LText>
-            <View
-              style={[styles.scopeTabs, columns === 1 && styles.scopeTabsWrap]}
-              accessibilityRole="tablist"
-              accessibilityLabel="Filter by availability"
-            >
-              {SCOPE_OPTIONS.map((opt) => {
-                const on = scope === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => {
-                      setScope(opt.value);
-                      syncParams({ scope: opt.value });
-                    }}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: on }}
-                    accessibilityLabel={opt.label}
-                    style={({ hovered }) => [
-                      styles.scopeTab,
-                      hovered && !on && styles.scopeTabHover,
-                    ]}
-                  >
-                    <LText
-                      variant="body"
-                      style={[styles.scopeTabLabel, on && styles.scopeTabLabelOn]}
-                    >
-                      {opt.label}
-                    </LText>
-                    <View
-                      style={[styles.scopeUnderline, on && styles.scopeUnderlineOn]}
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-
-          <View style={[styles.railBlock, styles.railBrowse]}>
-            <LText variant="label" tone="muted" style={styles.railEyebrow}>
-              Browse
-            </LText>
-            <View
-              style={styles.catRow}
-              accessibilityRole="tablist"
-              accessibilityLabel="Filter by category"
-            >
-              <Pressable
-                onPress={() => {
-                  setCategory("");
-                  syncParams({ cat: "" });
-                }}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: category === "" }}
-                accessibilityLabel="All categories"
-                hitSlop={6}
-                style={({ hovered, pressed }) => [
-                  styles.catItem,
-                  (hovered || pressed) && category !== "" && styles.catItemHover,
-                ]}
-              >
-                <View style={styles.catItemInner}>
-                  <View
-                    style={[
-                      styles.catMark,
-                      category === "" && styles.catMarkOnPrimary,
-                    ]}
-                  >
-                    <Ionicons
-                      name="apps-outline"
-                      size={14}
-                      color={
-                        category === ""
-                          ? Skoun.color.surface
-                          : Skoun.color.primary
-                      }
-                    />
-                  </View>
-                  <LText
-                    variant="body"
-                    style={[
-                      styles.catLabel,
-                      category === "" && styles.catLabelOn,
-                    ]}
-                  >
-                    All
-                  </LText>
-                </View>
-                <View
-                  style={[
-                    styles.catUnderline,
-                    category === "" && styles.catUnderlineOn,
-                  ]}
+        <View
+          style={[styles.filterRail, compact && styles.filterRailRow]}
+        >
+          {compact ? (
+            <>
+              <View style={styles.filterCol}>
+                <LText variant="label" tone="muted" style={styles.railEyebrow}>
+                  Studying at
+                </LText>
+                <CampusFormSelect
+                  appearance="rail"
+                  hideLabel
+                  label="University"
+                  value={uni}
+                  options={uniOptions}
+                  disabled={institutions.isLoading}
+                  searchable
+                  searchPlaceholder="Search universities…"
+                  accessibilityLabel="Filter by university"
+                  onChange={(next) => {
+                    setUni(next);
+                    syncParams({ uni: next });
+                  }}
                 />
-              </Pressable>
+              </View>
+              <View style={styles.filterCol}>
+                <LText variant="label" tone="muted" style={styles.railEyebrow}>
+                  Show
+                </LText>
+                <CampusFormSelect
+                  appearance="rail"
+                  hideLabel
+                  label="Show"
+                  value={scope}
+                  options={SCOPE_OPTIONS}
+                  accessibilityLabel="Filter by availability"
+                  onChange={(next) => {
+                    setScope(next as Scope);
+                    syncParams({ scope: next as Scope });
+                  }}
+                />
+              </View>
+              <View style={styles.filterCol}>
+                <LText variant="label" tone="muted" style={styles.railEyebrow}>
+                  Browse
+                </LText>
+                <CampusFormSelect
+                  appearance="rail"
+                  hideLabel
+                  label="Browse"
+                  value={category}
+                  options={categoryOptions}
+                  accessibilityLabel="Filter by category"
+                  onChange={(next) => {
+                    setCategory(next as BenefitCategory | "");
+                    syncParams({ cat: next as BenefitCategory | "" });
+                  }}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={[styles.railBlock, styles.railUni]}>
+                <LText variant="label" tone="muted" style={styles.railEyebrow}>
+                  Studying at
+                </LText>
+                <CampusFormSelect
+                  appearance="passport"
+                  hideLabel
+                  label="University"
+                  value={uni}
+                  options={uniOptions}
+                  disabled={institutions.isLoading}
+                  searchable
+                  searchPlaceholder="Search universities…"
+                  accessibilityLabel="Filter by university"
+                  onChange={(next) => {
+                    setUni(next);
+                    syncParams({ uni: next });
+                  }}
+                />
+              </View>
 
-              {BENEFIT_CATEGORY_ORDER.map((key) => {
-                const meta = categoryMeta(key);
-                const on = category === key;
-                return (
-                  <Pressable
-                    key={key}
-                    onPress={() => {
-                      const next = on ? "" : key;
+              <View style={[styles.railBlock, styles.railScope]}>
+                <LText variant="label" tone="muted" style={styles.railEyebrow}>
+                  Show
+                </LText>
+                <View
+                  style={styles.scopeTabs}
+                  accessibilityRole="tablist"
+                  accessibilityLabel="Filter by availability"
+                >
+                  {SCOPE_OPTIONS.map((opt) => {
+                    const on = scope === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => {
+                          setScope(opt.value);
+                          syncParams({ scope: opt.value });
+                        }}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: on }}
+                        accessibilityLabel={opt.label}
+                        style={({ hovered }) => [
+                          styles.scopeTab,
+                          hovered && !on && styles.scopeTabHover,
+                        ]}
+                      >
+                        <LText
+                          variant="body"
+                          style={[
+                            styles.scopeTabLabel,
+                            on && styles.scopeTabLabelOn,
+                          ]}
+                        >
+                          {opt.label}
+                        </LText>
+                        <View
+                          style={[
+                            styles.scopeUnderline,
+                            on && styles.scopeUnderlineOn,
+                          ]}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={[styles.railBlock, styles.railBrowse]}>
+                <LText variant="label" tone="muted" style={styles.railEyebrow}>
+                  Browse
+                </LText>
+                <CategoryRail compact={false}>
+                  <CategoryPicks
+                    category={category}
+                    onPick={(next) => {
                       setCategory(next);
                       syncParams({ cat: next });
                     }}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: on }}
-                    accessibilityLabel={`${meta.label} offers`}
-                    hitSlop={6}
-                    style={({ hovered, pressed }) => [
-                      styles.catItem,
-                      (hovered || pressed) && !on && styles.catItemHover,
-                    ]}
-                  >
-                    <View style={styles.catItemInner}>
-                      <View
-                        style={[
-                          styles.catMark,
-                          { backgroundColor: meta.tint },
-                          on && { backgroundColor: meta.accent },
-                        ]}
-                      >
-                        <Ionicons
-                          name={meta.icon}
-                          size={14}
-                          color={on ? Skoun.color.surface : meta.accent}
-                        />
-                      </View>
-                      <LText
-                        variant="body"
-                        style={[styles.catLabel, on && styles.catLabelOn]}
-                      >
-                        {meta.label}
-                      </LText>
-                    </View>
-                    <View
-                      style={[
-                        styles.catUnderline,
-                        on && { backgroundColor: meta.accent },
-                      ]}
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
+                  />
+                </CategoryRail>
+              </View>
+            </>
+          )}
         </View>
 
         {benefits.isLoading ? (
-          <View style={styles.grid}>
+          <View style={[styles.grid, compact && styles.gridCompact]}>
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <View
                 key={i}
-                style={[styles.cell, { flexBasis: `${100 / columns}%` }]}
+                style={[
+                  styles.cell,
+                  compact && styles.cellCompact,
+                  { flexBasis: `${100 / columns}%` },
+                ]}
               >
                 <BenefitCardSkeleton />
               </View>
@@ -556,12 +543,18 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 64,
+    // Native ScrollView clips overflow. Side shadows need this gutter
+    // inside the scroller (vertical shadows already show in the row gaps).
+    ...(Platform.OS === "web" ? null : { paddingHorizontal: 20 }),
   },
   page: {
     gap: 24,
     width: "100%",
     alignSelf: "stretch",
     minWidth: 0,
+  },
+  pageCompact: {
+    gap: 16,
   },
   hero: {
     gap: 10,
@@ -646,11 +639,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
   },
-  filterRailStack: {
-    flexDirection: "column",
+  filterRailRow: {
+    flexWrap: "nowrap",
     alignItems: "stretch",
-    gap: 16,
-    paddingBottom: 14,
+    columnGap: 10,
+    rowGap: 0,
+    paddingBottom: 10,
+  },
+  filterCol: {
+    flex: 1,
+    minWidth: 0,
+    gap: 0,
   },
   railBlock: {
     gap: 4,
@@ -667,12 +666,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     maxWidth: "100%",
   },
-  railScopeStack: {
-    alignItems: "flex-start",
-  },
   railBrowse: {
     flexGrow: 1,
-    flexShrink: 1,
+    flexShrink: 0,
     flexBasis: 320,
     minWidth: 0,
   },
@@ -688,10 +684,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
     minHeight: 44,
-  },
-  scopeTabsWrap: {
-    flexWrap: "wrap",
-    rowGap: 4,
   },
   scopeTab: {
     paddingHorizontal: 10,
@@ -727,12 +719,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
+    alignContent: "flex-start",
     columnGap: 4,
     rowGap: 6,
     width: "100%",
     minHeight: 44,
+    flexGrow: 0,
+    flexShrink: 0,
+    ...(Platform.OS === "web"
+      ? ({ height: "auto", minHeight: "min-content" } as object)
+      : null),
+  },
+  catScroll: {
+    width: "100%",
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  catRowScroll: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingRight: 12,
+    flexGrow: 0,
   },
   catItem: {
+    flexShrink: 0,
     alignItems: "stretch",
     paddingHorizontal: 8,
     paddingTop: 4,
@@ -827,6 +838,11 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
     rowGap: 14,
     width: "100%",
+    overflow: "visible",
+  },
+  gridCompact: {
+    marginHorizontal: 0,
+    rowGap: 20,
   },
   cell: {
     flexGrow: 0,
@@ -835,5 +851,133 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     minWidth: 0,
     maxWidth: "100%",
+    overflow: "visible",
+  },
+  cellCompact: {
+    paddingHorizontal: 0,
   },
 });
+
+const CATEGORY_PICKS: {
+  key: BenefitCategory | "";
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  accent: string;
+  tint: string;
+}[] = [
+  {
+    key: "",
+    label: "All",
+    icon: "apps-outline",
+    accent: Skoun.color.primary,
+    tint: Skoun.color.primaryMist,
+  },
+  ...BENEFIT_CATEGORY_ORDER.map((key) => {
+    const meta = categoryMeta(key);
+    return {
+      key,
+      label: meta.label,
+      icon: meta.icon,
+      accent: meta.accent,
+      tint: meta.tint,
+    };
+  }),
+];
+
+function CategoryPicks({
+  category,
+  onPick,
+}: {
+  category: BenefitCategory | "";
+  onPick: (next: BenefitCategory | "") => void;
+}) {
+  return (
+    <>
+      {CATEGORY_PICKS.map((item) => {
+        const on = category === item.key;
+        const a11y =
+          item.key === "" ? "All categories" : `${item.label} offers`;
+        return (
+          <Pressable
+            key={item.key || "all"}
+            onPress={() => {
+              if (item.key === "") onPick("");
+              else onPick(on ? "" : item.key);
+            }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={a11y}
+            hitSlop={6}
+            style={({ hovered, pressed }) => [
+              styles.catItem,
+              (hovered || pressed) && !on && styles.catItemHover,
+            ]}
+          >
+            <View style={styles.catItemInner}>
+              <View
+                style={[
+                  styles.catMark,
+                  { backgroundColor: item.tint },
+                  on && { backgroundColor: item.accent },
+                  item.key === "" && on && styles.catMarkOnPrimary,
+                ]}
+              >
+                <Ionicons
+                  name={item.icon}
+                  size={14}
+                  color={on ? Skoun.color.surface : item.accent}
+                />
+              </View>
+              <LText
+                variant="body"
+                style={[styles.catLabel, on && styles.catLabelOn]}
+              >
+                {item.label}
+              </LText>
+            </View>
+            <View
+              style={[
+                styles.catUnderline,
+                on && { backgroundColor: item.accent },
+              ]}
+            />
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
+function CategoryRail({
+  compact,
+  children,
+}: {
+  compact: boolean;
+  children: ReactNode;
+}) {
+  if (compact) {
+    return (
+      <ScrollView
+        horizontal
+        nestedScrollEnabled
+        showsHorizontalScrollIndicator={false}
+        style={styles.catScroll}
+        contentContainerStyle={styles.catRowScroll}
+        accessibilityRole="tablist"
+        accessibilityLabel="Filter by category"
+      >
+        {children}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <View
+      style={styles.catRow}
+      accessibilityRole="tablist"
+      accessibilityLabel="Filter by category"
+    >
+      {children}
+    </View>
+  );
+}

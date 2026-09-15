@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { TicketBackdrop, type TicketTear } from "@/components/campus/TicketBackdrop";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { categoryMeta } from "@/features/benefits/categories";
@@ -18,6 +19,11 @@ import {
   type StudentBenefit,
 } from "@/features/benefits/types";
 import { benefitCompanyLogo } from "@/lib/benefitCompanyLogos";
+import {
+  TICKET_SHADOW,
+  TICKET_SHADOW_COMPACT,
+  ticketNativeShadow,
+} from "@/lib/ticketMask";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 type Props = {
@@ -32,10 +38,8 @@ const MAX_STAGGER_STEPS = 8;
  * 24px tear punch along the perforation.
  */
 const NOTCH = 24;
-const NOTCH_OFFSET = -(NOTCH / 2);
 /** Concave outer corners — must read clearly as inward bites. */
 const CORNER = 28;
-const CORNER_OFFSET = -(CORNER / 2);
 /** Stub column — wide enough for short badges on one line. */
 const STUB_WIDTH = 132;
 /** Neutral dashed perforation (slate-200 equivalent). */
@@ -43,10 +47,23 @@ const PERFORATION = "rgba(197, 205, 216, 0.95)";
 const STACK_BELOW = 420;
 const MAX_STAMP_CHARS = 8;
 const IS_WEB = Platform.OS === "web";
-/** Approximate stub height when the tear runs horizontally (narrow screens). */
+/** Fallback stub height when the tear runs horizontally, until measured. */
 const STUB_STACK_H = 76;
-/** Native-only fill for painted bites — matches CampusShell canvas. */
-const PAGE_BG = Skoun.color.bg;
+/** Stub tint, expressed as an opaque colour + alpha so SVG can draw it too. */
+const STUB_TINT = "#F5F7FA";
+const STUB_TINT_ALPHA = 0.92;
+
+/** Where the perforation sits, in ticket coordinates. */
+function ticketTear(
+  stack: boolean,
+  w: number,
+  h: number,
+  stubH: number,
+): TicketTear {
+  return stack
+    ? { axis: "horizontal", at: h - (stubH || STUB_STACK_H) }
+    : { axis: "vertical", at: w - STUB_WIDTH };
+}
 
 /**
  * SVG luminance mask — white keeps the ticket, black punches real holes.
@@ -57,13 +74,15 @@ function couponSvgMask(
   stack: boolean,
   w: number,
   h: number,
+  stubH = 0,
 ): object {
   if (!IS_WEB || w < 8 || h < 8) return {};
 
   const cr = CORNER / 2;
   const nr = NOTCH / 2;
-  const tearX = stack ? 0 : Math.max(cr + nr, w - STUB_WIDTH);
-  const tearY = stack ? Math.max(cr + nr, h - STUB_STACK_H) : 0;
+  const tear = ticketTear(stack, w, h, stubH);
+  const tearX = stack ? 0 : Math.max(cr + nr, tear.at);
+  const tearY = stack ? Math.max(cr + nr, tear.at) : 0;
 
   const cutouts = stack
     ? `<circle cx="0" cy="${tearY}" r="${nr}" fill="#000"/>
@@ -146,11 +165,13 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
   const meta = categoryMeta(benefit.category);
   const exclusive = isCampusExclusive(benefit);
   const stack = width < STACK_BELOW;
+  const compactShadow = width < 640;
   const stamp = stubStamp(benefit.title);
   const stampSize = stampFontSize(stamp);
   const logo = benefitCompanyLogo(benefit.companyName);
   const [hovered, setHovered] = useState(false);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [stubH, setStubH] = useState(0);
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -176,27 +197,33 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
       : "Lebanon students";
 
   return (
-    <Animated.View
+    <View
       style={[
-        styles.animWrap,
-        {
-          opacity: anim,
-          transform: [
-            {
-              translateY: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [12, 0],
-              }),
-            },
-          ],
-        },
+        styles.shadowHost,
+        IS_WEB &&
+          (hovered
+            ? styles.shadowWrapHover
+            : compactShadow
+              ? styles.shadowWrapMobile
+              : styles.shadowWrapRest),
+        IS_WEB && hovered && styles.shadowLiftHover,
       ]}
+      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
     >
-      {/* Drop-shadow lives outside the masked ticket so it follows the cutouts. */}
-      <View
+      <Animated.View
         style={[
-          styles.shadowWrap,
-          IS_WEB && (hovered ? styles.shadowWrapHover : styles.shadowWrapRest),
+          styles.animWrap,
+          {
+            opacity: anim,
+            transform: [
+              {
+                translateY: anim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [12, 0],
+                }),
+              },
+            ],
+          },
         ]}
       >
         <Pressable
@@ -212,11 +239,25 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
           accessibilityHint="Opens the offer details"
           style={({ pressed }) => [
             styles.ticket,
-            couponSvgMask(stack, size.w, size.h) as object,
-            pressed && styles.ticketPressed,
+            couponSvgMask(stack, size.w, size.h, stubH) as object,
+            pressed && (IS_WEB ? styles.ticketPressed : styles.ticketPressedNative),
             stack ? styles.ticketStack : styles.ticketRow,
           ]}
         >
+        {/* Native: silhouette + stub tint + shadow drawn as one SVG */}
+        {!IS_WEB ? (
+          <TicketBackdrop
+            w={size.w}
+            h={size.h}
+            corner={CORNER}
+            notch={NOTCH}
+            tear={ticketTear(stack, size.w, size.h, stubH)}
+            fill={Skoun.color.surface}
+            stubFill={STUB_TINT}
+            stubOpacity={STUB_TINT_ALPHA}
+          />
+        ) : null}
+
         {/* Main body */}
         <View style={[styles.body, stack ? styles.bodyStack : styles.bodyRow]}>
           <View style={styles.top}>
@@ -267,35 +308,28 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
           </View>
         </View>
 
-        {/* Perforation rail — dashed tear; native also paints PAGE_BG punches */}
+        {/* Perforation rail — dashed tear; punches come from the mask / SVG */}
         <View
           style={stack ? styles.railHorizontal : styles.railVertical}
           pointerEvents="none"
           accessibilityElementsHidden
         >
-          {!IS_WEB ? (
-            <View
-              style={[styles.notch, stack ? styles.notchLeft : styles.notchTop]}
-            />
-          ) : null}
           <View
             style={[
               styles.dashTrack,
               stack ? styles.dashTrackHorizontal : styles.dashTrackVertical,
             ]}
           />
-          {!IS_WEB ? (
-            <View
-              style={[
-                styles.notch,
-                stack ? styles.notchRight : styles.notchBottom,
-              ]}
-            />
-          ) : null}
         </View>
 
         {/* Stub — tinted ticket end with stamp badge */}
-        <View style={[styles.stub, stack ? styles.stubStack : styles.stubRow, hovered && styles.stubHover]}>
+        <View
+          style={[styles.stub, stack ? styles.stubStack : styles.stubRow, hovered && styles.stubHover]}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h !== stubH) setStubH(h);
+          }}
+        >
           <View style={[styles.stampBadge, hovered && styles.stampBadgeHover]}>
             <LText
               style={[
@@ -320,23 +354,9 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
             />
           </View>
         </View>
-
-        {/* Native fallback: painted bites (web uses CSS mask instead) */}
-        {!IS_WEB ? (
-          <View
-            pointerEvents="none"
-            accessibilityElementsHidden
-            style={styles.cornerLayer}
-          >
-            <View style={[styles.cornerBite, styles.cornerTL]} />
-            <View style={[styles.cornerBite, styles.cornerTR]} />
-            <View style={[styles.cornerBite, styles.cornerBL]} />
-            <View style={[styles.cornerBite, styles.cornerBR]} />
-          </View>
-        ) : null}
         </Pressable>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -347,6 +367,7 @@ export function BenefitCardSkeleton() {
   const { width } = useWindowDimensions();
   const stack = width < STACK_BELOW;
   const pulse = useRef(new Animated.Value(0.5)).current;
+  const [size, setSize] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     if (reduced) {
@@ -374,17 +395,45 @@ export function BenefitCardSkeleton() {
   }, [pulse, reduced]);
 
   return (
+    <View
+      style={[
+        styles.shadowHost,
+        IS_WEB && (width < 640 ? styles.shadowWrapMobile : styles.shadowWrapRest),
+      ]}
+      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
     <Animated.View
+      style={[
+        styles.animWrap,
+        { opacity: pulse },
+      ]}
+    >
+    <View
       style={[
         styles.ticket,
         couponSvgMask(stack, 420, stack ? 216 : 188) as object,
         stack ? styles.ticketStack : styles.ticketRow,
         styles.skeletonTicket,
-        { opacity: pulse },
       ]}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        if (w !== size.w || h !== size.h) setSize({ w, h });
+      }}
     >
+      {!IS_WEB ? (
+        <TicketBackdrop
+          w={size.w}
+          h={size.h}
+          corner={CORNER}
+          notch={NOTCH}
+          tear={ticketTear(stack, size.w, size.h, 0)}
+          fill={Skoun.color.surface}
+          stubFill={STUB_TINT}
+          stubOpacity={STUB_TINT_ALPHA}
+        />
+      ) : null}
       <View style={[styles.body, stack ? styles.bodyStack : styles.bodyRow]}>
         <View style={styles.top}>
           <View style={[styles.iconWell, styles.skeletonBlock]} />
@@ -421,25 +470,12 @@ export function BenefitCardSkeleton() {
         />
       </View>
       <View style={stack ? styles.railHorizontal : styles.railVertical}>
-        {!IS_WEB ? (
-          <View
-            style={[styles.notch, stack ? styles.notchLeft : styles.notchTop]}
-          />
-        ) : null}
         <View
           style={[
             styles.dashTrack,
             stack ? styles.dashTrackHorizontal : styles.dashTrackVertical,
           ]}
         />
-        {!IS_WEB ? (
-          <View
-            style={[
-              styles.notch,
-              stack ? styles.notchRight : styles.notchBottom,
-            ]}
-          />
-        ) : null}
       </View>
       <View style={[styles.stub, stack ? styles.stubStack : styles.stubRow]}>
         <View style={[styles.stampBadge, styles.skeletonStamp]} />
@@ -451,38 +487,43 @@ export function BenefitCardSkeleton() {
           ]}
         />
       </View>
-      {!IS_WEB ? (
-        <View pointerEvents="none" style={styles.cornerLayer}>
-          <View style={[styles.cornerBite, styles.cornerTL]} />
-          <View style={[styles.cornerBite, styles.cornerTR]} />
-          <View style={[styles.cornerBite, styles.cornerBL]} />
-          <View style={[styles.cornerBite, styles.cornerBR]} />
-        </View>
-      ) : null}
+    </View>
     </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  animWrap: {
+  shadowHost: {
     flex: 1,
     alignSelf: "stretch",
-  },
-  shadowWrap: {
-    flex: 1,
+    overflow: "visible",
     ...(IS_WEB
       ? ({
           transitionProperty: "filter, transform",
           transitionDuration: "220ms",
           transitionTimingFunction: "ease-out",
         } as object)
-      : null),
+      : ticketNativeShadow()),
+  },
+  animWrap: {
+    flex: 1,
+    alignSelf: "stretch",
+    overflow: "visible",
   },
   shadowWrapRest: {
     ...(IS_WEB
       ? ({
-          filter:
-            "drop-shadow(0 4px 8px rgba(18, 24, 38, 0.1)) drop-shadow(0 12px 24px rgba(18, 24, 38, 0.16))",
+          filter: TICKET_SHADOW,
+          WebkitFilter: TICKET_SHADOW,
+        } as object)
+      : null),
+  },
+  shadowWrapMobile: {
+    ...(IS_WEB
+      ? ({
+          filter: TICKET_SHADOW_COMPACT,
+          WebkitFilter: TICKET_SHADOW_COMPACT,
         } as object)
       : null),
   },
@@ -491,6 +532,14 @@ const styles = StyleSheet.create({
       ? ({
           filter:
             "drop-shadow(0 8px 14px rgba(47, 111, 237, 0.22)) drop-shadow(0 22px 40px rgba(47, 111, 237, 0.34))",
+          WebkitFilter:
+            "drop-shadow(0 8px 14px rgba(47, 111, 237, 0.22)) drop-shadow(0 22px 40px rgba(47, 111, 237, 0.34))",
+        } as object)
+      : null),
+  },
+  shadowLiftHover: {
+    ...(IS_WEB
+      ? ({
           transform: "translateY(-4px)",
         } as object)
       : null),
@@ -499,19 +548,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 0,
     borderWidth: 0,
-    backgroundColor: Skoun.color.surface,
-    // Web: mask punches real holes — do not use box-shadow here (it draws a
-    // gray rectangle under the cutouts). Native keeps overflow for painted bites.
-    overflow: IS_WEB ? "visible" : "hidden",
-    ...(IS_WEB
-      ? ({ cursor: "pointer" } as object)
-      : {
-          shadowColor: "#121826",
-          shadowOpacity: 0.16,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: 6,
-        }),
+    // Web paints the surface on the box and masks it; native leaves the box
+    // transparent so the SVG backdrop (silhouette + shadow) shows through.
+    // Never box-shadow this on web — it draws a gray rect under the cutouts.
+    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    overflow: "visible",
+    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   ticketRow: {
     flexDirection: "row",
@@ -526,11 +568,14 @@ const styles = StyleSheet.create({
   ticketPressed: {
     backgroundColor: Skoun.color.surfaceMuted,
   },
+  ticketPressedNative: {
+    opacity: 0.88,
+  },
 
   body: {
     gap: 16,
     justifyContent: "space-between",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
   },
   bodyRow: {
     flex: 1,
@@ -642,61 +687,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderStyle: "dashed",
   },
-  notch: {
-    position: "absolute",
-    width: NOTCH,
-    height: NOTCH,
-    borderRadius: NOTCH / 2,
-    backgroundColor: PAGE_BG,
-    zIndex: 3,
-  },
-  notchTop: {
-    top: NOTCH_OFFSET,
-    left: NOTCH_OFFSET,
-  },
-  notchBottom: {
-    bottom: NOTCH_OFFSET,
-    left: NOTCH_OFFSET,
-  },
-  notchLeft: {
-    left: NOTCH_OFFSET,
-    top: NOTCH_OFFSET,
-  },
-  notchRight: {
-    right: NOTCH_OFFSET,
-    top: NOTCH_OFFSET,
-  },
-
-  cornerLayer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 4,
-  },
-  cornerBite: {
-    position: "absolute",
-    width: CORNER,
-    height: CORNER,
-    borderRadius: CORNER / 2,
-    backgroundColor: PAGE_BG,
-  },
-  cornerTL: {
-    top: CORNER_OFFSET,
-    left: CORNER_OFFSET,
-  },
-  cornerTR: {
-    top: CORNER_OFFSET,
-    right: CORNER_OFFSET,
-  },
-  cornerBL: {
-    bottom: CORNER_OFFSET,
-    left: CORNER_OFFSET,
-  },
-  cornerBR: {
-    bottom: CORNER_OFFSET,
-    right: CORNER_OFFSET,
-  },
-
   stub: {
-    backgroundColor: "rgba(245, 247, 250, 0.92)",
+    // Native draws this tint inside the SVG so it stops at the cutouts.
+    backgroundColor: IS_WEB
+      ? `rgba(245, 247, 250, ${STUB_TINT_ALPHA})`
+      : "transparent",
     gap: 14,
     flexShrink: 0,
     ...(IS_WEB

@@ -182,9 +182,10 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginHorizontal: -6,
+    marginHorizontal: Platform.OS === "web" ? -6 : 0,
     rowGap: 14,
     width: "100%",
+    overflow: "visible",
   },
   cell: {
     flexGrow: 0,
@@ -193,5 +194,6 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     minWidth: 0,
     maxWidth: "100%",
+    overflow: "visible",
   },
 });
