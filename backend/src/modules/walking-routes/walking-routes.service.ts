@@ -11,7 +11,7 @@ import type {
   WalkingRouteResult,
 } from "./walking-routes.schemas.js";
 
-const PIN_EPSILON_M = 5;
+export const PIN_EPSILON_M = 5;
 const NEGATIVE_TTL_MS = 30_000;
 
 type Pin = WalkingRouteLngLat;
@@ -29,6 +29,21 @@ function haversineM(a: Pin, b: Pin): number {
       Math.cos((b.lat * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+/** True when a new campus pin is more than PIN_EPSILON_M from the stored pin. */
+export function campusPinRelocated(
+  existing: { lng: number | null; lat: number | null },
+  next: { lng?: number | null; lat?: number | null },
+): boolean {
+  if (next.lng == null || next.lat == null) return false;
+  if (existing.lng == null || existing.lat == null) return true;
+  return (
+    haversineM(
+      { lng: existing.lng, lat: existing.lat },
+      { lng: next.lng, lat: next.lat },
+    ) > PIN_EPSILON_M
+  );
 }
 
 function pinsMatch(cached: CachedWalkingRoute, listing: Pin, campus: Pin): boolean {
@@ -153,7 +168,6 @@ export class WalkingRoutesService {
     const token = loadEnv().MAPBOX_ACCESS_TOKEN;
     if (!token) {
       console.warn("[walking-route] MAPBOX_ACCESS_TOKEN unset — returning fallback");
-      rememberNegative(key);
       return fallback;
     }
 

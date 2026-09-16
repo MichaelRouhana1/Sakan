@@ -258,7 +258,7 @@
 | `useReducedMotion.ts` | a11y motion preference |
 | `skounMapbox.web.ts` | Mapbox GL helpers for web maps |
 | `mapboxEnv.ts` | Mapbox token aliases, Standard style, static image URL |
-| `mapboxWalkingRoute.ts` | Mapbox Directions walking client + cache |
+| `mapboxWalkingRoute.ts` | Backend walking-route `api.get` client + ok-only L1 cache (Directions run on the server) |
 | `features/listings/useWalkingRoute.ts` | Hook for campus→listing walking polyline |
 
 ### `constants/`
