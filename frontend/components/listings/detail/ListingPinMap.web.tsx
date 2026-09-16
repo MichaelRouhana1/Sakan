@@ -93,8 +93,10 @@ export function ListingPinMap({
 
   return (
     <View
-      style={[styles.wrap, { height }]}
-      pointerEvents={interactive ? "auto" : "none"}
+      style={[
+        styles.wrap,
+        { height, pointerEvents: interactive ? "auto" : "none" },
+      ]}
     >
       {tokenMissing ? (
         <View style={styles.missing}>

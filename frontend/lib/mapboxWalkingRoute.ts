@@ -1,4 +1,5 @@
-import { getMapboxToken } from "@/lib/mapboxEnv";
+import axios from "axios";
+import { api } from "@/lib/api";
 
 export type LngLat = { lng: number; lat: number };
 
@@ -9,20 +10,28 @@ export type WalkingRouteResult = {
   status: "ok" | "fallback";
 };
 
+type WalkingRouteResponse = { data: WalkingRouteResult };
+
 const cache = new Map<string, WalkingRouteResult>();
-const inflight = new Map<string, AbortController>();
+
+function roundCoord(n: number): string {
+  return n.toFixed(5);
+}
 
 export function walkingRouteKey(
   listingId: string,
   campusSlug: string,
+  from?: LngLat,
+  to?: LngLat,
 ): string {
-  return `${listingId}|${campusSlug}`;
+  if (!from || !to) return `${listingId}|${campusSlug}`;
+  return `${listingId}|${campusSlug}|${roundCoord(from.lng)}|${roundCoord(from.lat)}|${roundCoord(to.lng)}|${roundCoord(to.lat)}`;
 }
 
-function straightFallback(from: LngLat, to: LngLat, distanceM: number): WalkingRouteResult {
+function straightFallback(from: LngLat, to: LngLat): WalkingRouteResult {
   return {
     coords: [from, to],
-    distanceM,
+    distanceM: haversineM(from, to),
     durationS: 0,
     status: "fallback",
   };
@@ -40,71 +49,57 @@ function haversineM(a: LngLat, b: LngLat): number {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
 }
 
-type DirectionsJson = {
-  routes?: Array<{
-    distance?: number;
-    duration?: number;
-    geometry?: { type?: string; coordinates?: [number, number][] };
-  }>;
-};
+function isAbortError(err: unknown): boolean {
+  if (axios.isCancel(err)) return true;
+  if (axios.isAxiosError(err) && err.code === "ERR_CANCELED") return true;
+  return err instanceof Error && (err.name === "AbortError" || err.name === "CanceledError");
+}
+
+function toAbortError(err: unknown): Error {
+  if (err instanceof Error && err.name === "AbortError") return err;
+  const abort = new Error("Aborted");
+  abort.name = "AbortError";
+  return abort;
+}
+
+function isOkRoute(value: unknown): value is WalkingRouteResult {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Partial<WalkingRouteResult>;
+  return (
+    row.status === "ok" &&
+    Array.isArray(row.coords) &&
+    row.coords.length >= 2 &&
+    typeof row.distanceM === "number" &&
+    typeof row.durationS === "number"
+  );
+}
 
 export async function fetchWalkingRoute(
+  listingId: string,
+  campusSlug: string,
   from: LngLat,
   to: LngLat,
-  key: string,
   signal?: AbortSignal,
 ): Promise<WalkingRouteResult> {
+  const key = walkingRouteKey(listingId, campusSlug, from, to);
   const hit = cache.get(key);
-  if (hit) {
-    return hit;
-  }
+  if (hit) return hit;
 
-  const fallback = straightFallback(from, to, haversineM(from, to));
-  const token = getMapboxToken();
-  if (!token) {
-    cache.set(key, fallback);
-    return fallback;
-  }
-
-  const prev = inflight.get(key);
-  prev?.abort();
-  const controller = new AbortController();
-  inflight.set(key, controller);
-  const onAbort = () => controller.abort();
-  signal?.addEventListener("abort", onAbort);
-
-  const path = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-  const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${path}?geometries=geojson&overview=full&access_token=${encodeURIComponent(token)}`;
-
+  const fallback = straightFallback(from, to);
   try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) {
-      cache.set(key, fallback);
-      return fallback;
+    const { data } = await api.get<WalkingRouteResponse>(
+      `/api/listings/${listingId}/walking-route`,
+      { params: { campusSlug }, signal },
+    );
+    if (isOkRoute(data.data)) {
+      cache.set(key, data.data);
+      return data.data;
     }
-    const json = (await res.json()) as DirectionsJson;
-    const route = json.routes?.[0];
-    const coords = route?.geometry?.coordinates;
-    if (!coords || coords.length < 2) {
-      cache.set(key, fallback);
-      return fallback;
-    }
-    const result: WalkingRouteResult = {
-      coords: coords.map(([lng, lat]) => ({ lng, lat })),
-      distanceM: Math.round(route.distance ?? fallback.distanceM),
-      durationS: Math.round(route.duration ?? 0),
-      status: "ok",
-    };
-    cache.set(key, result);
-    return result;
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw err;
-    }
-    cache.set(key, fallback);
     return fallback;
-  } finally {
-    inflight.delete(key);
-    signal?.removeEventListener("abort", onAbort);
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw toAbortError(err);
+    }
+    return fallback;
   }
 }

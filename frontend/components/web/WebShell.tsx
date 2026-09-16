@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   bodyLocked: {
+    flex: 1,
     flexShrink: 1,
     minHeight: 0,
     overflow: "hidden",
@@ -102,6 +103,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   mainLocked: {
+    flex: 1,
     flexShrink: 1,
     minHeight: 0,
     overflow: "hidden",

@@ -1,4 +1,5 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
+import { skounShadow } from "@/lib/skounShadow";
 import type { Listing } from "@/types/listing";
 
 let SvgComponent: any = null;
@@ -68,8 +69,7 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
     const PathElement = "path" as any;
     return (
       <View
-        style={styles.webNotchBanner}
-        pointerEvents="none"
+        style={[styles.webNotchBanner, { pointerEvents: "none" }]}
         accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
       >
         <SVGElement
@@ -99,8 +99,7 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
   if (SvgComponent && PathComponent) {
     return (
       <View
-        style={styles.nativeNotchBanner}
-        pointerEvents="none"
+        style={[styles.nativeNotchBanner, { pointerEvents: "none" }]}
         accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
       >
         <SvgComponent
@@ -126,8 +125,7 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
 
   return (
     <View
-      style={styles.nativeNotchBanner}
-      pointerEvents="none"
+      style={[styles.nativeNotchBanner, { pointerEvents: "none" }]}
       accessibilityLabel={`${rating.toFixed(1)} from ${reviewCount} reviews`}
     >
       <View style={styles.nativeNotchLeftCurve} />
@@ -149,7 +147,7 @@ export function ListingRatingBadge(props: Props) {
 /** Featured / New chip when a listing has no reviews yet. */
 export function ListingFeatureBadge({ label }: { label: string }) {
   return (
-    <View style={styles.feature} pointerEvents="none">
+    <View style={[styles.feature, { pointerEvents: "none" }]}>
       <Text style={styles.featureText}>{label}</Text>
     </View>
   );
@@ -294,11 +292,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    ...skounShadow({ color: "#000000", y: 1, blur: 3, opacity: 0.08, elevation: 2 }),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -331,10 +325,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.95)",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    shadowColor: "#121826",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    ...skounShadow({ y: 1, blur: 4, opacity: 0.1 }),
   },
   featureText: {
     fontSize: 11,

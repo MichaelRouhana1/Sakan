@@ -194,11 +194,7 @@ const styles = StyleSheet.create({
     padding: 24,
     maxWidth: 420,
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    boxShadow: "0 10px 20px rgba(0, 0, 0, 0.15)",
   },
   modalHeader: {
     flexDirection: "row",

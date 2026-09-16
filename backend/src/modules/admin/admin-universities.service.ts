@@ -4,6 +4,7 @@ import { institutions, universities } from "../../db/schema/index.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../lib/errors.js";
 import type { AdminActor } from "../../middleware/auth.js";
 import { universitiesRepository } from "../universities/universities.repository.js";
+import { walkingRoutesService } from "../walking-routes/walking-routes.service.js";
 import { writeAudit } from "./admin.audit.js";
 
 type InstitutionInput = {
@@ -325,6 +326,10 @@ export class AdminUniversitiesService {
         })
         .where(eq(universities.id, id)),
     );
+
+    if (movingPin) {
+      await walkingRoutesService.deleteByCampusId(id);
+    }
 
     await writeAudit(actor, "campus.update", "campus", id, {
       fields: changedFields(input),

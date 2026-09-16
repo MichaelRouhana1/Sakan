@@ -4,7 +4,6 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Linking,
   Modal,
   Platform,
@@ -14,6 +13,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
+import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { CoincidentListingsSection } from "@/components/listings/CoincidentListingsSection";
@@ -170,9 +170,12 @@ export function ListingDetailWeb({ listingId }: Props) {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={Skoun.color.primary} size="large" />
-      </View>
+      <GeneralLoadingBlock
+        layout="page"
+        state="working"
+        label="Loading listing…"
+        style={styles.center}
+      />
     );
   }
 
@@ -760,6 +763,7 @@ export function ListingDetailWeb({ listingId }: Props) {
 
       <ReportListingDialog
         listingId={listing.id}
+        listingTitle={title}
         visible={reportOpen}
         onClose={() => setReportOpen(false)}
       />

@@ -592,11 +592,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 6,
     zIndex: 100,
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
   },
   loginToContinueBanner: {
     backgroundColor: "#F1F5F9",

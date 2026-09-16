@@ -14,6 +14,9 @@ export type CreditTransaction = {
   boostCreditsDelta: number;
   amountUsdCents: number;
   channel: PaymentChannel;
+  providerExternalId?: string | null;
+  providerTransactionId?: string | null;
+  checkoutUrl?: string | null;
   adminNote: string | null;
   approvedAt: string | null;
   createdAt: string;

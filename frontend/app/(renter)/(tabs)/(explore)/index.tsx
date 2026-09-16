@@ -24,6 +24,7 @@ import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { useHostingNavState } from "@/features/listings/useHostingNavState";
 import { api } from "@/lib/api";
+import { skounShadow } from "@/lib/skounShadow";
 import type { User } from "@/types/user";
 import { Skoun } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
@@ -1110,10 +1111,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D5DCE7",
     backgroundColor: Skoun.color.surface,
-    shadowColor: "#121826",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
+    ...skounShadow({ y: 3, blur: 10, opacity: 0.05 }),
   },
   uniCityFill: {
     flex: 1,

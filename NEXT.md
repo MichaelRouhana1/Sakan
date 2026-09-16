@@ -35,7 +35,7 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 | Item | Status | Why it matters |
 |------|--------|----------------|
 | **Report auto-restrict / broker flag** | Missing | Renters can report. Nothing auto-restricts accounts with a high report volume. Admin Reports UI is mock. |
-| **Payment drop-off reminders** | Missing | Pending Whish/OMT + WhatsApp support CTA exists. No automated reminder if the poster never sends the receipt. |
+| **Payment drop-off reminders** | N/A | Replaced by Whish Pay checkout (auto-grant on verified payment). |
 | **Forgot password** | Missing | Clerk email+password is live; auth modal has no reset path. |
 | **Listing reviews** | Fake | Cards show Amber-style ratings from `demoListingRating()` in `normalizeListing.ts`. No reviews table or API. Hide the badge or ship real reviews — do not launch with hashed fake scores. |
 
@@ -67,7 +67,7 @@ Listing `contactPhone` / `whatsappNumber` and the detail CTA look wired. Treat `
 | Zoning | `zoningSource.ts` |
 | Security / RBAC | `securitySource.ts` (“demo only · not enforced”) |
 
-You cannot approve real Whish/OMT payments, restrict a real user, or take down a real listing from this UI today. Backend admin routes for payments / reports / listings / users **do exist** — the work is wiring the neu desks, not inventing APIs.
+You cannot restrict a real user or take down a real listing from this UI today. Credit purchases settle via Whish (or the local mock) without the admin inbox. Backend admin routes for payments / reports / listings / users **do exist** — the work is wiring the neu desks, not inventing APIs.
 
 **Best next admin slice:** Payments (money) → Reports + listing takedown (trust) → Users restrict/ban → Expired renew. Leave analytics, pricing CMS, zoning, and RBAC for later.
 

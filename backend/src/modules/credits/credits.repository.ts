@@ -15,6 +15,8 @@ export type InsertCreditTransaction = {
   boostCreditsDelta: number;
   amountUsdCents: number;
   channel: "whish" | "omt";
+  providerExternalId?: string | null;
+  checkoutUrl?: string | null;
 };
 
 export type AdminReview = AdminActor & {
@@ -42,6 +44,15 @@ export class CreditsRepository {
     return row ?? null;
   }
 
+  async findByProviderExternalId(providerExternalId: string) {
+    const [row] = await db
+      .select()
+      .from(creditTransactions)
+      .where(eq(creditTransactions.providerExternalId, providerExternalId))
+      .limit(1);
+    return row ?? null;
+  }
+
   async findById(id: string) {
     const [row] = await db
       .select()
@@ -59,12 +70,31 @@ export class CreditsRepository {
       .orderBy(desc(creditTransactions.createdAt));
   }
 
+  async attachCheckout(txId: string, checkoutUrl: string) {
+    const [row] = await db
+      .update(creditTransactions)
+      .set({ checkoutUrl, updatedAt: new Date() })
+      .where(eq(creditTransactions.id, txId))
+      .returning();
+    return row ?? null;
+  }
+
+  async setProviderTransactionId(txId: string, providerTransactionId: string) {
+    const [row] = await db
+      .update(creditTransactions)
+      .set({ providerTransactionId, updatedAt: new Date() })
+      .where(eq(creditTransactions.id, txId))
+      .returning();
+    return row ?? null;
+  }
+
   async approveTransaction(txId: string, review: AdminReview) {
     return db.transaction(async (tx) => {
       const [pending] = await tx
         .select()
         .from(creditTransactions)
         .where(eq(creditTransactions.id, txId))
+        .for("update")
         .limit(1);
 
       if (!pending || pending.status !== "pending") {
@@ -75,6 +105,7 @@ export class CreditsRepository {
         .select()
         .from(users)
         .where(eq(users.id, pending.userId))
+        .for("update")
         .limit(1);
 
       if (!user) {
@@ -139,6 +170,7 @@ export class CreditsRepository {
         .select()
         .from(creditTransactions)
         .where(eq(creditTransactions.id, txId))
+        .for("update")
         .limit(1);
 
       if (!pending || pending.status !== "pending") {

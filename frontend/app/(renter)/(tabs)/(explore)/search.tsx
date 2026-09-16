@@ -47,6 +47,7 @@ import {
 } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
+import { skounShadow } from "@/lib/skounShadow";
 import {
   browseSearchSetParams,
   parseCsvParam,
@@ -776,8 +777,7 @@ export default function RenterSearchScreen() {
             ) : null}
             {!carouselOpen ? (
               <View
-                style={[styles.mapChrome, { paddingTop: insets.top + 8 }]}
-                pointerEvents="box-none"
+                style={[styles.mapChrome, { paddingTop: insets.top + 8, pointerEvents: "box-none" }]}
               >
                 <Pressable
                   accessibilityRole="button"
@@ -1321,11 +1321,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    shadowColor: "#121826",
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    ...skounShadow({ y: 2, blur: 8, opacity: 0.16, elevation: 4 }),
   },
   mapFilterBadge: {
     position: "absolute",
@@ -1375,11 +1371,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: 24,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
+    ...skounShadow({ color: "#000000", y: 4, blur: 10, opacity: 0.25, elevation: 8 }),
     zIndex: 99,
   },
   floatingPillPressed: {

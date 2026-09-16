@@ -731,15 +731,16 @@ const styles = StyleSheet.create({
     borderRadius: Skoun.radius.lg,
     borderWidth: 1,
     borderColor: Skoun.color.border,
-    shadowColor: "#121826",
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 16 },
     ...(Platform.OS === "web"
       ? ({
           boxShadow: "0 22px 48px rgba(18, 24, 38, 0.2)",
         } as object)
-      : null),
+      : {
+          shadowColor: "#121826",
+          shadowOpacity: 0.18,
+          shadowRadius: 28,
+          shadowOffset: { width: 0, height: 16 },
+        }),
   },
   panelWebNarrow: {
     maxWidth: "100%",

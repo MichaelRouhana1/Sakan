@@ -14,6 +14,7 @@ import {
   MAP_CAROUSEL_BODY_H,
 } from "@/components/listings/ListingMapCarouselCard";
 import { Skoun } from "@/constants/theme";
+import { skounShadow } from "@/lib/skounShadow";
 import type { Listing } from "@/types/listing";
 
 export const MAP_CAROUSEL_CLOSE_H = 40;
@@ -125,10 +126,7 @@ export function ListingMapCarousel({
   const closeRight = sidePad + 4;
 
   return (
-    <View
-      style={[styles.wrap, { paddingBottom: bottomInset }]}
-      pointerEvents="box-none"
-    >
+    <View style={[styles.wrap, { paddingBottom: bottomInset, pointerEvents: "box-none" }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Dismiss preview"
@@ -181,10 +179,6 @@ const styles = StyleSheet.create({
     borderColor: Skoun.color.border,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121826",
-    shadowOpacity: 0.16,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    ...skounShadow({ y: 2, blur: 6, opacity: 0.16, elevation: 4 }),
   },
 });

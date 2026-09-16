@@ -1,6 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, router, useLocalSearchParams } from "expo-router";
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Pressable,
   StyleSheet,
@@ -9,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import {
   BrowseFiltersPanel,
   browseFilterBadgeCount,
@@ -28,7 +36,7 @@ import {
   type FilterSection,
 } from "@/components/web/FindFiltersDialog";
 import { FindMapPane } from "@/components/web/FindMapPane";
-import { FindResultsGrid } from "@/components/web/FindResultsGrid";
+import { FindResultsGrid, FindSkeletonBone } from "@/components/web/FindResultsGrid";
 import {
   HoverCommitCursor,
   type HoverPoint,
@@ -52,7 +60,9 @@ import {
 } from "@/lib/browseSearchUrl";
 import { campusResultsHeading } from "@/lib/campusProximity";
 import { useStableBreakpoint } from "@/lib/breakpoints";
+import { useDevSearchLoadingDelay } from "@/lib/useDevSearchLoadingDelay";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { CampusMeta, Listing } from "@/types/listing";
 
 type ResultsLayout = "grid" | "list";
@@ -89,6 +99,7 @@ export function FindBrowse() {
   const bp = useStableBreakpoint();
   const isDesktop = bp === "desktop";
   const coarsePointer = useCoarsePointer();
+  const reducedMotion = useReducedMotion();
   const { setFullBleed, setHideFooter, setLockScroll } = useWebShellChrome();
 
   const params = useLocalSearchParams<{
@@ -253,6 +264,8 @@ export function FindBrowse() {
 
   const { data, isLoading, isError, refetch, isFetching } =
     useListings(listFilters);
+  const queryLoading = isLoading || isFetching;
+  const loading = useDevSearchLoadingDelay(queryLoading);
 
   useEffect(() => {
     if (mapOpen) setMapMounted(true);
@@ -278,6 +291,7 @@ export function FindBrowse() {
     () => sortListingsClient(rawListings, deferredSort),
     [rawListings, deferredSort],
   );
+  const listingsForDisplay = loading ? [] : listings;
 
   const switchMapCampus = useCallback(
     (campus: CampusMeta) => {
@@ -338,11 +352,16 @@ export function FindBrowse() {
   /** Map rail always uses grid card chrome; list/grid choice is restored on close. */
   const cardVariant: ResultsLayout = isMap ? "grid" : resultsLayout;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Browse owns horizontal padding so the filter bar can stick full-width.
+    // Layout effect so map lock applies before paint — otherwise overflow:hidden
+    // on `main` makes the sticky filter `top: 70px` offset below the nav.
     setFullBleed(true);
     setHideFooter(isMap);
     setLockScroll(isMap);
+    if (isMap && typeof document !== "undefined") {
+      document.getElementById("skoun-web-shell")?.scrollTo(0, 0);
+    }
     return () => {
       setFullBleed(false);
       setHideFooter(false);
@@ -432,6 +451,21 @@ export function FindBrowse() {
 
       <View style={styles.headingRow}>
         <View style={styles.headingText}>
+          <View style={styles.headingTitleRow}>
+          {loading ? (
+            <>
+              <FindSkeletonBone
+                shine={!reducedMotion}
+                style={isMap ? styles.headingTitleBoneMap : styles.headingTitleBone}
+              />
+              {!showDistanceSplit ? (
+                <FindSkeletonBone
+                  shine={!reducedMotion}
+                  style={styles.headingCountBone}
+                />
+              ) : null}
+            </>
+          ) : (
           <Text style={[styles.h1, isMap && styles.h1Map]}>
             {universityLabel ? (
               <>
@@ -449,7 +483,7 @@ export function FindBrowse() {
                 <Text style={styles.h1Em}>{cityLabel}</Text>
               </>
             )}
-            {!showDistanceSplit && !isLoading ? (
+            {!showDistanceSplit ? (
               <Text style={styles.h1Count}>
                 {" "}
                 | Showing {listings.length} place
@@ -457,19 +491,32 @@ export function FindBrowse() {
               </Text>
             ) : null}
           </Text>
-          {showDistanceSplit && universityLabel && !isLoading ? (
+          )}
+          </View>
+          {showDistanceSplit && universityLabel && !loading ? (
             <Text style={styles.h1Sub}>
               {campusResultsHeading({ listings })}
             </Text>
           ) : null}
           {(isStale(filters, deferredFilters, mode, deferredMode, browseSort, deferredSort) ||
             isFetching) &&
-          !isLoading ? (
+          !loading ? (
             <LText variant="caption" tone="muted">
               Updating…
             </LText>
           ) : null}
         </View>
+
+        {loading && !isMap ? (
+          <GeneralLoadingBlock
+            layout="inline"
+            size={64}
+            state="searching"
+            label="Finding student homes…"
+            showLabel={false}
+            style={styles.headingOrb}
+          />
+        ) : null}
 
         {!isMap ? (
           <View style={styles.viewToggle} accessibilityRole="tablist">
@@ -526,8 +573,8 @@ export function FindBrowse() {
 
   const results = (
     <FindResultsGrid
-      listings={listings}
-      loading={isLoading || isFetching}
+      listings={listingsForDisplay}
+      loading={loading}
       error={isError}
       onRetry={() => void refetch()}
       variant={cardVariant}
@@ -553,6 +600,7 @@ export function FindBrowse() {
       <FindFilterBar
         filters={filters}
         sort={browseSort}
+        sticky={!isMap}
         onOpenFilters={() => openFilters("university")}
         onApplyFilters={applyBrowseFilters}
         onChangeSort={setBrowseSort}
@@ -575,7 +623,7 @@ export function FindBrowse() {
             <View style={styles.resultsCol}>{results}</View>
             {isDesktop ? (
               <FindBrowseSidebar
-                listings={listings}
+                listings={listingsForDisplay}
                 onExploreMap={() => setMapOpen(true)}
               />
             ) : null}
@@ -609,14 +657,16 @@ export function FindBrowse() {
       )}
       {mapMounted ? (
         <View
-          style={isMap ? styles.mapPaneLive : styles.mapPaneParked}
-          pointerEvents={isMap ? "auto" : "none"}
+          style={[
+            isMap ? styles.mapPaneLive : styles.mapPaneParked,
+            { pointerEvents: isMap ? "auto" : "none" },
+          ]}
         >
           <FindMapPane
-            listings={listings}
+            listings={listingsForDisplay}
             campuses={campuses}
             universityMode={effectiveMode === "university"}
-            loading={isLoading}
+            loading={loading}
             visible={isMap}
             fullHeight
             hoveredListingId={hoveredListingId}
@@ -700,7 +750,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
   },
   pageMap: {
-    width: "100%",
+    flex: 1,
+    minHeight: 0,
+    height: "100%" as unknown as number,
+    overflow: "hidden",
   },
   browseBody: {
     flexGrow: 1,
@@ -729,6 +782,7 @@ const styles = StyleSheet.create({
   },
   headingBlock: {
     gap: 10,
+    overflow: "visible",
   },
   headingBlockMap: {
     paddingBottom: 4,
@@ -747,11 +801,14 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodyMedium,
   },
   headingRow: {
+    position: "relative",
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: 16,
     flexWrap: "wrap",
+    overflow: "visible",
+    minHeight: 34,
   },
   headingText: {
     flex: 1,
@@ -763,6 +820,44 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignSelf: "flex-start",
     gap: 4,
+  },
+  headingTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 34,
+    gap: 10,
+  },
+  headingTitleBone: {
+    height: 22,
+    width: 420,
+    maxWidth: "100%",
+    borderRadius: 6,
+  },
+  headingTitleBoneMap: {
+    height: 18,
+    width: 340,
+    maxWidth: "100%",
+    borderRadius: 6,
+  },
+  headingCountBone: {
+    height: 14,
+    width: 148,
+    borderRadius: 4,
+    flexShrink: 0,
+  },
+  headingOrb: {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    width: 64,
+    height: 64,
+    marginLeft: -32,
+    marginTop: -32,
+    padding: 0,
+    gap: 0,
+    zIndex: 2,
+    overflow: "visible",
+    pointerEvents: "none",
   },
   h1: {
     fontFamily: Skoun.type.display,
@@ -846,8 +941,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     minHeight: 0,
-    height: "calc(100vh - 140px)" as unknown as number,
-    maxHeight: "calc(100vh - 140px)" as unknown as number,
     overflow: "hidden",
     position: "relative",
   },

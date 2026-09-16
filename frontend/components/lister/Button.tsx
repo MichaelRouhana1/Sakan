@@ -80,11 +80,11 @@ export function LButton({
                 ? "ink"
                 : "inverse"
             }
-            pointerEvents="none"
             style={[
               styles.label,
               (variant === "secondary" || variant === "ghost") &&
                 styles.labelOnSoft,
+              { pointerEvents: "none" },
             ]}
           >
             {label}

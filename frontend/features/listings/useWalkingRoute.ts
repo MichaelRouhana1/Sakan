@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   fetchWalkingRoute,
-  walkingRouteKey,
   type LngLat,
   type WalkingRouteResult,
 } from "@/lib/mapboxWalkingRoute";
@@ -31,10 +30,9 @@ export function useWalkingRoute({
       if (!listingId) setRoute(null);
       return;
     }
-    const key = walkingRouteKey(listingId, campusSlug);
     const ac = new AbortController();
     let alive = true;
-    void fetchWalkingRoute(from, to, key, ac.signal).then(
+    void fetchWalkingRoute(listingId, campusSlug, from, to, ac.signal).then(
       (next) => {
         if (alive) setRoute(next);
       },

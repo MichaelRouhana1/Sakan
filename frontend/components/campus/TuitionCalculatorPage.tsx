@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Linking,
   Platform,
   Pressable,
@@ -15,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { CampusFormSelect } from "@/components/campus/CampusFormSelect";
+import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import { LButton } from "@/components/lister/Button";
 import { SegmentedPillTrack } from "@/components/listings/SegmentedPillTrack";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
@@ -383,15 +383,18 @@ export function TuitionCalculatorPage() {
           end={{ x: 1, y: 1 }}
           style={[styles.formCardFill, compact && styles.formCardFillCompact]}
         >
-          <View style={styles.formOrb} pointerEvents="none" />
+          <View style={styles.formOrb} />
 
           {compact && program ? null : compact ? heroBlock : null}
 
           {catalog.isLoading ? (
-            <View style={styles.catalogStatus}>
-              <ActivityIndicator color={Skoun.color.primary} />
-              <Text style={styles.hint}>Loading universities…</Text>
-            </View>
+            <GeneralLoadingBlock
+              layout="inline"
+              size={20}
+              state="searching"
+              label="Loading universities…"
+              style={styles.catalogStatus}
+            />
           ) : null}
 
           {catalog.isError ? (
@@ -1017,10 +1020,13 @@ export function TuitionCalculatorPage() {
             ) : null}
           </>
         ) : !costs.data && (costs.isLoading || costs.isFetching) ? (
-          <View style={styles.ledgerWait}>
-            <ActivityIndicator color={Skoun.color.primary} />
-            <Text style={styles.placeholder}>Adding up published rates…</Text>
-          </View>
+          <GeneralLoadingBlock
+            layout="stack"
+            size={32}
+            state="solving"
+            label="Adding up published rates…"
+            style={styles.ledgerWait}
+          />
         ) : costs.isError ? (
           <Text style={styles.error} accessibilityRole="alert">
             Couldn’t load this estimate. Try again.
@@ -1431,6 +1437,7 @@ const styles = StyleSheet.create({
   },
   formOrb: {
     position: "absolute",
+    pointerEvents: "none",
     bottom: -70,
     right: -48,
     width: 160,

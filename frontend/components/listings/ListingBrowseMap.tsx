@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   Platform,
@@ -17,6 +16,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import MapView, {
   Marker,
   Polyline,
@@ -1092,12 +1092,13 @@ export function ListingBrowseMap({
         }}
       >
         {!mapReady || loading ? (
-          <View style={styles.mapLoading}>
-            <ActivityIndicator color={Skoun.color.primary} />
-            <LText variant="caption" tone="muted">
-              {loading ? "Updating map…" : "Loading map…"}
-            </LText>
-          </View>
+          <GeneralLoadingBlock
+            layout="stack"
+            size={64}
+            state="searching"
+            label={loading ? "Updating map…" : "Loading map…"}
+            style={styles.mapLoading}
+          />
         ) : null}
         {groups.length === 0 && mapReady && !loading ? (
           <View style={styles.emptyOverlay}>

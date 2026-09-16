@@ -112,8 +112,7 @@ export function ListingGallery({
       <LinearGradient
         colors={["rgba(18,24,38,0.35)", "transparent", "rgba(18,24,38,0.25)"]}
         locations={[0, 0.35, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
       />
       {hideOverlays ? null : urls.length > 1 ? (
         <View style={styles.dots} accessibilityRole="adjustable">

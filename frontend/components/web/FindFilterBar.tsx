@@ -147,6 +147,8 @@ type Props = {
   onChangeSort: (sort: BrowseSortKey) => void;
   onClearAll: () => void;
   hasActiveFilters: boolean;
+  /** Stick below the site nav while browse scrolls. Off in the locked map split. */
+  sticky?: boolean;
 };
 
 function budgetLabel(filters: BrowseFiltersValue): string {
@@ -179,6 +181,7 @@ export function FindFilterBar({
   onChangeSort,
   onClearAll,
   hasActiveFilters,
+  sticky = true,
 }: Props) {
   const [menu, setMenu] = useState<MenuId | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -211,7 +214,7 @@ export function FindFilterBar({
   const filteredAreas = useMemo(() => areaGroups, [areaGroups]);
 
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, !sticky && styles.barStatic]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -575,13 +578,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
-    shadowColor: "#121826",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    boxShadow: "0 2px 8px rgba(18, 24, 38, 0.06)",
     boxSizing: "border-box",
     overflow: "visible",
+  },
+  barStatic: {
+    position: "relative",
+    top: 0,
   },
   row: {
     flexDirection: "row",

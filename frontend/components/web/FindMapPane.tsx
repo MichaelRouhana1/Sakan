@@ -44,9 +44,9 @@ export function FindMapPane({
         styles.pane,
         fullHeight && styles.paneFull,
         !visible && styles.paneHidden,
+        { pointerEvents: visible ? "auto" : "none" },
       ]}
-      pointerEvents={visible ? "auto" : "none"}
-      accessibilityElementsHidden={!visible}
+      aria-hidden={!visible}
       importantForAccessibility={visible ? "auto" : "no-hide-descendants"}
     >
       {visible && !fullHeight ? (
@@ -175,11 +175,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    shadowColor: "#121826",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    boxShadow: "0 2px 6px rgba(18, 24, 38, 0.1)",
     cursor: "pointer" as unknown as undefined,
   },
   closeFloatHover: {

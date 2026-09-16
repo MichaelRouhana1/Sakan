@@ -154,7 +154,6 @@ export function BenefitRedeemPanel({ benefit }: Props) {
       {/* Perforation */}
       <View
         style={styles.rail}
-        pointerEvents="none"
         accessibilityElementsHidden
       >
         <View style={styles.dash} />
@@ -385,6 +384,7 @@ const styles = StyleSheet.create({
     height: 0,
     alignSelf: "stretch",
     position: "relative",
+    pointerEvents: "none",
     zIndex: 2,
   },
   dash: {

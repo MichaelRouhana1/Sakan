@@ -4,7 +4,7 @@ import type { CreditBundleType, CreditTransaction, PaymentChannel } from "@/type
 
 type CreatePurchaseBody = {
   bundleType: CreditBundleType;
-  channel: PaymentChannel;
+  channel?: PaymentChannel;
 };
 
 type PurchaseResponse = { data: CreditTransaction };
@@ -16,7 +16,8 @@ export function useCreatePurchase() {
     mutationFn: async (body: CreatePurchaseBody) => {
       const { data } = await api.post<PurchaseResponse>(
         "/api/credits/purchase",
-        body,
+        { channel: "whish", ...body },
+        { timeout: 30_000 },
       );
       return data.data;
     },

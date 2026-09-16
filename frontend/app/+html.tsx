@@ -56,6 +56,11 @@ const SKOUN_HOME_CSS = `
   30%, 100% { left: 100%; }
 }
 
+@keyframes sk-skel-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 @keyframes sk-fade-up {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
@@ -84,6 +89,26 @@ const SKOUN_HOME_CSS = `
   background: linear-gradient(var(--shine-degree), transparent, var(--shine-color), transparent);
   animation: sk-chip-shine 4.2s ease-in-out infinite;
   pointer-events: none;
+}
+
+.sk-skel-shine {
+  position: relative;
+  overflow: hidden;
+  background-color: #E2E8F0;
+}
+.sk-skel-shine::after,
+.sk-skel-sweep {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.72) 50%,
+    transparent 100%
+  );
+  animation: sk-skel-shine 1s linear infinite;
 }
 
      .sk-rail {
@@ -160,8 +185,12 @@ const SKOUN_HOME_CSS = `
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sk-reveal, .sk-img-anim, .sk-search-cycle, .sk-chip-shine::after {
+  .sk-reveal, .sk-img-anim, .sk-search-cycle, .sk-chip-shine::after, .sk-skel-shine, .sk-skel-shine::after, .sk-skel-sweep {
     animation: none !important;
+  }
+  .sk-skel-shine::after, .sk-skel-sweep {
+    content: none;
+    background-image: none;
   }
   .sk-card:hover .sk-card-img,
   .sk-tile:hover img {
@@ -188,6 +217,11 @@ export default function Root({ children }: { children: ReactNode }) {
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Outfit:wght@400;500;600;700&display=swap"
+        />
+        <link
+          id="skoun-mapbox-css"
+          rel="stylesheet"
+          href="https://api.mapbox.com/mapbox-gl-js/v3.28.1/mapbox-gl.css"
         />
         <style
           dangerouslySetInnerHTML={{

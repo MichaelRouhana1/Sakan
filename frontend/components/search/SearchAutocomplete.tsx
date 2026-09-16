@@ -20,6 +20,7 @@ import {
   type View as RNView,
 } from "react-native";
 import { Skoun } from "@/constants/theme";
+import { skounShadow } from "@/lib/skounShadow";
 import { useSearchSuggestions } from "@/features/search/useSearchSuggestions";
 import type {
   SearchAreaSuggestion,
@@ -452,7 +453,7 @@ export function SearchAutocomplete({
 
         <View style={styles.inputHost}>
           {showPillHint ? (
-            <View style={styles.hintRow} pointerEvents="none">
+            <View style={styles.hintRow}>
               <Text style={styles.hintStatic}>Search by </Text>
               <Text key={PILL_HINTS[hintIndex]} style={styles.hintCycle}>
                 {PILL_HINTS[hintIndex]}
@@ -556,11 +557,7 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     paddingVertical: 6,
     minHeight: 56,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    ...skounShadow({ color: "#000000", y: 8, blur: 20, opacity: 0.18, elevation: 8 }),
   },
   leadingIcon: {
     marginRight: 8,
@@ -577,6 +574,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: "row",
     alignItems: "center",
+    pointerEvents: "none",
   },
   hintStatic: {
     fontFamily: Skoun.type.body,
@@ -625,11 +623,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     maxHeight: 340,
     overflow: "hidden",
-    shadowColor: "#121826",
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 16,
+    ...skounShadow({ y: 10, blur: 24, opacity: 0.2, elevation: 16 }),
   },
   dropdownNative: {
     position: "absolute",

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import Svg, { Line } from "react-native-svg";
+import { ListingMoreMenu } from "@/components/listings/detail/ListingMoreMenu";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { useUniversities } from "@/features/universities/useUniversities";
@@ -189,6 +190,12 @@ export function ListingContactCard({
             </LText>
           </View>
           <View style={styles.iconBtns}>
+            <ListingMoreMenu
+              linkCopied={linkCopied}
+              reported={reported}
+              onShare={onShare}
+              onReport={onReport}
+            />
             <Pressable
               onPress={onSave}
               accessibilityRole="button"
@@ -202,21 +209,6 @@ export function ListingContactCard({
                 name={saved ? "heart" : "heart-outline"}
                 size={16}
                 color={saved ? Skoun.color.danger : Skoun.color.ink}
-              />
-            </Pressable>
-            <Pressable
-              onPress={onShare}
-              accessibilityRole="button"
-              accessibilityLabel={linkCopied ? "Link copied" : "Copy link"}
-              style={({ hovered }) => [
-                styles.iconBtn,
-                hovered && styles.iconBtnHover,
-              ]}
-            >
-              <Ionicons
-                name={linkCopied ? "checkmark" : "share-outline"}
-                size={16}
-                color={Skoun.color.ink}
               />
             </Pressable>
           </View>
@@ -320,24 +312,7 @@ export function ListingContactCard({
         <LText variant="caption" tone="muted">
           You reported this listing
         </LText>
-      ) : (
-        <Pressable
-          onPress={onReport}
-          accessibilityRole="button"
-          accessibilityLabel="Report this listing"
-          style={styles.report}
-        >
-          {({ hovered }) => (
-            <LText
-              variant="caption"
-              tone="muted"
-              style={[styles.reportText, hovered && styles.underline]}
-            >
-              Something off? Report it
-            </LText>
-          )}
-        </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -365,6 +340,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5EAF1",
     padding: 14,
     gap: 9,
+    overflow: "visible",
     ...CARD_SHADOW,
   },
   cardList: {
@@ -379,6 +355,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 8,
+    zIndex: 8,
   },
   headCopy: {
     flex: 1,
@@ -398,8 +375,10 @@ const styles = StyleSheet.create({
   },
   iconBtns: {
     flexDirection: "row",
+    alignItems: "flex-start",
     gap: 6,
     flexShrink: 0,
+    zIndex: 3,
   },
   iconBtn: {
     width: 34,
@@ -515,18 +494,5 @@ const styles = StyleSheet.create({
   },
   hintHidden: {
     opacity: 0,
-  },
-  report: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 4,
-    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
-  },
-  reportText: {
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 12,
-  },
-  underline: {
-    textDecorationLine: "underline",
-    textDecorationColor: Skoun.color.ink,
   },
 });

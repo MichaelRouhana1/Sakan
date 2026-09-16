@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import { Skoun } from "@/constants/theme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { skounShadow } from "@/lib/skounShadow";
 
 export type SkounMapPinVariant = "listing" | "campus";
 export type SkounMapPinAccent = "default" | "danger";
@@ -213,11 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
     zIndex: 2,
-    shadowColor: "#121826",
-    shadowOpacity: 0.28,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
+    ...skounShadow({ y: 1, blur: 3, opacity: 0.28, elevation: 3 }),
   },
   headShade: {
     position: "absolute",
@@ -283,28 +280,24 @@ const styles = StyleSheet.create({
     width: CAMPUS_W,
   },
   campusRing: {
-    width: CAMPUS_DISC + 6,
-    height: CAMPUS_DISC + 6,
-    borderRadius: (CAMPUS_DISC + 6) / 2,
+    width: CAMPUS_DISC + 4,
+    height: CAMPUS_DISC + 4,
+    borderRadius: (CAMPUS_DISC + 4) / 2,
     borderWidth: 2,
-    borderColor: Skoun.color.ink,
+    borderColor: Skoun.color.brassSoft,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.brassSoft,
+    backgroundColor: Skoun.color.ink,
     zIndex: 2,
+    ...skounShadow({ y: 1, blur: 3, opacity: 0.3, elevation: 4 }),
   },
   campusDisc: {
     width: CAMPUS_DISC,
     height: CAMPUS_DISC,
     borderRadius: CAMPUS_DISC / 2,
-    backgroundColor: Skoun.color.brass,
+    backgroundColor: Skoun.color.ink,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121826",
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 4,
   },
   campusStem: {
     width: 4,
@@ -328,5 +321,5 @@ export const SKOUN_CAMPUS_PIN = {
   width: CAMPUS_W,
   height: CAMPUS_H,
   /** Vertical center of the campus disc within the pin slot. */
-  headCenterY: (CAMPUS_DISC + 6) / 2,
+  headCenterY: (CAMPUS_DISC + 4) / 2,
 } as const;

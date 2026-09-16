@@ -109,14 +109,12 @@ function AreaCityCard({
         <View
           {...({ className: "sk-city-card__overlay" } as object)}
           style={styles.tileOverlayHost}
-          pointerEvents="none"
         />
       ) : (
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.6)"]}
           locations={[0.366, 1]}
           style={styles.tileOverlayHost}
-          pointerEvents="none"
         />
       )}
       <Text
@@ -166,7 +164,7 @@ function UniCityCard({
         end={{ x: 1, y: 1 }}
         style={styles.uniTileFill}
       >
-        <View style={styles.uniTileLogoWell} pointerEvents="none">
+        <View style={styles.uniTileLogoWell}>
           <InstitutionLogo
             shortName={shortName}
             slug={institutionSlug}
@@ -664,7 +662,7 @@ export function SkounHomePage() {
       >
         {/* ─── 1. HERO ─── */}
         <View style={[styles.hero, isNarrow && styles.heroNarrow]}>
-          <View style={styles.heroMedia} pointerEvents="none">
+          <View style={styles.heroMedia}>
             <Image
               source={{ uri: HERO.heroImage }}
               style={styles.heroImg}
@@ -1300,6 +1298,7 @@ const styles = StyleSheet.create({
   heroMedia: {
     ...StyleSheet.absoluteFillObject,
     overflow: "hidden",
+    pointerEvents: "none",
   },
   heroImg: {
     ...StyleSheet.absoluteFillObject,
@@ -1533,6 +1532,7 @@ const styles = StyleSheet.create({
     borderColor: "#D4E0F4",
     alignItems: "center",
     justifyContent: "center",
+    pointerEvents: "none",
     ...(IS_WEB
       ? ({
           boxShadow: "0 4px 14px rgba(47, 111, 237, 0.1)",
@@ -1576,6 +1576,7 @@ const styles = StyleSheet.create({
   tileOverlayHost: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
+    pointerEvents: "none",
   },
   tileLabel: {
     position: "absolute",
@@ -2034,11 +2035,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 6,
     zIndex: 100,
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
   },
   homeLoginBanner: {
     backgroundColor: "#F1F5F9",

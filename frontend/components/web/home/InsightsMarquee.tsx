@@ -65,9 +65,8 @@ function Segment({
 }) {
   return (
     <View
-      style={styles.segment}
+      style={[styles.segment, { pointerEvents: hidden ? "none" : "auto" }]}
       onLayout={onLayout}
-      pointerEvents={hidden ? "none" : "auto"}
       importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
       accessibilityElementsHidden={hidden}
     >
@@ -178,14 +177,12 @@ function MarqueeRow({
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={styles.fadeLeft}
-        pointerEvents="none"
       />
       <LinearGradient
         colors={[fadeClear, fadeOpaque]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={styles.fadeRight}
-        pointerEvents="none"
       />
     </View>
   );
@@ -340,6 +337,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 40,
+    pointerEvents: "none",
   },
   fadeRight: {
     position: "absolute",
@@ -347,6 +345,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 40,
+    pointerEvents: "none",
   },
   statsBand: {
     width: "100%",

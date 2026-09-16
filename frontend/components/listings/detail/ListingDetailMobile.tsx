@@ -283,6 +283,9 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
 
         <ReportListingSheet
           listingId={listing.id}
+          listingTitle={
+            listing.title?.trim() || listing.pbsaBuildingName?.trim() || listing.area
+          }
           visible={reportOpen}
           onClose={() => setReportOpen(false)}
         />

@@ -134,6 +134,20 @@
       "when": 1786813200000,
       "tag": "0018_tuition_credit_tiers",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1786816800000,
+      "tag": "0019_whish_checkout",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1786820400000,
+      "tag": "0020_listing_campus_routes",
+      "breakpoints": true
     }
   ]
 }

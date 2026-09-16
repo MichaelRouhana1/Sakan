@@ -32,7 +32,8 @@ export function CreditsPage() {
           </H>
           <H as="p" className="mt-2 max-w-xl text-sm leading-relaxed text-clay-700">
             Audit purchases, listing spend, refunds, and staff adjustments.
-            Not an approval queue. Demo gateway settles checkout instantly.
+            Not an approval queue. Whish (or the local mock) grants credits
+            after payment confirms.
           </H>
         </H>
         <H className="flex flex-wrap items-center gap-2">

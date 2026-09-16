@@ -84,12 +84,12 @@
 | Feature | Status | Where |
 |--------|--------|--------|
 | Credit bundles catalog | Done | `constants/bundles.ts` |
-| Buy credits screen | Done | `(poster)/(tabs)/credits.tsx` |
-| Pending purchase + reference ID | Done | `POST /api/credits/purchase` |
-| WhatsApp support CTA for receipt | Done | `PendingPaymentCard` |
-| Admin approve/reject APIs | Done | `/api/admin/transactions/*` (Clerk staff or `x-admin-key`) |
+| Buy credits screen | Done | `(poster)/(tabs)/credits.tsx`, `/hosting/credits` |
+| Whish Pay checkout | Done | `POST /api/credits/purchase` returns `checkoutUrl`; live API or local mock |
+| Auto-grant on verified payment | Done | Whish callbacks + `POST /api/credits/:referenceId/confirm` |
+| Admin approve/reject APIs | Done | `/api/admin/transactions/*` (Clerk staff or `x-admin-key`; leftover pending only) |
 | Admin console UI | Done (web Phase 2) | `/admin` — payments, reports inbox, listing review, users/listings search |
-| Payment reminders / push | Missing | — |
+| Payment reminders / push | N/A | Replaced by Whish hosted checkout |
 
 ### Universities & distance
 | Feature | Status | Where |
@@ -182,7 +182,7 @@
 ### Credits
 | Component | Role |
 |-----------|------|
-| `PendingPaymentCard` | Pending Whish/OMT + WhatsApp support CTA |
+| Host / poster credits screens | Whish checkout + poll until approved |
 
 ### UI primitives (`components/ui/`)
 | Component | Role |
@@ -231,7 +231,8 @@
 
 ### Credits
 - `useCredits` — balances
-- `useCreatePurchase` — start pending purchase
+- `useCreatePurchase` — start Whish checkout
+- `useWhishCheckout` — open collect URL and poll until approved
 
 ### Universities
 - `useUniversities` — campus list
@@ -323,8 +324,13 @@
 ### Credits — `/api/credits`
 | Method | Path | Notes |
 |--------|------|--------|
-| POST | `/purchase` | Create pending Whish/OMT tx |
-| GET | `/:referenceId` | Lookup transaction |
+| POST | `/purchase` | Create pending Whish checkout; returns `checkoutUrl` |
+| GET | `/whish/callback/success` | Provider callback (verify via status API) |
+| GET | `/whish/callback/failure` | Provider callback (verify via status API) |
+| GET | `/whish/mock/checkout` | Local mock pay page (non-prod without creds) |
+| POST | `/whish/mock/complete` | Mock Pay / Fail → settle + redirect |
+| POST | `/:referenceId/confirm` | Re-query Whish/mock and grant if paid |
+| GET | `/:referenceId` | Owner lookup |
 
 ### Admin — `/api/admin` (Clerk staff JWT or `x-admin-key` for scripts)
 | Method | Path | Notes |
@@ -381,7 +387,7 @@
 - **Maps:** Mapbox Standard (`@rnmapbox/maps` native, needs a **dev client**; Mapbox GL JS on web). University mode draws cached walking Directions polylines (straight dashed line if Directions fail).  
 - **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
 - **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
-- **Monetization today:** purchase + admin APIs exist; publish does not spend credits; boost UI stubbed
+- **Monetization today:** Whish Pay checkout (live or local mock); credits grant on verified payment; publish does not spend credits; boost UI stubbed
 - **Admin:** web `/admin` (Clerk staff) + `x-admin-key` for scripts; reports/listings/users + payments inbox  
 
 ---

@@ -1,13 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
+import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import { LText } from "@/components/lister/Typography";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
@@ -166,6 +166,11 @@ function pinSelectZoomForCampusDistance(meters: number): number {
 }
 
 /** Zoom out enough that current view + dest pin both fit; nearby pins still get a small pullback. */
+function mapHasSize(map: MapboxMap): boolean {
+  const el = map.getContainer?.();
+  return Boolean(el && el.clientWidth > 8 && el.clientHeight > 8);
+}
+
 function hoverOutZoom(
   map: MapboxMap,
   gl: MapboxGL,
@@ -173,18 +178,34 @@ function hoverOutZoom(
 ): number {
   const current = map.getZoom();
   const minPullback = current - HOVER_ZOOM_OUT_DELTA;
-  const view = map.getBounds();
-  let fitZoom = current;
-  if (view) {
-    const span = new gl.LngLatBounds(view.getSouthWest(), view.getNorthEast());
-    span.extend(dest);
-    const fitted = map.cameraForBounds(span, {
-      padding: 72,
-      maxZoom: current,
-    });
-    if (typeof fitted?.zoom === "number") fitZoom = fitted.zoom;
+  if (
+    !Number.isFinite(dest[0]) ||
+    !Number.isFinite(dest[1]) ||
+    !mapHasSize(map)
+  ) {
+    return Math.max(HOVER_ZOOM_OUT_MIN, minPullback);
   }
-  return Math.max(HOVER_ZOOM_OUT_MIN, Math.min(minPullback, fitZoom));
+  try {
+    const view = map.getBounds();
+    let fitZoom = current;
+    if (view) {
+      const span = new gl.LngLatBounds(view.getSouthWest(), view.getNorthEast());
+      span.extend(dest);
+      const el = map.getContainer();
+      const pad = Math.min(
+        72,
+        Math.max(8, Math.floor(Math.min(el.clientWidth, el.clientHeight) / 6)),
+      );
+      const fitted = map.cameraForBounds(span, {
+        padding: pad,
+        maxZoom: current,
+      });
+      if (typeof fitted?.zoom === "number") fitZoom = fitted.zoom;
+    }
+    return Math.max(HOVER_ZOOM_OUT_MIN, Math.min(minPullback, fitZoom));
+  } catch {
+    return Math.max(HOVER_ZOOM_OUT_MIN, minPullback);
+  }
 }
 
 function flyZoomOutPanIn(
@@ -196,8 +217,17 @@ function flyZoomOutPanIn(
   seq: number,
   seqRef: { current: number },
 ): void {
-  if (reduceMotion) {
-    map.easeTo({ center: dest, zoom: targetZoom, duration: 0 });
+  if (!Number.isFinite(dest[0]) || !Number.isFinite(dest[1])) return;
+  if (reduceMotion || !mapHasSize(map)) {
+    try {
+      map.easeTo({
+        center: dest,
+        zoom: targetZoom,
+        duration: reduceMotion ? 0 : 420,
+      });
+    } catch {
+      /* map not ready */
+    }
     return;
   }
   const outZoom = gl
@@ -576,19 +606,29 @@ export function ListingBrowseMap({
 
   useEffect(() => {
     if (!mapReady || !universityMode || !focusCampus) return;
+    if (
+      !Number.isFinite(focusCampus.lat) ||
+      !Number.isFinite(focusCampus.lng)
+    ) {
+      return;
+    }
     const map = mapRef.current;
     if (!map) return;
     const seq = ++campusFlySeqRef.current;
-    map.stop();
-    flyZoomOutPanIn(
-      map,
-      mapboxRef.current,
-      toLngLat(focusCampus),
-      PIN_SELECT_MIN_ZOOM,
-      reduceMotion,
-      seq,
-      campusFlySeqRef,
-    );
+    try {
+      map.stop();
+      flyZoomOutPanIn(
+        map,
+        mapboxRef.current,
+        toLngLat(focusCampus),
+        PIN_SELECT_MIN_ZOOM,
+        reduceMotion,
+        seq,
+        campusFlySeqRef,
+      );
+    } catch {
+      /* Mapbox throws if the pane has no size yet */
+    }
   }, [mapReady, universityMode, focusCampusKey, reduceMotion]);
 
   useEffect(() => {
@@ -862,6 +902,9 @@ export function ListingBrowseMap({
       }
 
       for (const campus of campuses) {
+        if (!Number.isFinite(campus.lat) || !Number.isFinite(campus.lng)) {
+          continue;
+        }
         const key = `campus:${campus.slug}`;
         seenListings.add(key);
         const selected = campus.slug === focusCampusSlug;
@@ -1213,7 +1256,7 @@ export function ListingBrowseMap({
     }
 
     walkingPathRef.current = {
-      listingId: selectedListing.id,
+      listingId: listingForRoute.id,
       coords: path,
     };
     setCampusRoute(hostMap, path);
@@ -1298,7 +1341,11 @@ export function ListingBrowseMap({
 
     const points: [number, number][] = groups.map((g) => toLngLat(g));
     if (universityMode) {
-      for (const campus of campuses) points.push(toLngLat(campus));
+      for (const campus of campuses) {
+        if (Number.isFinite(campus.lat) && Number.isFinite(campus.lng)) {
+          points.push(toLngLat(campus));
+        }
+      }
     }
     if (points.length === 0) return;
 
@@ -1315,14 +1362,27 @@ export function ListingBrowseMap({
 
     const delay = expanded ? 320 : 80;
     const t = setTimeout(() => {
-      map.resize();
-      map.fitBounds(
-        [
-          [west, south],
-          [east, north],
-        ],
-        { padding: 48, maxZoom: 15, duration: reduceMotion ? 0 : 600 },
-      );
+      try {
+        map.resize();
+        if (!mapHasSize(map)) return;
+        if (west === east || south === north) {
+          map.easeTo({
+            center: [west, south],
+            zoom: 15,
+            duration: reduceMotion ? 0 : 600,
+          });
+          return;
+        }
+        map.fitBounds(
+          [
+            [west, south],
+            [east, north],
+          ],
+          { padding: 48, maxZoom: 15, duration: reduceMotion ? 0 : 600 },
+        );
+      } catch {
+        /* Mapbox throws on zero-size containers / degenerate bounds */
+      }
     }, delay);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1346,12 +1406,13 @@ export function ListingBrowseMap({
         ]}
       >
         {showLoading ? (
-          <View style={styles.mapLoading}>
-            <ActivityIndicator color={Skoun.color.primary} />
-            <LText variant="caption" tone="muted">
-              {loading ? "Updating map…" : "Loading map…"}
-            </LText>
-          </View>
+          <GeneralLoadingBlock
+            layout="stack"
+            size={64}
+            state="searching"
+            label={loading ? "Updating map…" : "Loading map…"}
+            style={styles.mapLoading}
+          />
         ) : null}
         {tokenMissing ? (
           <View style={styles.emptyOverlay}>
@@ -1494,11 +1555,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.94)",
     borderWidth: 1,
     borderColor: Skoun.color.border,
-    shadowColor: "#121826",
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
+    boxShadow: "0 1px 4px rgba(18, 24, 38, 0.12)",
   },
   hintBar: {
     alignItems: "center",

@@ -14,6 +14,7 @@ import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
+import { skounShadow } from "@/lib/skounShadow";
 import type { Listing } from "@/types/listing";
 
 const CARD_BORDER = "#E2E8F0";
@@ -147,11 +148,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    shadowColor: "#121826",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...skounShadow({ y: 2, blur: 6, opacity: 0.12, elevation: 2 }),
   },
   body: {
     height: MAP_CAROUSEL_BODY_H,

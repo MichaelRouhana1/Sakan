@@ -18,8 +18,7 @@ export function WizardLottie({ assetId, width, height }: Props) {
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      pointerEvents="none"
-      style={{ width, height }}
+      style={{ width, height, pointerEvents: "none" }}
     >
       <LottieView
         key={assetId}

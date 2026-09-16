@@ -16,6 +16,7 @@ import {
 import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import { resolveMediaUrls } from "@/lib/mediaUrl";
+import { skounShadow } from "@/lib/skounShadow";
 
 const MAX_PHOTOS = 5;
 const PHOTO_ASPECT = 16 / 10;
@@ -219,9 +220,8 @@ export function ListingCardCarousel({
               ]}
             >
               <Image
-                pointerEvents="none"
                 source={{ uri: url }}
-                style={{ width: cardWidth, height: cardHeight }}
+                style={{ width: cardWidth, height: cardHeight, pointerEvents: "none" }}
                 contentFit="cover"
               />
             </Pressable>
@@ -230,24 +230,23 @@ export function ListingCardCarousel({
       ) : count > 0 ? (
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onPressCard}>
           <Image
-            pointerEvents="none"
             source={{ uri: photos[0] }}
-            style={
+            style={[
               cardWidth > 0 && cardHeight > 0
                 ? { width: cardWidth, height: cardHeight }
-                : StyleSheet.absoluteFillObject
-            }
+                : StyleSheet.absoluteFillObject,
+              { pointerEvents: "none" },
+            ]}
             contentFit="cover"
           />
         </Pressable>
       ) : (
         <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFillObject, styles.fallback]}
+          style={[StyleSheet.absoluteFillObject, styles.fallback, { pointerEvents: "none" }]}
         />
       )}
 
-      <View style={styles.overlay} pointerEvents="box-none">
+      <View style={[styles.overlay, { pointerEvents: "box-none" }]}>
         {arrowsVisible ? (
           <>
             <Pressable
@@ -297,7 +296,7 @@ export function ListingCardCarousel({
         ) : null}
 
         {count > 1 ? (
-          <View style={styles.dots} pointerEvents="none">
+          <View style={[styles.dots, { pointerEvents: "none" }]}>
             {photos.map((_, i) => {
               const active = i === index;
               return (
@@ -359,11 +358,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.9)",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121826",
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    ...skounShadow({ y: 2, blur: 6, opacity: 0.18, elevation: 3 }),
   },
   arrowMotion: webTransition("opacity, transform"),
   arrowLeft: { left: 8 },
@@ -382,11 +377,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
-    shadowColor: "#000000",
-    shadowOpacity: 0.35,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    ...skounShadow({ color: "#000000", y: 1, blur: 2, opacity: 0.35, elevation: 2 }),
   },
   dotMotion: webTransition("width"),
   dotIdle: {

@@ -94,25 +94,25 @@ The backend tracks a simple balance integer for every Poster account called "Cre
 - **Note:** New accounts receive 1 free Post Credit when they first become a poster (on first publish / role promotion) to stimulate initial supply (limited to 1 free credit claim per account to prevent broker spam).
     
 
-#### 4.2 Local Cash Payment Integration
+#### 4.2 Whish Pay checkout
 
-Because online payment gateways experience high friction and low adoption for local business operations in Lebanon, the app will deploy a hybrid manual-to-digital system to process monetization:
+Poster credit packs are sold through Whish Pay (wallet checkout), not cash slips or admin receipt review.
 
-**1.Landlord Initiates Purchase:**In-App.
+**1. Initiate purchase — In-app.**
 
-Poster selects a credit bundle (e.g., "$15 for 5 Credits" or "$10 Starter Bundle") inside their account dashboard and taps "Pay via Whish/OMT."
+Poster selects a credit bundle and taps **Pay with Whish**. The backend creates a `credit_transactions` row (`status: pending`) and asks Whish for a hosted checkout URL.
 
-**2.Reference Generation:**In-App.
+**2. Pay in Whish.**
 
-The app generates a unique Transaction Reference ID, saves the transaction as "Pending Payment", and displays a "Send to WhatsApp Support" call-to-action button.
+The app opens the Whish collect URL (or a local mock page in development without merchant credentials). The poster completes payment in Whish.
 
-**3.Cash Transfer & Verification:**Physical to WhatsApp.
+**3. Verify and auto-grant.**
 
-The poster sends the cash amount via any physical Whish Money or OMT branch to the platform's official business wallet, then sends a photo of the receipt alongside their unique Reference ID to the app's support chat. Automated WhatsApp reminders are sent if a pending transaction drops off before completion.
+Whish calls the platform success/failure callback. The backend **does not trust the callback query string**: it re-queries Whish payment status, checks amount, then atomically marks the transaction approved and adds post/boost credits. A signed-in `POST /api/credits/:referenceId/confirm` covers missed webhooks (including localhost).
 
-**4.Credit Allocation:**Backend Admin Panel.
+**4. Manual admin approve** remains only as an escape hatch for leftover pending rows, not the happy path.
 
-The administrator verifies the incoming cash transfer via their Whish/OMT corporate terminal and clicks "Approve" in the backend admin console, instantly allocating the digital credits to the poster's account.
+Local development without `WHISH_CHANNEL` / `WHISH_SECRET` uses the same pending → confirm → grant path against a mock checkout page.
 
 ### 5. Technical Requirements & Edge Cases
 

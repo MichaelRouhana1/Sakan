@@ -256,10 +256,13 @@ export function PhotoTile({
           }}
           onLongPress={onDrag}
           delayLongPress={120}
-          pointerEvents={Platform.OS === "web" && photo.status !== "error" ? "none" : "auto"}
           style={[
             StyleSheet.absoluteFill,
             isDragging && Platform.OS === "web" ? photoPickerStyles.tileContentHidden : null,
+            {
+              pointerEvents:
+                Platform.OS === "web" && photo.status !== "error" ? "none" : "auto",
+            },
           ]}
         >
           <Image
@@ -268,7 +271,7 @@ export function PhotoTile({
             contentFit="cover"
             transition={200}
           />
-          <View style={photoPickerStyles.tileWash} pointerEvents="none" />
+          <View style={photoPickerStyles.tileWash} />
 
           {photo.status === "uploading" ? (
             <View style={photoPickerStyles.statusOverlay}>
@@ -314,7 +317,7 @@ export function PhotoTile({
         ) : null}
 
         {!isDragging && index === 0 ? (
-          <View style={photoPickerStyles.coverBadge} pointerEvents="none">
+          <View style={photoPickerStyles.coverBadge}>
             <LText variant="caption" style={photoPickerStyles.coverBadgeText}>
               Cover
             </LText>
@@ -519,6 +522,7 @@ export const photoPickerStyles = StyleSheet.create({
   tileWash: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(18,24,38,0.06)",
+    pointerEvents: "none",
   },
   deleteBtn: {
     position: "absolute",
@@ -543,6 +547,7 @@ export const photoPickerStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Lister.radius.pill,
+    pointerEvents: "none",
   },
   coverBadgeText: {
     color: Lister.color.surface,
@@ -601,6 +606,7 @@ export const photoPickerStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 6,
+    pointerEvents: "none",
   },
   fileDropOverlayText: {
     color: Lister.color.primaryDeep,

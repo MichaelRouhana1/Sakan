@@ -4,6 +4,7 @@ import { validate } from "../../middleware/validate.js";
 import { listingsController } from "./listings.controller.js";
 import { createListingSchema } from "./listings.schemas.js";
 import { listingPhotoUpload } from "./photos.storage.js";
+import { walkingRoutesController } from "../walking-routes/walking-routes.controller.js";
 
 export const listingsRouter = Router();
 
@@ -32,6 +33,10 @@ listingsRouter.post("/:id/view", optionalAuth, (req, res, next) =>
 
 listingsRouter.get("/:id/nearby", (req, res, next) =>
   listingsController.listNearby(req, res, next),
+);
+
+listingsRouter.get("/:id/walking-route", (req, res, next) =>
+  walkingRoutesController.get(req, res, next),
 );
 
 listingsRouter.get("/:id", (req, res, next) =>

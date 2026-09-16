@@ -119,9 +119,8 @@ export function WaterSectionMarker() {
     <View
       ref={ctx.registerWaterMarker}
       collapsable={false}
-      pointerEvents="none"
       onLayout={ctx.measureWater}
-      style={{ height: 1, width: "100%", opacity: 0 }}
+      style={{ height: 1, width: "100%", opacity: 0, pointerEvents: "none" }}
     />
   );
 }

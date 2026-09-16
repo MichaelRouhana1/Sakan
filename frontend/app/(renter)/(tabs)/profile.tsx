@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { Skoun } from "@/constants/theme";
+import { skounShadow } from "@/lib/skounShadow";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -372,11 +373,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     gap: 16,
-    shadowColor: "#000000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 10,
+    ...skounShadow({ color: "#000000", y: -4, blur: 12, opacity: 0.15, elevation: 10 }),
   },
   dragHandle: {
     width: 40,

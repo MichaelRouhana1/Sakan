@@ -106,9 +106,14 @@ export function ensureMapboxCss(): void {
       width: 48px; height: 56px; display: flex; flex-direction: column;
       align-items: center; filter: drop-shadow(0 1px 2px rgba(18,24,38,0.3));
     }
+    .skoun-campus-pin,
+    .skoun-campus-pin * { box-sizing: border-box; }
     .skoun-campus-pin .ring {
-      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #121826;
-      background: #E8EEF6; display: flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 2px solid #E8EEF6;
+      background: #121826;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 1.5px #121826;
     }
     .skoun-campus-pin .disc {
       width: 38px; height: 38px; border-radius: 50%; background: #121826;
@@ -340,9 +345,10 @@ export async function loadMapbox(): Promise<MapboxGL> {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("Mapbox requires a browser window"));
   }
+  // CSS must exist before mapbox-gl evaluates, or it warns about missing CSS.
+  ensureMapboxCss();
   if (!mapboxPromise) {
     mapboxPromise = import("mapbox-gl").then((mod) => {
-      ensureMapboxCss();
       const mapboxgl = mod.default;
       mapboxgl.accessToken = getMapboxToken() ?? "";
       // Do not set CDN workerUrl — browsers block cross-origin Worker scripts

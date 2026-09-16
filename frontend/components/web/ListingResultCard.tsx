@@ -212,10 +212,10 @@ export function ListingResultCard({
       >
         {Platform.OS === "web" ? (
           <View
-            pointerEvents="none"
             style={[
               styles.listBottomShadowWindow,
               listHovered && styles.listBottomGlowOn,
+              { pointerEvents: "none" },
             ]}
           >
             <View style={styles.listBottomShadowShape} />
@@ -346,7 +346,7 @@ export function ListingResultCard({
               styles.gridProximityRow,
               !proximity && styles.gridProximityHidden,
             ]}
-            accessibilityElementsHidden={!proximity}
+            aria-hidden={!proximity}
             importantForAccessibility={proximity ? "yes" : "no-hide-descendants"}
           >
             {proximity ? (
@@ -430,11 +430,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
   cardHover: {
-    shadowColor: "#121826",
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    boxShadow: "0 6px 12px rgba(18, 24, 38, 0.1)",
   },
   mediaShell: {
     position: "relative",
@@ -611,11 +607,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    shadowColor: "#121826",
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    boxShadow: "0 2px 6px rgba(18, 24, 38, 0.12)",
   },
   gridBody: {
     backgroundColor: "#FFFFFF",

@@ -199,8 +199,8 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
           {/* Edge-to-edge map header */}
           <View style={styles.mapHeader} accessibilityLabel="Map of Beirut">
           <MapPreviewBackdrop listings={listings} />
-          <View style={styles.mapScrim} pointerEvents="none" />
-          <View style={styles.mapCtaWrap} pointerEvents="box-none">
+          <View style={[styles.mapScrim, { pointerEvents: "none" }]} />
+          <View style={[styles.mapCtaWrap, { pointerEvents: "box-none" }]}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Explore on map"
@@ -324,11 +324,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF", // bg-white
     borderWidth: 2,
     borderColor: "#2F6FED", // border-[#2F6FED]
-    shadowColor: "#121826",
-    shadowOpacity: 0.12, // shadow-md
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    boxShadow: "0 3px 8px rgba(18, 24, 38, 0.12)",
     ...webTransition,
   },
   mapBtnHover: {

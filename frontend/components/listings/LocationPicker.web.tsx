@@ -337,7 +337,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
           className="skoun-mapbox-map"
           style={{ width: "100%", height: "100%" }}
         />
-        <View style={styles.mapChrome} pointerEvents="box-none">
+        <View style={[styles.mapChrome, { pointerEvents: "box-none" }]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Use my current location"

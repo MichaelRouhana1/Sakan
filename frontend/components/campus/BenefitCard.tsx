@@ -311,7 +311,6 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
         {/* Perforation rail — dashed tear; punches come from the mask / SVG */}
         <View
           style={stack ? styles.railHorizontal : styles.railVertical}
-          pointerEvents="none"
           accessibilityElementsHidden
         >
           <View
@@ -662,12 +661,14 @@ const styles = StyleSheet.create({
     position: "relative",
     alignSelf: "stretch",
     zIndex: 2,
+    pointerEvents: "none",
   },
   railHorizontal: {
     height: 0,
     position: "relative",
     alignSelf: "stretch",
     zIndex: 2,
+    pointerEvents: "none",
   },
   dashTrack: {
     position: "absolute",

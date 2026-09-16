@@ -47,7 +47,7 @@ export function GlassSurface({
       tint="systemUltraThinMaterialLight"
       style={[styles.glass, style]}
     >
-      <View pointerEvents="none" style={[styles.wash, { backgroundColor: tintColor }]} />
+      <View style={[styles.wash, { backgroundColor: tintColor, pointerEvents: "none" }]} />
       <View style={styles.content}>{children}</View>
     </BlurView>
   );
@@ -73,10 +73,9 @@ export function GlassChrome({ intensity = "chrome" as Intensity }) {
       style={StyleSheet.absoluteFill}
     >
       <View
-        pointerEvents="none"
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: "rgba(238,241,246,0.28)" },
+          { backgroundColor: "rgba(238,241,246,0.28)", pointerEvents: "none" },
         ]}
       />
     </BlurView>

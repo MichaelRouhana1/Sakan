@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const emptyToUndef = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const optionalUrl = z.preprocess(emptyToUndef, z.string().url().optional());
+const optionalSecret = z.preprocess(emptyToUndef, z.string().min(1).optional());
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -24,7 +30,31 @@ const envSchema = z.object({
    * Public origin used in uploaded photo URLs (must be reachable from phones).
    * Example: http://192.168.10.249:3001
    */
-  PUBLIC_BASE_URL: z.string().url().optional(),
+  PUBLIC_BASE_URL: optionalUrl,
+  /**
+   * Web app origin for Whish success/failure redirects.
+   * Example: http://localhost:8081
+   */
+  FRONTEND_PUBLIC_URL: optionalUrl,
+  WHISH_CHANNEL: optionalSecret,
+  WHISH_SECRET: optionalSecret,
+  /** Merchant website URL registered with Whish. Defaults to PUBLIC_BASE_URL. */
+  WHISH_WEBSITE_URL: optionalUrl,
+  /** Override sandbox/production API host. */
+  WHISH_API_BASE_URL: optionalUrl,
+  /**
+   * auto: live when channel+secret are set, else mock (never mock in production).
+   * mock / live: force that gateway.
+   */
+  WHISH_MODE: z.preprocess(
+    emptyToUndef,
+    z.enum(["auto", "mock", "live"]).optional().default("auto"),
+  ),
+  /**
+   * Server Mapbox token for Directions (sk. or URL-restricted pk.).
+   * Map tiles still use the public EXPO_PUBLIC_MAPBOX_* token on the client.
+   */
+  MAPBOX_ACCESS_TOKEN: optionalSecret,
   /** Absolute or relative directory for listing photo files. */
   UPLOAD_DIR: z.string().default("uploads"),
   /** Clerk secret key for verifying session JWTs on protected routes. */

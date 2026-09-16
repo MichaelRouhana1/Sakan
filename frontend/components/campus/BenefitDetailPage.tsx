@@ -3,7 +3,6 @@ import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Easing,
   Linking,
@@ -15,6 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import { BenefitHeroTicket } from "@/components/campus/BenefitHeroTicket";
 import { BenefitRedeemPanel } from "@/components/campus/BenefitRedeemPanel";
 import { BenefitRelated } from "@/components/campus/BenefitRelated";
@@ -318,9 +318,12 @@ export function BenefitDetailPage({ id }: Props) {
 
   if (benefit.isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={Skoun.color.primary} />
-      </View>
+      <GeneralLoadingBlock
+        layout="page"
+        state="working"
+        label="Loading this offer…"
+        style={styles.centered}
+      />
     );
   }
 

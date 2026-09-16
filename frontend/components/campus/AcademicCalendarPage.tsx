@@ -452,7 +452,7 @@ export function AcademicCalendarPage() {
           end={{ x: 1, y: 1 }}
           style={[styles.boardFill, compact && styles.boardFillCompact]}
         >
-          <View pointerEvents="none" style={styles.boardOrb} />
+          <View style={styles.boardOrb} />
 
           {compact ? (
             <View style={styles.heroInBoard} {...webProps("campus-cal-hero")}>
@@ -1158,6 +1158,7 @@ const styles = StyleSheet.create({
   },
   boardOrb: {
     position: "absolute",
+    pointerEvents: "none",
     top: -70,
     right: -40,
     width: 180,

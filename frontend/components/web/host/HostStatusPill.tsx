@@ -34,11 +34,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    boxShadow: "0 1px 6px rgba(0, 0, 0, 0.08)",
   },
   dot: {
     width: 6,

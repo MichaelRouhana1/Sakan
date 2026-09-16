@@ -239,7 +239,7 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
           ) : null}
         </View>,
         fileDropActive && remaining > 0 ? (
-          <View pointerEvents="none" style={photoPickerStyles.fileDropOverlay}>
+          <View style={photoPickerStyles.fileDropOverlay}>
             <LText variant="subtitle" style={photoPickerStyles.fileDropOverlayText}>
               Drop to add photos
             </LText>

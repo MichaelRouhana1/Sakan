@@ -178,7 +178,6 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
         {/* Perforation */}
         <View
           style={stack ? styles.railHorizontal : styles.railVertical}
-          pointerEvents="none"
           accessibilityElementsHidden
         >
           <View
@@ -363,12 +362,14 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     position: "relative",
     zIndex: 2,
+    pointerEvents: "none",
   },
   railHorizontal: {
     height: 0,
     alignSelf: "stretch",
     position: "relative",
     zIndex: 2,
+    pointerEvents: "none",
   },
   dash: {
     position: "absolute",

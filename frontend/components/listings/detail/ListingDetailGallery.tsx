@@ -121,8 +121,7 @@ export function ListingDetailGallery({
       )}
 
       <View
-        style={[styles.topBar, { top: Math.max(insets.top, 8) + 8 }]}
-        pointerEvents="box-none"
+        style={[styles.topBar, { top: Math.max(insets.top, 8) + 8, pointerEvents: "box-none" }]}
       >
         <OverlayBtn
           icon="chevron-back"
@@ -141,7 +140,7 @@ export function ListingDetailGallery({
         </View>
       </View>
 
-      <View style={styles.bottomRow} pointerEvents="box-none">
+      <View style={[styles.bottomRow, { pointerEvents: "box-none" }]}>
         <View style={styles.dotsSlot}>
           {mode === "photos" && photoTotal > 1
             ? Array.from({ length: Math.min(photoTotal, 8) }).map((_, i) => (

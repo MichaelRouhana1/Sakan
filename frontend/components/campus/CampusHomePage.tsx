@@ -110,15 +110,14 @@ export function CampusHomePage() {
   return (
     <View style={styles.page}>
       <View
-        style={[styles.hero, stacked && styles.heroStacked, heroLift]}
-        pointerEvents="box-none"
+        style={[styles.hero, stacked && styles.heroStacked, heroLift, { pointerEvents: "box-none" }]}
       >
-        <View style={styles.rippleHost} pointerEvents="auto">
+        <View style={[styles.rippleHost, { pointerEvents: "auto" }]}>
           <HeroRipple />
         </View>
 
-        <View style={styles.copy} pointerEvents="box-none">
-          <View style={styles.copyRead} pointerEvents="none">
+        <View style={[styles.copy, { pointerEvents: "box-none" }]}>
+          <View style={[styles.copyRead, { pointerEvents: "none" }]}>
             <View style={styles.badge}>
               <Ionicons name="school" size={13} color="#FFFFFF" />
               <LText style={styles.badgeText}>
@@ -158,8 +157,7 @@ export function CampusHomePage() {
         </View>
 
         <View
-          style={[styles.visual, stacked && styles.visualStacked]}
-          pointerEvents="box-none"
+          style={[styles.visual, stacked && styles.visualStacked, { pointerEvents: "box-none" }]}
         >
           <HeroCap />
         </View>

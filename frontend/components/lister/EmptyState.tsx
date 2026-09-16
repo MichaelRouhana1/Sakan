@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 import { Lister } from "@/constants/listerTheme";
+import { skounShadow } from "@/lib/skounShadow";
 import { LButton } from "./Button";
 import { LText } from "./Typography";
 
@@ -94,11 +95,7 @@ const styles = StyleSheet.create({
     borderColor: Lister.color.border,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#121826",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    ...skounShadow({ y: 4, blur: 10, opacity: 0.08, elevation: 2 }),
   },
   frameInner: {
     width: 64,

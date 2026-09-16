@@ -8,7 +8,7 @@ const NOISE =
 /** Subtle grain + cool mist — atmosphere without liquid-glass blur. */
 export function WizardGrain() {
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
       <LinearGradient
         colors={["rgba(255,255,255,0)", "rgba(255,255,255,0)", Lister.color.surface]}
         locations={[0, 0.35, 1]}

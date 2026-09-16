@@ -87,8 +87,7 @@ function TicketBackdropBase({
 
   return (
     <Svg
-      pointerEvents="none"
-      style={styles.svg}
+      style={[styles.svg, { pointerEvents: "none" }]}
       width={w + PAD * 2}
       height={h + PAD * 2}
       viewBox={`${-PAD} ${-PAD} ${w + PAD * 2} ${h + PAD * 2}`}

@@ -2,14 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   Animated,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LButton } from "@/components/lister/Button";
+import { ReportReasonOptions } from "@/components/listings/ReportReasonOptions";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import {
@@ -19,29 +21,13 @@ import {
 } from "@/features/reports/useReportListing";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
-const REASONS: { value: ReportReason; label: string; hint: string }[] = [
-  {
-    value: "fake",
-    label: "Fake",
-    hint: "Listing looks fabricated or scammy",
-  },
-  {
-    value: "inaccurate_utilities",
-    label: "Inaccurate utilities",
-    hint: "Electricity, water, or Wi‑Fi don’t match the post",
-  },
-  {
-    value: "already_rented",
-    label: "Already rented",
-    hint: "Place is taken or no longer available",
-  },
-];
-
 const SLIDE_MS = 280;
-const THANKS_MS = 1600;
+const THANKS_MS = 1800;
+const IS_WEB = Platform.OS === "web";
 
 type Props = {
   listingId: string;
+  listingTitle?: string;
   visible: boolean;
   onClose: () => void;
 };
@@ -49,10 +35,15 @@ type Props = {
 type Phase = "pick" | "thanks";
 
 /**
- * Quiet integrity sheet — three fixed reasons, select → submit → thank-you.
+ * Quiet integrity sheet — confidential docket, three fixed reasons.
  * Skoun tokens; no emoji; does not compete with WhatsApp CTA.
  */
-export function ReportListingSheet({ listingId, visible, onClose }: Props) {
+export function ReportListingSheet({
+  listingId,
+  listingTitle,
+  visible,
+  onClose,
+}: Props) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const report = useReportListing();
@@ -115,7 +106,7 @@ export function ReportListingSheet({ listingId, visible, onClose }: Props) {
         onSuccess: () => {
           setPhase("thanks");
           void AccessibilityInfo.announceForAccessibility(
-            "Thanks. We received your report.",
+            "Report filed. We’ll review this listing quietly.",
           );
           thanksTimer.current = setTimeout(() => {
             thanksTimer.current = null;
@@ -128,6 +119,9 @@ export function ReportListingSheet({ listingId, visible, onClose }: Props) {
       },
     );
   };
+
+  const chosen = Boolean(reason);
+  const busy = report.isPending;
 
   return (
     <Modal
@@ -158,78 +152,55 @@ export function ReportListingSheet({ listingId, visible, onClose }: Props) {
 
           {phase === "thanks" ? (
             <View style={styles.thanks} accessibilityLiveRegion="polite">
-              <View style={styles.thanksIcon}>
+              <View style={styles.thanksMark}>
                 <Ionicons
-                  name="checkmark-circle"
-                  size={28}
-                  color={Skoun.color.primary}
+                  name="checkmark"
+                  size={26}
+                  color={Skoun.color.primaryDeep}
                 />
               </View>
-              <LText variant="subtitle">Thanks — we got it</LText>
+              <LText variant="subtitle">Report filed</LText>
               <LText variant="body" tone="muted" style={styles.thanksBody}>
-                Your report helps keep Skoun trustworthy. No further action
-                needed from you.
+                We’ll review this listing quietly. Nothing else from you.
               </LText>
             </View>
           ) : (
             <>
+              <View style={styles.pill}>
+                <Ionicons
+                  name="lock-closed"
+                  size={11}
+                  color={Skoun.color.primaryDeep}
+                />
+                <LText variant="label" style={styles.pillText}>
+                  Confidential
+                </LText>
+              </View>
               <LText variant="subtitle" style={styles.title}>
-                Report listing
+                What’s wrong with this listing?
               </LText>
+              {listingTitle ? (
+                <LText
+                  variant="caption"
+                  tone="muted"
+                  numberOfLines={1}
+                  style={styles.listingName}
+                >
+                  {listingTitle}
+                </LText>
+              ) : null}
               <LText variant="caption" tone="muted" style={styles.lead}>
-                Choose one reason. We review quietly — this won’t message the
-                landlord.
+                Pick the closest reason. Reports stay private.
               </LText>
 
-              <View
-                accessibilityLabel="Report reason"
-                style={styles.reasons}
-              >
-                {REASONS.map((item) => {
-                  const selected = reason === item.value;
-                  return (
-                    <Pressable
-                      key={item.value}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={item.label}
-                      accessibilityHint={item.hint}
-                      onPress={() => {
-                        setReason(item.value);
-                        setError(null);
-                      }}
-                      style={({ pressed }) => [
-                        styles.reasonRow,
-                        selected && styles.reasonRowSelected,
-                        pressed && styles.reasonRowPressed,
-                      ]}
-                    >
-                      <Ionicons
-                        name={
-                          selected ? "checkmark-circle" : "ellipse-outline"
-                        }
-                        size={22}
-                        color={
-                          selected
-                            ? Skoun.color.primary
-                            : Skoun.color.inkFaint
-                        }
-                      />
-                      <View style={styles.reasonCopy}>
-                        <LText
-                          variant="body"
-                          style={selected ? styles.reasonLabelOn : undefined}
-                        >
-                          {item.label}
-                        </LText>
-                        <LText variant="caption" tone="muted">
-                          {item.hint}
-                        </LText>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <ReportReasonOptions
+                value={reason}
+                reduceMotion={reduceMotion}
+                onChange={(next) => {
+                  setReason(next);
+                  setError(null);
+                }}
+              />
 
               {error ? (
                 <LText
@@ -243,14 +214,36 @@ export function ReportListingSheet({ listingId, visible, onClose }: Props) {
               ) : null}
 
               <View style={styles.actions}>
-                <LButton
-                  label="Submit report"
-                  variant="secondary"
-                  disabled={!reason}
-                  loading={report.isPending}
-                  onPress={submit}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="File report"
+                  accessibilityState={{ disabled: !chosen || busy }}
                   accessibilityHint="Sends your selected reason"
-                />
+                  disabled={!chosen || busy}
+                  onPress={submit}
+                  style={({ pressed }) => [
+                    styles.submit,
+                    chosen && styles.submitReady,
+                    pressed && chosen && styles.submitPressed,
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator
+                      color={Skoun.color.surface}
+                      size="small"
+                    />
+                  ) : (
+                    <LText
+                      variant="subtitle"
+                      style={[
+                        styles.submitLabel,
+                        chosen && styles.submitLabelReady,
+                      ]}
+                    >
+                      File report
+                    </LText>
+                  )}
+                </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Cancel"
@@ -290,7 +283,7 @@ const styles = StyleSheet.create({
     borderColor: Skoun.color.border,
     paddingHorizontal: Skoun.space.lg,
     paddingTop: 10,
-    gap: 12,
+    gap: 10,
   },
   handle: {
     alignSelf: "center",
@@ -300,46 +293,60 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.borderStrong,
     marginBottom: 4,
   },
-  title: {
+  pill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: Skoun.radius.pill,
+    backgroundColor: Skoun.color.primaryMist,
     marginTop: 4,
+  },
+  pillText: {
+    letterSpacing: 0.8,
+    fontSize: 10,
+    lineHeight: 12,
+    color: Skoun.color.primaryDeep,
+  },
+  title: {
+    fontSize: 20,
+    lineHeight: 26,
+    letterSpacing: -0.2,
+  },
+  listingName: {
+    marginTop: -4,
   },
   lead: {
     marginBottom: 4,
-  },
-  reasons: {
-    gap: 8,
-  },
-  reasonRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: Skoun.radius.md,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surfaceMuted,
-  },
-  reasonRowSelected: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
-  },
-  reasonRowPressed: {
-    opacity: 0.92,
-  },
-  reasonCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  reasonLabelOn: {
-    fontFamily: Skoun.type.bodySemi,
   },
   error: {
     marginTop: 2,
   },
   actions: {
-    gap: 10,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 8,
+  },
+  submit: {
+    minHeight: 52,
+    borderRadius: Skoun.radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Skoun.color.surfaceMuted,
+    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
+  },
+  submitReady: {
+    backgroundColor: Skoun.color.primaryDeep,
+  },
+  submitPressed: {
+    opacity: 0.92,
+  },
+  submitLabel: {
+    color: Skoun.color.inkFaint,
+  },
+  submitLabelReady: {
+    color: Skoun.color.surface,
   },
   cancel: {
     alignSelf: "center",
@@ -355,7 +362,13 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 8,
   },
-  thanksIcon: {
+  thanksMark: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Skoun.color.primaryMist,
     marginBottom: 4,
   },
   thanksBody: {

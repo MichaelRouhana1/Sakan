@@ -17,6 +17,7 @@ import * as WebBrowser from "expo-web-browser";
 import { api } from "@/lib/api";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { Skoun } from "@/constants/theme";
+import { skounShadow } from "@/lib/skounShadow";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { UserApiError } from "@/features/auth/userApi";
 import {
@@ -951,11 +952,7 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    shadowColor: "#000000",
-    shadowOpacity: 0.12,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 14,
+    ...skounShadow({ color: "#000000", y: 10, blur: 30, opacity: 0.12, elevation: 14 }),
     overflow: "hidden",
     position: "relative",
     maxHeight: "92%",

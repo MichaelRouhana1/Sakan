@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { PaperPlaneArrow } from "@/components/icons/PaperPlaneArrow";
 import { Skoun } from "@/constants/theme";
 import { OFFSCREEN_BEACON_SIZE } from "@/lib/offscreenBeacon";
+import { skounShadow } from "@/lib/skounShadow";
 
 type Props = {
   x: number;
@@ -56,11 +57,7 @@ const styles = StyleSheet.create({
     backgroundColor: Skoun.color.ink,
     borderWidth: 2,
     borderColor: "#E8EEF6",
-    shadowColor: "#121826",
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
+    ...skounShadow({ y: 3, blur: 8, opacity: 0.28, elevation: 6 }),
     cursor: "pointer" as unknown as undefined,
   },
   circleHover: {

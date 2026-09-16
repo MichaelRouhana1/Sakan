@@ -33,7 +33,6 @@ export function PhotoPickerGridDragGhost({ ghost, pointer }: Props) {
 
   return createPortal(
     <View
-      pointerEvents="none"
       style={[
         styles.ghost,
         {
@@ -41,6 +40,7 @@ export function PhotoPickerGridDragGhost({ ghost, pointer }: Props) {
           top,
           width: ghost.width,
           height: ghost.height,
+          pointerEvents: "none",
         },
         !reducedMotion ? styles.ghostLift : null,
       ]}

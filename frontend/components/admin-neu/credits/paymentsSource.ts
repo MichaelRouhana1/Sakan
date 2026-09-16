@@ -4,7 +4,7 @@
  *
  * Mapping to current backend (honest):
  * - GET /api/admin/transactions exists (pending/history). This UI is not wired.
- * - POST /api/credits/purchase now auto-approves (demo gateway).
+ * - POST /api/credits/purchase starts Whish checkout (pending until webhook/confirm).
  * - Listing spend is users.postCredits-- — no credit_transactions spend row.
  * - Refund / dispute / adjust ≈ future PATCH /api/admin/transactions/:id
  */

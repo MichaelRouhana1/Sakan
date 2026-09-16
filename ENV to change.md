@@ -10,7 +10,7 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 |----------|---------------|------------|
 | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_test_...` | `pk_live_...` from [Clerk Dashboard](https://dashboard.clerk.com) → API Keys |
 | `EXPO_PUBLIC_API_URL` | LAN IP, e.g. `http://192.168.x.x:3001` | Public HTTPS API origin, e.g. `https://api.yourdomain.com` |
-| `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public `pk.` from [account.mapbox.com](https://account.mapbox.com/access-tokens/) (local: `frontend/.env`). Alias: `EXPO_PUBLIC_MAPBOX_TOKEN` | Same `pk.` token, URL/bundle-restricted in Mapbox dashboard |
+| `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public `pk.` from [account.mapbox.com](https://account.mapbox.com/access-tokens/) (local: `frontend/.env`). Alias: `EXPO_PUBLIC_MAPBOX_TOKEN`. **Tiles / Mapbox GL only** — walking Directions go through the backend | Same `pk.` token, URL/bundle-restricted in Mapbox dashboard |
 | `EXPO_PUBLIC_MAPBOX_STYLE` | Optional. Default `mapbox://styles/mapbox/standard` | Optional; satellite only if set to `mapbox://styles/mapbox/standard-satellite` |
 | `MAPBOX_DOWNLOADS_TOKEN` | Optional secret `sk.` for native SDK download (EAS secret / local env). **Never** `EXPO_PUBLIC_*`, never commit. Current `@rnmapbox/maps` plugin says download token often unused — keep if prebuild still requires `.netrc` | Same; EAS secret only |
 
@@ -29,6 +29,7 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 | `PUBLIC_BASE_URL` | LAN IP, e.g. `http://192.168.x.x:3001` | Public HTTPS API URL (listing photo links) |
 | `PORT` | `3001` | Host/port your process listens on (often set by platform) |
 | `UPLOAD_DIR` | `uploads` | Persistent disk path or switch to object storage later |
+| `MAPBOX_ACCESS_TOKEN` | (optional locally) Mapbox secret `sk.` or URL-restricted `pk.` for Directions | Required in production so walking routes persist; never `EXPO_PUBLIC_*`. Client `EXPO_PUBLIC_MAPBOX_*` is tiles/GL only |
 
 ---
 
@@ -48,7 +49,7 @@ Before go-live:
 ## Security reminders
 
 - Never commit real `.env` files (already gitignored).
-- `CLERK_SECRET_KEY`, `ADMIN_API_KEY`, and `ADMIN_CLERK_IDS` are server-only — never put them in `EXPO_PUBLIC_*`.
+- `CLERK_SECRET_KEY`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, and `MAPBOX_ACCESS_TOKEN` are server-only — never put them in `EXPO_PUBLIC_*`.
 - Web admin authenticates with the user's Clerk Bearer token. Do not send `x-admin-key` from the browser.
 - `MAPBOX_DOWNLOADS_TOKEN` is a secret `sk.` — never `EXPO_PUBLIC_*`, never commit.
 - Rotate any key that was shared in chat or committed by mistake.
@@ -61,6 +62,6 @@ Before go-live:
 |------|------------------|
 | `frontend/.env` | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` (or `EXPO_PUBLIC_MAPBOX_TOKEN`), `EXPO_PUBLIC_MAPBOX_STYLE` |
 | `EAS / local native secrets` | `MAPBOX_DOWNLOADS_TOKEN` (secret `sk.`, not public) |
-| `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `PUBLIC_BASE_URL` |
+| `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `PUBLIC_BASE_URL`, `MAPBOX_ACCESS_TOKEN` |
 
 Replace all `pk_test_` / `sk_test_` values with **live** keys from Clerk before production.

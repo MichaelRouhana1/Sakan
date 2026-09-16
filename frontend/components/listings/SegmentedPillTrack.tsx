@@ -169,7 +169,6 @@ export function SegmentedPillTrack<T extends string>({
     >
       {ready ? (
         <Animated.View
-          pointerEvents="none"
           style={[
             styles.thumb,
             appearance === "glass" && styles.thumbGlass,
@@ -179,6 +178,7 @@ export function SegmentedPillTrack<T extends string>({
               width: thumbSize.width,
               height: thumbSize.height,
               transform: [{ translateX: thumbX }],
+              pointerEvents: "none",
             },
           ]}
         />

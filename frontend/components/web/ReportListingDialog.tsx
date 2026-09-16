@@ -1,7 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
-import { LButton } from "@/components/lister/Button";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
+import { ReportReasonOptions } from "@/components/listings/ReportReasonOptions";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import {
@@ -9,32 +16,30 @@ import {
   useReportListing,
   type ReportReason,
 } from "@/features/reports/useReportListing";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
-const REASONS: { value: ReportReason; label: string; hint: string }[] = [
-  { value: "fake", label: "Fake", hint: "Listing looks fabricated or scammy" },
-  {
-    value: "inaccurate_utilities",
-    label: "Inaccurate utilities",
-    hint: "Electricity, water, or Wi‑Fi don’t match",
-  },
-  {
-    value: "already_rented",
-    label: "Already rented",
-    hint: "Place is taken or unavailable",
-  },
-];
+const IS_WEB = Platform.OS === "web";
+const THANKS_MS = 1800;
 
 type Props = {
   listingId: string;
+  listingTitle?: string;
   visible: boolean;
   onClose: () => void;
 };
 
-export function ReportListingDialog({ listingId, visible, onClose }: Props) {
+export function ReportListingDialog({
+  listingId,
+  listingTitle,
+  visible,
+  onClose,
+}: Props) {
   const report = useReportListing();
+  const reduceMotion = useReducedMotion();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [thanks, setThanks] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const thanksTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!visible) return;
@@ -42,7 +47,28 @@ export function ReportListingDialog({ listingId, visible, onClose }: Props) {
     setThanks(false);
     setError(null);
     report.reset();
+    if (thanksTimer.current) {
+      clearTimeout(thanksTimer.current);
+      thanksTimer.current = null;
+    }
+    // Intentionally omit `report` — identity changes every mutation tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, listingId]);
+
+  useEffect(() => {
+    return () => {
+      if (thanksTimer.current) clearTimeout(thanksTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible || typeof document === "undefined") return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [visible, onClose]);
 
   const submit = async () => {
     if (!reason) return;
@@ -50,70 +76,171 @@ export function ReportListingDialog({ listingId, visible, onClose }: Props) {
     try {
       await report.mutateAsync({ listingId, reason });
       setThanks(true);
-      setTimeout(onClose, 1400);
+      thanksTimer.current = setTimeout(onClose, THANKS_MS);
     } catch (e) {
       setError(reportErrorMessage(e));
     }
   };
 
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
-        <View style={styles.dialog} accessibilityViewIsModal>
-          <View style={styles.header}>
-            <LText variant="title">Report listing</LText>
-            <Pressable accessibilityRole="button" onPress={onClose}>
-              <Ionicons name="close" size={22} color={Skoun.color.inkMuted} />
-            </Pressable>
-          </View>
+  const chosen = Boolean(reason);
+  const busy = report.isPending;
 
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType={reduceMotion ? "none" : "fade"}
+      onRequestClose={onClose}
+    >
+      <View style={styles.overlay}>
+        <Pressable
+          style={styles.backdrop}
+          onPress={onClose}
+          accessibilityLabel="Close report dialog"
+        />
+        <View
+          style={styles.dialog}
+          accessibilityViewIsModal
+          accessibilityRole="dialog"
+          accessibilityLabel="Flag this listing"
+        >
           {thanks ? (
-            <View style={styles.thanks}>
-              <Ionicons name="checkmark-circle" size={40} color={Skoun.color.primary} />
-              <LText variant="body" style={styles.thanksText}>
-                Thanks — we’ll review this listing.
+            <View style={styles.thanks} accessibilityLiveRegion="polite">
+              <View style={styles.thanksMark}>
+                <Ionicons
+                  name="checkmark"
+                  size={28}
+                  color={Skoun.color.primaryDeep}
+                />
+              </View>
+              <LText variant="title" style={styles.thanksTitle}>
+                Report filed
+              </LText>
+              <LText variant="body" tone="muted" style={styles.thanksBody}>
+                We’ll review this listing quietly. Nothing else from you.
               </LText>
             </View>
           ) : (
             <>
-              <LText variant="body" tone="muted" style={styles.intro}>
-                Pick the closest reason. Reports are confidential.
-              </LText>
-              <View style={styles.reasons}>
-                {REASONS.map((r) => {
-                  const selected = reason === r.value;
-                  return (
-                    <Pressable
-                      key={r.value}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      onPress={() => setReason(r.value)}
-                      style={({ hovered }) => [
-                        styles.reason,
-                        selected && styles.reasonSelected,
-                        hovered && !selected && styles.reasonHover,
-                      ]}
+              <View style={styles.header}>
+                <View style={styles.headerCopy}>
+                  <View style={styles.pill}>
+                    <Ionicons
+                      name="lock-closed"
+                      size={11}
+                      color={Skoun.color.primaryDeep}
+                    />
+                    <LText variant="label" style={styles.pillText}>
+                      Confidential
+                    </LText>
+                  </View>
+                  <LText variant="title" style={styles.headline}>
+                    What’s wrong with this listing?
+                  </LText>
+                  {listingTitle ? (
+                    <LText
+                      variant="caption"
+                      tone="muted"
+                      numberOfLines={1}
+                      style={styles.listingName}
                     >
-                      <LText variant="subtitle">{r.label}</LText>
-                      <LText variant="caption" tone="muted">
-                        {r.hint}
-                      </LText>
-                    </Pressable>
-                  );
-                })}
+                      {listingTitle}
+                    </LText>
+                  ) : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close"
+                  onPress={onClose}
+                  style={({ hovered, focused }) => [
+                    styles.close,
+                    hovered && styles.closeHover,
+                    focused && styles.closeFocus,
+                  ]}
+                >
+                  <Ionicons name="close" size={18} color={Skoun.color.ink} />
+                </Pressable>
               </View>
-              {error ? (
-                <LText variant="caption" style={styles.error}>
-                  {error}
-                </LText>
-              ) : null}
-              <LButton
-                label={report.isPending ? "Submitting…" : "Submit report"}
-                variant="primary"
-                disabled={!reason || report.isPending}
-                onPress={() => void submit()}
+
+              <LText variant="body" tone="muted" style={styles.lead}>
+                Pick the closest reason. Reports stay private.
+              </LText>
+
+              <ReportReasonOptions
+                value={reason}
+                reduceMotion={reduceMotion}
+                onChange={(next) => {
+                  setReason(next);
+                  setError(null);
+                }}
               />
+
+              {error ? (
+                <View style={styles.errorRow} accessibilityRole="alert">
+                  <Ionicons
+                    name="alert-circle"
+                    size={16}
+                    color={Skoun.color.danger}
+                  />
+                  <LText variant="caption" tone="danger" style={styles.errorText}>
+                    {error}
+                  </LText>
+                </View>
+              ) : null}
+
+              <View style={styles.footer}>
+                <View style={styles.reassure}>
+                  <Ionicons
+                    name="eye-off-outline"
+                    size={16}
+                    color={Skoun.color.inkFaint}
+                  />
+                  <LText variant="caption" tone="muted" style={styles.reassureText}>
+                    Landlord isn’t notified
+                  </LText>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="File report"
+                  accessibilityState={{ disabled: !chosen || busy }}
+                  accessibilityHint="Sends your selected reason"
+                  disabled={!chosen || busy}
+                  onPress={() => void submit()}
+                  style={({ hovered, focused }) => [
+                    styles.submit,
+                    chosen && styles.submitReady,
+                    chosen && hovered && !busy && styles.submitHover,
+                    focused && chosen && styles.closeFocus,
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator
+                      color={Skoun.color.surface}
+                      size="small"
+                    />
+                  ) : (
+                    <>
+                      <LText
+                        variant="subtitle"
+                        style={[
+                          styles.submitLabel,
+                          chosen && styles.submitLabelReady,
+                        ]}
+                      >
+                        File report
+                      </LText>
+                      <Ionicons
+                        name="arrow-forward"
+                        size={16}
+                        color={
+                          chosen ? Skoun.color.surface : Skoun.color.inkFaint
+                        }
+                        accessibilityElementsHidden
+                      />
+                    </>
+                  )}
+                </Pressable>
+              </View>
             </>
           )}
         </View>
@@ -132,57 +259,183 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: Skoun.color.overlay,
+    ...(IS_WEB
+      ? ({
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          cursor: "pointer",
+        } as object)
+      : null),
   },
   dialog: {
     width: "100%",
-    maxWidth: 440,
+    maxWidth: 480,
     backgroundColor: Skoun.color.surface,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 24,
+    paddingBottom: 22,
     borderWidth: 1,
+    borderTopWidth: 5,
     borderColor: Skoun.color.border,
-    boxShadow: "0 20px 40px rgba(18, 24, 38, 0.12)",
+    borderTopColor: Skoun.color.primaryDeep,
+    overflow: "hidden",
     zIndex: 1,
-  } as Record<string, unknown>,
+    ...(IS_WEB
+      ? ({
+          boxShadow: "0 28px 64px rgba(18, 24, 38, 0.22)",
+        } as object)
+      : null),
+  },
   header: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 10,
   },
-  intro: {
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: 8,
+  },
+  pill: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: Skoun.radius.pill,
+    backgroundColor: Skoun.color.primaryMist,
+  },
+  pillText: {
+    letterSpacing: 0.8,
+    fontSize: 10,
+    lineHeight: 12,
+    color: Skoun.color.primaryDeep,
+  },
+  headline: {
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: -0.3,
+  },
+  listingName: {
+    marginTop: -2,
+  },
+  close: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Skoun.color.surfaceMuted,
+    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
+  },
+  closeHover: {
+    backgroundColor: Skoun.color.bgWash,
+  },
+  closeFocus: {
+    ...(IS_WEB
+      ? ({
+          outlineWidth: 2,
+          outlineStyle: "solid",
+          outlineColor: Skoun.color.primary,
+          outlineOffset: 2,
+        } as object)
+      : null),
+  },
+  lead: {
     marginBottom: 16,
     lineHeight: 22,
   },
-  reasons: {
+  errorRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    marginBottom: 16,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: Skoun.radius.sm,
+    backgroundColor: Skoun.color.dangerSoft,
   },
-  reason: {
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Skoun.color.border,
+  errorText: {
+    flex: 1,
+  },
+  footer: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Skoun.color.border,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  reassure: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minWidth: 0,
+  },
+  reassureText: {
+    flex: 1,
+  },
+  submit: {
+    minHeight: 44,
+    minWidth: 148,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: Skoun.color.surfaceMuted,
-    gap: 2,
+    ...(IS_WEB
+      ? ({
+          cursor: "pointer",
+          transitionProperty: "background-color, box-shadow",
+          transitionDuration: "200ms",
+          transitionTimingFunction: "ease-out",
+        } as object)
+      : null),
   },
-  reasonSelected: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+  submitReady: {
+    backgroundColor: Skoun.color.primaryDeep,
+    ...(IS_WEB
+      ? ({ boxShadow: "0 8px 18px rgba(18, 24, 38, 0.18)" } as object)
+      : null),
   },
-  reasonHover: {
-    borderColor: Skoun.color.borderStrong,
+  submitHover: {
+    backgroundColor: "#1C2433",
   },
-  error: {
-    color: Skoun.color.danger,
-    marginBottom: 12,
+  submitLabel: {
+    fontSize: 15,
+    color: Skoun.color.inkFaint,
+  },
+  submitLabelReady: {
+    color: Skoun.color.surface,
   },
   thanks: {
     alignItems: "center",
-    paddingVertical: 24,
-    gap: 12,
+    paddingVertical: 36,
+    paddingHorizontal: 8,
+    gap: 10,
   },
-  thanksText: {
+  thanksMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Skoun.color.primaryMist,
+    marginBottom: 8,
+  },
+  thanksTitle: {
     textAlign: "center",
+  },
+  thanksBody: {
+    textAlign: "center",
+    maxWidth: 320,
   },
 });
