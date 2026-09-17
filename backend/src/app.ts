@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import { loadEnv } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { benefitsRouter } from "./modules/benefits/benefits.routes.js";
@@ -17,6 +18,11 @@ import { authDevRouter } from "./modules/auth/auth.dev.routes.js";
 
 export function createApp() {
   const app = express();
+  const hops = loadEnv().TRUST_PROXY;
+  // Production behind nginx/Caddy: TRUST_PROXY=1 so walking-route limits key by client IP.
+  if (hops) {
+    app.set("trust proxy", hops);
+  }
 
   app.use(cors());
   app.use(express.json({ limit: "2mb" }));

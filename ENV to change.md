@@ -30,6 +30,7 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 | `PORT` | `3001` | Host/port your process listens on (often set by platform) |
 | `UPLOAD_DIR` | `uploads` | Persistent disk path or switch to object storage later |
 | `MAPBOX_ACCESS_TOKEN` | (optional locally) Mapbox secret `sk.` or URL-restricted `pk.` for Directions | Required in production so walking routes persist; never `EXPO_PUBLIC_*`. Client `EXPO_PUBLIC_MAPBOX_*` is tiles/GL only |
+| `TRUST_PROXY` | unset | `1` when the API sits behind nginx/Caddy so walking-route rate limits key by client IP (do not set `true`) |
 
 ---
 

@@ -593,6 +593,9 @@ const styles = StyleSheet.create({
     width: "100%",
     overflow: "hidden",
     backgroundColor: Skoun.color.primaryMist,
+    ...(Platform.OS === "web"
+      ? ({ clipPath: "inset(0)", WebkitClipPath: "inset(0)" } as object)
+      : null),
   },
   gridHeart: {
     position: "absolute",

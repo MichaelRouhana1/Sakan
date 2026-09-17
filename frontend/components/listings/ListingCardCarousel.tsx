@@ -38,18 +38,6 @@ function stopCardNav(e?: GestureResponderEvent) {
   e?.stopPropagation?.();
 }
 
-function webPanXStyles(coarsePointer: boolean): ViewStyle | null {
-  if (Platform.OS !== "web" || !coarsePointer) return null;
-  return {
-    touchAction: "pan-x",
-    overflowX: "auto",
-    overflowY: "hidden",
-    overscrollBehavior: "contain",
-    WebkitOverflowScrolling: "touch",
-    scrollSnapType: "x mandatory",
-  } as ViewStyle;
-}
-
 export function ListingCardCarousel({
   urls,
   style,
@@ -66,7 +54,6 @@ export function ListingCardCarousel({
   const count = photos.length;
   const isWeb = Platform.OS === "web";
   const coarsePointer = useCoarsePointer();
-  const webPanX = webPanXStyles(coarsePointer);
   const scrollRef = useRef<ScrollView>(null);
   const lockedRef = useRef(false);
   const draggingRef = useRef(false);
@@ -102,10 +89,12 @@ export function ListingCardCarousel({
   }, [cardWidth]);
 
   const go = (delta: number) => {
-    if (count < 2 || cardWidth <= 0) return;
+    if (count < 2) return;
     const next = Math.max(0, Math.min(count - 1, index + delta));
     setIndex(next);
-    scrollRef.current?.scrollTo({ x: next * cardWidth, animated: true });
+    if (!isWeb && cardWidth > 0) {
+      scrollRef.current?.scrollTo({ x: next * cardWidth, animated: true });
+    }
   };
 
   const syncIndex = (x: number) => {
@@ -161,17 +150,64 @@ export function ListingCardCarousel({
       onLayout={(e) => {
         const { width, height } = e.nativeEvent.layout;
         if (width <= 0) return;
+        // Integer px so slides match the clip. Fractional CSS widths otherwise
+        // leave a 1px strip of the next photo on the right.
+        const nextW = Math.max(1, Math.ceil(width - 1e-6));
         const nextH = Math.round(
           fill
             ? Math.max(height, minHeight)
-            : Math.max(height > 1 ? height : width / PHOTO_ASPECT, minHeight),
+            : Math.max(height > 1 ? height : nextW / PHOTO_ASPECT, minHeight),
         );
-        if (width !== cardWidth) setCardWidth(width);
+        if (nextW !== cardWidth) setCardWidth(nextW);
         if (nextH !== cardHeight) setCardHeight(nextH);
       }}
       {...webHoverHandlers}
     >
-      {count > 0 && cardWidth > 0 && cardHeight > 0 ? (
+      {isWeb && count > 0 ? (
+        <View
+          style={styles.viewport}
+          onTouchStart={onTouchStart}
+          onTouchEnd={(e) => {
+            if (count < 2) return;
+            const t =
+              e.nativeEvent.changedTouches?.[0] ?? e.nativeEvent;
+            const dx = t.pageX - startX.current;
+            if (dx > 40) go(-1);
+            else if (dx < -40) go(1);
+          }}
+        >
+          <View
+            style={[
+              styles.webTrack,
+              count > 1
+                ? {
+                    width: `${count * 100}%`,
+                    transform: [
+                      { translateX: `${-((index * 100) / count)}%` },
+                    ],
+                  }
+                : styles.webTrackSingle,
+            ]}
+          >
+            {photos.map((url, i) => (
+              <Pressable
+                key={`${url}-${i}`}
+                onPress={onPressCard}
+                style={[
+                  styles.webSlide,
+                  { width: count > 1 ? `${100 / count}%` : "100%" },
+                ]}
+              >
+                <Image
+                  source={{ uri: url }}
+                  style={styles.webImage}
+                  contentFit="cover"
+                />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : count > 0 && cardWidth > 0 && cardHeight > 0 ? (
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -185,8 +221,10 @@ export function ListingCardCarousel({
           showsHorizontalScrollIndicator={false}
           overScrollMode="never"
           keyboardShouldPersistTaps="handled"
-          style={[StyleSheet.absoluteFillObject, webPanX]}
-          contentContainerStyle={count > 1 ? undefined : styles.singleContent}
+          style={[StyleSheet.absoluteFillObject, styles.scroller]}
+          contentContainerStyle={
+            count > 1 ? styles.track : styles.singleContent
+          }
           onScrollBeginDrag={() => {
             if (count < 2) return;
             draggingRef.current = true;
@@ -215,13 +253,18 @@ export function ListingCardCarousel({
               key={`${url}-${i}`}
               onPress={onPressCard}
               style={[
+                styles.slide,
                 { width: cardWidth, height: cardHeight },
                 isWeb ? ({ scrollSnapAlign: "start" } as ViewStyle) : null,
               ]}
             >
               <Image
                 source={{ uri: url }}
-                style={{ width: cardWidth, height: cardHeight, pointerEvents: "none" }}
+                style={{
+                  width: cardWidth,
+                  height: cardHeight,
+                  pointerEvents: "none",
+                }}
                 contentFit="cover"
               />
             </Pressable>
@@ -331,12 +374,61 @@ const styles = StyleSheet.create({
   // when the parent only had absolutely positioned children.
   root: {
     width: "100%",
+    maxWidth: "100%",
     position: "relative",
     backgroundColor: "#E8EEF6",
     overflow: "hidden",
   },
   fill: {
     ...StyleSheet.absoluteFillObject,
+  },
+  viewport: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+    ...(Platform.OS === "web"
+      ? ({
+          clipPath: "inset(0)",
+          WebkitClipPath: "inset(0)",
+        } as ViewStyle)
+      : null),
+  },
+  webTrack: {
+    height: "100%",
+    flexDirection: "row",
+    ...(Platform.OS === "web"
+      ? ({
+          transitionProperty: "transform",
+          transitionDuration: "220ms",
+          transitionTimingFunction: "ease",
+        } as ViewStyle)
+      : null),
+  },
+  webTrackSingle: {
+    width: "100%",
+    height: "100%",
+  },
+  webSlide: {
+    height: "100%",
+    overflow: "hidden",
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  webImage: {
+    width: "100%",
+    height: "100%",
+    pointerEvents: "none",
+  },
+  scroller: {
+    overflow: "hidden",
+  },
+  track: {
+    flexDirection: "row",
+    flexGrow: 0,
+  },
+  slide: {
+    flexGrow: 0,
+    flexShrink: 0,
+    overflow: "hidden",
   },
   singleContent: {
     flexGrow: 1,

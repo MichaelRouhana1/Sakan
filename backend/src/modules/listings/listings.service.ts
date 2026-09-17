@@ -26,8 +26,65 @@ export type ListingsListResult = {
   campuses: CampusMeta[];
 };
 
+export type HostAnalyticsListing = {
+  id: string;
+  title: string;
+  area: string;
+  status: string;
+  viewCount: number;
+  expiresAt: Date | string | null;
+  daysLeft: number | null;
+  coverUrl: string | null;
+  createdAt: Date | string;
+  publishedAt: Date | string | null;
+  updatedAt: Date | string;
+};
+
+export type HostAnalyticsTotals = {
+  totalViews: number;
+  liveCount: number;
+  endingIn7Days: number;
+  avgViewsPerLive?: number;
+};
+
+export type HostAnalyticsOverview = {
+  totals: HostAnalyticsTotals;
+  listings: HostAnalyticsListing[];
+};
+
 function monthKey(d = new Date()) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Same ceil-day formula as frontend `daysUntil`. */
+function daysUntilExpiry(expiresAt: Date | string | null): number | null {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
+function toHostAnalyticsListing(
+  listing: ListingWithPhotos,
+): HostAnalyticsListing {
+  const expiresAt =
+    (listing.expiresAt as Date | string | null | undefined) ?? null;
+  const updatedAt = listing.updatedAt as Date | string;
+  const createdAt = listing.createdAt as Date | string;
+  const publishedAt =
+    (listing.publishedAt as Date | string | null | undefined) ?? null;
+  return {
+    id: String(listing.id),
+    title: String(listing.title ?? ""),
+    area: String(listing.area ?? ""),
+    status: String(listing.status ?? ""),
+    viewCount: Number(listing.viewCount ?? 0),
+    expiresAt,
+    daysLeft: daysUntilExpiry(expiresAt),
+    coverUrl: listing.coverUrl ?? null,
+    createdAt,
+    publishedAt,
+    updatedAt,
+  };
 }
 
 export class ListingsService {
@@ -179,6 +236,59 @@ export class ListingsService {
 
   async listMine(posterId: string) {
     return listingsRepository.listByPoster(posterId);
+  }
+
+  private async assertHost(userId: string) {
+    const user = await usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+    if (user.role !== "poster") {
+      throw new ForbiddenError("Only hosts can view analytics");
+    }
+    return user;
+  }
+
+  async mineAnalytics(userId: string): Promise<HostAnalyticsOverview> {
+    await this.assertHost(userId);
+    const rows = await listingsRepository.listByPoster(userId);
+    const listings = rows.map(toHostAnalyticsListing);
+
+    const totalViews = listings.reduce((sum, row) => sum + row.viewCount, 0);
+    const live = listings.filter((row) => row.status === "active");
+    const liveCount = live.length;
+    const endingIn7Days = live.filter((row) => {
+      const days = row.daysLeft;
+      return days != null && days >= 0 && days <= 7;
+    }).length;
+
+    const totals: HostAnalyticsTotals = {
+      totalViews,
+      liveCount,
+      endingIn7Days,
+    };
+    if (liveCount > 0) {
+      const liveViews = live.reduce((sum, row) => sum + row.viewCount, 0);
+      totals.avgViewsPerLive = liveViews / liveCount;
+    }
+
+    return { totals, listings };
+  }
+
+  async listingAnalytics(
+    userId: string,
+    listingId: string,
+  ): Promise<HostAnalyticsListing> {
+    const listing = await listingsRepository.findById(listingId);
+    if (!listing) {
+      throw new NotFoundError("Listing not found");
+    }
+    const posterId = String(listing.posterId ?? "");
+    if (posterId !== userId) {
+      throw new ForbiddenError("You do not own this listing");
+    }
+    await this.assertHost(userId);
+    return toHostAnalyticsListing(listing);
   }
 
   /** First listing promotes renter → poster (host) in DB. */

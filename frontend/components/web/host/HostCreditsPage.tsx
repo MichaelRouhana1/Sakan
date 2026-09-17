@@ -330,6 +330,7 @@ const styles = StyleSheet.create({
   },
   cardPopular: {
     overflow: "visible",
+    backgroundColor: Skoun.color.surfaceMuted,
   },
   cardBeamed: {
     flexGrow: 0,

@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { HostTopNav } from "@/components/web/HostTopNav";
+import { Skoun } from "@/constants/theme";
 
 type Props = {
   children: React.ReactNode;
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
     height: "100vh" as unknown as number,
     maxHeight: "100vh" as unknown as number,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Skoun.color.bg,
     boxSizing: "border-box",
     display: "flex" as unknown as "flex",
     flexDirection: "column",

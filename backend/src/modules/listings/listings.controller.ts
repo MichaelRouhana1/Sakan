@@ -78,6 +78,27 @@ export class ListingsController {
     }
   }
 
+  async mineAnalytics(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.mineAnalytics(req.user!.id);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listingAnalytics(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.listingAnalytics(
+        req.user!.id,
+        req.params.id as string,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.getById(req.params.id as string);

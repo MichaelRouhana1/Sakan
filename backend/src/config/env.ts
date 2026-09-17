@@ -55,6 +55,14 @@ const envSchema = z.object({
    * Map tiles still use the public EXPO_PUBLIC_MAPBOX_* token on the client.
    */
   MAPBOX_ACCESS_TOKEN: optionalSecret,
+  /**
+   * Number of reverse-proxy hops to trust for req.ip (X-Forwarded-For).
+   * Unset locally. Production behind nginx/Caddy: 1. Never `true` (all hops).
+   */
+  TRUST_PROXY: z.preprocess(
+    emptyToUndef,
+    z.coerce.number().int().min(1).max(5).optional(),
+  ),
   /** Absolute or relative directory for listing photo files. */
   UPLOAD_DIR: z.string().default("uploads"),
   /** Clerk secret key for verifying session JWTs on protected routes. */

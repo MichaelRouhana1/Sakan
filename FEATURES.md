@@ -34,7 +34,7 @@
 | Property filters (type, rent, utilities, students, gender) | Done | panel + `listListingsQuerySchema` / list repo |
 | Sort (newest / lowest price) | Done (Cities) | `ListingSortControl` |
 | List ↔ map toggle | Done | `BrowseViewToggle` |
-| Renter browse map (pins, campus, walking route + distance) | Done | `ListingBrowseMap` (+ `.web`) |
+| Renter browse map (pins, campus, walking route + distance) | Done | `ListingBrowseMap` (+ `.web`); public walking-route GET is 90 req / 15 min per IP |
 | Co-located pin grouping + picker sheet | Done | `mapPinGroups.ts`, `ListingMapPicker` |
 | Map preview card | Done | `ListingMapPreview` |
 | Listing cards + distance | Done | `ListingCard` |

@@ -3,7 +3,11 @@ import { Link, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
-import { HOST_CREDITS_PATH } from "@/constants/hostRoutes";
+import {
+  HOST_ANALYTICS_PATH,
+  HOST_CREDITS_PATH,
+  HOST_LISTINGS_PATH,
+} from "@/constants/hostRoutes";
 import { Skoun } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
@@ -57,6 +61,28 @@ export function HostTopNav() {
           >
             <Text style={styles.switchLinkText}>Switch to renting</Text>
           </Pressable>
+
+          <Link href={HOST_LISTINGS_PATH as never} asChild>
+            <Pressable
+              onPress={() => router.push(HOST_LISTINGS_PATH as never)}
+              accessibilityRole="link"
+              accessibilityLabel="Listings"
+              style={({ pressed }) => [styles.switchLink, pressed && styles.pressed]}
+            >
+              <Text style={styles.switchLinkText}>Listings</Text>
+            </Pressable>
+          </Link>
+
+          <Link href={HOST_ANALYTICS_PATH as never} asChild>
+            <Pressable
+              onPress={() => router.push(HOST_ANALYTICS_PATH as never)}
+              accessibilityRole="link"
+              accessibilityLabel="Analytics"
+              style={({ pressed }) => [styles.switchLink, pressed && styles.pressed]}
+            >
+              <Text style={styles.switchLinkText}>Analytics</Text>
+            </Pressable>
+          </Link>
 
           {isSignedIn ? (
             <View style={styles.credits}>

@@ -40,4 +40,7 @@ export const listingKeys = {
   details: () => [...listingKeys.all, "detail"] as const,
   detail: (id: string) => [...listingKeys.details(), id] as const,
   nearby: (id: string) => [...listingKeys.detail(id), "nearby"] as const,
+  hostAnalytics: () => [...listingKeys.all, "host-analytics"] as const,
+  listingAnalytics: (id: string) =>
+    [...listingKeys.detail(id), "analytics"] as const,
 };

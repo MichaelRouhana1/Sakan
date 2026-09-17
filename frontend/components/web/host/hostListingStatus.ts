@@ -3,7 +3,9 @@ import type { Listing } from "@/types/listing";
 
 export type HostListingStatusTone = "progress" | "action" | "live" | "muted";
 
-export function hostListingStatus(listing: Listing): {
+export function hostListingStatus(
+  listing: Pick<Listing, "status" | "expiresAt">,
+): {
   label: string;
   tone: HostListingStatusTone;
 } {
