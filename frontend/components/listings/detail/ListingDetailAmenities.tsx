@@ -8,7 +8,6 @@ import {
 } from "@/components/listings/detail/listingDetailChrome";
 import { amenityLabel } from "@/constants/listingWizard";
 import { Skoun } from "@/constants/theme";
-import { labelElectricity, labelWater } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -41,23 +40,11 @@ function iconFor(label: string): keyof typeof Ionicons.glyphMap {
   return "checkmark-circle-outline";
 }
 
-function fallbackAmenities(listing: Listing): string[] {
-  const items = [
-    labelElectricity(listing.electricity),
-    labelWater(listing.water),
-  ];
-  if (listing.wifiIncluded) items.push("Wi‑Fi included");
-  if (listing.routerUps) items.push("Router UPS");
-  if (listing.elevator24_7) items.push("24/7 elevator");
-  return items;
-}
-
 export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
   const all = useMemo(() => {
-    const listed = (listing.amenities ?? [])
+    return (listing.amenities ?? [])
       .map((s) => amenityLabel(s).trim())
       .filter(Boolean);
-    return listed.length > 0 ? listed : fallbackAmenities(listing);
   }, [listing]);
   const [open, setOpen] = useState(false);
   const shown = open || all.length <= PREVIEW ? all : all.slice(0, PREVIEW);

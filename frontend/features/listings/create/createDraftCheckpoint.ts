@@ -81,6 +81,7 @@ export function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
     photos,
     electricityCutWindows: windows,
     contactNumbers: numbersFromLegacy(parsed),
+    cardBadges: Array.isArray(parsed.cardBadges) ? parsed.cardBadges : null,
   };
 }
 

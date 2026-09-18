@@ -1,4 +1,11 @@
 import { coerceCutWindows, formatWindowsSummary } from "@/lib/electricityCuts";
+import type {
+  CampusMeta,
+  Listing,
+  ListingPhoto,
+  PbsaRoomType,
+  StandardUnitSpecs,
+} from "@/types/listing";
 
 function normalizePhotos(row: Record<string, unknown>): ListingPhoto[] {
   const raw = row.photos;
@@ -27,6 +34,12 @@ function parseCoord(value: unknown): number | null {
   if (value == null || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function parseNullableStringArray(value: unknown): string[] | null {
+  if (value == null) return null;
+  if (!Array.isArray(value)) return null;
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 /** Maps API rows (camelCase or snake_case / PostGIS) into Listing. */
@@ -270,6 +283,7 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     highlightTags: Array.isArray(row.highlightTags ?? row.highlight_tags)
       ? ((row.highlightTags ?? row.highlight_tags) as string[])
       : [],
+    cardBadges: parseNullableStringArray(row.cardBadges ?? row.card_badges),
     listingPosterRole: (row.listingPosterRole ??
       row.listing_poster_role) as Listing["listingPosterRole"],
     contactName: (row.contactName ?? row.contact_name ?? null) as string | null,

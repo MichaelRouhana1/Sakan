@@ -25,6 +25,7 @@ export function CreateProgress({ step, variant = "header" }: Props) {
               i < step && (footer ? styles.tickDoneFooter : styles.tickDone),
               i === step &&
                 (footer ? styles.tickNowFooter : styles.tickNow),
+              !footer && step === total - 1 && styles.tickDone,
             ]}
           />
         ))}

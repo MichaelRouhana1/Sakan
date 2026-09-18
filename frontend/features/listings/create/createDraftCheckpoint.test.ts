@@ -116,6 +116,16 @@ async function assertPublishClearsOnlyActiveSlot() {
 
 void (async () => {
   await assertPublishClearsOnlyActiveSlot();
+  for (const cardBadges of [["hl-fiber", "power_24", "water_24"], []]) {
+    const draft = { ...INITIAL_DRAFT, step: 9, title: "Badge checkpoint", cardBadges };
+    await writeCheckpoint(draft, 8, 9);
+    await writeWorkingCheckpoint(draft, 8, 9);
+    for (const saved of [await readCheckpoint(), await readWorkingCheckpoint()]) {
+      assert(saved?.savedStep === 9, "save and exit must remember step 10");
+      assert(JSON.stringify(saved?.draft.cardBadges) === JSON.stringify(cardBadges),
+        "badge selection, order and explicit empty arrays must survive save/resume");
+    }
+  }
   console.log("createDraftCheckpoint.test.ts: ok");
 })().catch((err) => {
   console.error(err);

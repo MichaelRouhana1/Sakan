@@ -1,24 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
-import type { ComponentProps } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import Svg, { Line } from "react-native-svg";
 import { ListingMoreMenu } from "@/components/listings/detail/ListingMoreMenu";
+import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
+import { ListingTocRail, type ListingTocItem } from "@/components/listings/detail/ListingTocRail";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
 import { useUniversities } from "@/features/universities/useUniversities";
-import { formatDistanceShort } from "@/lib/formatDistance";
+import { labelPosterRole } from "@/lib/listingLabels";
 import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
 import { rentPriceType } from "@/lib/rentPriceType";
-import { scrollToListingSection } from "@/lib/scrollToListingSection";
 import type { Listing } from "@/types/listing";
-
-type Ion = ComponentProps<typeof Ionicons>["name"];
-
-type TocItem = {
-  id: string;
-  icon: Ion;
-  title: string;
-};
 
 type Props = {
   listing: Listing;
@@ -39,34 +30,13 @@ type Props = {
 
 const IS_WEB = Platform.OS === "web";
 
-function jumpToSection(id: string) {
-  if (!IS_WEB) return;
-  scrollToListingSection(id);
-}
-
-function TocRule() {
-  return (
-    <Svg
-      width="100%"
-      height={1}
-      preserveAspectRatio="none"
-      style={[styles.rowRule, IS_WEB ? ({ pointerEvents: "none" } as object) : null]}
-    >
-      <Line
-        x1="0"
-        y1={0.5}
-        x2="100%"
-        y2={0.5}
-        stroke="#E5EAF1"
-        strokeWidth={1}
-        {...(IS_WEB ? ({ shapeRendering: "crispEdges" } as object) : null)}
-      />
-    </Svg>
-  );
-}
-
-function listingToc(listing: Listing, hasNearby: boolean): TocItem[] {
-  const items: TocItem[] = [];
+function listingToc(listing: Listing, hasNearby: boolean): ListingTocItem[] {
+  const items: ListingTocItem[] = [];
+  items.push({
+    id: "listing-utilities",
+    icon: "flash-outline",
+    title: "Utilities",
+  });
   if (hasNearby) {
     items.push({
       id: "listing-campus",
@@ -74,11 +44,6 @@ function listingToc(listing: Listing, hasNearby: boolean): TocItem[] {
       title: "Near campus",
     });
   }
-  items.push({
-    id: "listing-utilities",
-    icon: "flash-outline",
-    title: "Utilities",
-  });
   const hasRooms = Boolean(listing.pbsaRoomTypes?.length);
   items.push({
     id: "listing-unit",
@@ -117,6 +82,11 @@ function listingToc(listing: Listing, hasNearby: boolean): TocItem[] {
   return items;
 }
 
+function hostInitial(name: string | null): string {
+  const letter = name?.trim().charAt(0);
+  return letter ? letter.toUpperCase() : "H";
+}
+
 export function ListingContactCard({
   listing,
   title,
@@ -135,60 +105,26 @@ export function ListingContactCard({
 }: Props) {
   const campuses = useUniversities();
   const nearby = nearbyCampusesForListing(listing, campuses.data ?? []);
-  const nearest = nearby[0];
-  const campusDist = formatDistanceShort(
-    nearest?.meters ?? listing.distanceMeters,
-  );
   const toc = listingToc(listing, nearby.length > 0);
 
-  const banner = (() => {
-    if (
-      listing.reviewCount != null &&
-      listing.reviewCount >= 1 &&
-      listing.rating != null
-    ) {
-      return {
-        icon: "star" as Ion,
-        text: `${listing.rating.toFixed(1)} · ${listing.reviewCount} review${listing.reviewCount === 1 ? "" : "s"}`,
-      };
-    }
-    if (nearest && campusDist) {
-      return {
-        icon: "location-outline" as Ion,
-        text: `${campusDist} from ${nearest.name}`,
-      };
-    }
-    if (listing.viewCount >= 5) {
-      return {
-        icon: "eye-outline" as Ion,
-        text: `${listing.viewCount} views on this listing`,
-      };
-    }
-    return {
-      icon: "document-text-outline" as Ion,
-      text: "No booking fee — you talk to the poster directly.",
-    };
-  })();
+  const role = listing.listingPosterRole
+    ? labelPosterRole(listing.listingPosterRole)
+    : null;
+  const contactName = listing.contactName?.trim() || null;
+  const hostCaption = [role, "No booking fee"].filter(Boolean).join(" · ");
+  const showFrom = priceLabel.toLowerCase() === "from";
+  const hasRating =
+    listing.reviewCount != null &&
+    listing.reviewCount >= 1 &&
+    listing.rating != null;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.cardTop}>
         <View style={styles.head}>
-          <View style={styles.headCopy}>
-            <LText variant="subtitle" style={styles.title} numberOfLines={2}>
-              {title}
-            </LText>
-            <LText variant="caption" tone="muted">
-              {priceLabel}{" "}
-              <LText variant="body" style={[rentPriceType, styles.priceInline]}>
-                {price}
-              </LText>
-              <LText variant="caption" tone="muted">
-                {" "}
-                / month
-              </LText>
-            </LText>
-          </View>
+          <LText variant="subtitle" style={styles.title} numberOfLines={2}>
+            {title}
+          </LText>
           <View style={styles.iconBtns}>
             <ListingMoreMenu
               linkCopied={linkCopied}
@@ -214,105 +150,128 @@ export function ListingContactCard({
           </View>
         </View>
 
-        {canCall ? (
-          <Pressable
-            onPress={onCall}
-            accessibilityRole="button"
-            accessibilityLabel="Call the poster"
-            style={({ hovered, pressed }) => [
-              styles.solid,
-              (hovered || pressed) && styles.solidHover,
-            ]}
-          >
-            <Ionicons name="call" size={17} color="#fff" />
-            <LText variant="subtitle" style={styles.solidText}>
-              Call
-            </LText>
-          </Pressable>
-        ) : null}
+        <View style={styles.ticket}>
+          <View style={styles.ticketRail} />
+          <View style={styles.ticketBody}>
+            {showFrom ? (
+              <LText variant="caption" style={styles.fareKicker}>
+                From
+              </LText>
+            ) : null}
+            <View style={styles.fareRow}>
+              <LText variant="body" style={[rentPriceType, styles.fareAmt]}>
+                {price}
+              </LText>
+              <LText variant="caption" style={styles.fareUnit}>
+                / month
+              </LText>
+            </View>
+            <View style={styles.ticketSplit} />
+            <ListingMoneyStack listing={listing} layout="ledger" />
+          </View>
+        </View>
 
-        {canContact ? (
-          <Pressable
-            onPress={onWhatsApp}
-            accessibilityRole="button"
-            accessibilityLabel="WhatsApp the poster"
-            style={({ hovered, pressed }) => [
-              canCall ? styles.outline : styles.solid,
-              (hovered || pressed) &&
-                (canCall ? styles.outlineHover : styles.solidHover),
-            ]}
-          >
-            <Ionicons
-              name="logo-whatsapp"
-              size={17}
-              color={canCall ? Skoun.color.primary : "#fff"}
-            />
-            <LText
-              variant="subtitle"
-              style={canCall ? styles.outlineText : styles.solidText}
+        <View style={styles.actions}>
+          {canContact ? (
+            <Pressable
+              onPress={onWhatsApp}
+              accessibilityRole="button"
+              accessibilityLabel="WhatsApp the poster"
+              style={({ hovered, pressed }) => [
+                styles.solid,
+                (hovered || pressed) && styles.solidHover,
+              ]}
             >
-              WhatsApp
-            </LText>
-          </Pressable>
-        ) : (
-          <View style={[styles.outline, styles.disabled]}>
-            <LText variant="subtitle" style={styles.outlineText}>
-              WhatsApp soon
+              <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+              <LText variant="subtitle" style={styles.solidText}>
+                WhatsApp
+              </LText>
+            </Pressable>
+          ) : (
+            <View style={[styles.outline, styles.disabled]}>
+              <LText variant="subtitle" style={styles.outlineText}>
+                WhatsApp soon
+              </LText>
+            </View>
+          )}
+
+          {canCall ? (
+            <Pressable
+              onPress={onCall}
+              accessibilityRole="button"
+              accessibilityLabel="Call the poster"
+              style={({ hovered, pressed }) => [
+                canContact ? styles.outline : styles.solid,
+                (hovered || pressed) &&
+                  (canContact ? styles.outlineHover : styles.solidHover),
+              ]}
+            >
+              <Ionicons
+                name="call-outline"
+                size={17}
+                color={canContact ? Skoun.color.primary : "#fff"}
+              />
+              <LText
+                variant="subtitle"
+                style={canContact ? styles.outlineText : styles.solidText}
+              >
+                Call
+              </LText>
+            </Pressable>
+          ) : null}
+        </View>
+
+        <View style={styles.host}>
+          <View style={styles.avatar} accessibilityElementsHidden>
+            <LText variant="body" style={styles.avatarLetter}>
+              {hostInitial(contactName)}
             </LText>
           </View>
-        )}
+          <View style={styles.hostCopy}>
+            <LText variant="body" style={styles.hostName} numberOfLines={1}>
+              {contactName ?? "Host"}
+            </LText>
+            <LText variant="caption" tone="muted" style={styles.hostMeta}>
+              {hostCaption}
+            </LText>
+            {hasRating ? (
+              <View style={styles.metaRow}>
+                <Ionicons name="star" size={13} color={Skoun.color.inkMuted} />
+                <LText variant="caption" tone="muted" style={styles.metaText}>
+                  {`${listing.rating!.toFixed(1)} · ${listing.reviewCount} review${listing.reviewCount === 1 ? "" : "s"}`}
+                </LText>
+              </View>
+            ) : null}
+          </View>
+        </View>
 
-        <View style={styles.banner}>
-          <Ionicons name={banner.icon} size={15} color={Skoun.color.primary} />
-          <LText variant="caption" style={styles.bannerText}>
-            {banner.text}
-          </LText>
+        <View style={styles.footer}>
+          {reported ? (
+            <LText variant="caption" tone="muted">
+              You reported this listing
+            </LText>
+          ) : (
+            <Pressable
+              onPress={onReport}
+              accessibilityRole="button"
+              accessibilityLabel="Report this listing"
+              style={styles.report}
+            >
+              {({ hovered }) => (
+                <LText
+                  variant="caption"
+                  tone="muted"
+                  style={[styles.reportText, hovered && styles.reportHover]}
+                >
+                  Report this listing
+                </LText>
+              )}
+            </Pressable>
+          )}
         </View>
       </View>
 
-      {toc.length > 0 ? (
-        <View nativeID="listing-toc" style={styles.cardList}>
-          {toc.map((item, i) => (
-            <View key={item.id}>
-              <Pressable
-                onPress={() => jumpToSection(item.id)}
-                accessibilityRole="link"
-                accessibilityLabel={`View ${item.title}`}
-                style={styles.row}
-              >
-                {({ hovered }) => (
-                  <>
-                    <View style={styles.rowIcon}>
-                      <Ionicons
-                        name={item.icon}
-                        size={18}
-                        color={Skoun.color.primary}
-                      />
-                    </View>
-                    <LText variant="body" style={styles.rowTitle}>
-                      {item.title}
-                    </LText>
-                    <LText
-                      variant="caption"
-                      accessibilityElementsHidden
-                      style={[styles.hint, !hovered && styles.hintHidden]}
-                    >
-                      View
-                    </LText>
-                  </>
-                )}
-              </Pressable>
-              {i < toc.length - 1 ? <TocRule /> : null}
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {reported ? (
-        <LText variant="caption" tone="muted">
-          You reported this listing
-        </LText>
-      ) : null}
+      {toc.length > 0 ? <ListingTocRail items={toc} /> : null}
     </View>
   );
 }
@@ -338,17 +297,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E5EAF1",
-    padding: 14,
-    gap: 9,
+    padding: 16,
+    gap: 14,
     overflow: "visible",
-    ...CARD_SHADOW,
-  },
-  cardList: {
-    backgroundColor: Skoun.color.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E5EAF1",
-    overflow: "hidden",
     ...CARD_SHADOW,
   },
   head: {
@@ -357,20 +308,12 @@ const styles = StyleSheet.create({
     gap: 8,
     zIndex: 8,
   },
-  headCopy: {
+  title: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
-  },
-  title: {
     fontFamily: Skoun.type.bodyBold,
-    fontSize: 15,
-    lineHeight: 20,
-    color: Skoun.color.ink,
-  },
-  priceInline: {
-    fontFamily: Skoun.type.bodyBold,
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 21,
     color: Skoun.color.ink,
   },
   iconBtns: {
@@ -393,9 +336,63 @@ const styles = StyleSheet.create({
   iconBtnHover: {
     borderColor: Skoun.color.ink,
   },
+  ticket: {
+    flexDirection: "row",
+    backgroundColor: Skoun.color.bg,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5EAF1",
+    overflow: "hidden",
+  },
+  ticketRail: {
+    width: 4,
+    backgroundColor: Skoun.color.primary,
+  },
+  ticketBody: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    gap: 10,
+  },
+  fareKicker: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 10,
+    lineHeight: 13,
+    letterSpacing: 0.7,
+    textTransform: "uppercase",
+    color: Skoun.color.inkMuted,
+  },
+  fareRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
+  fareAmt: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 28,
+    lineHeight: 32,
+    color: Skoun.color.ink,
+    letterSpacing: -0.6,
+  },
+  fareUnit: {
+    fontFamily: Skoun.type.bodyMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Skoun.color.inkMuted,
+  },
+  ticketSplit: {
+    height: 1,
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#B7C6DC",
+  },
+  actions: {
+    gap: 8,
+  },
   solid: {
-    minHeight: 44,
-    borderRadius: 10,
+    minHeight: 48,
+    borderRadius: 12,
     backgroundColor: Skoun.color.primary,
     flexDirection: "row",
     alignItems: "center",
@@ -417,7 +414,7 @@ const styles = StyleSheet.create({
   },
   outline: {
     minHeight: 44,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Skoun.color.primary,
     backgroundColor: Skoun.color.surface,
@@ -425,7 +422,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
+    ...(IS_WEB
+      ? ({
+          cursor: "pointer",
+          transitionProperty: "border-color",
+          transitionDuration: "160ms",
+        } as object)
+      : null),
   },
   outlineHover: {
     borderColor: "#1E5BD6",
@@ -436,63 +439,66 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   disabled: { opacity: 0.45 },
-  banner: {
+  host: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: Skoun.color.primaryMist,
-  },
-  bannerText: {
-    flex: 1,
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
-    minHeight: 42,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
-  rowIcon: {
-    width: 18,
-    height: 18,
-    overflow: "hidden",
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Skoun.color.primary,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
-  rowRule: {
-    width: "100%",
-    height: 1,
+  avatarLetter: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#fff",
   },
-  rowTitle: {
+  hostCopy: {
     flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  hostName: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 14,
     lineHeight: 18,
     color: Skoun.color.ink,
   },
-  hint: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+  hostMeta: {
     fontSize: 12,
-    opacity: 1,
-    ...(IS_WEB
-      ? ({
-          transitionProperty: "opacity",
-          transitionDuration: "200ms",
-          transitionTimingFunction: "ease",
-        } as object)
-      : null),
+    lineHeight: 16,
   },
-  hintHidden: {
-    opacity: 0,
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 2,
+  },
+  metaText: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E5EAF1",
+    paddingTop: 10,
+  },
+  report: {
+    alignSelf: "flex-start",
+    paddingVertical: 2,
+    ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
+  },
+  reportText: {
+    fontSize: 12,
+  },
+  reportHover: {
+    textDecorationLine: "underline",
+    textDecorationColor: Skoun.color.inkMuted,
   },
 });

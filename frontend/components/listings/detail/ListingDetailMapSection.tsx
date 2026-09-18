@@ -43,7 +43,7 @@ export function ListingDetailMapSection({ listing, variant = "card" }: Props) {
         <ListingPinMap
           lat={listing.lat}
           lng={listing.lng}
-          height={220}
+          height={web ? 400 : 220}
           interactive
         />
       </View>

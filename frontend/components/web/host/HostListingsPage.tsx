@@ -25,7 +25,7 @@ import {
   type HostListingsLayout,
 } from "@/components/web/host/HostListingsToolbar";
 import { appleTabScrollInset } from "@/components/ui/Glass";
-import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
@@ -290,8 +290,6 @@ const styles = StyleSheet.create({
   },
   page: {
     width: "100%",
-    maxWidth: WEB_CONTENT_MAX,
-    alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 32,
     ...(Platform.OS === "web" ? { boxSizing: "border-box" as const } : null),

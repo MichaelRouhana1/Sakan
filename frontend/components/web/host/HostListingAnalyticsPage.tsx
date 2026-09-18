@@ -28,7 +28,7 @@ import {
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { HOST_ANALYTICS_PATH } from "@/constants/hostRoutes";
-import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import type { HostAnalyticsListing } from "@/features/listings/hostAnalytics";
 import { useListing } from "@/features/listings/useListing";
@@ -406,8 +406,6 @@ const styles = StyleSheet.create({
   },
   page: {
     width: "100%",
-    maxWidth: WEB_CONTENT_MAX,
-    alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 24,
     gap: 8,

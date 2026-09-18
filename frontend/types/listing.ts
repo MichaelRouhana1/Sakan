@@ -137,6 +137,8 @@ export type Listing = {
   quietHours?: boolean;
   title?: string | null;
   highlightTags?: string[];
+  /** Ordered browse-card badge keys. null/undefined = automatic pills. */
+  cardBadges?: string[] | null;
   listingPosterRole?: ListingPosterRole;
   contactName?: string | null;
   contactPhone?: string | null;

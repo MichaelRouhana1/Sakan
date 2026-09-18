@@ -59,6 +59,8 @@ const locationWktSchema = z
 const amenitySlugSchema = z.string().min(1).max(48);
 const highlightTagSchema = z.string().min(1).max(48);
 
+const GENERATOR_AMP_VALUES = [5, 10, 15, 20] as const;
+
 export const createListingSchema = z.object({
   spaceType: z.enum(["entire_place", "private_room", "shared_room"]),
   propertyType: z.enum(["apartment", "studio", "dormitory", "house"]),
@@ -120,7 +122,14 @@ export const createListingSchema = z.object({
   elevator24_7: z.boolean().default(false),
   hasElevator: z.boolean().default(false),
   hasSolar: z.boolean().default(false),
-  generatorAmperes: z.coerce.number().int().positive().nullable().optional(),
+  generatorAmperes: z.coerce
+    .number()
+    .int()
+    .refine((n) => (GENERATOR_AMP_VALUES as readonly number[]).includes(n), {
+      message: "generatorAmperes must be 5, 10, 15, or 20",
+    })
+    .nullable()
+    .optional(),
   generatorIncluded: z.boolean().default(false),
   conciergeIncluded: z.boolean().default(false),
   cookingGasIncluded: z.boolean().default(false),
@@ -139,6 +148,11 @@ export const createListingSchema = z.object({
   title: z.string().trim().min(10).max(60),
   description: z.string().trim().min(20).max(4000),
   highlightTags: z.array(highlightTagSchema).max(8).default([]),
+  cardBadges: z
+    .array(z.string().min(1).max(48))
+    .max(32)
+    .nullable()
+    .optional(),
   listingPosterRole: z
     .enum(["landlord", "student_sublet", "agent"])
     .default("landlord"),
@@ -173,6 +187,23 @@ export const createListingSchema = z.object({
   photoCaptions: z.array(z.string().max(48)).max(15).optional(),
   publishNow: z.boolean().default(true),
 }).superRefine((data, ctx) => {
+  if (
+    data.electricity === "generator_24_7" ||
+    data.electricity === "scheduled_cuts"
+  ) {
+    if (
+      data.generatorAmperes == null ||
+      !(GENERATOR_AMP_VALUES as readonly number[]).includes(
+        data.generatorAmperes,
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["generatorAmperes"],
+        message: "Select generator / ishtirak amps (5, 10, 15, or 20)",
+      });
+    }
+  }
   if (
     data.electricity === "scheduled_cuts" &&
     resolveCutWindows(data).length === 0
@@ -215,7 +246,11 @@ export const createListingSchema = z.object({
       });
     }
   }
-});
+}).transform((data) =>
+  data.electricity === "solar"
+    ? { ...data, generatorAmperes: null }
+    : data,
+);
 
 export const listingSortSchema = z.enum(["newest", "price_asc"]).default("newest");
 

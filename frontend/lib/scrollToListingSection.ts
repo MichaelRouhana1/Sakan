@@ -150,6 +150,12 @@ export function scrollToListingSection(id: string) {
   const my = ++jumpGen;
   const scroller = nearestScroller(el);
   scrollScrollerTo(scroller, el);
+  /* Native into-view as a fallback if the named shell is not the visual scroller. */
+  el.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: "start",
+    inline: "nearest",
+  });
   void waitForScrollIdle(scroller).then(() => {
     if (my !== jumpGen) return;
     const target = document.getElementById(id);

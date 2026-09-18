@@ -26,7 +26,6 @@ import { ListingNearbyCampuses } from "@/components/listings/detail/ListingNearb
 import { ListingDetailRooms } from "@/components/listings/detail/ListingDetailRooms";
 import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDetailUnitSpecs";
 import { ListingContactCard } from "@/components/listings/detail/ListingContactCard";
-import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { ReportListingDialog } from "@/components/web/ReportListingDialog";
 import { Skoun } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
@@ -47,8 +46,6 @@ import {
 } from "@/lib/whatsapp";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
-import { useUniversities } from "@/features/universities/useUniversities";
-import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
 import { useIsReported } from "@/features/reports/useReportListing";
 import {
@@ -63,6 +60,9 @@ type Props = {
 
 const IS_WEB = Platform.OS === "web";
 const SIDE_W = 380;
+const GALLERY_H = 400;
+const GALLERY_GAP = 8;
+const GALLERY_THUMB_COUNT = 3;
 const PHOTO_FRAME = IS_WEB
   ? ({
       boxShadow:
@@ -121,7 +121,6 @@ export function ListingDetailWeb({ listingId }: Props) {
   const nearby = useNearbyListings(listingId, {
     enabled: Boolean(listing && listing.lng != null && listing.lat != null),
   });
-  const campuses = useUniversities();
 
   const [reportOpen, setReportOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -286,30 +285,26 @@ export function ListingDetailWeb({ listingId }: Props) {
     );
   };
 
-  const campusFact =
-    nearbyCampusesForListing(listing, campuses.data ?? [])[0] ?? null;
   const jumpToMap = () => {
     if (!IS_WEB) return;
     scrollToListingSection("listing-map");
   };
+
+  const wifiScan = listing.infrastructure?.internet.hasFiber
+    ? `Fiber${
+        listing.infrastructure.internet.speedMbps
+          ? ` ${listing.infrastructure.internet.speedMbps} Mbps`
+          : ""
+      }`
+    : listing.wifiIncluded
+      ? "Wi‑Fi included"
+      : "Ask about Wi‑Fi";
 
   const facts = [
     {
       icon: "home-outline" as const,
       label: "Type",
       value: labelListingType(listing.listingType),
-    },
-    {
-      icon: "school-outline" as const,
-      label: "Campus",
-      value: campusFact?.name || listing.nearestCampusName || "—",
-      logo: campusFact
-        ? {
-            shortName: campusFact.shortName,
-            slug: campusFact.institutionSlug,
-            logoUrl: campusFact.logoUrl,
-          }
-        : null,
     },
     {
       icon: "people-outline" as const,
@@ -324,10 +319,20 @@ export function ListingDetailWeb({ listingId }: Props) {
       label: "Power",
       value: labelElectricity(elec),
     },
+    {
+      icon: "water-outline" as const,
+      label: "Water",
+      value: labelWater(water),
+    },
+    {
+      icon: "wifi-outline" as const,
+      label: "Wi‑Fi",
+      value: wifiScan,
+    },
   ];
 
-  const thumbs = currentPhotos.slice(1, 4);
-  const extraCount = Math.max(0, currentPhotos.length - 4);
+  const thumbs = currentPhotos.slice(1, 1 + GALLERY_THUMB_COUNT);
+  const extraCount = Math.max(0, currentPhotos.length - (1 + GALLERY_THUMB_COUNT));
 
   return (
     <View style={styles.page}>
@@ -501,24 +506,29 @@ export function ListingDetailWeb({ listingId }: Props) {
 
           <View style={styles.headerRow}>
             <View style={styles.headerCopy}>
-              <LText
-                variant="display"
-                accessibilityRole="header"
-                style={styles.title}
-              >
-                {title}
-              </LText>
+              <View style={styles.titleRow}>
+                <LText
+                  variant="display"
+                  accessibilityRole="header"
+                  style={styles.title}
+                >
+                  {title}
+                </LText>
+                {listing.reviewCount != null &&
+                listing.reviewCount >= 1 &&
+                listing.rating != null ? (
+                  <View style={styles.headerRating}>
+                    <ListingListRatingDisplay
+                      rating={listing.rating}
+                      reviewCount={listing.reviewCount}
+                      size="lg"
+                    />
+                  </View>
+                ) : null}
+              </View>
               <LText variant="body" tone="muted">
                 {listingPlace(listing)}
               </LText>
-              {listing.reviewCount != null &&
-              listing.reviewCount >= 1 &&
-              listing.rating != null ? (
-                <ListingListRatingDisplay
-                  rating={listing.rating}
-                  reviewCount={listing.reviewCount}
-                />
-              ) : null}
             </View>
           </View>
 
@@ -535,27 +545,12 @@ export function ListingDetailWeb({ listingId }: Props) {
                   </LText>
                 </View>
                 <View style={styles.factValueRow}>
-                  {"logo" in f && f.logo ? (
-                    <InstitutionLogo
-                      shortName={f.logo.shortName}
-                      slug={f.logo.slug}
-                      logoUrl={f.logo.logoUrl}
-                      size={22}
-                    />
-                  ) : null}
                   <LText variant="body" style={styles.factValue} numberOfLines={2}>
                     {f.value}
                   </LText>
                 </View>
               </View>
             ))}
-          </View>
-
-          <View nativeID="listing-campus" style={styles.anchor}>
-            <ListingNearbyCampuses
-              listing={listing}
-              onViewMap={hasPin ? jumpToMap : undefined}
-            />
           </View>
 
           <View nativeID="listing-utilities" style={[styles.section, styles.anchor, styles.stack]}>
@@ -616,6 +611,13 @@ export function ListingDetailWeb({ listingId }: Props) {
                 ) : null}
               </View>
             </View>
+          </View>
+
+          <View nativeID="listing-campus" style={[styles.anchor, styles.stackRoomy]}>
+            <ListingNearbyCampuses
+              listing={listing}
+              onViewMap={hasPin ? jumpToMap : undefined}
+            />
           </View>
 
           {hasRooms ? (
@@ -775,9 +777,10 @@ const styles = StyleSheet.create({
   page: {
     width: "100%",
     alignSelf: "stretch",
-    gap: 22,
+    gap: 10,
     paddingBottom: 48,
     overflow: "visible",
+    marginTop: -16,
   },
   center: {
     minHeight: 320,
@@ -789,7 +792,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    minHeight: 40,
   },
   crumbs: {
     flexDirection: "row",
@@ -802,9 +804,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 8,
+    paddingVertical: 2,
     paddingHorizontal: 2,
-    minHeight: 40,
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   crumbText: {
@@ -837,8 +838,9 @@ const styles = StyleSheet.create({
 
   gallery: {
     flexDirection: "row",
-    gap: 10,
-    height: 460,
+    alignItems: "stretch",
+    gap: GALLERY_GAP,
+    height: GALLERY_H,
     width: "100%",
   },
   galleryMain: {
@@ -912,13 +914,16 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodySemi,
   },
   galleryThumbs: {
-    width: 148,
-    gap: 10,
+    width: 280,
+    flexShrink: 0,
+    gap: GALLERY_GAP,
   },
   galleryThumb: {
     flex: 1,
+    minHeight: 0,
     borderRadius: Skoun.radius.md,
     backgroundColor: Skoun.color.bgWash,
+    overflow: "hidden",
     ...PHOTO_FRAME,
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
@@ -956,24 +961,37 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: 6,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+  },
   title: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 36,
     lineHeight: 42,
     letterSpacing: -0.7,
   },
+  headerRating: {
+    flexShrink: 0,
+    paddingTop: 6,
+  },
 
   facts: {
     flexDirection: "row",
+    flexWrap: "wrap",
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#E2E8F0",
   },
   fact: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "18%",
+    minWidth: 140,
     gap: 6,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    minWidth: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     borderRightWidth: 1,
     borderRightColor: "#E2E8F0",
   },

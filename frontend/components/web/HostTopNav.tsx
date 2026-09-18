@@ -1,23 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { SkounLogo } from "@/components/common/SkounLogo";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
-import {
-  HOST_ANALYTICS_PATH,
-  HOST_CREDITS_PATH,
-  HOST_LISTINGS_PATH,
-} from "@/constants/hostRoutes";
+import { HOST_CREDITS_PATH } from "@/constants/hostRoutes";
 import { Skoun } from "@/constants/theme";
-import {
-  WEB_CONTENT_MAX,
-  WEB_CONTENT_PAD_X,
-  WEB_NAV_HEIGHT,
-} from "@/constants/webLayout";
+import { WEB_CONTENT_PAD_X, WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useCredits } from "@/features/credits/useCredits";
 
-export function HostTopNav() {
+type Props = {
+  showMenuButton?: boolean;
+  menuOpen?: boolean;
+  onMenuPress?: () => void;
+};
+
+export function HostTopNav({
+  showMenuButton = false,
+  menuOpen = false,
+  onMenuPress,
+}: Props) {
   const router = useRouter();
   const { user, isSignedIn } = useAuthSession();
   const credits = useCredits(isSignedIn);
@@ -39,50 +41,51 @@ export function HostTopNav() {
   }
 
   return (
-    <View style={styles.bar}>
-      <View style={styles.inner}>
-        <Link href="/" asChild>
-          <Pressable
-            onPress={() => router.push("/" as never)}
-            accessibilityRole="link"
-            accessibilityLabel="Skoun home"
-            style={styles.brandHit}
-          >
-            <SkounLogo size={32} />
-            <Text style={styles.brand}>Skoun</Text>
-          </Pressable>
-        </Link>
+    <View style={styles.bar} accessibilityRole="header">
+      <View
+        style={[styles.inner, showMenuButton && styles.innerCompact]}
+      >
+        <View style={styles.left}>
+          {showMenuButton ? (
+            <Pressable
+              onPress={onMenuPress}
+              accessibilityRole="button"
+              accessibilityLabel="Open host menu"
+              accessibilityState={{ expanded: menuOpen }}
+              style={({ pressed }) => [
+                styles.menuBtn,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="menu" size={22} color={Skoun.color.ink} />
+            </Pressable>
+          ) : null}
+
+          <Link href="/" asChild>
+            <Pressable
+              onPress={() => router.push("/" as never)}
+              accessibilityRole="link"
+              accessibilityLabel="Skoun home"
+              style={styles.brandHit}
+            >
+              <SkounLogo size={showMenuButton ? 28 : 32} />
+              <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
+                Skoun
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
 
         <View style={styles.right}>
-          <Pressable
-            onPress={() => router.replace("/(renter)" as never)}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.switchLink, pressed && styles.pressed]}
-          >
-            <Text style={styles.switchLinkText}>Switch to renting</Text>
-          </Pressable>
-
-          <Link href={HOST_LISTINGS_PATH as never} asChild>
+          {showMenuButton ? null : (
             <Pressable
-              onPress={() => router.push(HOST_LISTINGS_PATH as never)}
-              accessibilityRole="link"
-              accessibilityLabel="Listings"
+              onPress={() => router.replace("/(renter)" as never)}
+              accessibilityRole="button"
               style={({ pressed }) => [styles.switchLink, pressed && styles.pressed]}
             >
-              <Text style={styles.switchLinkText}>Listings</Text>
+              <Text style={styles.switchLinkText}>Switch to renting</Text>
             </Pressable>
-          </Link>
-
-          <Link href={HOST_ANALYTICS_PATH as never} asChild>
-            <Pressable
-              onPress={() => router.push(HOST_ANALYTICS_PATH as never)}
-              accessibilityRole="link"
-              accessibilityLabel="Analytics"
-              style={({ pressed }) => [styles.switchLink, pressed && styles.pressed]}
-            >
-              <Text style={styles.switchLinkText}>Analytics</Text>
-            </Pressable>
-          </Link>
+          )}
 
           {isSignedIn ? (
             <View style={styles.credits}>
@@ -118,6 +121,8 @@ export function HostTopNav() {
   );
 }
 
+const webCursor = Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null;
+
 const styles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
@@ -128,23 +133,45 @@ const styles = StyleSheet.create({
     height: WEB_NAV_HEIGHT,
     minHeight: WEB_NAV_HEIGHT,
     zIndex: 50,
+    flexShrink: 0,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
     boxSizing: "border-box",
   },
   inner: {
-    maxWidth: WEB_CONTENT_MAX,
     width: "100%",
     minHeight: WEB_NAV_HEIGHT,
-    marginHorizontal: "auto" as unknown as number,
-    alignSelf: "center",
-    paddingHorizontal: WEB_CONTENT_PAD_X,
+    paddingLeft: 16,
+    paddingRight: WEB_CONTENT_PAD_X,
     paddingVertical: 11,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 16,
     boxSizing: "border-box",
+  },
+  innerCompact: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  left: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  menuBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Skoun.color.surfaceMuted,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...webCursor,
   },
   brandHit: {
     flexDirection: "row",
@@ -152,6 +179,8 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingVertical: 4,
     paddingRight: 8,
+    flexShrink: 1,
+    minWidth: 0,
     cursor: "pointer",
   },
   brand: {
@@ -160,10 +189,14 @@ const styles = StyleSheet.create({
     color: Skoun.color.primary,
     letterSpacing: -0.6,
   },
+  brandCompact: {
+    fontSize: 20,
+  },
   right: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
+    flexShrink: 0,
   },
   switchLink: {
     paddingVertical: 8,

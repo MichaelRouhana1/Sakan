@@ -34,6 +34,11 @@ export function CreateStepAmenities() {
   const electricityInvalid = fieldInvalid("electricity");
   const windowsInvalid = fieldInvalid("electricityCutWindows");
   const waterInvalid = fieldInvalid("water");
+  const showUtilityDisclaimer =
+    draft.electricity === "generator_24_7" ||
+    draft.electricity === "solar" ||
+    draft.hasSolar ||
+    draft.elevator24_7;
 
   const windows: CutWindow[] =
     draft.electricityCutWindows?.length > 0
@@ -85,6 +90,8 @@ export function CreateStepAmenities() {
                 patch({
                   electricity: value,
                   hasSolar: value === "solar" ? true : draft.hasSolar,
+                  generatorAmperes:
+                    value === "solar" ? null : draft.generatorAmperes,
                   electricityCutWindows:
                     value === "scheduled_cuts" && windows.length === 0
                       ? [emptyCutWindow()]
@@ -94,15 +101,28 @@ export function CreateStepAmenities() {
             />
           ))}
         </WizardFieldGroup>
-        <View style={{ height: 8 }} />
-        <SegmentedPills
-          options={GENERATOR_AMP_OPTIONS.map((n) => ({
-            value: String(n),
-            label: `${n}A`,
-          }))}
-          value={draft.generatorAmperes != null ? String(draft.generatorAmperes) : null}
-          onChange={(v) => patch({ generatorAmperes: Number(v) })}
-        />
+        {draft.electricity === "generator_24_7" ||
+        draft.electricity === "scheduled_cuts" ? (
+          <>
+            <View style={{ height: 8 }} />
+            <WizardFieldLabel required>Generator / ishtirak amps</WizardFieldLabel>
+            <View style={{ height: 8 }} />
+            <WizardFieldGroup field="generatorAmperes">
+              <SegmentedPills
+                options={GENERATOR_AMP_OPTIONS.map((n) => ({
+                  value: String(n),
+                  label: `${n}A`,
+                }))}
+                value={
+                  draft.generatorAmperes != null
+                    ? String(draft.generatorAmperes)
+                    : null
+                }
+                onChange={(v) => patch({ generatorAmperes: Number(v) })}
+              />
+            </WizardFieldGroup>
+          </>
+        ) : null}
       </Enter>
       {draft.electricity === "scheduled_cuts" ? (
         <Enter delay={40}>
@@ -203,6 +223,29 @@ export function CreateStepAmenities() {
           onPress={() => patch({ generatorIncluded: !draft.generatorIncluded })}
         />
       </Enter>
+      {showUtilityDisclaimer ? (
+        <View
+          accessibilityRole="text"
+          accessibilityLiveRegion="polite"
+          style={styles.disclaimer}
+        >
+          <Ionicons
+            name="warning-outline"
+            size={18}
+            color={Lister.color.warning}
+          />
+          <View style={styles.disclaimerCopy}>
+            <LText variant="caption" style={styles.disclaimerTitle}>
+              Inaccurate utility claims will result in your post being
+              permanently removed without a refund.
+            </LText>
+            <LText variant="caption" tone="muted">
+              Renters can report false utilities. We review and may remove the
+              listing.
+            </LText>
+          </View>
+        </View>
+      ) : null}
       <Enter delay={140}>
         <WaterSectionMarker />
         <WizardFieldLabel required>Water</WizardFieldLabel>
@@ -280,6 +323,24 @@ export function CreateStepAmenities() {
 }
 
 const styles = StyleSheet.create({
+  disclaimer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    padding: 12,
+    borderRadius: Lister.radius.md,
+    borderWidth: 1,
+    borderColor: "rgba(180,83,9,0.22)",
+    backgroundColor: Lister.color.warningSoft,
+  },
+  disclaimerCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  disclaimerTitle: {
+    fontFamily: Lister.type.bodySemi,
+    color: Lister.color.ink,
+  },
   cutsBox: {
     gap: 12,
     padding: 14,

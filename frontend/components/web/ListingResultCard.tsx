@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
@@ -19,11 +19,14 @@ import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
   formatCampusWalkLine,
+  isHighlightCardBadge,
   listingAmberPillGroups,
+  listingCardPills,
   listingCardSubtitle,
   listingCardTitle,
   type ListingAmberPill,
 } from "@/lib/listingCardMeta";
+import { GRID_TAG_LIMIT } from "@/lib/listingCardBadges";
 import { labelListingType } from "@/lib/listingLabels";
 import { resolveMediaUrls } from "@/lib/mediaUrl";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
@@ -35,6 +38,10 @@ type Props = {
   listing: Listing;
   variant?: "grid" | "list";
   onHoverListing?: (id: string | null, point?: HoverPoint) => void;
+  /** When false, card is a preview: no navigation, no save. */
+  interactive?: boolean;
+  /** Wizard editor replaces only the grid's badge area. */
+  renderGridBadges?: (pills: ListingAmberPill[]) => ReactNode;
 };
 
 function hoverPointFromEvent(e: { nativeEvent?: { clientX?: number; clientY?: number }; clientX?: number; clientY?: number }): HoverPoint | undefined {
@@ -46,8 +53,7 @@ function hoverPointFromEvent(e: { nativeEvent?: { clientX?: number; clientY?: nu
 }
 
 const CARD_BORDER = "#E2E8F0";
-const GRID_TAG_LIMIT = 4;
-/** Fixed grid body — header + proximity + divider + 2-row pill slot + padding/gaps */
+/** Minimum grid body height; six badges may wrap onto additional rows. */
 const GRID_BODY_HEIGHT = 143;
 const GRID_HEADER_MIN_HEIGHT = 38;
 const GRID_PROXIMITY_HEIGHT = 15;
@@ -67,14 +73,17 @@ function HeartButton({
   isSaved,
   onToggle,
   style,
+  disabled = false,
 }: {
   isSaved: boolean;
   onToggle: () => void;
   style?: object;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      disabled={disabled}
       accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
       hitSlop={8}
       onPress={(e) => {
@@ -101,10 +110,12 @@ function PillRow({
   pills,
   highlight,
   compact,
+  mixedHighlight,
 }: {
   pills: ListingAmberPill[];
   highlight?: boolean;
   compact?: boolean;
+  mixedHighlight?: boolean;
 }) {
   if (pills.length === 0) return null;
   return (
@@ -113,7 +124,9 @@ function PillRow({
         <ListingAmberPillView
           key={pill.key}
           pill={pill}
-          highlight={highlight}
+          highlight={
+            mixedHighlight ? isHighlightCardBadge(pill.key) : highlight
+          }
           compact={compact}
           style={compact ? styles.tagCompactOverride : styles.tagOverride}
           textStyle={compact ? styles.tagTextCompact : styles.tagText}
@@ -143,10 +156,28 @@ function ImageCornerBadge({
   return <ListingFeatureBadge label={badge.label!} />;
 }
 
+function GridCardBody({ interactive, onOpen, label, children }: {
+  interactive: boolean;
+  onOpen: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  // Preview controls must not be nested inside a clickable card body.
+  if (!interactive) return <View style={styles.gridBody}>{children}</View>;
+  return (
+    <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={onOpen}
+      style={({ hovered, pressed }) => [styles.gridBody, (hovered || pressed) && styles.cardHover]}>
+      {children}
+    </Pressable>
+  );
+}
+
 export function ListingResultCard({
   listing,
   variant = "grid",
   onHoverListing,
+  interactive = true,
+  renderGridBadges,
 }: Props) {
   const router = useRouter();
   const isList = variant === "list";
@@ -172,12 +203,20 @@ export function ListingResultCard({
     listing.nearestCampusName,
   );
   const { highlights, amenities } = listingAmberPillGroups(listing);
+  const customized = listing.cardBadges != null;
+  const orderedPills = listingCardPills(listing);
   const typeBadge = labelListingType(listing.listingType);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
   const urls = photoUrls(listing);
-  const onOpen = () => router.push(`/(renter)/listing/${listing.id}`);
-  const onToggleSave = () => toggleSaved.mutate(listing);
+  const onOpen = () => {
+    if (!interactive) return;
+    router.push(`/(renter)/listing/${listing.id}`);
+  };
+  const onToggleSave = () => {
+    if (!interactive) return;
+    toggleSaved.mutate(listing);
+  };
 
   const hasRating =
     (listing.reviewCount ?? 0) > 0 &&
@@ -233,8 +272,9 @@ export function ListingResultCard({
           </View>
 
           <Pressable
-            accessibilityRole="link"
+            accessibilityRole={interactive ? "link" : undefined}
             accessibilityLabel={`${title}, ${rentLabel} per month`}
+            disabled={!interactive}
             onPress={onOpen}
             style={styles.listBodyContent}
           >
@@ -258,8 +298,18 @@ export function ListingResultCard({
 
               <View style={styles.divider} />
 
-              <PillRow pills={highlights} highlight />
-              <PillRow pills={amenities} />
+              {customized ? (
+                <PillRow
+                  pills={orderedPills}
+                  highlight={false}
+                  mixedHighlight
+                />
+              ) : (
+                <>
+                  <PillRow pills={highlights} highlight />
+                  <PillRow pills={amenities} />
+                </>
+              )}
             </View>
 
             <View style={[styles.rightCol, styles.rightColList]}>
@@ -273,9 +323,10 @@ export function ListingResultCard({
                   <View />
                 )}
                 <HeartButton
-                  isSaved={isSaved}
+                  isSaved={interactive && isSaved}
                   onToggle={onToggleSave}
                   style={styles.heart}
+                  disabled={!interactive}
                 />
               </View>
               <View style={styles.priceBlock}>
@@ -296,7 +347,9 @@ export function ListingResultCard({
   }
 
   // ── Grid (vertical Amber card) ───────────────────────────────────
-  const gridPills = [...highlights, ...amenities].slice(0, GRID_TAG_LIMIT);
+  const gridPills = (
+    customized ? orderedPills : [...highlights, ...amenities]
+  ).slice(0, GRID_TAG_LIMIT);
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
   return (
@@ -305,23 +358,16 @@ export function ListingResultCard({
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
         <HeartButton
-          isSaved={isSaved}
+          isSaved={interactive && isSaved}
           onToggle={onToggleSave}
           style={styles.gridHeart}
+          disabled={!interactive}
         />
 
         <ImageCornerBadge listing={listing} variant="grid" />
       </View>
 
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={`${title}, ${rentLabel} per month`}
-        onPress={onOpen}
-        style={({ hovered, pressed }) => [
-          styles.gridBody,
-          (hovered || pressed) && styles.cardHover,
-        ]}
-      >
+      <GridCardBody interactive={interactive} onOpen={onOpen} label={`${title}, ${rentLabel} per month`}>
         <View style={styles.gridHeader}>
           <View style={styles.gridHeaderLeft}>
             <Text style={styles.gridTitle} numberOfLines={1}>
@@ -361,9 +407,11 @@ export function ListingResultCard({
         <View style={styles.gridDivider} />
 
         <View style={styles.gridPillSlot}>
-          <PillRow pills={gridPills} compact />
+          {renderGridBadges ? renderGridBadges(gridPills) : (
+            <PillRow pills={gridPills} compact />
+          )}
         </View>
-      </Pressable>
+      </GridCardBody>
     </View>
   );
 }
@@ -614,7 +662,6 @@ const styles = StyleSheet.create({
   },
   gridBody: {
     backgroundColor: "#FFFFFF",
-    height: GRID_BODY_HEIGHT,
     minHeight: GRID_BODY_HEIGHT,
     flexShrink: 0,
     paddingTop: 10,

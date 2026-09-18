@@ -80,7 +80,7 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
       icon: "people-outline",
     });
   }
-  if (deposit != null) {
+  if (deposit != null && deposit > 0) {
     rows.push({
       label: "Deposit",
       value: formatFreshUsd(deposit),

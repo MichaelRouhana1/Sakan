@@ -18,6 +18,7 @@ if (Platform.OS !== "web") {
 type Props = {
   rating: number;
   reviewCount: number;
+  size?: "md" | "lg";
 };
 
 /**
@@ -28,9 +29,14 @@ type Props = {
  * Stars: 5 small emerald green stars (#0E9F6E fill)
  * Count: text-xs text-[#6B7280] (e.g. "(7)")
  */
-export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
+export function ListingListRatingDisplay({
+  rating,
+  reviewCount,
+  size = "md",
+}: Props) {
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
+  const large = size === "lg";
   const stars = [];
   for (let i = 1; i <= 5; i++) {
     const isFull = rating >= i;
@@ -40,6 +46,7 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
         key={i}
         style={[
           styles.listStar,
+          large && styles.listStarLg,
           { color: isFull || isHalf ? "#0E9F6E" : "#E5E7EB", opacity: isHalf ? 0.7 : 1 },
         ]}
       >
@@ -49,10 +56,17 @@ export function ListingListRatingDisplay({ rating, reviewCount }: Props) {
   }
 
   return (
-    <View style={styles.listWrap} accessibilityLabel={`${rating.toFixed(1)} rating from ${reviewCount} reviews`}>
-      <Text style={styles.listScore}>{rating.toFixed(1)}</Text>
+    <View
+      style={[styles.listWrap, large && styles.listWrapLg]}
+      accessibilityLabel={`${rating.toFixed(1)} rating from ${reviewCount} reviews`}
+    >
+      <Text style={[styles.listScore, large && styles.listScoreLg]}>
+        {rating.toFixed(1)}
+      </Text>
       <View style={styles.listStarsRow}>{stars}</View>
-      <Text style={styles.listCount}>({reviewCount})</Text>
+      <Text style={[styles.listCount, large && styles.listCountLg]}>
+        ({reviewCount})
+      </Text>
     </View>
   );
 }
@@ -191,11 +205,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
+  listWrapLg: {
+    gap: 8,
+  },
   listScore: {
     fontWeight: "700",
     fontSize: 14,
     color: "#111928",
     lineHeight: 18,
+  },
+  listScoreLg: {
+    fontSize: 22,
+    lineHeight: 26,
   },
   listStarsRow: {
     flexDirection: "row",
@@ -206,11 +227,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 17,
   },
+  listStarLg: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
   listCount: {
     fontSize: 12,
     color: "#6B7280",
     fontWeight: "400",
     lineHeight: 18,
+  },
+  listCountLg: {
+    fontSize: 16,
+    lineHeight: 22,
   },
 
   webNotchBanner: {

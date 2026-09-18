@@ -28,7 +28,7 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 | **Renew after 30 days** | Missing | Archive-expired CLI job exists. Poster renew API + spend a post credit does not. Admin Expired page is mock (“Live API would spend a post credit”). |
 | **Boost spend** | Stub | Boost *credits* can be bought and stored. There is no `POST …/boost` that sets `boostedUntil` and decrements `boostCredits`. Browse already sorts boosted listings first. |
 | **Day-25 still-available nudge** | Missing | PRD requires push / WhatsApp at day 25. Only exists as copy in the admin Comms mock. |
-| **Utility legal disclaimer** | Missing | PRD: checking premium utilities must show *“Inaccurate utility claims will result in your post being permanently removed without a refund.”* Create flow has no that copy. |
+| **Utility legal disclaimer** | Done | Create utilities step shows PRD copy when 24/7 generator, solar (`hasSolar`), or 24/7 elevator is claimed. Scheduled cuts alone does not. |
 
 ### Medium — contact, integrity, monetization ops
 
@@ -140,7 +140,7 @@ Do **not** pick these up unless the product decision changes:
 3. Wire admin Listings + Reports + Users to existing admin APIs.  
 4. Poster edit + renew (API + host UI).  
 5. Boost spend endpoint + host CTA.  
-6. Utility disclaimer + hide fake ratings.  
+6. Hide fake ratings.  
 7. Day-25 / payment reminders.  
 8. Production Clerk keys + object storage.
 

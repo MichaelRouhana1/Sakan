@@ -1,6 +1,8 @@
 import type {
   ElectricityStatus,
   GenderRestriction,
+  LeaseTerm,
+  ListingPosterRole,
   ListingStatus,
   ListingType,
   PriceBasis,
@@ -72,6 +74,44 @@ export function labelElectricity(value: ElectricityStatus): string {
 
 export function labelWater(value: WaterStatus): string {
   return WATER_LABELS[value];
+}
+
+export const POSTER_ROLE_LABELS: Record<ListingPosterRole, string> = {
+  landlord: "Owner",
+  agent: "Agent",
+  student_sublet: "Student sublet",
+};
+
+export function labelPosterRole(role: ListingPosterRole): string {
+  return POSTER_ROLE_LABELS[role];
+}
+
+export function labelLeaseTerm(term: LeaseTerm): string {
+  const labels: Record<LeaseTerm, string> = {
+    semester: "Semester",
+    months_6: "6 months",
+    months_9: "9 months",
+    year: "1 year",
+    flexible: "Flexible / sublet",
+  };
+  return labels[term];
+}
+
+/** Short date for listing-level `availableFrom`; null when unset. */
+export function formatAvailableFrom(raw?: string | null): string | null {
+  if (!raw?.trim()) return null;
+  const s = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const day = s.slice(0, 10);
+    const d = new Date(`${day}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+  return s.replace(/^Available\s+/i, "");
 }
 
 export function daysUntil(iso: string | null): number | null {

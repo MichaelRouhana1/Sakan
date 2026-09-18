@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { CREDIT_BUNDLES, type BundleDisplay } from "@/constants/bundles";
-import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useWhishCheckout } from "@/features/credits/useWhishCheckout";
@@ -233,8 +233,6 @@ function Receipt({ tx }: { tx: CreditTransaction }) {
 const styles = StyleSheet.create({
   page: {
     width: "100%",
-    maxWidth: WEB_CONTENT_MAX,
-    alignSelf: "center",
     paddingHorizontal: WEB_CONTENT_PAD_X,
     paddingTop: 40,
     paddingBottom: 72,

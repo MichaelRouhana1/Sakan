@@ -4,7 +4,11 @@ import {
 } from "@/lib/electricityCuts";
 import { numberComplete, numbersFromLegacy } from "@/lib/lebanonPhone";
 import type { CreateListingDraft } from "./draft";
-import { WIZARD_STEPS } from "@/constants/listingWizard";
+import {
+  GENERATOR_AMP_OPTIONS,
+  LAST_REQUIRED_WIZARD_INDEX,
+  WIZARD_STEPS,
+} from "@/constants/listingWizard";
 
 export const COPY_TITLE_MIN = 10;
 export const COPY_TITLE_MAX = 60;
@@ -20,6 +24,7 @@ const FIELD_MESSAGES: Record<string, string> = {
   beds: "Add at least one bed",
   maxOccupancy: "Set max occupancy to at least 1",
   electricity: "Select electricity status",
+  generatorAmperes: "Select generator / ishtirak amps",
   water: "Select water status",
   photos: "Add at least 3 photos",
   monthlyRentUsd: "Enter a valid monthly rent",
@@ -83,6 +88,19 @@ export function stepFieldErrors(
     case 3: {
       const errors: string[] = [];
       if (!draft.electricity) errors.push("electricity");
+      if (
+        draft.electricity === "generator_24_7" ||
+        draft.electricity === "scheduled_cuts"
+      ) {
+        if (
+          draft.generatorAmperes == null ||
+          !(GENERATOR_AMP_OPTIONS as readonly number[]).includes(
+            draft.generatorAmperes,
+          )
+        ) {
+          errors.push("generatorAmperes");
+        }
+      }
       if (draft.electricity === "scheduled_cuts") {
         const windows: CutWindow[] =
           draft.electricityCutWindows?.length > 0
@@ -164,7 +182,7 @@ export function effectiveCommittedStep(
   storedCommittedStep: number,
 ): number {
   let last = -1;
-  const cap = Math.min(storedCommittedStep, WIZARD_STEPS.length - 2);
+  const cap = Math.min(storedCommittedStep, LAST_REQUIRED_WIZARD_INDEX);
   for (let i = 0; i <= cap; i++) {
     if (stepFieldErrors(draft, i).length > 0) break;
     last = i;
@@ -172,24 +190,24 @@ export function effectiveCommittedStep(
   return last;
 }
 
-/** First wizard step (0–8) with validation errors, searching up to `throughStep` inclusive. */
+/** First required wizard step with validation errors, searching up to `throughStep` inclusive. */
 export function firstInvalidStepIndex(
   draft: CreateListingDraft,
-  throughStep = WIZARD_STEPS.length - 2,
+  throughStep = LAST_REQUIRED_WIZARD_INDEX,
 ): number | null {
-  const last = Math.min(throughStep, WIZARD_STEPS.length - 2);
+  const last = Math.min(throughStep, LAST_REQUIRED_WIZARD_INDEX);
   for (let i = 0; i <= last; i++) {
     if (stepFieldErrors(draft, i).length > 0) return i;
   }
   return null;
 }
 
-/** All blocking issues across required wizard steps (excludes review). */
+/** All blocking issues across required wizard steps (excludes Review). */
 export function wizardPublishIssues(
   draft: CreateListingDraft,
 ): WizardValidationIssue[] {
   const issues: WizardValidationIssue[] = [];
-  for (let i = 0; i < WIZARD_STEPS.length - 1; i++) {
+  for (let i = 0; i <= LAST_REQUIRED_WIZARD_INDEX; i++) {
     const fields = stepFieldErrors(draft, i);
     if (fields.length === 0) continue;
     issues.push({

@@ -92,6 +92,7 @@ export const listingPublicColumns = {
   title: listings.title,
   description: listings.description,
   highlightTags: listings.highlightTags,
+  cardBadges: listings.cardBadges,
   listingPosterRole: listings.listingPosterRole,
   contactName: listings.contactName,
   contactPhone: listings.contactPhone,
@@ -133,6 +134,11 @@ function parseJsonStringArray(value: unknown): string[] {
     }
   }
   return [];
+}
+
+function parseNullableJsonStringArray(value: unknown): string[] | null {
+  if (value == null) return null;
+  return parseJsonStringArray(value);
 }
 
 /** Text search OR fragments for Drizzle browse. */
@@ -513,6 +519,7 @@ export class ListingsRepository {
         l.title,
         l.description,
         l.highlight_tags,
+        l.card_badges,
         l.listing_poster_role,
         l.contact_name,
         l.contact_phone,
@@ -647,6 +654,7 @@ export class ListingsRepository {
       title: String(row.title ?? ""),
       description: String(row.description ?? ""),
       highlightTags: parseJsonStringArray(row.highlight_tags),
+      cardBadges: parseNullableJsonStringArray(row.card_badges),
       listingPosterRole: row.listing_poster_role,
       contactName: String(row.contact_name ?? ""),
       contactPhone: (row.contact_phone as string | null) ?? null,
@@ -751,6 +759,7 @@ export class ListingsRepository {
         title: input.title,
         description: input.description,
         highlightTags: input.highlightTags,
+        cardBadges: input.cardBadges ?? null,
         listingPosterRole: input.listingPosterRole,
         contactName: input.contactName,
         contactPhone: phones.contactPhone ?? input.contactPhone ?? null,

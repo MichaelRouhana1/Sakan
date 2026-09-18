@@ -94,6 +94,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
   const lottieAsset = useWizardLottieAsset(meta.id);
   const lottieFrame = wizardLottieFrame(lottieAsset, width, split);
   const isWeb = Platform.OS === "web";
+  const review = meta.id === "review";
 
   const art = (
     <Animated.View
@@ -101,7 +102,12 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
       entering={reduce ? undefined : FadeIn.duration(420)}
       exiting={reduce ? undefined : FadeOut.duration(180)}
     >
-      <WizardLottie assetId={lottieAsset} {...lottieFrame} />
+      <WizardLottie
+        assetId={lottieAsset}
+        {...(review && isWeb && split
+          ? { width: Math.min(lottieFrame.width, width * 0.3), height: Math.min(lottieFrame.height, width * 0.3) }
+          : lottieFrame)}
+      />
     </Animated.View>
   );
 
@@ -112,7 +118,9 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
         reduce ? undefined : FadeInDown.duration(Lister.motion.enterMs)
       }
     >
-      <WizardHeadline title={meta.title} subtitle={meta.subtitle} />
+      <View style={review ? { maxWidth: 560 } : undefined}>
+        <WizardHeadline title={meta.title} subtitle={meta.subtitle} />
+      </View>
       <View style={{ height: split ? 32 : 20 }} />
       <Step />
     </Animated.View>
@@ -215,7 +223,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
       {chrome}
       {split ? (
         <View style={styles.stage}>
-          <View style={styles.left}>
+          <View style={[styles.left, review && isWeb && sharedStyles.reviewArt]}>
             <WizardGrain />
             {art}
           </View>
@@ -223,7 +231,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
             <View
               ref={scrollContentRef}
               collapsable={false}
-              style={styles.rightInner}
+              style={[styles.rightInner, review && isWeb && sharedStyles.reviewInner]}
             >
               {form}
             </View>
@@ -284,6 +292,12 @@ export function CreateWizardShellWithArt({
 }
 
 const sharedStyles = StyleSheet.create({
+  reviewArt: { width: "32%", maxWidth: 640 },
+  reviewInner: {
+    maxWidth: "100%",
+    paddingHorizontal: 32,
+    paddingTop: 16,
+  },
   mobileChrome: {
     backgroundColor: "transparent",
     borderBottomWidth: 0,

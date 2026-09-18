@@ -16,7 +16,9 @@ import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
   formatCampusWalkLine,
+  isHighlightCardBadge,
   listingAmberPillGroups,
+  listingCardPills,
   listingCardSubtitle,
   listingCardTitle,
 } from "@/lib/listingCardMeta";
@@ -69,6 +71,8 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
       )
     : null;
   const { highlights, amenities } = listingAmberPillGroups(listing);
+  const customized = listing.cardBadges != null;
+  const orderedPills = listingCardPills(listing);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
   const urls = photoUrls(listing);
@@ -110,21 +114,37 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
 
         <View style={styles.divider} />
 
-        {highlights.length > 0 ? (
-          <View style={styles.tags}>
-            {highlights.map((pill) => (
-              <ListingAmberPillView key={pill.key} pill={pill} highlight />
-            ))}
-          </View>
-        ) : null}
+        {customized ? (
+          orderedPills.length > 0 ? (
+            <View style={styles.tags}>
+              {orderedPills.map((pill) => (
+                <ListingAmberPillView
+                  key={pill.key}
+                  pill={pill}
+                  highlight={isHighlightCardBadge(pill.key)}
+                />
+              ))}
+            </View>
+          ) : null
+        ) : (
+          <>
+            {highlights.length > 0 ? (
+              <View style={styles.tags}>
+                {highlights.map((pill) => (
+                  <ListingAmberPillView key={pill.key} pill={pill} highlight />
+                ))}
+              </View>
+            ) : null}
 
-        {amenities.length > 0 ? (
-          <View style={styles.tags}>
-            {amenities.map((pill) => (
-              <ListingAmberPillView key={pill.key} pill={pill} />
-            ))}
-          </View>
-        ) : null}
+            {amenities.length > 0 ? (
+              <View style={styles.tags}>
+                {amenities.map((pill) => (
+                  <ListingAmberPillView key={pill.key} pill={pill} />
+                ))}
+              </View>
+            ) : null}
+          </>
+        )}
       </Pressable>
 
       {/* Column 3 — favorite + price + CTA */}

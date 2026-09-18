@@ -102,6 +102,8 @@ export type CreateListingDraft = {
   title: string;
   description: string;
   highlightTags: string[];
+  /** Ordered browse-card badge keys. null = not chosen yet (auto pills). */
+  cardBadges: string[] | null;
   listingPosterRole: ListingPosterRole | null;
   contactName: string;
   contactNumbers: ContactNumber[];
@@ -161,6 +163,7 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   title: "",
   description: "",
   highlightTags: [],
+  cardBadges: null,
   listingPosterRole: null,
   contactName: "",
   contactNumbers: [emptyContactNumber()],

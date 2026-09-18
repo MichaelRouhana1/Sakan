@@ -72,7 +72,7 @@
 | Own listing detail + share | Done | `(poster)/listing/[id].tsx` |
 | Boost listing | Stub (“coming soon”) | poster listing detail |
 | Credit spend on publish | Done | 1 free live listing; 2nd+ needs post credit; free-slot replacements capped/mo |
-| Utility legal disclaimer (full PRD) | Missing / soft copy only | create utilities step |
+| Utility legal disclaimer (full PRD) | Done | create utilities step — shown when 24/7 generator, solar, or 24/7 elevator is claimed |
 | Edit / renew / archive UX | Done | `POST /api/listings/:id/archive` |
 
 ### Roommate Finder

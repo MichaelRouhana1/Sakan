@@ -103,6 +103,8 @@ export const listings = pgTable("listings", {
     .$type<string[]>()
     .notNull()
     .default(sql`'[]'::jsonb`),
+  /** Ordered browse-card badge keys. null = automatic pills. */
+  cardBadges: jsonb("card_badges").$type<string[] | null>(),
   listingPosterRole: listingPosterRoleEnum("listing_poster_role")
     .notNull()
     .default("landlord"),

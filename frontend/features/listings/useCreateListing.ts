@@ -58,6 +58,7 @@ export type CreateListingBody = {
   title: string;
   description: string;
   highlightTags: string[];
+  cardBadges?: string[] | null;
   listingPosterRole: ListingPosterRole;
   contactName: string;
   contactPhone?: string;

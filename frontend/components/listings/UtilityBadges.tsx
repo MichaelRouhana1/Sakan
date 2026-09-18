@@ -37,10 +37,11 @@ export function UtilityBadges({ listing, compact }: Props) {
   }[] = [
     { icon: "flash-outline", label: labelElectricity(listing.electricity) },
     { icon: "water-outline", label: labelWater(listing.water) },
+    {
+      icon: "wifi-outline",
+      label: listing.wifiIncluded ? "Wi‑Fi" : "Ask about Wi‑Fi",
+    },
   ];
-  if (listing.wifiIncluded) {
-    items.push({ icon: "wifi-outline", label: "Wi‑Fi" });
-  }
   if (listing.routerUps) {
     items.push({ icon: "battery-charging-outline", label: "UPS" });
   }

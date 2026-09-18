@@ -78,7 +78,7 @@ export const PAYMENT_MODALITY_OPTIONS = [
   { value: "quarterly" as const, label: "Paid quarterly" },
 ];
 
-export const GENERATOR_AMP_OPTIONS = [5, 10, 15] as const;
+export const GENERATOR_AMP_OPTIONS = [5, 10, 15, 20] as const;
 
 export const PHOTO_CAPTION_PRESETS = [
   "Bedroom 1",
@@ -100,8 +100,17 @@ export const WIZARD_STEPS = [
   { id: "pricing", title: "Rent and terms", subtitle: "USD, deposit, lease length, and when it is free." },
   { id: "copy", title: "Title and story", subtitle: "What renters read before they tap WhatsApp." },
   { id: "contact", title: "How they reach you", subtitle: "Role, phone, and WhatsApp." },
-  { id: "review", title: "Review and publish", subtitle: "Looks right? One listing credit if you already have a live post." },
+  {
+    id: "review",
+    title: "Take a look and customize how your card will look.",
+    subtitle: "Pick the badges on your browse card and the order renters see.",
+  },
 ] as const;
+
+/** Contact — last step with required fields (Review is optional). */
+export const LAST_REQUIRED_WIZARD_INDEX = WIZARD_STEPS.findIndex(
+  (s) => s.id === "contact",
+);
 
 export function amenityLabel(slug: string): string {
   return AMENITY_OPTIONS.find((o) => o.slug === slug)?.label ?? slug;

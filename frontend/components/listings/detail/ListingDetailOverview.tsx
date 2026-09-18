@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBadge";
+import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
@@ -66,6 +67,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
           <LText variant="caption" tone="muted">
             per month
           </LText>
+          <ListingMoneyStack listing={listing} align="end" />
         </View>
       </View>
 
@@ -230,7 +232,7 @@ const styles = StyleSheet.create({
   titleCol: { flex: 1, gap: 4 },
   title: { fontSize: 22, lineHeight: 28 },
   address: { fontSize: 13 },
-  priceCol: { alignItems: "flex-end", minWidth: 96 },
+  priceCol: { alignItems: "flex-end", minWidth: 112, gap: 4 },
   price: { fontSize: 22, lineHeight: 26 },
   ratingRow: { paddingTop: 2 },
   distanceRow: {

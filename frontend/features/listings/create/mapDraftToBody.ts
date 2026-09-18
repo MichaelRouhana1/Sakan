@@ -8,6 +8,8 @@ import {
 import type { CreateListingBody } from "@/features/listings/useCreateListing";
 import { deriveListingType } from "./deriveListingType";
 import type { CreateListingDraft } from "./draft";
+import { previewListingFromDraft } from "./previewListingFromDraft";
+import { draftCardBadgeKeys } from "@/lib/listingCardBadges";
 
 export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
   const rent = Number(draft.monthlyRentUsd);
@@ -64,7 +66,8 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     elevator24_7: draft.elevator24_7,
     hasElevator: draft.hasElevator,
     hasSolar: draft.hasSolar,
-    generatorAmperes: draft.generatorAmperes,
+    generatorAmperes:
+      draft.electricity === "solar" ? null : draft.generatorAmperes,
     generatorIncluded: draft.generatorIncluded,
     conciergeIncluded: draft.conciergeIncluded,
     cookingGasIncluded: draft.cookingGasIncluded,
@@ -83,6 +86,7 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     title: draft.title.trim(),
     description: draft.description.trim(),
     highlightTags: draft.highlightTags,
+    cardBadges: draftCardBadgeKeys(previewListingFromDraft(draft)),
     listingPosterRole: draft.listingPosterRole!,
     contactName: draft.contactName.trim(),
     contactPhone: derivedPhones.contactPhone ?? undefined,
