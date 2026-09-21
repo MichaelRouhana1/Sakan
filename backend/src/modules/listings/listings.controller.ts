@@ -6,6 +6,7 @@ import {
   type CreateListingInput,
 } from "./listings.schemas.js";
 import { publicUrlForUpload } from "./photos.storage.js";
+import { priceGuideQuerySchema } from "./price-guide.js";
 
 function queryString(value: unknown): string | undefined {
   if (typeof value === "string") return value;
@@ -17,6 +18,18 @@ function queryString(value: unknown): string | undefined {
 }
 
 export class ListingsController {
+  async priceGuide(req: Request, res: Response, next: NextFunction) {
+    try {
+      const parsed = priceGuideQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        throw new ValidationError(parsed.error.issues.map((i) => i.message).join("; "));
+      }
+      res.json({ data: await listingsService.priceGuide(parsed.data) });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const parsed = listListingsQuerySchema.safeParse({

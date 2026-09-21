@@ -13,6 +13,7 @@ import { HeroCap } from "@/components/campus/HeroCap";
 import { HeroRipple } from "@/components/campus/HeroRipple";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
+import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 
 type PressState = { pressed: boolean; hovered?: boolean };
@@ -35,9 +36,12 @@ function useLayoutWidth() {
   return web ? inner : width;
 }
 
-/** Desktop hero floor. Grows past this with leftover viewport so the grid
- *  fills the empty band that used to sit between the cap and the tools. */
-const HERO_DESKTOP = 560;
+/** Desktop hero inner floor (shell lift is added on top). Short enough that
+ *  the tools row sits on the first screen; leftover viewport still grows here. */
+const HERO_DESKTOP = 288;
+const HERO_DESKTOP_MIN = 216;
+/** Divider + four-up tools. Kept out of the hero so they stay above the fold. */
+const TOOLS_DESKTOP_RESERVE = 216;
 const HERO_STACKED_VISUAL = 340;
 
 const TOOLS: readonly {
@@ -97,27 +101,34 @@ export function CampusHomePage() {
   // Pull the hero up under the top nav so its background runs flush against
   // it, then give back the same distance as inner top padding so the copy,
   // the cap and everything below stay exactly where they were.
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const lift = campusShellPadTop(windowWidth);
+  const heroInner = stacked
+    ? 0
+    : Math.min(
+        HERO_DESKTOP,
+        Math.max(
+          HERO_DESKTOP_MIN,
+          windowHeight - WEB_NAV_HEIGHT - TOOLS_DESKTOP_RESERVE - lift,
+        ),
+      );
   const heroLift = {
     marginTop: -lift,
     paddingTop: (stacked ? 8 : 0) + lift,
-    ...(stacked ? null : { minHeight: HERO_DESKTOP + lift }),
+    ...(stacked ? null : { minHeight: heroInner + lift }),
   };
 
   const go = (href: string) => router.push(href as never);
 
   return (
-    <View style={styles.page}>
-      <View
-        style={[styles.hero, stacked && styles.heroStacked, heroLift, { pointerEvents: "box-none" }]}
-      >
-        <View style={[styles.rippleHost, { pointerEvents: "auto" }]}>
+    <View style={[styles.page, !stacked && styles.pageDesktop]}>
+      <View style={[styles.hero, stacked && styles.heroStacked, heroLift]}>
+        <View style={styles.rippleHost}>
           <HeroRipple />
         </View>
 
-        <View style={[styles.copy, { pointerEvents: "box-none" }]}>
-          <View style={[styles.copyRead, { pointerEvents: "none" }]}>
+        <View style={[styles.copy, !stacked && styles.copyDesktop]}>
+          <View style={[styles.copyRead, !stacked && styles.copyReadDesktop]}>
             <View style={styles.badge}>
               <Ionicons name="school" size={13} color="#FFFFFF" />
               <LText style={styles.badgeText}>
@@ -147,6 +158,7 @@ export function CampusHomePage() {
             accessibilityLabel="Open tuition calculator"
             style={({ pressed, hovered }: PressState) => [
               styles.cta,
+              !stacked && styles.ctaDesktop,
               styles.motion,
               (hovered || pressed) && styles.ctaHover,
             ]}
@@ -156,17 +168,21 @@ export function CampusHomePage() {
           </Pressable>
         </View>
 
-        <View
-          style={[styles.visual, stacked && styles.visualStacked, { pointerEvents: "box-none" }]}
-        >
+        <View style={[styles.visual, stacked && styles.visualStacked]}>
           <HeroCap />
         </View>
       </View>
 
-      <View style={styles.tools}>
-        <View style={[styles.divider, compact && styles.dividerCompact]} />
+      <View style={[styles.tools, !stacked && styles.toolsDesktop]}>
+        <View
+          style={[
+            styles.divider,
+            compact && styles.dividerCompact,
+            !stacked && styles.dividerDesktop,
+          ]}
+        />
 
-        <View style={styles.cols}>
+        <View style={[styles.cols, !stacked && styles.colsDesktop]}>
           {TOOLS.map((tool, i) => {
             const lastInRow = (i + 1) % perRow === 0;
             const lastRow = i >= TOOLS.length - perRow;
@@ -242,6 +258,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
+  pageDesktop: {
+    gap: 0,
+  },
   hero: {
     position: "relative",
     overflow: "hidden",
@@ -251,11 +270,12 @@ const styles = StyleSheet.create({
     gap: 48,
     width: "100%",
     flexGrow: 1,
-    // Floor only — leftover viewport is absorbed here so the grid, copy,
-    // and cap scale together. Shell top gap is folded in via heroLift.
+    // Floor only — leftover viewport is absorbed here so the cap stays
+    // large while empty letterbox above/below it shrinks.
     paddingTop: 0,
     paddingBottom: 0,
     minHeight: HERO_DESKTOP,
+    pointerEvents: "none",
   },
   rippleHost: {
     position: "absolute",
@@ -264,6 +284,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     zIndex: 0,
+    pointerEvents: "auto",
   },
   heroStacked: {
     flexDirection: "column",
@@ -281,9 +302,17 @@ const styles = StyleSheet.create({
     gap: 22,
     minWidth: 0,
     zIndex: 1,
+    pointerEvents: "none",
+  },
+  copyDesktop: {
+    gap: 10,
   },
   copyRead: {
     gap: 18,
+    pointerEvents: "none",
+  },
+  copyReadDesktop: {
+    gap: 8,
   },
   badge: {
     flexDirection: "row",
@@ -294,6 +323,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: Skoun.color.primary,
+    pointerEvents: "auto",
   },
   badgeText: {
     fontFamily: Skoun.type.bodySemi,
@@ -306,6 +336,8 @@ const styles = StyleSheet.create({
     fontSize: 56,
     lineHeight: 62,
     letterSpacing: -1.6,
+    alignSelf: "flex-start",
+    pointerEvents: "auto",
   },
   titleCompact: {
     fontSize: 36,
@@ -316,6 +348,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 26,
     maxWidth: 460,
+    alignSelf: "flex-start",
+    pointerEvents: "auto",
   },
   ledeCompact: {
     fontSize: 15,
@@ -333,6 +367,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Skoun.color.ink,
     cursor: "pointer",
+    pointerEvents: "auto",
+  },
+  ctaDesktop: {
+    marginTop: 0,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
   },
   ctaHover: {
     borderColor: Skoun.color.primary,
@@ -347,10 +387,11 @@ const styles = StyleSheet.create({
   visual: {
     flex: 1.4,
     minWidth: 0,
-    minHeight: 400,
+    minHeight: 220,
     maxWidth: 860,
     alignSelf: "stretch",
     zIndex: 1,
+    pointerEvents: "none",
   },
   visualStacked: {
     flexGrow: 0,
@@ -372,12 +413,18 @@ const styles = StyleSheet.create({
   tools: {
     width: "100%",
   },
+  toolsDesktop: {
+    marginTop: -24,
+  },
   // Rule sits above the tools with clear air before them.
   divider: {
     width: "100%",
     height: 1,
     backgroundColor: Skoun.color.border,
     marginBottom: 24,
+  },
+  dividerDesktop: {
+    marginBottom: 8,
   },
   dividerCompact: {
     marginBottom: 8,
@@ -390,6 +437,9 @@ const styles = StyleSheet.create({
     // Bottom space lives on the grid, not the cards, so the vertical
     // rules end just under the text instead of running to the bottom.
     paddingBottom: 28,
+  },
+  colsDesktop: {
+    paddingBottom: 4,
   },
   col: {
     minWidth: 0,

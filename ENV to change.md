@@ -29,6 +29,7 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 | `PUBLIC_BASE_URL` | LAN IP, e.g. `http://192.168.x.x:3001` | Public HTTPS API URL (listing photo links) |
 | `PORT` | `3001` | Host/port your process listens on (often set by platform) |
 | `UPLOAD_DIR` | `uploads` | Persistent disk path or switch to object storage later |
+| `GEMINI_API_KEY` | Optional; blank/unset uses local factual templates | Server-only Gemini Flash key. Never `EXPO_PUBLIC_*`. Copy suggestions fall back to templates on errors/quota; 10 AI attempts per user/hour (in-memory, single API process). |
 | `MAPBOX_ACCESS_TOKEN` | (optional locally) Mapbox secret `sk.` or URL-restricted `pk.` for Directions | Required in production so walking routes persist; never `EXPO_PUBLIC_*`. Client `EXPO_PUBLIC_MAPBOX_*` is tiles/GL only |
 | `TRUST_PROXY` | unset | `1` when the API sits behind nginx/Caddy so walking-route rate limits key by client IP (do not set `true`) |
 
@@ -50,7 +51,7 @@ Before go-live:
 ## Security reminders
 
 - Never commit real `.env` files (already gitignored).
-- `CLERK_SECRET_KEY`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, and `MAPBOX_ACCESS_TOKEN` are server-only — never put them in `EXPO_PUBLIC_*`.
+- `CLERK_SECRET_KEY`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `MAPBOX_ACCESS_TOKEN`, and `GEMINI_API_KEY` are server-only — never put them in `EXPO_PUBLIC_*`.
 - Web admin authenticates with the user's Clerk Bearer token. Do not send `x-admin-key` from the browser.
 - `MAPBOX_DOWNLOADS_TOKEN` is a secret `sk.` — never `EXPO_PUBLIC_*`, never commit.
 - Rotate any key that was shared in chat or committed by mistake.
@@ -63,6 +64,6 @@ Before go-live:
 |------|------------------|
 | `frontend/.env` | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` (or `EXPO_PUBLIC_MAPBOX_TOKEN`), `EXPO_PUBLIC_MAPBOX_STYLE` |
 | `EAS / local native secrets` | `MAPBOX_DOWNLOADS_TOKEN` (secret `sk.`, not public) |
-| `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `PUBLIC_BASE_URL`, `MAPBOX_ACCESS_TOKEN` |
+| `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `PUBLIC_BASE_URL`, `MAPBOX_ACCESS_TOKEN`, `GEMINI_API_KEY` |
 
 Replace all `pk_test_` / `sk_test_` values with **live** keys from Clerk before production.

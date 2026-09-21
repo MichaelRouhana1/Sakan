@@ -56,6 +56,7 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
     const e = event.nativeEvent;
     if (e.button !== 0 || dragRef.current) return;
     if ((event.target as HTMLElement).closest?.("[data-badge-control]")) return;
+    cleanupRef.current?.();
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const drag: Drag = {
       key,
@@ -107,56 +108,66 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
         document.body.style.userSelect = "none";
         frame = requestAnimationFrame(autoScroll);
       }
-      e.preventDefault();
       show();
+    }
+
+    function preventTouchScroll(e: TouchEvent) {
+      // Pointer events track the drag; cancelling its touchmove prevents the
+      // browser from starting a fling that would consume the following tap.
+      if (drag.started && e.cancelable) e.preventDefault();
     }
 
     function cleanup() {
       cancelAnimationFrame(frame);
       window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("touchmove", preventTouchScroll, true);
       window.removeEventListener("pointerup", end, true);
       window.removeEventListener("pointercancel", cancel, true);
       window.removeEventListener("keydown", escape, true);
       window.removeEventListener("blur", cancel);
-      window.removeEventListener("click", suppressClick, true);
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousSelect;
       dragRef.current = null;
       cleanupRef.current = null;
     }
 
-    function suppressClick(e: MouseEvent) {
-      if (!drag.started) return;
-      e.preventDefault();
-      e.stopPropagation();
-      cleanup();
+    function suppressReleaseClick() {
+      // End the drag without cancelling pointerup: cancelling it can swallow
+      // the following tap on touch browsers. Suppress only this gesture's click.
+      function release() {
+        clearTimeout(timer);
+        window.removeEventListener("click", suppress, true);
+        window.removeEventListener("pointerdown", release, true);
+        cleanupRef.current = null;
+      }
+      function suppress(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        release();
+      }
+      const timer = window.setTimeout(release, 700);
+      window.addEventListener("click", suppress, true);
+      window.addEventListener("pointerdown", release, true);
+      cleanupRef.current = release;
     }
 
     function end(e: PointerEvent) {
       if (e.pointerId !== drag.pointerId) return;
       const started = drag.started;
       const target = findTarget({ x: e.clientX, y: e.clientY });
-      if (started) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
       cleanup();
       setVisual(null);
       if (started) {
-        // Prevent the following synthetic click from toggling the badge again.
-        window.addEventListener("click", suppressClick, true);
-        const timer = window.setTimeout(() => window.removeEventListener("click", suppressClick, true), 0);
-        cleanupRef.current = () => {
-          clearTimeout(timer);
-          window.removeEventListener("click", suppressClick, true);
-        };
+        suppressReleaseClick();
         optionsRef.current.onDrop(key, target);
       }
     }
 
     function cancel() {
+      const started = drag.started;
       cleanup();
       setVisual(null);
+      if (started) suppressReleaseClick();
     }
 
     function escape(e: KeyboardEvent) {
@@ -167,12 +178,12 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
     }
 
     cleanupRef.current = cleanup;
-    window.addEventListener("pointermove", move, { capture: true, passive: false });
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("touchmove", preventTouchScroll, { capture: true, passive: false });
     window.addEventListener("pointerup", end, true);
     window.addEventListener("pointercancel", cancel, true);
     window.addEventListener("keydown", escape, true);
     window.addEventListener("blur", cancel);
-    window.addEventListener("click", suppressClick, true);
   }
 
   const pill = visual && options.pills.find((candidate) => candidate.key === visual.key);

@@ -11,6 +11,11 @@ import type { GeneralLoadingBlockProps } from "@/components/common/GeneralLoadin
 const OCEAN_TINT =
   "brightness(0) invert(48%) sepia(25.5%) saturate(2500%) hue-rotate(181.4deg) brightness(77.1%) contrast(77.3%)";
 
+/** `thinking-orbs` only ships 64 and 20 presets; 32 uses the 64 design at 32px. */
+function orbPresetSize(size: NonNullable<GeneralLoadingBlockProps["size"]>): OrbSize {
+  return size === 20 ? 20 : 64;
+}
+
 export function GeneralLoadingBlock({
   label = "Loading…",
   state = "working",
@@ -20,7 +25,7 @@ export function GeneralLoadingBlock({
   showLabel = true,
   style,
 }: GeneralLoadingBlockProps) {
-  const orbSize: OrbSize = size;
+  const orbSize = orbPresetSize(size);
   const orbState: OrbState = state;
   const orbTheme: OrbTheme = theme;
 
@@ -40,7 +45,7 @@ export function GeneralLoadingBlock({
         size={orbSize}
         theme={orbTheme}
         aria-label={label}
-        style={{ filter: OCEAN_TINT }}
+        style={{ filter: OCEAN_TINT, width: size, height: size }}
       />
       {label && showLabel ? (
         <LText

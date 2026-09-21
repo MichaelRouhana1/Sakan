@@ -30,4 +30,4 @@ for (const key of original) {
     assert.deepEqual([...result.keys].sort(), original);
   }
 }
-console.log("cardBadgeSelection.test.ts: 59 checks passed");
+console.log("cardBadgeSelection.test.ts: passed");

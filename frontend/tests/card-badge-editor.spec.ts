@@ -11,7 +11,7 @@ async function setup(page: Page, keys: string[] | null = initialKeys, step = 9) 
     ...INITIAL_DRAFT, step, spaceType: "entire_place", propertyType: "studio", area: "Mar Mikhael",
     pin: { ...INITIAL_DRAFT.pin, confirmed: true }, primaryCampusId: "test-campus",
     furnishingType: "furnished", electricity: "solar", water: "state_well_24_7", routerUps: true,
-    targetAudience: "mixed", monthlyRentUsd: "720", title: "Mar Mikhael loft-style studio",
+    targetAudience: "students_professionals", monthlyRentUsd: "720", title: "Mar Mikhael loft-style studio",
     description: "A bright furnished studio close to campus and local shops.", listingPosterRole: "landlord",
     contactName: "Test host", contactNumbers: [{ kind: "mobile", prefix: "71", subscriber: "123456", calls: true, whatsapp: true }],
     amenities: ["study_desk", "water_heater_electric", "parking", "washer", "balcony", "ac_all_rooms"],
@@ -110,8 +110,8 @@ test("keyboard controls and explicitly empty selection", async ({ page }) => {
   await expect.poll(() => cardKeys(page)).toEqual([initialKeys[1], initialKeys[0], ...initialKeys.slice(2)]);
   await page.keyboard.press("Delete");
   await expect(zone(page).locator("[data-badge-key]")).toHaveCount(3);
-  while (await zone(page).getByRole("button", { name: /^Remove / }).count()) {
-    await zone(page).getByRole("button", { name: /^Remove / }).first().click();
+  while (await pool(page).getByRole("button", { name: /^Remove .* from card$/ }).count()) {
+    await pool(page).getByRole("button", { name: /^Remove .* from card$/ }).first().click();
   }
   await expect(zone(page)).toContainText("Drop badges here");
   await page.getByRole("button", { name: "Save and exit" }).click();
@@ -122,16 +122,34 @@ test("keyboard controls and explicitly empty selection", async ({ page }) => {
 test("desktop reference layout and responsive long labels", async ({ page }, info) => {
   await setup(page, ["amenity:study_desk", "amenity:water_heater_electric", "amenity:parking", "amenity:washer", "amenity:balcony", "amenity:ac_all_rooms"]);
   for (const width of [2048, 1440, 1024, 768, 390]) {
-    await page.setViewportSize({ width, height: 1166 });
+    await page.setViewportSize({ width, height: width === 2048 ? 938 : 1166 });
     await expect(zone(page).locator("[data-badge-key]")).toHaveCount(6);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const badgeBounds = await zone(page).boundingBox();
-    for (const chip of await zone(page).locator("[data-badge-key]").all()) {
-      const bounds = await chip.boundingBox();
-      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(badgeBounds!.x + badgeBounds!.width + 1);
-      expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(badgeBounds!.y + badgeBounds!.height + 1);
-    }
+    // Read all bounds together after responsive layout has settled.
+    await expect.poll(() => zone(page).evaluate((area) => {
+      const bounds = area.getBoundingClientRect();
+      return Array.from(area.querySelectorAll("[data-badge-key]")).every((chip) => {
+        const badge = chip.getBoundingClientRect();
+        return badge.right <= bounds.right + 1 && badge.bottom <= bounds.bottom + 1;
+      });
+    })).toBe(true);
     await expect(page.getByTestId("list-card-preview")).toHaveCount(width >= 1024 ? 1 : 0);
+    if (width >= 1440) {
+      const heading = await page.getByTestId("card-customization-heading").boundingBox();
+      const badgePool = await pool(page).boundingBox();
+      const card = await page.getByTestId("grid-card-preview").boundingBox();
+      const media = await page.getByTestId("listing-grid-media").boundingBox();
+      const footer = await page.getByTestId("create-wizard-footer").boundingBox();
+      expect(badgePool!.y).toBeGreaterThanOrEqual(heading!.y + heading!.height);
+      expect(card!.x).toBeGreaterThan(badgePool!.x + badgePool!.width);
+      expect(card!.y).toBeGreaterThan(heading!.y);
+      expect(media!.width / media!.height).toBeCloseTo(16 / 10, 1);
+      expect(card!.height / card!.width).toBeLessThan(1.2);
+      expect(footer!.height).toBeLessThanOrEqual(82);
+      expect(footer!.y).toBeGreaterThan(card!.y);
+      await expect(page.getByTestId("create-wizard-footer").getByText(/^Credits/)).toBeVisible();
+      await expect(page.getByTestId("create-wizard-footer").getByRole("button", { name: "Publish listing" })).toBeVisible();
+    }
     await page.screenshot({ path: info.outputPath(`review-${width}.png`) });
   }
 });
@@ -145,6 +163,12 @@ test("phone touch dragging adds and removes without changing the wide preview", 
   const context = await browser.newContext({ baseURL: process.env.SKOUN_TEST_URL ?? "http://localhost:8082", viewport: { width: 390, height: 1200 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
   const page = await context.newPage();
   await setup(page, []);
+  await pool(page).getByRole("button", { name: "Add Solar Power to card", exact: true }).tap();
+  await expect.poll(() => cardKeys(page)).toEqual(["solar"]);
+  await zone(page).getByRole("button", { name: "Arrange Solar Power, badge 1 of 1" }).tap();
+  await expect(zone(page).getByRole("button", { name: "Move Solar Power later" })).toBeVisible();
+  await zone(page).getByRole("button", { name: "Remove Solar Power", exact: true }).tap();
+  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(0);
   const session = await context.newCDPSession(page);
   const from = pool(page).locator('[data-badge-key="solar"]');
   await from.scrollIntoViewIfNeeded();
@@ -156,13 +180,6 @@ test("phone touch dragging adds and removes without changing the wide preview", 
   }
   await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expect.poll(() => cardKeys(page)).toEqual(["solar"]);
-  await page.evaluate(() => {
-    for (const type of ["pointerdown", "pointermove", "pointerup", "click", "touchstart", "touchend"]) {
-      window.addEventListener(type, (e) => console.log("TOUCH_DEBUG", type, (e.target as HTMLElement).closest("[role='button']")?.getAttribute("aria-label"), e.defaultPrevented), true);
-      window.addEventListener(type, (e) => console.log("TOUCH_DEBUG bubble", type, e.defaultPrevented));
-    }
-  });
-  page.on("console", (msg) => { if (msg.text().includes("TOUCH_DEBUG")) console.log(msg.text()); });
   await zone(page).getByRole("button", { name: "Arrange Solar Power, badge 1 of 1" }).tap();
   await expect(zone(page).getByRole("button", { name: "Move Solar Power later" })).toBeVisible();
   await zone(page).getByRole("button", { name: "Remove Solar Power", exact: true }).tap();

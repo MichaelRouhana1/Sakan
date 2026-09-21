@@ -1,16 +1,17 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, type StyleProp, type TextStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
 
 type Props = {
   title: string;
   subtitle: string;
+  titleStyle?: StyleProp<TextStyle>;
 };
 
-export function WizardHeadline({ title, subtitle }: Props) {
+export function WizardHeadline({ title, subtitle, titleStyle }: Props) {
   return (
     <>
-      <LText variant="display" style={styles.title}>
+      <LText variant="display" style={[styles.title, titleStyle]}>
         {title}
       </LText>
       <LText variant="body" tone="muted" style={styles.sub}>

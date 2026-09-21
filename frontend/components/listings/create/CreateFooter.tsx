@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { LButton } from "@/components/lister/Button";
 import { Lister } from "@/constants/listerTheme";
@@ -12,6 +13,7 @@ type Props = {
   hideNext?: boolean;
   /** No top border — used when progress strip sits above. */
   borderless?: boolean;
+  endContent?: ReactNode;
 };
 
 export function CreateFooter({
@@ -23,10 +25,11 @@ export function CreateFooter({
   hideBack,
   hideNext,
   borderless,
+  endContent,
 }: Props) {
   return (
-    <View style={[styles.bar, borderless && styles.barBorderless]}>
-      <View style={styles.row}>
+    <View testID="create-wizard-footer" style={[styles.bar, borderless && styles.barBorderless]}>
+      <View style={[styles.row, endContent ? styles.rowWithContent : null]}>
         {hideBack ? (
           <View />
         ) : borderless ? (
@@ -46,7 +49,9 @@ export function CreateFooter({
             style={styles.back}
           />
         )}
-        {hideNext ? (
+        {endContent ? (
+          <View style={styles.endContent}>{endContent}</View>
+        ) : hideNext ? (
           <View />
         ) : borderless ? (
           <Pressable
@@ -96,6 +101,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     minHeight: 52,
+  },
+  rowWithContent: {
+    alignItems: "center",
+    gap: 16,
+  },
+  endContent: {
+    flex: 1,
+    minWidth: 0,
   },
   back: { minWidth: 88 },
   next: { minWidth: 168, paddingHorizontal: 28 },

@@ -97,7 +97,13 @@ export function HeroCap() {
     };
 
     const onMove = (e: PointerEvent) => {
-      cursor = toViewBox(e.clientX, e.clientY);
+      const rect = svg.getBoundingClientRect();
+      const inside =
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom;
+      cursor = inside ? toViewBox(e.clientX, e.clientY) : null;
       wake();
     };
     const onLeave = () => {
@@ -105,11 +111,13 @@ export function HeroCap() {
       wake();
     };
 
-    svg.addEventListener("pointermove", onMove);
-    svg.addEventListener("pointerleave", onLeave);
+    // The SVG is pointer-events:none so grid clicks pass through; track
+    // the pointer on the window instead so filings still swing.
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerleave", onLeave);
     return () => {
-      svg.removeEventListener("pointermove", onMove);
-      svg.removeEventListener("pointerleave", onLeave);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerleave", onLeave);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [reducedPref]);
@@ -123,7 +131,7 @@ export function HeroCap() {
       height="100%"
       aria-hidden="true"
       focusable="false"
-      style={{ display: "block", touchAction: "pan-y" }}
+      style={{ display: "block", pointerEvents: "none", touchAction: "pan-y" }}
     >
       <g
         stroke={Skoun.color.primary}

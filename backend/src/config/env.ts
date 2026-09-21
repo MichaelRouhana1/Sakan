@@ -55,6 +55,8 @@ const envSchema = z.object({
    * Map tiles still use the public EXPO_PUBLIC_MAPBOX_* token on the client.
    */
   MAPBOX_ACCESS_TOKEN: optionalSecret,
+  /** Optional server-only Gemini polish; templates work without this key. */
+  GEMINI_API_KEY: optionalSecret,
   /**
    * Number of reverse-proxy hops to trust for req.ip (X-Forwarded-For).
    * Unset locally. Production behind nginx/Caddy: 1. Never `true` (all hops).

@@ -354,7 +354,7 @@ export function ListingResultCard({
 
   return (
     <View style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
-      <View style={[touchPanX, styles.gridMedia]}>
+      <View testID="listing-grid-media" style={[touchPanX, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
         <HeartButton

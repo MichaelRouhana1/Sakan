@@ -36,6 +36,7 @@ import type {
   ListingSort,
 } from "./listings.schemas.js";
 import { EMPTY_PROPERTY_FILTERS } from "./listings.schemas.js";
+import { priceGuideAggregateQuery, type PriceGuideAggregate, type PriceGuideInput } from "./price-guide.js";
 
 export type ListingWithPhotos = Record<string, unknown> & {
   photos: ListingPhotoDto[];
@@ -267,6 +268,11 @@ function attachPhotos<T extends { id: string }>(
 }
 
 export class ListingsRepository {
+  async priceGuideAggregate(input: PriceGuideInput): Promise<PriceGuideAggregate> {
+    const [row] = await db.execute<PriceGuideAggregate>(priceGuideAggregateQuery(input));
+    return row;
+  }
+
   async findPhotosByListingIds(
     listingIds: string[],
   ): Promise<Map<string, ListingPhotoDto[]>> {

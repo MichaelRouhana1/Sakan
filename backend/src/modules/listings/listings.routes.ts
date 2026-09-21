@@ -6,8 +6,16 @@ import { createListingSchema } from "./listings.schemas.js";
 import { listingPhotoUpload } from "./photos.storage.js";
 import { walkingRouteRateLimit } from "../../middleware/rate-limit.js";
 import { walkingRoutesController } from "../walking-routes/walking-routes.controller.js";
+import { copySuggestRouter } from "./copy-suggest.routes.js";
 
 export const listingsRouter = Router();
+listingsRouter.use(copySuggestRouter);
+
+// First-time hosts still have renter role until creating their first listing.
+// Authentication is required; reading guidance must not promote or charge them.
+listingsRouter.get("/price-guide", requireAuth, (req, res, next) =>
+  listingsController.priceGuide(req, res, next),
+);
 
 listingsRouter.get("/", (req, res, next) =>
   listingsController.list(req, res, next),

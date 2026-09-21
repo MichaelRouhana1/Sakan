@@ -156,7 +156,7 @@ export function ListingCardCarousel({
         const nextH = Math.round(
           fill
             ? Math.max(height, minHeight)
-            : Math.max(height > 1 ? height : nextW / PHOTO_ASPECT, minHeight),
+            : Math.max(nextW / PHOTO_ASPECT, minHeight),
         );
         if (nextW !== cardWidth) setCardWidth(nextW);
         if (nextH !== cardHeight) setCardHeight(nextH);

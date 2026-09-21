@@ -43,7 +43,7 @@ export function WizardFieldGroup({ field, children, style }: GroupProps) {
   );
 }
 
-export function wizardInputStyle(invalid?: boolean): ViewStyle {
+export function wizardInputStyle(invalid?: boolean): TextStyle {
   return {
     marginTop: 8,
     borderWidth: invalid ? 2 : 1,

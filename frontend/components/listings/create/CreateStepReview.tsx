@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
-import { Enter } from "@/components/lister/Enter";
+import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { CardBadgeEditor } from "@/components/listings/create/CardBadgeEditor";
@@ -13,18 +13,6 @@ import { draftCardBadgeKeys, sameBadgeKeys } from "@/lib/listingCardBadges";
 
 export function CreateStepReview() {
   const { draft, patch } = useCreateListingDraft();
-  const {
-    publish,
-    canPublish,
-    canAfford,
-    postCredits,
-    costLine,
-    publishIssues,
-    err,
-    published,
-    createPending,
-    setStep,
-  } = usePublishListingDraft();
 
   const listing = useMemo(() => {
     const preview = previewListingFromDraft(draft);
@@ -40,86 +28,116 @@ export function CreateStepReview() {
   return (
     <View style={styles.root}>
       <CardBadgeEditor listing={listing} onChange={(cardBadges) => patch({ cardBadges })} />
+    </View>
+  );
+}
 
-      <Enter delay={140}>
-        <View style={styles.credit}>
-          <LText variant="subtitle">Credits</LText>
-          <LText variant="body" tone="muted">
-            Balance: {postCredits} post credit{postCredits === 1 ? "" : "s"}
+export function CreateStepReviewFooter() {
+  const { width } = useWindowDimensions();
+  const compact = width < 900;
+  const {
+    publish,
+    canPublish,
+    canAfford,
+    postCredits,
+    costLine,
+    publishIssues,
+    err,
+    published,
+    createPending,
+    setStep,
+  } = usePublishListingDraft();
+  const missingCount = publishIssues.reduce((total, issue) => total + issue.messages.length, 0);
+
+  return (
+    <View style={styles.footerContent}>
+      {err ? <LText variant="caption" tone="danger" style={styles.footerMessage}>{err}</LText> : null}
+      {publishIssues.length > 0 ? (
+        <View style={styles.footerIssueRow}>
+          <LText variant="caption" tone="danger" style={styles.footerMessage}>
+            {missingCount} required {missingCount === 1 ? "item is" : "items are"} still missing.
           </LText>
-          <LText variant="caption" tone={canAfford ? "muted" : "danger"}>
-            {costLine}
-          </LText>
+          <LButton label="Review missing details" variant="secondary" onPress={() => setStep(publishIssues[0].step)} />
+        </View>
+      ) : null}
+      <View style={[styles.footerActions, compact && styles.footerActionsCompact]}>
+        <View style={[styles.creditSummary, compact && styles.creditSummaryCompact]}>
+          <View style={styles.creditCopy}>
+            <LText variant="subtitle">
+              {compact ? `${postCredits} credit${postCredits === 1 ? "" : "s"}` : `Credits · ${postCredits} available`}
+            </LText>
+            {!compact ? <LText variant="caption" tone={canAfford ? "muted" : "danger"} style={styles.creditCost}>{costLine}</LText> : null}
+          </View>
           {!canAfford ? (
-            <LButton
-              label="Buy credits"
-              variant="secondary"
-              onPress={() => router.push("/(poster)/(tabs)/credits" as never)}
-            />
+            <Pressable accessibilityRole="button" onPress={() => router.push("/(poster)/(tabs)/credits" as never)} style={styles.buyCredits}>
+              <LText variant="caption" tone="primary">Buy</LText>
+            </Pressable>
           ) : null}
         </View>
-      </Enter>
-
-      {err ? (
-        <LText variant="caption" tone="danger" style={styles.errText}>
-          {err}
-        </LText>
-      ) : null}
-      {publishIssues.length > 0 ? (
-        <View style={styles.issuesBox}>
-          <LText variant="subtitle">Still needed</LText>
-          {publishIssues.map((issue) => (
-            <View key={issue.step} style={styles.issueBlock}>
-              <LText variant="caption" tone="primary" style={styles.issueStep}>
-                {issue.stepTitle}
-              </LText>
-              {issue.messages.map((msg) => (
-                <LText key={msg} variant="caption" tone="muted">
-                  • {msg}
-                </LText>
-              ))}
-            </View>
-          ))}
+        {published ? (
+          <View style={styles.published}>
+            <Ionicons name="checkmark-circle" size={20} color={Lister.color.primary} />
+            <LText variant="subtitle">Listing published</LText>
+          </View>
+        ) : (
           <LButton
-            label="Go to first step to fix"
-            variant="secondary"
-            onPress={() => setStep(publishIssues[0].step)}
+            label="Publish listing"
+            onPress={publish}
+            loading={createPending}
+            disabled={!canPublish || createPending}
+            style={[styles.publishButton, compact && styles.publishButtonCompact]}
           />
-        </View>
-      ) : null}
-      {published ? (
-        <LText variant="subtitle">Listing published successfully!</LText>
-      ) : (
-        <LButton
-          label="Publish listing"
-          onPress={publish}
-          loading={createPending}
-          disabled={!canPublish || createPending}
-        />
-      )}
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { gap: 28 },
-  credit: {
-    gap: 6,
-    padding: 16,
-    borderRadius: Lister.radius.lg,
+  root: { width: "100%" },
+  footerContent: { gap: 8 },
+  footerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 16,
+  },
+  footerActionsCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  creditSummary: {
+    flexBasis: 380,
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: 400,
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 14,
+    borderRadius: Lister.radius.md,
     backgroundColor: Lister.color.primaryMist,
     borderWidth: 1,
     borderColor: Lister.color.primarySoft,
   },
-  issuesBox: {
-    gap: 10,
-    padding: 16,
-    borderRadius: Lister.radius.lg,
-    backgroundColor: Lister.color.dangerSoft,
-    borderWidth: 1,
-    borderColor: Lister.color.danger,
+  creditSummaryCompact: {
+    flexBasis: 104,
+    maxWidth: 112,
+    paddingHorizontal: 10,
   },
-  issueBlock: { gap: 2 },
-  issueStep: { fontFamily: Lister.type.bodySemi },
-  errText: { lineHeight: 20 },
+  creditCopy: { flex: 1, minWidth: 0, gap: 1 },
+  creditCost: { fontSize: 12, lineHeight: 16 },
+  buyCredits: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
+  },
+  publishButton: { minWidth: 176, paddingHorizontal: 24 },
+  publishButtonCompact: { minWidth: 132, paddingHorizontal: 12 },
+  footerIssueRow: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 12 },
+  footerMessage: { textAlign: "right", lineHeight: 18 },
+  published: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 },
 });

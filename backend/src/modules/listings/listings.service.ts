@@ -6,6 +6,7 @@ import {
 } from "../../lib/errors.js";
 import { COINCIDENT_METERS } from "../../constants/mapCoincident.js";
 import { FREE_SLOT_REPLACEMENTS_PER_MONTH } from "../../constants/listings.js";
+import { priceGuideFromAggregate, type PriceGuideInput } from "./price-guide.js";
 import {
   universitiesRepository,
   type CampusMeta,
@@ -88,6 +89,10 @@ function toHostAnalyticsListing(
 }
 
 export class ListingsService {
+  async priceGuide(input: PriceGuideInput) {
+    return priceGuideFromAggregate(await listingsRepository.priceGuideAggregate(input));
+  }
+
   async getById(id: string) {
     const listing = await listingsRepository.findById(id);
     if (!listing) {

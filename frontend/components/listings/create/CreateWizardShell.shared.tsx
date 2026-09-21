@@ -22,7 +22,7 @@ import { CreateStepCopy } from "@/components/listings/create/CreateStepCopy";
 import { CreateStepLocation } from "@/components/listings/create/CreateStepLocation";
 import { CreateStepPhotos } from "@/components/listings/create/CreateStepPhotos";
 import { CreateStepPricing } from "@/components/listings/create/CreateStepPricing";
-import { CreateStepReview } from "@/components/listings/create/CreateStepReview";
+import { CreateStepReview, CreateStepReviewFooter } from "@/components/listings/create/CreateStepReview";
 import { CreateStepRules } from "@/components/listings/create/CreateStepRules";
 import { CreateStepSpecs } from "@/components/listings/create/CreateStepSpecs";
 import { CreateStepType } from "@/components/listings/create/CreateStepType";
@@ -105,7 +105,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
       <WizardLottie
         assetId={lottieAsset}
         {...(review && isWeb && split
-          ? { width: Math.min(lottieFrame.width, width * 0.3), height: Math.min(lottieFrame.height, width * 0.3) }
+          ? { width: Math.min(640, width * 0.33), height: Math.min(640, width * 0.33) }
           : lottieFrame)}
       />
     </Animated.View>
@@ -118,10 +118,10 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
         reduce ? undefined : FadeInDown.duration(Lister.motion.enterMs)
       }
     >
-      <View style={review ? { maxWidth: 560 } : undefined}>
+      {!review ? <>
         <WizardHeadline title={meta.title} subtitle={meta.subtitle} />
-      </View>
-      <View style={{ height: split ? 32 : 20 }} />
+        <View style={{ height: split ? 32 : 20 }} />
+      </> : null}
       <Step />
     </Animated.View>
   );
@@ -214,6 +214,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
         onNext={() => goNext()}
         nextLabel="Next"
         borderless={!split}
+        endContent={review ? <CreateStepReviewFooter /> : undefined}
       />
     </View>
   );
@@ -292,11 +293,12 @@ export function CreateWizardShellWithArt({
 }
 
 const sharedStyles = StyleSheet.create({
-  reviewArt: { width: "32%", maxWidth: 640 },
+  reviewArt: { width: "30%", maxWidth: 700, justifyContent: "center" },
   reviewInner: {
     maxWidth: "100%",
-    paddingHorizontal: 32,
-    paddingTop: 16,
+    paddingLeft: 48,
+    paddingRight: 96,
+    paddingTop: 24,
   },
   mobileChrome: {
     backgroundColor: "transparent",

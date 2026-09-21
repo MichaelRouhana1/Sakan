@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
@@ -19,6 +19,10 @@ import {
 } from "@/lib/listingCardBadges";
 import type { Listing } from "@/types/listing";
 import { useCardBadgeDrag } from "./useCardBadgeDrag";
+import { WizardHeadline } from "./WizardHeadline";
+import { WIZARD_STEPS } from "@/constants/listingWizard";
+
+const reviewStep = WIZARD_STEPS.find((step) => step.id === "review")!;
 
 type Props = {
   listing: Listing;
@@ -33,7 +37,7 @@ export function CardBadgeEditor({ listing, onChange }: Props) {
   const keys = listing.cardBadges ?? [];
   const pills = listingCardPills(listing);
   const candidates = listingCardCandidates(listing);
-  const sideBySide = contentWidth >= 760;
+  const sideBySide = contentWidth >= 820;
   const showList = Platform.OS === "web" && width >= 1024;
   const controlIndex = keys.indexOf(activeControl ?? "");
   const controlPill = pills[controlIndex];
@@ -92,39 +96,29 @@ export function CardBadgeEditor({ listing, onChange }: Props) {
     >
       <View style={styles.cardBadges}>
         {pills.map((pill, index) => (
-          <Fragment key={pill.key}>
-            <View
-              {...drag.badgeProps(pill.key, "card")}
-              style={[styles.cardBadge, drag.activeKey === pill.key && styles.dragging]}
+          <View
+            key={pill.key}
+            {...drag.badgeProps(pill.key, "card")}
+            style={[styles.cardBadge, drag.activeKey === pill.key && styles.dragging]}
+          >
+            {insertion(index)}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Arrange ${pill.label}, badge ${index + 1} of ${pills.length}`}
+              accessibilityHint="Tap for reorder and remove controls. With a keyboard, use Alt and the left or right arrow to reorder, or Delete to remove."
+              accessibilityState={{ expanded: activeControl === pill.key }}
+              onPress={() => setActiveControl(activeControl === pill.key ? null : pill.key)}
+              {...keyboardProps(pill.key)}
+              style={styles.badgeButton}
             >
-              {insertion(index)}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Arrange ${pill.label}, badge ${index + 1} of ${pills.length}`}
-                accessibilityHint="Tap for reorder controls. With a keyboard, use Alt and the left or right arrow to reorder, or Delete to remove."
-                accessibilityState={{ expanded: activeControl === pill.key }}
-                onPress={() => setActiveControl(activeControl === pill.key ? null : pill.key)}
-                {...keyboardProps(pill.key)}
-                style={styles.badgeButton}
-              >
-                <ListingAmberPillView
-                  pill={pill}
-                  highlight={isHighlightCardBadge(pill.key)}
-                  style={activeControl === pill.key ? styles.focusedPill : undefined}
-                />
-              </Pressable>
-              <Pressable
-                {...(Platform.OS === "web" ? { dataSet: { badgeControl: "true" } } : {})}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove ${pill.label}`}
-                onPress={() => drop(pill.key, { zone: "pool" })}
-                hitSlop={4}
-                style={styles.removeButton}
-              >
-                <Ionicons name="close" size={13} color={Lister.color.inkMuted} />
-              </Pressable>
-            </View>
-          </Fragment>
+              <ListingAmberPillView
+                pill={pill}
+                compact
+                highlight={isHighlightCardBadge(pill.key)}
+                style={activeControl === pill.key ? styles.focusedPill : undefined}
+              />
+            </Pressable>
+          </View>
         ))}
         <View style={styles.endMarker}>{insertion(pills.length)}</View>
         {pills.length === 0 ? (
@@ -140,22 +134,15 @@ export function CardBadgeEditor({ listing, onChange }: Props) {
             onPress={() => drop(controlPill.key, { zone: "card", index: controlIndex - 1 })} />
           <ReorderButton label={`Move ${controlPill.label} later`} icon="chevron-forward" disabled={controlIndex === keys.length - 1}
             onPress={() => drop(controlPill.key, { zone: "card", index: controlIndex + 2 })} />
+          <ReorderButton label={`Remove ${controlPill.label}`} icon="trash-outline"
+            onPress={() => drop(controlPill.key, { zone: "pool" })} />
           <ReorderButton label="Close badge controls" icon="close" onPress={() => setActiveControl(null)} />
         </View>
       ) : null}
     </View>
   );
 
-  return (
-    <View style={styles.root} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
-      <View style={[styles.editor, sideBySide && styles.editorWide]}>
-        <View style={[styles.gridFrame, sideBySide && styles.gridFrameWide]}>
-          <ListingResultCard listing={listing} interactive={false} renderGridBadges={() => cardBadges} />
-          <LText variant="caption" tone="muted" style={styles.cardCaption}>
-            {keys.length} / {GRID_TAG_LIMIT} badges · {Platform.OS === "web" ? "Drag to reorder, or tap a badge for controls." : "Tap a badge to arrange it."}
-          </LText>
-        </View>
-
+  const badgePool = (
         <View
           {...drag.zoneProps("pool")}
           testID="available-badge-pool"
@@ -195,6 +182,28 @@ export function CardBadgeEditor({ listing, onChange }: Props) {
             style={styles.feedback}
           >{status || "Selected badges are marked with a check."}</LText>
         </View>
+  );
+
+  const titleSize = Math.min(60, Math.max(42, contentWidth * 0.046));
+  const heading = (
+    <View testID="card-customization-heading">
+      <WizardHeadline title={reviewStep.title} subtitle={reviewStep.subtitle}
+        titleStyle={sideBySide ? { fontSize: titleSize, lineHeight: titleSize * 1.16 } : undefined} />
+    </View>
+  );
+
+  return (
+    <View style={styles.root} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
+      {!sideBySide ? heading : null}
+      <View style={[styles.editor, sideBySide && styles.editorWide]}>
+        {sideBySide ? <View style={styles.centerColumn}>{heading}{badgePool}</View> : null}
+        <View testID="grid-card-preview" style={[styles.gridFrame, sideBySide && styles.gridFrameWide]}>
+          <ListingResultCard listing={listing} interactive={false} renderGridBadges={() => cardBadges} />
+          <LText variant="caption" tone="muted" style={styles.cardCaption}>
+            {keys.length} / {GRID_TAG_LIMIT} badges · {Platform.OS === "web" ? "Drag to reorder, or tap a badge for controls." : "Tap a badge to arrange it."}
+          </LText>
+        </View>
+        {!sideBySide ? badgePool : null}
       </View>
 
       {showList ? (
@@ -209,10 +218,11 @@ export function CardBadgeEditor({ listing, onChange }: Props) {
 }
 
 function ReorderButton({ label, icon, disabled, onPress }: {
-  label: string; icon: "chevron-back" | "chevron-forward" | "close"; disabled?: boolean; onPress: () => void;
+  label: string; icon: "chevron-back" | "chevron-forward" | "trash-outline" | "close"; disabled?: boolean; onPress: () => void;
 }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
+      {...(Platform.OS === "web" ? { dataSet: { badgeControl: "true" } } : {})}
       style={[styles.reorderButton, disabled && styles.disabled]}>
       <Ionicons name={icon} size={17} color={Lister.color.ink} />
     </Pressable>
@@ -227,19 +237,19 @@ const webDragStyle = Platform.OS === "web"
 const styles = StyleSheet.create({
   root: { gap: 36, width: "100%" },
   editor: { gap: 28 },
-  editorWide: { flexDirection: "row", alignItems: "center", gap: 32 },
+  editorWide: { flexDirection: "row", alignItems: "flex-start", gap: 48, minHeight: 700 },
+  centerColumn: { flex: 1, minWidth: 0, gap: 0 },
   gridFrame: { width: "100%", maxWidth: 440, alignSelf: "center" },
-  gridFrameWide: { width: "44%", flexShrink: 0, alignSelf: "flex-start" },
+  gridFrameWide: { width: "42%", maxWidth: 430, flexShrink: 0, alignSelf: "flex-start", marginTop: 44 },
   cardCaption: { marginTop: 12, lineHeight: 20 },
-  dropZone: { minHeight: 56, borderWidth: 1, borderColor: "transparent", borderRadius: 10, padding: 3 },
+  dropZone: { minHeight: 49, borderWidth: 1, borderColor: "transparent", borderRadius: 10 },
   dropZoneActive: { borderColor: Lister.color.primary, borderStyle: "dashed", backgroundColor: Lister.color.primaryMist },
   dropZoneFull: { borderColor: Lister.color.danger, backgroundColor: Lister.color.dangerSoft },
-  cardBadges: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
-  cardBadge: { flexDirection: "row", alignItems: "center", position: "relative", maxWidth: "100%", minHeight: 32,
+  cardBadges: { flexDirection: "row", flexWrap: "wrap", gap: 5, alignItems: "center" },
+  cardBadge: { flexDirection: "row", alignItems: "center", position: "relative", maxWidth: "100%", minHeight: 24,
     ...webDragStyle },
   badgeButton: { flexShrink: 1, ...webDragStyle },
   focusedPill: { borderColor: Lister.color.primary },
-  removeButton: { width: 26, minHeight: 32, alignItems: "center", justifyContent: "center", cursor: "pointer" },
   dragging: { opacity: 0.4 },
   insertion: { position: "absolute", left: -5, top: 2, bottom: 2, width: 3, minHeight: 25, borderRadius: 2, backgroundColor: Lister.color.primary },
   endMarker: { position: "relative", width: 0, height: 28 },
@@ -249,10 +259,10 @@ const styles = StyleSheet.create({
   reorderButton: { width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: Lister.color.surfaceMuted, cursor: "pointer" },
   disabled: { opacity: 0.35 },
   pool: { gap: 12, borderRadius: 16, borderWidth: 1, borderColor: "transparent", padding: 12 },
-  poolWide: { flex: 1, minWidth: 0, paddingVertical: 28 },
+  poolWide: { minWidth: 0, paddingTop: 4, paddingBottom: 8, gap: 14 },
   poolActive: { borderStyle: "dashed", borderColor: Lister.color.primary, backgroundColor: Lister.color.primaryMist },
-  poolTitle: { textAlign: "center", fontSize: 28, lineHeight: 36 },
-  poolHint: { textAlign: "center", maxWidth: 360, alignSelf: "center", lineHeight: 22 },
+  poolTitle: { textAlign: "center", fontSize: 32, lineHeight: 40 },
+  poolHint: { textAlign: "center", maxWidth: 440, alignSelf: "center", fontSize: 17, lineHeight: 26 },
   poolArrow: { alignSelf: "center", marginVertical: 4 },
   poolBadges: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8 },
   poolBadge: { maxWidth: "100%", ...webDragStyle },

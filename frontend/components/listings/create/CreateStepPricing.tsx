@@ -15,9 +15,12 @@ import {
 import { Lister } from "@/constants/listerTheme";
 import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
 import type { LeaseTerm, PaymentModality } from "@/types/listing";
+import { usePriceGuide } from "@/features/listings/usePriceGuide";
+import { PriceGuideCard } from "./PriceGuideCard";
 
 export function CreateStepPricing() {
   const { draft, patch } = useCreateListingDraft();
+  const guide = usePriceGuide(draft);
   const rentInvalid = useWizardFieldInvalid("monthlyRentUsd");
   const depositInvalid = useWizardFieldInvalid("securityDepositUsd");
   const availableInvalid = useWizardFieldInvalid("availableFrom");
@@ -36,6 +39,13 @@ export function CreateStepPricing() {
           style={wizardInputStyle(rentInvalid)}
         />
       </Enter>
+      {guide ? (
+        <PriceGuideCard
+          guide={guide}
+          priceBasis={draft.priceBasis}
+          onUse={() => patch({ monthlyRentUsd: String(guide.medianUsd) })}
+        />
+      ) : null}
       <Enter delay={70}>
         <LText variant="subtitle">Security deposit</LText>
         <View style={{ height: 8 }} />
