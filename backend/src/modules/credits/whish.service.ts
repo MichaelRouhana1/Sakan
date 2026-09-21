@@ -34,10 +34,12 @@ export function creditsReturnUrl(
   referenceId: string,
   outcome: "success" | "failure",
   env: Env = loadEnv(),
+  returnTo?: string,
 ): string {
   const url = new URL("/hosting/credits", frontendPublicBase(env));
   url.searchParams.set("ref", referenceId);
   url.searchParams.set("whish", outcome);
+  if (returnTo) url.searchParams.set("returnTo", returnTo);
   return url.toString();
 }
 

@@ -73,7 +73,8 @@
 | Boost listing | Stub (“coming soon”) | poster listing detail |
 | Credit spend on publish | Done | 1 free live listing; 2nd+ needs post credit; free-slot replacements capped/mo |
 | Utility legal disclaimer (full PRD) | Done | create utilities step — shown when 24/7 generator, solar, or 24/7 elevator is claimed |
-| Edit / renew / archive UX | Done | `POST /api/listings/:id/archive` |
+| Post-expiry outcome / renew / archive | Done | Owner route `/hosting/listing/:id/outcome`; lifecycle events; one-credit renewal |
+| Expiry notification preferences | Done | Host dashboard + `/api/users/me/notification-preferences` |
 
 ### Roommate Finder
 | Feature | Status | Where |
@@ -103,7 +104,9 @@
 |--------|--------|--------|
 | Health check | Done | `GET /health` |
 | Photo local disk storage | Done | `photos.storage.ts` |
-| Archive expired listings job | Done (CLI) | `npm run job:archive-expired` |
+| Hourly listing lifecycle job | Done (CLI) | `npm run job:listing-lifecycle`; old archive command remains an alias |
+| Expiry push + email | Done (configuration required) | Expo Push + Resend delivery ledger and receipt handling |
+| Expiry follow-up admin inbox | Done | `/admin/expired`; manual personal contact actions only |
 | Design tokens (Skoun / Lister) | Done | `constants/theme.ts`, `listerTheme.ts` |
 | Admin ops tokens | Done | `constants/adminTheme.ts`, `design-system/skoun-admin/` |
 | Reduced-motion support | Done | `lib/useReducedMotion.ts` |

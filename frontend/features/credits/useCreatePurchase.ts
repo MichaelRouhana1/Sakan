@@ -5,6 +5,7 @@ import type { CreditBundleType, CreditTransaction, PaymentChannel } from "@/type
 type CreatePurchaseBody = {
   bundleType: CreditBundleType;
   channel?: PaymentChannel;
+  returnTo?: string;
 };
 
 type PurchaseResponse = { data: CreditTransaction };

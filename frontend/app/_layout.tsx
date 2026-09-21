@@ -20,6 +20,7 @@ import {
   isClerkEnabled,
 } from "@/lib/clerkEnabled";
 import { queryClient } from "@/lib/queryClient";
+import { NotificationBootstrap } from "@/features/notifications/NotificationBootstrap";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -98,6 +99,7 @@ function RootLayoutNav() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <NotificationBootstrap />
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />

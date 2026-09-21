@@ -27,10 +27,12 @@ export function renderMockCheckoutPage(input: {
   referenceId: string;
   amountLabel: string;
   completePath: string;
+  returnTo?: string;
 }): string {
   const referenceId = escapeHtml(input.referenceId);
   const amountLabel = escapeHtml(input.amountLabel);
   const completePath = escapeHtml(input.completePath);
+  const returnTo = input.returnTo ? escapeHtml(input.returnTo) : null;
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -81,6 +83,7 @@ export function renderMockCheckoutPage(input: {
       <form method="post" action="${completePath}">
         <input type="hidden" name="referenceId" value="${referenceId}" />
         <input type="hidden" name="outcome" value="success" />
+        ${returnTo ? `<input type="hidden" name="returnTo" value="${returnTo}" />` : ""}
         <button type="submit">Pay</button>
       </form>
     </main>
@@ -104,6 +107,8 @@ export class MockWhishGateway implements WhishMockGateway {
     });
     const collectUrl = new URL("/api/credits/whish/mock/checkout", this.publicApiBase);
     collectUrl.searchParams.set("referenceId", input.referenceId);
+    const returnTo = new URL(input.successRedirectUrl).searchParams.get("returnTo");
+    if (returnTo) collectUrl.searchParams.set("returnTo", returnTo);
     return { collectUrl: collectUrl.toString() };
   }
 

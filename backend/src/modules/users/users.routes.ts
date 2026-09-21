@@ -6,6 +6,9 @@ import {
   setCampusSchema,
   setGenderSchema,
   updateRoleSchema,
+  pushTokenSchema,
+  removePushTokenSchema,
+  notificationPreferencesSchema,
 } from "./users.schemas.js";
 
 export const usersRouter = Router();
@@ -34,4 +37,29 @@ usersRouter.patch("/me/campus", requireAuth, validate(setCampusSchema), (req, re
 
 usersRouter.patch("/me/identity", requireAuth, (req, res, next) =>
   usersController.syncIdentity(req, res, next),
+);
+
+usersRouter.get("/me/notification-preferences", requireAuth, (req, res, next) =>
+  usersController.notificationPreferences(req, res, next),
+);
+
+usersRouter.patch(
+  "/me/notification-preferences",
+  requireAuth,
+  validate(notificationPreferencesSchema),
+  (req, res, next) => usersController.updateNotificationPreferences(req, res, next),
+);
+
+usersRouter.post(
+  "/me/push-tokens",
+  requireAuth,
+  validate(pushTokenSchema),
+  (req, res, next) => usersController.registerPushToken(req, res, next),
+);
+
+usersRouter.delete(
+  "/me/push-tokens",
+  requireAuth,
+  validate(removePushTokenSchema),
+  (req, res, next) => usersController.removePushToken(req, res, next),
 );

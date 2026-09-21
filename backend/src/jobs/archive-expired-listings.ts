@@ -1,14 +1,9 @@
 import "dotenv/config";
-import { listingsRepository } from "../modules/listings/listings.repository.js";
+import { processListingLifecycle } from "./process-listing-lifecycle.js";
 
-/**
- * Cron-friendly job: archive listings past expires_at.
- * Run via: npm run job:archive-expired
- */
+/** Compatibility alias for the hourly listing lifecycle processor. */
 export async function archiveExpiredListings() {
-  const archived = await listingsRepository.archiveExpired();
-  console.log(`Archived ${archived.length} listings`);
-  return archived;
+  return processListingLifecycle();
 }
 
 archiveExpiredListings()

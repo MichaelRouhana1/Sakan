@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
 import {
   Platform,
@@ -61,10 +61,18 @@ function statusCopy(tx: CreditTransaction) {
 }
 
 export function HostCreditsPage() {
-  const params = useLocalSearchParams<{ ref?: string | string[] }>();
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    ref?: string | string[];
+    returnTo?: string | string[];
+  }>();
   const initialRef = firstParam(params.ref);
+  const requestedReturnTo = firstParam(params.returnTo);
+  const returnTo = requestedReturnTo && /^\/hosting\/listing\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/outcome$/i.test(requestedReturnTo)
+    ? requestedReturnTo
+    : undefined;
   const { buy, tx, error, isStarting, pendingBundle } =
-    useWhishCheckout(initialRef);
+    useWhishCheckout(initialRef, returnTo);
   const credits = useCredits();
   const { user } = useAuthSession();
   const reduceMotion = useReducedMotion();
@@ -93,7 +101,14 @@ export function HostCreditsPage() {
         </View>
       </View>
 
-      {tx ? <Receipt tx={tx} /> : null}
+      {tx ? (
+        <Receipt
+          tx={tx}
+          onReturn={tx.status === "approved" && returnTo
+            ? () => router.push(returnTo as never)
+            : undefined}
+        />
+      ) : null}
 
       <View style={styles.grid}>
         {CREDIT_BUNDLES.map((item) => {
@@ -115,7 +130,7 @@ export function HostCreditsPage() {
               <View style={styles.cardBody}>
                 {popular ? (
                   <View style={styles.badgeWrap}>
-                    <PopularBadge active={!reduceMotion} />
+                    <PopularBadge />
                   </View>
                 ) : (
                   <View style={styles.badgeSpacer} />
@@ -141,12 +156,11 @@ export function HostCreditsPage() {
                     accessibilityRole="button"
                     disabled={isStarting}
                     onPress={() => buy(item.type)}
-                    style={({ hovered, pressed, focused }) => [
+                    style={({ hovered, pressed }) => [
                       styles.ctaGhost,
                       hovered && !isStarting && styles.ctaGhostHover,
                       pressed && !isStarting && styles.pressed,
                       isStarting && styles.ctaDisabled,
-                      focused && styles.focus,
                     ]}
                   >
                     <Text style={styles.ctaGhostText}>
@@ -212,7 +226,7 @@ function CardAura({ type }: { type: CreditBundleType }) {
   );
 }
 
-function Receipt({ tx }: { tx: CreditTransaction }) {
+function Receipt({ tx, onReturn }: { tx: CreditTransaction; onReturn?: () => void }) {
   const copy = statusCopy(tx);
   return (
     <View
@@ -226,6 +240,11 @@ function Receipt({ tx }: { tx: CreditTransaction }) {
       <Text style={styles.receiptBody}>
         {formatUsdFromCents(tx.amountUsdCents)} · {tx.referenceId}
       </Text>
+      {onReturn ? (
+        <Pressable accessibilityRole="button" onPress={onReturn} style={styles.returnButton}>
+          <Text style={styles.returnButtonText}>Return to listing</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -339,7 +358,7 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
   },
   aura: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
     zIndex: 0,
     pointerEvents: "none",
@@ -508,6 +527,21 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.body,
     fontSize: 13,
     color: Skoun.color.inkMuted,
+  },
+  returnButton: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    minHeight: 40,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: Skoun.color.primary,
+    ...(web ? { cursor: "pointer" as const } : null),
+  },
+  returnButtonText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 14,
+    color: "#FFFFFF",
   },
   focus: {
     ...(web

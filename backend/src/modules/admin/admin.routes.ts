@@ -7,6 +7,7 @@ import {
   campusUpdateSchema,
   institutionCreateSchema,
   institutionUpdateSchema,
+  markExpiryContactedSchema,
 } from "./admin.schemas.js";
 
 export const adminRouter = Router();
@@ -54,6 +55,15 @@ adminRouter.post("/listings/:id/remove", (req, res, next) =>
 );
 adminRouter.post("/listings/:id/restore", (req, res, next) =>
   adminController.restoreListing(req, res, next),
+);
+
+adminRouter.get("/expiry-followups", (req, res, next) =>
+  adminController.listExpiryFollowups(req, res, next),
+);
+adminRouter.post(
+  "/expiry-followups/:id/contacted",
+  validate(markExpiryContactedSchema),
+  (req, res, next) => adminController.markExpiryContacted(req, res, next),
 );
 
 adminRouter.get("/users", (req, res, next) =>

@@ -57,6 +57,13 @@ const envSchema = z.object({
   MAPBOX_ACCESS_TOKEN: optionalSecret,
   /** Optional server-only Gemini polish; templates work without this key. */
   GEMINI_API_KEY: optionalSecret,
+  /** Optional Expo Push access token when enhanced push security is enabled. */
+  EXPO_ACCESS_TOKEN: optionalSecret,
+  /** Resend is optional; lifecycle jobs continue with push/admin inbox without it. */
+  RESEND_API_KEY: optionalSecret,
+  EMAIL_FROM: optionalSecret,
+  /** Comma-separated staff email recipients for manual expiry follow-up. */
+  ADMIN_NOTIFICATION_EMAILS: z.string().optional(),
   /**
    * Number of reverse-proxy hops to trust for req.ip (X-Forwarded-For).
    * Unset locally. Production behind nginx/Caddy: 1. Never `true` (all hops).

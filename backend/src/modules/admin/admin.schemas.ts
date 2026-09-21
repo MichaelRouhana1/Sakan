@@ -34,6 +34,11 @@ export const adminNoteBodySchema = z.object({
   adminNote: z.string().trim().max(2000).optional(),
 });
 
+export const markExpiryContactedSchema = z.object({
+  cycleExpiresAt: z.string().datetime({ offset: true }),
+  adminNote: z.string().trim().min(1).max(2000),
+});
+
 export const userStatusBodySchema = z.object({
   status: z.enum(["active", "restricted", "banned"]),
   adminNote: z.string().trim().max(2000).optional(),

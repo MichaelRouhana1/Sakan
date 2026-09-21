@@ -120,8 +120,8 @@ export class CreditsService {
         referenceId,
         successCallbackUrl: whishCallbackUrl("success"),
         failureCallbackUrl: whishCallbackUrl("failure"),
-        successRedirectUrl: creditsReturnUrl(referenceId, "success"),
-        failureRedirectUrl: creditsReturnUrl(referenceId, "failure"),
+        successRedirectUrl: creditsReturnUrl(referenceId, "success", undefined, input.returnTo),
+        failureRedirectUrl: creditsReturnUrl(referenceId, "failure", undefined, input.returnTo),
       });
       const withUrl = await creditsRepository.attachCheckout(
         pending.id,
@@ -162,7 +162,11 @@ export class CreditsService {
     return this.settleByTransaction(tx, currency);
   }
 
-  async completeMockCheckout(referenceId: string, outcome: "success" | "failed") {
+  async completeMockCheckout(
+    referenceId: string,
+    outcome: "success" | "failed",
+    returnTo?: string,
+  ) {
     if (!isWhishMockMode()) {
       throw new NotFoundError();
     }
@@ -181,6 +185,8 @@ export class CreditsService {
       redirectTo: creditsReturnUrl(
         tx.referenceId,
         outcome === "success" ? "success" : "failure",
+        undefined,
+        returnTo,
       ),
     };
   }

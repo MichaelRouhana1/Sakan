@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   freeSlotPublishesMonth: integer("free_slot_publishes_month")
     .notNull()
     .default(0),
+  expiryPushEnabled: boolean("expiry_push_enabled").notNull().default(true),
+  expiryEmailEnabled: boolean("expiry_email_enabled").notNull().default(true),
   /** Legacy phone-OTP field; unused. Drop when safe (see TODO.md). */
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   gender: userGenderEnum("gender"),

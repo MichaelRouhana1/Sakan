@@ -8,6 +8,9 @@ import type {
   SetCampusInput,
   SetGenderInput,
   UpdateRoleInput,
+  PushTokenInput,
+  RemovePushTokenInput,
+  NotificationPreferencesInput,
 } from "./users.schemas.js";
 
 export class UsersService {
@@ -99,6 +102,40 @@ export class UsersService {
       throw new AppError(404, "User not found", "NOT_FOUND");
     }
     return this.withCampus(toPublicUser(user));
+  }
+
+  async notificationPreferences(userId: string) {
+    const user = await usersRepository.findById(userId);
+    if (!user) throw new AppError(404, "User not found", "NOT_FOUND");
+    return {
+      expiryPushEnabled: user.expiryPushEnabled,
+      expiryEmailEnabled: user.expiryEmailEnabled,
+    };
+  }
+
+  async updateNotificationPreferences(
+    userId: string,
+    input: NotificationPreferencesInput,
+  ) {
+    const updated = await usersRepository.updateNotificationPreferences(
+      userId,
+      input,
+    );
+    if (!updated) throw new AppError(404, "User not found", "NOT_FOUND");
+    return updated;
+  }
+
+  async registerPushToken(userId: string, input: PushTokenInput) {
+    return usersRepository.upsertPushToken(userId, input);
+  }
+
+  async removePushToken(userId: string, input: RemovePushTokenInput) {
+    if ("all" in input) {
+      await usersRepository.deactivateAllPushTokens(userId);
+    } else {
+      await usersRepository.deactivatePushToken(userId, input.token);
+    }
+    return { removed: true };
   }
 }
 

@@ -25,9 +25,9 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 | Item | Status | Why it matters |
 |------|--------|----------------|
 | **Edit a live listing** | Missing | Create wizard exists; there is no `PATCH /api/listings/:id`. Host “Edit listing” and admin edit dialogs are UI-only / mock. |
-| **Renew after 30 days** | Missing | Archive-expired CLI job exists. Poster renew API + spend a post credit does not. Admin Expired page is mock (“Live API would spend a post credit”). |
+| **Renew after 30 days** | Done | Owner outcome screen, append-only cycle history, and atomic one-credit renewal are live. |
 | **Boost spend** | Stub | Boost *credits* can be bought and stored. There is no `POST …/boost` that sets `boostedUntil` and decrements `boostCredits`. Browse already sorts boosted listings first. |
-| **Day-25 still-available nudge** | Missing | PRD requires push / WhatsApp at day 25. Only exists as copy in the admin Comms mock. |
+| **Day-25 still-available nudge** | Done (configuration required) | Hourly lifecycle job sends Expo Push and optional Resend email once per cycle. |
 | **Utility legal disclaimer** | Done | Create utilities step shows PRD copy when 24/7 generator, solar (`hasSolar`), or 24/7 elevator is claimed. Scheduled cuts alone does not. |
 
 ### Medium — contact, integrity, monetization ops
@@ -59,7 +59,7 @@ Listing `contactPhone` / `whatsappNumber` and the detail CTA look wired. Treat `
 | Users | `mockUsers.ts` |
 | Listings review / takedown | `listingsSource.ts` |
 | Reports | `reportsSource.ts` |
-| Expired / renew nudge | `expiredSource.ts` |
+| Expiry follow-up | Live at `/admin/expired`; delivery history and staff-initiated personal contact actions |
 | Trust / KYC queue | `trustSource.ts` (Veriff webhook TODO) |
 | Comms / broadcasts / feedback | `communicationSource.ts` |
 | Pricing / promo codes | `pricingSource.ts` (catalog is hardcoded `BUNDLE_CATALOG`) |

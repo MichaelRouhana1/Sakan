@@ -25,7 +25,7 @@ function purchaseErrorMessage(err: unknown) {
   return "Could not start Whish checkout.";
 }
 
-export function useWhishCheckout(initialReferenceId?: string) {
+export function useWhishCheckout(initialReferenceId?: string, returnTo?: string) {
   const purchase = useCreatePurchase();
   const queryClient = useQueryClient();
   const { refreshUser, isSignedIn, isLoading: isAuthLoading } = useAuthSession();
@@ -109,6 +109,7 @@ export function useWhishCheckout(initialReferenceId?: string) {
       const created = await purchase.mutateAsync({
         bundleType,
         channel: "whish",
+        returnTo,
       });
       setTx(created);
       watching.current = created.referenceId;

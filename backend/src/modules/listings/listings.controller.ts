@@ -7,6 +7,11 @@ import {
 } from "./listings.schemas.js";
 import { publicUrlForUpload } from "./photos.storage.js";
 import { priceGuideQuerySchema } from "./price-guide.js";
+import { listingExpiryService } from "./listing-expiry.service.js";
+import type {
+  ListingExpiryDecisionInput,
+  ListingRenewInput,
+} from "./listing-expiry.schemas.js";
 
 function queryString(value: unknown): string | undefined {
   if (typeof value === "string") return value;
@@ -168,6 +173,44 @@ export class ListingsController {
       const data = await listingsService.archive(
         req.user!.id,
         req.params.id as string,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async expiryDecision(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingExpiryService.view(
+        req.user!.id,
+        req.params.id as string,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async decideExpiry(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingExpiryService.decide(
+        req.user!.id,
+        req.params.id as string,
+        req.body as ListingExpiryDecisionInput,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async renew(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingExpiryService.renew(
+        req.user!.id,
+        req.params.id as string,
+        req.body as ListingRenewInput,
       );
       res.json({ data });
     } catch (err) {

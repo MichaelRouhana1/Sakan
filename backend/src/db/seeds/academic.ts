@@ -40,7 +40,6 @@ const LAU_SRC =
   "https://catalog.lau.edu.lb/2026-2027/undergraduate/tuition.php";
 const AUB_TUITION_SRC =
   "https://aub.edu.lb/comptroller/Documents/Students/Tuition%20Fees.pdf";
-const AUB_COA_SRC = "https://www.aub.edu.lb/faid/Pages/Cost-of-Attendance.aspx";
 const USJ_SRC = "https://www.usj.edu.lb/";
 const UA_SRC = "https://ua.edu.lb/en/undergraduate/tuition-fees";
 const UA_GRAD_SRC = "https://ua.edu.lb/en/graduate/tuition-fees";

@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "admin:css": "tailwindcss -i ./styles/admin.input.css -o ./styles/admin.generated.css && node -e \"const fs=require('fs'); const css=fs.readFileSync('styles/admin.generated.css','utf8'); fs.writeFileSync('styles/adminCssText.ts', 'export const ADMIN_CSS = ' + JSON.stringify(css) + ';\\n');\"",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "test:lifecycle": "node --test tests/listing-lifecycle-copy.test.mjs"
   },
   "dependencies": {
     "@clerk/expo": "^4.2.7",
@@ -38,6 +39,7 @@
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.9",
     "expo-location": "~57.0.16",
+    "expo-notifications": "~57.0.20",
     "expo-router": "~57.0.20",
     "expo-secure-store": "~57.0.3",
     "expo-splash-screen": "~57.0.8",

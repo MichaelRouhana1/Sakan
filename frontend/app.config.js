@@ -59,6 +59,7 @@ export default {
       "expo-secure-store",
       "expo-status-bar",
       "expo-web-browser",
+      "expo-notifications",
       "@react-native-community/datetimepicker",
       [
         "expo-image-picker",
@@ -87,6 +88,11 @@ export default {
     ],
     experiments: {
       typedRoutes: true,
+    },
+    extra: {
+      eas: {
+        projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
+      },
     },
   },
 };

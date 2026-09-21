@@ -1,6 +1,6 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { users } from "../../db/schema/index.js";
+import { userPushTokens, users } from "../../db/schema/index.js";
 export class UsersRepository {
   async findById(id: string) {
     const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -180,6 +180,68 @@ export class UsersRepository {
       .where(eq(users.id, id))
       .returning();
     return row ?? null;
+  }
+
+  async updateNotificationPreferences(
+    id: string,
+    patch: {
+      expiryPushEnabled?: boolean;
+      expiryEmailEnabled?: boolean;
+    },
+  ) {
+    const [row] = await db
+      .update(users)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning({
+        expiryPushEnabled: users.expiryPushEnabled,
+        expiryEmailEnabled: users.expiryEmailEnabled,
+      });
+    return row ?? null;
+  }
+
+  async upsertPushToken(
+    userId: string,
+    input: { token: string; platform: "ios" | "android" },
+  ) {
+    const now = new Date();
+    const [row] = await db
+      .insert(userPushTokens)
+      .values({ userId, token: input.token, platform: input.platform })
+      .onConflictDoUpdate({
+        target: userPushTokens.token,
+        set: {
+          userId,
+          platform: input.platform,
+          active: true,
+          lastSeenAt: now,
+          updatedAt: now,
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async deactivatePushToken(userId: string, token: string) {
+    const [row] = await db
+      .update(userPushTokens)
+      .set({ active: false, updatedAt: new Date() })
+      .where(
+        and(
+          eq(userPushTokens.userId, userId),
+          eq(userPushTokens.token, token),
+        ),
+      )
+      .returning({ id: userPushTokens.id });
+    return row ?? null;
+  }
+
+  async deactivateAllPushTokens(userId: string) {
+    return db
+      .update(userPushTokens)
+      .set({ active: false, updatedAt: new Date() })
+      .where(eq(userPushTokens.userId, userId))
+      .returning({ id: userPushTokens.id });
   }
 }
 

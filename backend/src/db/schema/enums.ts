@@ -134,6 +134,49 @@ export const listingReportStatusEnum = pgEnum("listing_report_status", [
   "actioned",
 ]);
 
+export const listingLifecycleEventTypeEnum = pgEnum(
+  "listing_lifecycle_event_type",
+  [
+    "expired",
+    "renew_intent",
+    "improve_intent",
+    "rented",
+    "renewed",
+    "archived",
+    "admin_contacted",
+  ],
+);
+
+export const listingOutcomeEnum = pgEnum("listing_outcome", [
+  "rented",
+  "renewed",
+  "archived",
+  "unknown",
+]);
+
+export const listingOutcomeSourceEnum = pgEnum("listing_outcome_source", [
+  "host",
+  "system",
+  "admin",
+]);
+
+export const notificationKindEnum = pgEnum("notification_kind", [
+  "pre_expiry",
+  "expiry_prompt",
+  "admin_escalation",
+]);
+
+export const notificationChannelEnum = pgEnum("notification_channel", [
+  "push",
+  "email",
+  "admin_inbox",
+]);
+
+export const notificationDeliveryStatusEnum = pgEnum(
+  "notification_delivery_status",
+  ["pending", "sent", "skipped", "failed"],
+);
+
 export const adminActorKindEnum = pgEnum("admin_actor_kind", [
   "clerk",
   "api_key",

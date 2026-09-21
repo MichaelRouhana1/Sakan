@@ -10,7 +10,9 @@ import {
   reportStatusQuerySchema,
   reviewTransactionBodySchema,
   userStatusBodySchema,
+  markExpiryContactedSchema,
 } from "./admin.schemas.js";
+import { expiryNotificationsRepository } from "../listings/expiry-notifications.repository.js";
 import type {
   CampusCreateInput,
   CampusUpdateInput,
@@ -222,6 +224,38 @@ export class AdminController {
         body.data.adminNote,
       );
       res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listExpiryFollowups(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await expiryNotificationsRepository.adminFollowups();
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async markExpiryContacted(req: Request, res: Response, next: NextFunction) {
+    try {
+      requireActor(req);
+      const body = markExpiryContactedSchema.parse(req.body);
+      await expiryNotificationsRepository.markAdminContacted(
+        req.params.id as string,
+        new Date(body.cycleExpiresAt),
+        body.adminNote,
+      );
+      const data = await expiryNotificationsRepository.adminFollowups();
+      res.json({
+        data:
+          data.find(
+            (item) =>
+              item.listingId === req.params.id &&
+              item.cycleExpiresAt === new Date(body.cycleExpiresAt).toISOString(),
+          ) ?? null,
+      });
     } catch (err) {
       next(err);
     }

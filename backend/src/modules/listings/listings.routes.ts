@@ -7,6 +7,10 @@ import { listingPhotoUpload } from "./photos.storage.js";
 import { walkingRouteRateLimit } from "../../middleware/rate-limit.js";
 import { walkingRoutesController } from "../walking-routes/walking-routes.controller.js";
 import { copySuggestRouter } from "./copy-suggest.routes.js";
+import {
+  listingExpiryDecisionSchema,
+  listingRenewSchema,
+} from "./listing-expiry.schemas.js";
 
 export const listingsRouter = Router();
 listingsRouter.use(copySuggestRouter);
@@ -56,6 +60,24 @@ listingsRouter.get(
 
 listingsRouter.get("/:id/analytics", requireAuth, (req, res, next) =>
   listingsController.listingAnalytics(req, res, next),
+);
+
+listingsRouter.get("/:id/expiry-decision", requireAuth, (req, res, next) =>
+  listingsController.expiryDecision(req, res, next),
+);
+
+listingsRouter.post(
+  "/:id/expiry-decision",
+  requireAuth,
+  validate(listingExpiryDecisionSchema),
+  (req, res, next) => listingsController.decideExpiry(req, res, next),
+);
+
+listingsRouter.post(
+  "/:id/renew",
+  requireAuth,
+  validate(listingRenewSchema),
+  (req, res, next) => listingsController.renew(req, res, next),
 );
 
 listingsRouter.get("/:id", (req, res, next) =>

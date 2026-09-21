@@ -13,6 +13,7 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 | `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public `pk.` from [account.mapbox.com](https://account.mapbox.com/access-tokens/) (local: `frontend/.env`). Alias: `EXPO_PUBLIC_MAPBOX_TOKEN`. **Tiles / Mapbox GL only** — walking Directions go through the backend | Same `pk.` token, URL/bundle-restricted in Mapbox dashboard |
 | `EXPO_PUBLIC_MAPBOX_STYLE` | Optional. Default `mapbox://styles/mapbox/standard` | Optional; satellite only if set to `mapbox://styles/mapbox/standard-satellite` |
 | `MAPBOX_DOWNLOADS_TOKEN` | Optional secret `sk.` for native SDK download (EAS secret / local env). **Never** `EXPO_PUBLIC_*`, never commit. Current `@rnmapbox/maps` plugin says download token often unused — keep if prebuild still requires `.netrc` | Same; EAS secret only |
+| `EXPO_PUBLIC_EAS_PROJECT_ID` | EAS project UUID for device push-token registration | Production EAS project UUID with Android/iOS push credentials configured |
 
 ---
 
@@ -32,6 +33,10 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 | `GEMINI_API_KEY` | Optional; blank/unset uses local factual templates | Server-only Gemini Flash key. Never `EXPO_PUBLIC_*`. Copy suggestions fall back to templates on errors/quota; 10 AI attempts per user/hour (in-memory, single API process). |
 | `MAPBOX_ACCESS_TOKEN` | (optional locally) Mapbox secret `sk.` or URL-restricted `pk.` for Directions | Required in production so walking routes persist; never `EXPO_PUBLIC_*`. Client `EXPO_PUBLIC_MAPBOX_*` is tiles/GL only |
 | `TRUST_PROXY` | unset | `1` when the API sits behind nginx/Caddy so walking-route rate limits key by client IP (do not set `true`) |
+| `EXPO_ACCESS_TOKEN` | Optional unless Expo enhanced push security is enabled | EAS/Expo server access token when enhanced push security is enabled |
+| `RESEND_API_KEY` | Optional; email delivery is skipped when absent | Resend server key |
+| `EMAIL_FROM` | Optional locally | Verified Resend sender, such as `Skoun <listings@yourdomain.com>` |
+| `ADMIN_NOTIFICATION_EMAILS` | Optional comma-separated list | Staff inboxes that receive manual expiry follow-ups |
 
 ---
 
@@ -63,7 +68,7 @@ Before go-live:
 | File | Clerk / API vars |
 |------|------------------|
 | `frontend/.env` | `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` (or `EXPO_PUBLIC_MAPBOX_TOKEN`), `EXPO_PUBLIC_MAPBOX_STYLE` |
-| `EAS / local native secrets` | `MAPBOX_DOWNLOADS_TOKEN` (secret `sk.`, not public) |
-| `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `PUBLIC_BASE_URL`, `MAPBOX_ACCESS_TOKEN`, `GEMINI_API_KEY` |
+| `EAS / local native secrets` | `MAPBOX_DOWNLOADS_TOKEN` (secret `sk.`, not public), Expo push credentials, `EXPO_PUBLIC_EAS_PROJECT_ID` |
+| `backend/.env` | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `DATABASE_URL`, `ADMIN_API_KEY`, `ADMIN_CLERK_IDS`, `PUBLIC_BASE_URL`, `MAPBOX_ACCESS_TOKEN`, `GEMINI_API_KEY`, `EXPO_ACCESS_TOKEN`, `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_NOTIFICATION_EMAILS` |
 
 Replace all `pk_test_` / `sk_test_` values with **live** keys from Clerk before production.

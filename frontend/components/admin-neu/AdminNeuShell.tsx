@@ -33,7 +33,7 @@ import {
 const NAV = [
   { href: "/admin/users", label: "Users", icon: Users, live: true },
   { href: "/admin/listings", label: "Listings", icon: House, live: true },
-  { href: "/admin/expired", label: "Expired", icon: TimerOff, live: true },
+  { href: "/admin/expired", label: "Expiry follow-up", icon: TimerOff, live: true },
   { href: "/admin/reports", label: "Reports", icon: Flag, live: true },
   { href: "/admin/communication", label: "Comms", icon: MessageSquare, live: true },
   { href: "/admin/trust", label: "Trust", icon: ShieldCheck, live: true },

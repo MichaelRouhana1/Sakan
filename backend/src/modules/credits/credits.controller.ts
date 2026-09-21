@@ -90,6 +90,7 @@ export class CreditsController {
             referenceId: tx.referenceId,
             amountLabel: formatUsdFromCents(tx.amountUsdCents),
             completePath: "/api/credits/whish/mock/complete",
+            returnTo: queryValue(req.query.returnTo),
           }),
         );
     } catch (err) {
@@ -103,6 +104,7 @@ export class CreditsController {
       const { redirectTo } = await creditsService.completeMockCheckout(
         body.referenceId,
         body.outcome,
+        body.returnTo,
       );
       res.redirect(302, redirectTo);
     } catch (err) {

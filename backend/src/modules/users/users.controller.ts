@@ -4,6 +4,9 @@ import type {
   SetCampusInput,
   SetGenderInput,
   UpdateRoleInput,
+  PushTokenInput,
+  RemovePushTokenInput,
+  NotificationPreferencesInput,
 } from "./users.schemas.js";
 
 export class UsersController {
@@ -59,6 +62,52 @@ export class UsersController {
         req.user!.clerkId,
       );
       res.json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+
+  async notificationPreferences(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await usersService.notificationPreferences(req.user!.id);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateNotificationPreferences(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await usersService.updateNotificationPreferences(
+        req.user!.id,
+        req.body as NotificationPreferencesInput,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async registerPushToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await usersService.registerPushToken(
+        req.user!.id,
+        req.body as PushTokenInput,
+      );
+      res.status(201).json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async removePushToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await usersService.removePushToken(
+        req.user!.id,
+        req.body as RemovePushTokenInput,
+      );
+      res.json({ data });
     } catch (err) {
       next(err);
     }

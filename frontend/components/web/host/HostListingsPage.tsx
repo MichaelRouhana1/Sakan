@@ -24,6 +24,7 @@ import {
   HostListingsToolbar,
   type HostListingsLayout,
 } from "@/components/web/host/HostListingsToolbar";
+import { HostNotificationPreferences } from "@/components/web/host/HostNotificationPreferences";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
@@ -172,6 +173,8 @@ export function HostListingsPage() {
             onLayoutChange={setLayout}
             createDisabled={showMainDraft && showWorkingDraft}
           />
+
+          {isSignedIn ? <HostNotificationPreferences compact={compact} /> : null}
 
           {isLoading && items.length === 0 ? (
             <ActivityIndicator
