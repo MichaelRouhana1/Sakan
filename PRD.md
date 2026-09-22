@@ -1,6 +1,11 @@
 # Product Requirement Document (PRD)
 
-## Project Name: Sakan Lebanon (Working Title) — Version 1.0
+**Product name:** Skoun  
+**Legacy / working title:** Sakan. Older copy and the GitHub repo (`MichaelRouhana1/Sakan`) still use Sakan; the name in the app and remaining product docs is **Skoun**.
+
+> **Docs vs code:** Field inventory and wizard steps must match `createListingSchema` (`backend/src/modules/listings/listings.schemas.ts`) + `listingWizard.ts` (`frontend/constants/listingWizard.ts`). When in doubt, code wins.
+
+## Project Name: Skoun — Version 1.0
 
 ### 1. Document Overview & Objective
 
@@ -41,6 +46,8 @@ Accounts are dual-capable. Users are not forced into a single role at signup.
         
     - **University Hub Mode:** A student-centric mode where the user selects a specific university campus (e.g., AUB, LAU Jbeil, USJ Huvelin, LU Fanar). The feed instantly reorganizes to display listings ordered by closest linear distance to that specific campus gate.
         
+- **Browse filters (renter):** `areas`, `universitySlugs` / `campusId`, free-text `q`, geo pin + `radiusKm`, `electricity`, `water`, `wifiIncluded`, `listingTypes`, `minRentUsd` / `maxRentUsd`, `studentsOnly`, `genderRestrictions`. Wire format is comma-separated query params (`listListingsQuerySchema`).
+    
 - **Lebanese Utility Badges:** Every listing card must visually display status badges for critical Lebanese infrastructure metrics:
     
     - **Electricity:** Solar Power ☀️ | 24/7 Generator (Ishtirak Included) ⚡ | Scheduled Cuts 🔌.
@@ -51,34 +58,52 @@ Accounts are dual-capable. Users are not forced into a single role at signup.
         
     - **Building Infrastructure:** 24/7 Working Elevator 🛗.
         
-- **Direct Connect Button:** A prominent action button on every listing detail page. Tapping it triggers a deep-link directly into a native WhatsApp chat with the poster containing a pre-filled template message: _"Hi, I saw your listing for the [Property Type] in [Area] on [App Name]. Is it still available?"_
+- **Direct Connect Button:** A prominent action button on every listing detail page. Tapping it triggers a deep-link directly into a native WhatsApp chat with the poster containing a pre-filled template message: _"Hi, I saw your listing for the [Property Type] in [Area] on Skoun. Is it still available?"_ Phone numbers come from the listing’s `contactNumbers` (legacy `whatsappNumber` / `contactPhone` are derived).
     
 - **Listing Integrity Systems:**
     
-    - A prominent **"Report Listing"** button on every post allowing users to flag "Fake", "Inaccurate Utilities", or "Already Rented" properties.
+    - A **"Report Listing"** control on every post allowing users to flag "Fake", "Inaccurate Utilities", or "Already Rented" properties.
         
-    - An automated system to flag or restrict accounts that receive high volumes of user reports (aimed at spammy brokers or phantom listings).
+    - An automated system to flag or restrict accounts that receive high volumes of user reports (aimed at spammy brokers or phantom listings). **Not built** — reports store only; admin Reports UI is mock.
         
 
 #### 3.3 The Landlord / Poster Experience (The Seller Side)
 
-- **Simple Post Creation Form:** A single-page step-by-step form requiring:
+- **Create listing — 10-step wizard** (`frontend/app/(poster)/create.tsx`, titles in `listingWizard.ts`):
+
+    `type` → `location` → `specs` → `utilities` → `rules` → `photos` → `pricing` → `copy` → `contact` → `review`
+
+    `listingType` (`entire_apartment` | `studio` | `private_room` | `shared_dorm_bed`) is **derived** from `spaceType` + `propertyType` (`deriveListingType.ts`). It is not a primary picker.
+
+    | Step | Host sets |
+    |------|-----------|
+    | type | `spaceType`, `propertyType`, `priceBasis` |
+    | location | `area`, `buildingName`, `addressLine`, `locationWkt`, `landmark`, `primaryCampusId` |
+    | specs | `bedrooms`, `beds`, `bathrooms`, `maxOccupancy`, `floorNumber`, `furnishingType`, `areaSqm`, `hasElevator`, `elevator24_7` |
+    | utilities | `electricity` (+ `generatorAmperes`, cut windows, `hasSolar`, `generatorIncluded`), `water`, `wifiIncluded`, `routerUps`, `conciergeIncluded`, `cookingGasIncluded`, `amenities[]` |
+    | rules | `targetAudience` (`anyone` \| `students_only` \| `students_professionals`), `genderRestriction`, `smokingPolicy`, `petsPolicy`, `guestsPolicy`, `quietHours` |
+    | photos | `photoUrls` **3–15** (+ optional captions) |
+    | pricing | `monthlyRentUsd` (Fresh USD, whole dollars), `securityDepositUsd`, `leaseTerm`, `availableFrom`, `paymentModality` |
+    | copy | `title`, `description`, `highlightTags` |
+    | contact | `listingPosterRole`, `contactName`, `contactNumbers` (Lebanese phones; legacy `contactPhone` / `whatsappNumber` derived) |
+    | review | `cardBadges` (browse-card pills + order); `publishNow` |
+
+    **Not host-set / system:** `status`, `posterId`, `viewCount`, `publishedAt`, `expiresAt`, `boostedUntil`, timestamps. `lookingForRoommate` exists on the listings table but is **not** in the create wizard or `createListingSchema`.
+
+    Map pin drop is required (`locationWkt` POINT inside Lebanon). Landmarks remain an optional neighborhood cue.
+
+- **Listing Management Dashboard:** Active listings, view counts, days until automatic expiration, local create-wizard draft checkpoints, and post-expiry outcome / renew / archive. There is **no** host `PATCH /api/listings/:id` and no live-listing edit UI (host “Edit listing” on a server draft opens the listing detail, not an editor; admin edit dialogs are mock).
     
-    - **Target Audience Toggle:** `[ ] Open to anyone` / `[ ] Students Only (Dorm/Shared Student Space)`
-        
-    - **Listing Type:** (Entire Apartment, Studio, Private Room, Shared Dorm Bed)
-        
-    - **Monthly Rent:** (Strictly enforced numerical input field, explicitly labeled in Fresh USD)
-        
-    - **Lebanese Utility Checklist:** (Checkboxes mapping directly to the Renter search badges)
-        
-    - **Map Pin Drop / Landmark Selector:** Landlords drop a pin to automatically capture Latitude/Longitude for university proximity indexing. To avoid map disorganization or GPS confusion, landlords can alternative choose/verify their location via pre-set landmark neighborhood dropdowns (e.g., "Near Sasine Square").
-        
-    - **Photo Uploads:** (Minimum 1, Maximum 8 compressed images).
-        
-- **Listing Management Dashboard:** A screen showing the poster their active listings, total view counts, remaining days until automatic expiration, and any pending draft posts saved during the payment drop-off window.
+- **Verification Protection Policy:** When checking premium infrastructure boxes (24/7 generator, solar / `hasSolar`, or 24/7 elevator), posters are shown an explicit in-app legal disclaimer: _"Inaccurate utility claims will result in your post being permanently removed without a refund."_
     
-- **Verification Protection Policy:** When checking premium infrastructure boxes (like 24/7 Solar), posters are shown an explicit in-app legal disclaimer: _"Inaccurate utility claims will result in your post being permanently removed without a refund."_
+- **PLANNED — Edit a live listing** (not Done; document so create vs edit stay distinct):
+
+    - Edit UI is a **prefilled sectioned / single-screen** editor, **not** the linear create wizard.
+    - **Soft** fields editable anytime, no credit: rent/deposit/terms, utilities/amenities, house rules, copy/tags/badges, photos, contacts.
+    - **Hard / structural** fields editable only for **24 hours after `publishedAt`**, then locked server-side. After that, a new unit = archive + create + credit.
+    - **HARD:** `spaceType`, `propertyType`, `listingType`, `targetAudience`, `genderRestriction`, `bedrooms`, `beds`, `bathrooms`, `maxOccupancy`, `floorNumber`, `areaSqm`, `area`, `locationWkt` (material move), `landmark`, `addressLine`, `buildingName`, `primaryCampusId`.
+    - **SOFT:** rent/deposit/terms, utilities/amenities, house rules, copy/tags/badges, photos, contacts.
+    - **Audit:** `admin_audit_events` logs **admin** actions only. Field-level host edit history is **not built yet**.
     
 
 ### 4. Monetization & Payment Workflows
@@ -89,9 +114,9 @@ The backend tracks a simple balance integer for every Poster account called "Cre
 
 - **1 Post Credit** = Allows 1 standard listing to go live on the platform for exactly 30 days.
     
-- **1 Boost Credit** = Pins an active listing to the top of its respective City or University Hub search feed for 7 consecutive days.
+- **1 Boost Credit** = Pins an active listing to the top of its respective City or University Hub search feed for 7 consecutive days. Browse already sorts `boostedUntil` first. **Spend is not built** — there is no `POST …/boost` that sets `boostedUntil` and decrements `boostCredits`.
     
-- **Note:** New accounts receive 1 free Post Credit when they first become a poster (on first publish / role promotion) to stimulate initial supply (limited to 1 free credit claim per account to prevent broker spam).
+- **Publish spend (built):** One concurrent live listing is free. A 2nd+ live listing spends a post credit. Free-slot replacements are capped per calendar month (`FREE_SLOT_REPLACEMENTS_PER_MONTH` = 2). Promoting a renter → poster can grant 1 post credit if the account has none (`users.repository.updateRole`).
     
 
 #### 4.2 Whish Pay checkout
@@ -122,16 +147,16 @@ To prevent user frustration from stale, already-rented listings left on the plat
 
 - All active posts carry a hard **30-day expiration timer**.
     
-- At day 25, the poster receives an automated push notification / WhatsApp message: _"Is your property still available? Tap to renew for another 30 days."_
+- At day 25, the hourly lifecycle job (`npm run job:listing-lifecycle`) sends an Expo Push and optional Resend email once per cycle: the listing is approaching expiry. The server does **not** send WhatsApp; `/admin/expired` can open `wa.me` after a staff click.
     
-- If unrenewed by day 30, the listing automatically switches to an "Archived" state and is hidden from all public search feeds.
+- If unrenewed by day 30, the listing automatically switches to an "Archived" state and is hidden from all public search feeds. Owners can renew with one post credit (`POST /api/listings/:id/renew`) or confirm an outcome on `/hosting/listing/:id/outcome`.
     
 
 #### 5.2 Distance Calculations
 
 - The system will maintain a static, pre-populated database table storing the exact Latitude and Longitude coordinates of major Lebanese university campus gates.
     
-- When a user activates the University Hub mode, the backend calculates the Haversine distance between the landlord's dropped pin and the chosen campus coordinates, returning the distance in meters or kilometers.
+- When a user activates the University Hub mode, the backend orders listings with PostGIS `ST_Distance` between the listing geography pin and the chosen campus coordinates, returning the distance in meters or kilometers. Walking-route fallbacks may use a haversine estimate if Directions fail.
     
 
 ### 6. Out of Scope (Version 1.0)

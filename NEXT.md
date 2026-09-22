@@ -24,7 +24,7 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 
 | Item | Status | Why it matters |
 |------|--------|----------------|
-| **Edit a live listing** | Missing | Create wizard exists; there is no `PATCH /api/listings/:id`. Host “Edit listing” and admin edit dialogs are UI-only / mock. |
+| **Edit a live listing** | Missing | Create wizard exists; there is no `PATCH /api/listings/:id`. Host “Edit listing” on a server draft opens listing detail; admin `ListingEditDialog` is mockStore. **PLANNED (not Done):** sectioned/single-screen editor (not the linear wizard); soft fields anytime, no credit; hard/structural fields only 24h after `publishedAt` then locked; new unit = archive + create + credit. HARD/SOFT lists in `PRD.md` §3.3. `admin_audit_events` does not log host field edits. |
 | **Renew after 30 days** | Done | Owner outcome screen, append-only cycle history, and atomic one-credit renewal are live. |
 | **Boost spend** | Stub | Boost *credits* can be bought and stored. There is no `POST …/boost` that sets `boostedUntil` and decrements `boostCredits`. Browse already sorts boosted listings first. |
 | **Day-25 still-available nudge** | Done (configuration required) | Hourly lifecycle job sends Expo Push and optional Resend email once per cycle. |
@@ -39,9 +39,9 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 | **Forgot password** | Missing | Clerk email+password is live; auth modal has no reset path. |
 | **Listing reviews** | Fake | Cards show Amber-style ratings from `demoListingRating()` in `normalizeListing.ts`. No reviews table or API. Hide the badge or ship real reviews — do not launch with hashed fake scores. |
 
-### WhatsApp contact (probably done)
+### WhatsApp contact
 
-Listing `contactPhone` / `whatsappNumber` and the detail CTA look wired. Treat `FEATURES.md` / `TODO.md` “WhatsApp stub” as **stale** — verify one live listing end-to-end, then close the ticket.
+**Done.** Detail CTAs use `listing.whatsappNumber` / `contactPhone` (`ListingDetailBottomBar`, `ListingDetailWeb`, `lib/whatsapp.ts`). Numbers are stored on `contactNumbers` and derived to the legacy columns at create. “WhatsApp soon” is only the empty-phone fallback.
 
 ---
 
@@ -78,7 +78,7 @@ You cannot restrict a real user or take down a real listing from this UI today. 
 | Tool | Status |
 |------|--------|
 | Shell + Housing ↔ Campus switch | Done (web). Native campus routes exist but skip `CampusShell` / footer. |
-| Persist last product | Helper exists (`lib/skounProduct.ts`); confirm it actually restores Campus on return. |
+| Persist last product | Helper writes on switch (`setSkounProduct`); `getSkounProduct` is unused so restore is not wired. |
 | Tuition calculator | Done for seeded unis (AUB, LAU, USJ, …) + housing-stats CTA + shareable query params. |
 | Academic calendar | **Holidays only** (`lebanonHolidays.ts`, years 2026–2027). No per-uni registration / add-drop / exams, no ICS. |
 | Student benefits | Catalog + detail + signed-in redemption API. No partner “list your offer” form, no admin CMS for offers. |
@@ -114,7 +114,7 @@ Later Campus (do not start yet): partner inquiry, ambassadors, referrals, studen
 - Drop unused user columns: `password_hash`, `phone`, `phone_verified_at` (auth is Clerk).
 - Pre-existing frontend TS issues (map / carousel) noted in `TODO.md`.
 - Expo leftovers: `EditScreenInfo`, `Themed`, `Colors.ts`.
-- Stale docs: `FEATURES.md` still says WhatsApp is stubbed, publish does not spend credits, and admin Phase 2 is unbuilt. Refresh after the next real ship.
+- Stale docs: `PRD.md` / `FEATURES.md` / `TODO.md` were aligned to code (Sep 2026). Keep wizard fields in lockstep with `createListingSchema` + `listingWizard.ts`.
 - Native vs web profile: keep identity editing in one component used on both, or native will lag again.
 
 ---
@@ -138,11 +138,11 @@ Do **not** pick these up unless the product decision changes:
 1. Finish profile identity (open branch).  
 2. Wire admin Payments to `/api/admin/transactions`.  
 3. Wire admin Listings + Reports + Users to existing admin APIs.  
-4. Poster edit + renew (API + host UI).  
+4. Poster **edit** (PATCH + sectioned host UI; renew is already live).  
 5. Boost spend endpoint + host CTA.  
-6. Hide fake ratings.  
-7. Day-25 / payment reminders.  
-8. Production Clerk keys + object storage.
+6. Hide fake ratings (`demoListingRating` in `normalizeListing.ts`).  
+7. Production Clerk keys + object storage.  
+(Day-25 nudge and credit auto-grant on Whish payment are already live.)
 
 **B — Grow Campus (student traffic)**  
 1. Finish profile identity.  
