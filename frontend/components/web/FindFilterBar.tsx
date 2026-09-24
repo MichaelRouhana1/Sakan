@@ -36,7 +36,7 @@ import type {
   WaterStatus,
 } from "@/types/listing";
 
-export type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance";
+export type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance" | "match";
 
 type MenuId =
   | "university"
@@ -49,6 +49,7 @@ type MenuId =
 type Anchor = { top: number; left: number };
 
 const SORT_OPTIONS: { value: BrowseSortKey; label: string }[] = [
+  { value: "match", label: "Best matches" },
   { value: "newest", label: "Newest" },
   { value: "rent_asc", label: "Price: low to high" },
   { value: "rent_desc", label: "Price: high to low" },
@@ -87,6 +88,7 @@ function FilterPill({
     <View ref={ref} collapsable={false}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={label}
         accessibilityState={{ selected: Boolean(active || open) }}
         onPress={() => {
           if (!measure) {
@@ -140,6 +142,7 @@ function toggleInList<T extends string>(list: T[], value: T, max: number): T[] {
 }
 
 type Props = {
+  matchAvailable?: boolean;
   filters: BrowseFiltersValue;
   sort: BrowseSortKey;
   onOpenFilters: () => void;
@@ -162,6 +165,7 @@ function budgetLabel(filters: BrowseFiltersValue): string {
 
 function sortLabel(sort: BrowseSortKey): string {
   switch (sort) {
+    case "match": return "Best matches";
     case "rent_asc":
       return "Price ↑";
     case "rent_desc":
@@ -182,6 +186,7 @@ export function FindFilterBar({
   onClearAll,
   hasActiveFilters,
   sticky = true,
+  matchAvailable = false,
 }: Props) {
   const [menu, setMenu] = useState<MenuId | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -385,7 +390,7 @@ export function FindFilterBar({
               onReset={() => onChangeSort("newest")}
               onClose={closeMenu}
             >
-              {SORT_OPTIONS.map((opt) => (
+              {SORT_OPTIONS.filter(o=>o.value!=="match" || matchAvailable).map((opt) => (
                 <MenuRow
                   key={opt.value}
                   label={opt.label}

@@ -9,21 +9,25 @@ import { Lister } from "@/constants/listerTheme";
 import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
 import { previewListingFromDraft } from "@/features/listings/create/previewListingFromDraft";
 import { usePublishListingDraft } from "@/features/listings/create/usePublishListingDraft";
-import { draftCardBadgeKeys, sameBadgeKeys } from "@/lib/listingCardBadges";
+import { draftCardBadgeKeys, sameBadgeKeys, wizardCardBadgeKeys } from "@/lib/listingCardBadges";
 
 export function CreateStepReview() {
-  const { draft, patch } = useCreateListingDraft();
+  const { draft, patch, formChrome } = useCreateListingDraft();
 
   const listing = useMemo(() => {
     const preview = previewListingFromDraft(draft);
-    return { ...preview, cardBadges: draftCardBadgeKeys(preview) };
-  }, [draft]);
+    const cardBadges = formChrome === "edit"
+      ? draftCardBadgeKeys(preview)
+      : wizardCardBadgeKeys(preview);
+    return { ...preview, cardBadges };
+  }, [draft, formChrome]);
 
   useEffect(() => {
+    if (formChrome === "edit" && draft.cardBadges == null) return;
     if (draft.cardBadges == null || !sameBadgeKeys(listing.cardBadges, draft.cardBadges)) {
       patch({ cardBadges: listing.cardBadges });
     }
-  }, [draft.cardBadges, listing.cardBadges, patch]);
+  }, [draft.cardBadges, formChrome, listing.cardBadges, patch]);
 
   return (
     <View style={styles.root}>

@@ -26,6 +26,7 @@ type Props = {
   onCall: () => void;
   reported: boolean;
   onReport: () => void;
+  canReport?: boolean;
 };
 
 const IS_WEB = Platform.OS === "web";
@@ -102,6 +103,7 @@ export function ListingContactCard({
   onCall,
   reported,
   onReport,
+  canReport = true,
 }: Props) {
   const campuses = useUniversities();
   const nearby = nearbyCampusesForListing(listing, campuses.data ?? []);
@@ -131,6 +133,7 @@ export function ListingContactCard({
               reported={reported}
               onShare={onShare}
               onReport={onReport}
+              canReport={canReport}
             />
             <Pressable
               onPress={onSave}
@@ -245,30 +248,32 @@ export function ListingContactCard({
           </View>
         </View>
 
-        <View style={styles.footer}>
-          {reported ? (
-            <LText variant="caption" tone="muted">
-              You reported this listing
-            </LText>
-          ) : (
-            <Pressable
-              onPress={onReport}
-              accessibilityRole="button"
-              accessibilityLabel="Report this listing"
-              style={styles.report}
-            >
-              {({ hovered }) => (
-                <LText
-                  variant="caption"
-                  tone="muted"
-                  style={[styles.reportText, hovered && styles.reportHover]}
-                >
-                  Report this listing
-                </LText>
-              )}
-            </Pressable>
-          )}
-        </View>
+        {canReport ? (
+          <View style={styles.footer}>
+            {reported ? (
+              <LText variant="caption" tone="muted">
+                You reported this listing
+              </LText>
+            ) : (
+              <Pressable
+                onPress={onReport}
+                accessibilityRole="button"
+                accessibilityLabel="Report this listing"
+                style={styles.report}
+              >
+                {({ hovered }) => (
+                  <LText
+                    variant="caption"
+                    tone="muted"
+                    style={[styles.reportText, hovered && styles.reportHover]}
+                  >
+                    Report this listing
+                  </LText>
+                )}
+              </Pressable>
+            )}
+          </View>
+        ) : null}
       </View>
 
       {toc.length > 0 ? <ListingTocRail items={toc} /> : null}

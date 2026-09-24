@@ -31,7 +31,9 @@ import { INITIAL_DRAFT, type CreateListingDraft, type DraftSlot } from "./draft"
 import { WIZARD_STEPS } from "@/constants/listingWizard";
 import { stepFieldErrors } from "./validators";
 
-type Ctx = {
+export type ListingFormChrome = "wizard" | "edit";
+
+export type ListingFormApi = {
   draft: CreateListingDraft;
   committedStep: number;
   patch: (patch: Partial<CreateListingDraft>) => void;
@@ -44,9 +46,17 @@ type Ctx = {
   showValidation: boolean;
   fieldErrors: string[];
   fieldInvalid: (field: string) => boolean;
+  setShowValidation: (show: boolean) => void;
+  formChrome: ListingFormChrome;
+  lockedFields: ReadonlySet<string>;
+  isLocked: (field: string) => boolean;
 };
 
-const CreateListingContext = createContext<Ctx | null>(null);
+const CreateListingContext = createContext<ListingFormApi | null>(null);
+
+export { CreateListingContext };
+
+const NO_LOCKED_FIELDS: ReadonlySet<string> = new Set();
 
 export function CreateListingProvider({
   children,
@@ -228,6 +238,10 @@ export function CreateListingProvider({
       showValidation,
       fieldErrors,
       fieldInvalid,
+      setShowValidation,
+      formChrome: "wizard" as const,
+      lockedFields: NO_LOCKED_FIELDS,
+      isLocked: () => false,
     }),
     [
       draft,
@@ -241,6 +255,7 @@ export function CreateListingProvider({
       showValidation,
       fieldErrors,
       fieldInvalid,
+      setShowValidation,
     ],
   );
 

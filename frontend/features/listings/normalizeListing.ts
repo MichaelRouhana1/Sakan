@@ -1,3 +1,4 @@
+import { extractMatchFacts } from "@/features/matcher/facts";
 import { coerceCutWindows, formatWindowsSummary } from "@/lib/electricityCuts";
 import type {
   CampusMeta,
@@ -216,6 +217,7 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     : [];
 
   return {
+    matchFacts: extractMatchFacts(row),
     id: String(row.id),
     posterId: String(row.posterId ?? row.poster_id),
     status: (row.status as Listing["status"]) ?? "active",

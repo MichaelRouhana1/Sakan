@@ -606,7 +606,13 @@ export const listListingsQuerySchema = z
     };
   });
 
+/** Live edit body: same fields as create, without publishNow (never republishes). */
+export const updateListingSchema = createListingSchema.transform(
+  ({ publishNow: _publishNow, ...rest }) => rest,
+);
+
 export type CreateListingInput = z.infer<typeof createListingSchema>;
+export type UpdateListingInput = z.infer<typeof updateListingSchema>;
 export type ListListingsQuery = z.infer<typeof listListingsQuerySchema>;
 
 export type ListingPhotoDto = {

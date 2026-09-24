@@ -112,9 +112,9 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
     }
 
     function preventTouchScroll(e: TouchEvent) {
-      // Pointer events track the drag; cancelling its touchmove prevents the
-      // browser from starting a fling that would consume the following tap.
-      if (drag.started && e.cancelable) e.preventDefault();
+      // The grab handle must win over a parent horizontal scroller. Pointer
+      // events still track the drag; cancelling touchmove keeps the gesture.
+      if (e.cancelable) e.preventDefault();
     }
 
     function cleanup() {
@@ -186,6 +186,8 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
     window.addEventListener("blur", cancel);
   }
 
+  const reducedMotion = typeof window !== "undefined"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pill = visual && options.pills.find((candidate) => candidate.key === visual.key);
   return {
     activeKey: visual?.key ?? null,
@@ -193,6 +195,13 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
     zoneProps: (zone: BadgeDragSource) => ({ dataSet: { badgeZone: zone, badgeOwner: owner } }),
     badgeProps: (key: string, source: BadgeDragSource) => ({
       dataSet: { badgeKey: key, badgeSource: source },
+      onPointerDown: (event: PointerStart) => begin(key, event),
+    }),
+    markerProps: (key: string, source: BadgeDragSource) => ({
+      dataSet: { badgeKey: key, badgeSource: source },
+    }),
+    handleProps: (key: string, _source: BadgeDragSource) => ({
+      dataSet: { badgeHandle: "true" },
       onPointerDown: (event: PointerStart) => begin(key, event),
     }),
     overlay: visual && pill ? createPortal(
@@ -203,7 +212,7 @@ export function useCardBadgeDrag(options: CardBadgeDragOptions): CardBadgeDrag {
           left: visual.point.x - visual.offset.x,
           top: visual.point.y - visual.offset.y,
           borderRadius: 999,
-          boxShadow: "0 6px 18px rgba(18,24,38,0.18)",
+          boxShadow: reducedMotion ? "none" : "0 6px 18px rgba(18,24,38,0.18)",
         }}
       >
         <ListingAmberPillView pill={pill} highlight={isHighlightCardBadge(pill.key)} />

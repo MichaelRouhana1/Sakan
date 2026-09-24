@@ -1,8 +1,12 @@
+import { MatchCardChrome } from "@/components/matcher/MatchResults";
+import type { MatchPresentation } from "@/features/matcher/types";
+import { skounShadow } from "@/lib/skounShadow";
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useRef, useState, type ReactNode } from "react";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
@@ -35,6 +39,7 @@ import type { Listing } from "@/types/listing";
 type HoverPoint = { x: number; y: number };
 
 type Props = {
+  match?: MatchPresentation;
   listing: Listing;
   variant?: "grid" | "list";
   onHoverListing?: (id: string | null, point?: HoverPoint) => void;
@@ -42,7 +47,24 @@ type Props = {
   interactive?: boolean;
   /** Wizard editor replaces only the grid's badge area. */
   renderGridBadges?: (pills: ListingAmberPill[]) => ReactNode;
+  /** Wizard list preview replaces the list badge rows. Explore leaves this unset. */
+  renderListBadges?: (pills: ListingAmberPill[]) => ReactNode;
+  /** Grid badge row. Explore wraps; the wizard grid preview scrolls sideways. */
+  badgeOverflow?: "wrap" | "scroll-x";
+  /**
+   * Grid only. Omit to keep the browse cap. Pass null to show the full ordered set.
+   */
+  badgeLimit?: number | null;
+  /** Wrap badges, then stop the band after this many rows. Further badges scroll inside it. */
+  badgeMaxRows?: number;
 };
+
+/** Matches the list and compact grid pill metrics, including the row gap. */
+export function badgeBandMaxHeight(rows: number, compact = false): number {
+  const row = compact ? 26 : 30;
+  const gap = compact ? 5 : 6;
+  return row * rows + gap * Math.max(0, rows - 1);
+}
 
 function hoverPointFromEvent(e: { nativeEvent?: { clientX?: number; clientY?: number }; clientX?: number; clientY?: number }): HoverPoint | undefined {
   const src = e.nativeEvent ?? e;
@@ -106,7 +128,35 @@ function HeartButton({
   );
 }
 
-function PillRow({
+function PillChips({
+  pills,
+  highlight,
+  compact,
+  mixedHighlight,
+  nowrap,
+}: {
+  pills: ListingAmberPill[];
+  highlight?: boolean;
+  compact?: boolean;
+  mixedHighlight?: boolean;
+  nowrap?: boolean;
+}) {
+  return pills.map((pill) => (
+    <ListingAmberPillView
+      key={pill.key}
+      pill={pill}
+      highlight={mixedHighlight ? isHighlightCardBadge(pill.key) : highlight}
+      compact={compact}
+      style={[
+        compact ? styles.tagCompactOverride : styles.tagOverride,
+        nowrap && styles.tagNoShrink,
+      ]}
+      textStyle={compact ? styles.tagTextCompact : styles.tagText}
+    />
+  ));
+}
+
+function ScrollBadgeRow({
   pills,
   highlight,
   compact,
@@ -117,21 +167,97 @@ function PillRow({
   compact?: boolean;
   mixedHighlight?: boolean;
 }) {
+  const width = useRef(0);
+  const contentWidth = useRef(0);
+  const [overflows, setOverflows] = useState(false);
+
+  function check(nextWidth = width.current, nextContent = contentWidth.current) {
+    width.current = nextWidth;
+    contentWidth.current = nextContent;
+    setOverflows(nextContent > nextWidth + 1);
+  }
+
+  return (
+    <View style={styles.scrollClip}>
+      <ScrollView
+        horizontal
+        testID="grid-badge-scroller"
+        showsHorizontalScrollIndicator
+        style={styles.badgeScroller}
+        contentContainerStyle={styles.badgeScrollerContent}
+        onLayout={(event) => check(event.nativeEvent.layout.width, contentWidth.current)}
+        onContentSizeChange={(w) => check(width.current, w)}
+      >
+        <View style={styles.badgeRowNowrap}>
+          <PillChips
+            pills={pills}
+            highlight={highlight}
+            compact={compact}
+            mixedHighlight={mixedHighlight}
+            nowrap
+          />
+        </View>
+      </ScrollView>
+      {overflows ? (
+        <LinearGradient
+          colors={["rgba(255,255,255,0)", "#FFFFFF"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.scrollFade}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function PillRow({
+  pills,
+  highlight,
+  compact,
+  mixedHighlight,
+  overflow = "wrap",
+  maxRows,
+}: {
+  pills: ListingAmberPill[];
+  highlight?: boolean;
+  compact?: boolean;
+  mixedHighlight?: boolean;
+  overflow?: "wrap" | "scroll-x";
+  maxRows?: number;
+}) {
   if (pills.length === 0) return null;
+  const chips = (
+    <PillChips
+      pills={pills}
+      highlight={highlight}
+      compact={compact}
+      mixedHighlight={mixedHighlight}
+    />
+  );
+  if (maxRows) {
+    return (
+      <ScrollView
+        testID="grid-badge-scroller"
+        style={{ maxHeight: badgeBandMaxHeight(maxRows, !!compact), width: "100%" }}
+        nestedScrollEnabled
+      >
+        <View style={[styles.tags, compact && styles.tagsCompact]}>{chips}</View>
+      </ScrollView>
+    );
+  }
+  if (overflow === "scroll-x") {
+    return (
+      <ScrollBadgeRow
+        pills={pills}
+        highlight={highlight}
+        compact={compact}
+        mixedHighlight={mixedHighlight}
+      />
+    );
+  }
   return (
     <View style={[styles.tags, compact && styles.tagsCompact]}>
-      {pills.map((pill) => (
-        <ListingAmberPillView
-          key={pill.key}
-          pill={pill}
-          highlight={
-            mixedHighlight ? isHighlightCardBadge(pill.key) : highlight
-          }
-          compact={compact}
-          style={compact ? styles.tagCompactOverride : styles.tagOverride}
-          textStyle={compact ? styles.tagTextCompact : styles.tagText}
-        />
-      ))}
+      {chips}
     </View>
   );
 }
@@ -178,6 +304,11 @@ export function ListingResultCard({
   onHoverListing,
   interactive = true,
   renderGridBadges,
+  renderListBadges,
+  badgeOverflow = "wrap",
+  badgeLimit,
+  badgeMaxRows,
+  match,
 }: Props) {
   const router = useRouter();
   const isList = variant === "list";
@@ -202,9 +333,13 @@ export function ListingResultCard({
     listing.distanceMeters,
     listing.nearestCampusName,
   );
-  const { highlights, amenities } = listingAmberPillGroups(listing);
+  const allowedPill = (pill: ListingAmberPill) => !match || !['solar','power_24','cuts','wifi','ups_wifi','water_24','tank','elevator'].includes(pill.key) || !!listing.matchFacts?.reportedUtilityKeys?.includes(pill.key);
+  const badgeListing = match ? {...listing, routerUps: !!listing.matchFacts?.reportedUtilityKeys?.includes("ups_wifi")} : listing;
+  const groups = listingAmberPillGroups(badgeListing);
+  const highlights = groups.highlights.filter(allowedPill);
+  const amenities = groups.amenities.filter(allowedPill);
   const customized = listing.cardBadges != null;
-  const orderedPills = listingCardPills(listing);
+  const orderedPills = listingCardPills(badgeListing).filter(allowedPill);
   const typeBadge = labelListingType(listing.listingType);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
@@ -239,11 +374,76 @@ export function ListingResultCard({
             },
           } as object)
         : mapHoverHandlers;
+    const listDetails = (
+      <>
+        <View style={[styles.middle, styles.middleList]}>
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {subtitle}
+            {listing.landmark ? ` · ${typeBadge}` : ""}
+          </Text>
+
+          {proximity ? (
+            <View style={styles.proximityRow}>
+              <MapPin size={12} color={Skoun.color.inkMuted} strokeWidth={2} />
+              <Text style={styles.proximityText} numberOfLines={2}>
+                {proximity}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.divider} />
+
+          {renderListBadges ? (
+            renderListBadges(customized ? orderedPills : [...highlights, ...amenities])
+          ) : customized ? (
+            <PillRow pills={orderedPills} highlight={false} mixedHighlight />
+          ) : (
+            <>
+              <PillRow pills={highlights} highlight />
+              <PillRow pills={amenities} />
+            </>
+          )}
+        </View>
+
+        <View style={[styles.rightCol, styles.rightColList]}>
+          <View style={styles.listHeaderRow}>
+            {hasRating ? (
+              <ListingListRatingDisplay
+                rating={listing.rating!}
+                reviewCount={listing.reviewCount!}
+              />
+            ) : (
+              <View />
+            )}
+            <HeartButton
+              isSaved={interactive && isSaved}
+              onToggle={onToggleSave}
+              style={styles.heart}
+              disabled={!interactive}
+            />
+          </View>
+          <View style={styles.priceBlock}>
+            <Text style={styles.priceFrom}>From</Text>
+            <Text style={styles.price}>
+              {rentLabel}
+              <Text style={styles.priceUnit}> / month</Text>
+            </Text>
+            <View style={styles.cta}>
+              <Text style={styles.ctaText}>View Listing</Text>
+            </View>
+          </View>
+        </View>
+      </>
+    );
     return (
       <View
         style={[
           styles.card,
           styles.cardList,
+          match?.top && styles.matchTop,
           Platform.OS === "web" && styles.listHoverShell,
           Platform.OS === "web" && listHovered && styles.listHoverShellActive,
         ]}
@@ -271,89 +471,34 @@ export function ListingResultCard({
             <ImageCornerBadge listing={listing} variant="list" />
           </View>
 
-          <Pressable
-            accessibilityRole={interactive ? "link" : undefined}
-            accessibilityLabel={`${title}, ${rentLabel} per month`}
-            disabled={!interactive}
-            onPress={onOpen}
-            style={styles.listBodyContent}
-          >
-            <View style={[styles.middle, styles.middleList]}>
-              <Text style={styles.title} numberOfLines={2}>
-                {title}
-              </Text>
-              <Text style={styles.meta} numberOfLines={1}>
-                {subtitle}
-                {listing.landmark ? ` · ${typeBadge}` : ""}
-              </Text>
-
-              {proximity ? (
-                <View style={styles.proximityRow}>
-                  <MapPin size={12} color={Skoun.color.inkMuted} strokeWidth={2} />
-                  <Text style={styles.proximityText} numberOfLines={2}>
-                    {proximity}
-                  </Text>
-                </View>
-              ) : null}
-
-              <View style={styles.divider} />
-
-              {customized ? (
-                <PillRow
-                  pills={orderedPills}
-                  highlight={false}
-                  mixedHighlight
-                />
-              ) : (
-                <>
-                  <PillRow pills={highlights} highlight />
-                  <PillRow pills={amenities} />
-                </>
-              )}
-            </View>
-
-            <View style={[styles.rightCol, styles.rightColList]}>
-              <View style={styles.listHeaderRow}>
-                {hasRating ? (
-                  <ListingListRatingDisplay
-                    rating={listing.rating!}
-                    reviewCount={listing.reviewCount!}
-                  />
-                ) : (
-                  <View />
-                )}
-                <HeartButton
-                  isSaved={interactive && isSaved}
-                  onToggle={onToggleSave}
-                  style={styles.heart}
-                  disabled={!interactive}
-                />
-              </View>
-              <View style={styles.priceBlock}>
-                <Text style={styles.priceFrom}>From</Text>
-                <Text style={styles.price}>
-                  {rentLabel}
-                  <Text style={styles.priceUnit}> / month</Text>
-                </Text>
-                <View style={styles.cta}>
-                  <Text style={styles.ctaText}>View Listing</Text>
-                </View>
-              </View>
-            </View>
-          </Pressable>
+          {renderListBadges ? (
+            <View style={styles.listBodyContent}>{listDetails}</View>
+          ) : (
+            <Pressable
+              accessibilityRole={interactive ? "link" : undefined}
+              accessibilityLabel={`${title}, ${rentLabel} per month`}
+              disabled={!interactive}
+              onPress={onOpen}
+              style={styles.listBodyContent}
+            >
+              {listDetails}
+            </Pressable>
+          )}
         </View>
+        {match ? <MatchCardChrome match={match} /> : null}
       </View>
     );
   }
 
   // ── Grid (vertical Amber card) ───────────────────────────────────
-  const gridPills = (
-    customized ? orderedPills : [...highlights, ...amenities]
-  ).slice(0, GRID_TAG_LIMIT);
+  const gridSource = customized ? orderedPills : [...highlights, ...amenities];
+  const gridPills = badgeLimit === null
+    ? gridSource
+    : gridSource.slice(0, badgeLimit ?? GRID_TAG_LIMIT);
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
   return (
-    <View style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
+    <View style={[styles.card, styles.cardGrid, match?.top && styles.matchTop]} {...mapHoverHandlers}>
       <View testID="listing-grid-media" style={[touchPanX, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
@@ -406,17 +551,28 @@ export function ListingResultCard({
 
         <View style={styles.gridDivider} />
 
-        <View style={styles.gridPillSlot}>
+        <View style={[
+          styles.gridPillSlot,
+          badgeOverflow === "scroll-x" && !badgeMaxRows && styles.gridPillSlotFixed,
+          badgeMaxRows ? { maxHeight: badgeBandMaxHeight(badgeMaxRows, true), overflow: "hidden" } : null,
+        ]}>
           {renderGridBadges ? renderGridBadges(gridPills) : (
-            <PillRow pills={gridPills} compact />
+            <PillRow
+              pills={gridPills}
+              compact
+              overflow={badgeOverflow}
+              maxRows={badgeMaxRows}
+            />
           )}
         </View>
       </GridCardBody>
+      {match ? <MatchCardChrome match={match} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  matchTop: {borderColor: Skoun.color.primarySoft, ...skounShadow({blur:20,y:5,opacity:.1,elevation:3})},
   card: {
     backgroundColor: Skoun.color.surface,
     borderRadius: 16,
@@ -746,5 +902,39 @@ const styles = StyleSheet.create({
   gridPillSlot: {
     minHeight: GRID_PILL_SLOT_MIN_HEIGHT,
     justifyContent: "flex-start",
+  },
+  gridPillSlotFixed: {
+    height: GRID_PILL_SLOT_MIN_HEIGHT,
+    maxHeight: GRID_PILL_SLOT_MIN_HEIGHT,
+    overflow: "hidden",
+    justifyContent: "center",
+  },
+  scrollClip: {
+    height: GRID_PILL_SLOT_MIN_HEIGHT,
+    justifyContent: "center",
+    position: "relative",
+  },
+  badgeScroller: {
+    flexGrow: 0,
+  },
+  badgeScrollerContent: {
+    alignItems: "center",
+  },
+  badgeRowNowrap: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "center",
+    gap: 5,
+  },
+  scrollFade: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 28,
+    pointerEvents: "none",
+  },
+  tagNoShrink: {
+    flexShrink: 0,
   },
 });

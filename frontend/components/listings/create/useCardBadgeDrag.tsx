@@ -7,6 +7,8 @@ export function useCardBadgeDrag(_options: CardBadgeDragOptions): CardBadgeDrag 
     target: null,
     zoneProps: () => ({}),
     badgeProps: () => ({}),
+    markerProps: () => ({}),
+    handleProps: () => ({}),
     overlay: null,
   };
 }

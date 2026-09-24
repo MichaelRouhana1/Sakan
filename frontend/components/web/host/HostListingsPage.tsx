@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useGlobalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,7 +25,9 @@ import {
   type HostListingsLayout,
 } from "@/components/web/host/HostListingsToolbar";
 import { HostNotificationPreferences } from "@/components/web/host/HostNotificationPreferences";
+import { EditListingDrawer } from "@/components/listings/edit/EditListingDrawer";
 import { appleTabScrollInset } from "@/components/ui/Glass";
+import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -33,6 +35,7 @@ import { openNewCreateListing } from "@/features/auth/useEnsureSession";
 import { draftHasMeaningfulProgress } from "@/features/listings/create/createDraftCheckpoint";
 import { useCreateDraftMeta } from "@/features/listings/useHostingNavState";
 import type { DraftCheckpoint, DraftSlot } from "@/features/listings/create/draft";
+import { openListingEdit } from "@/features/listings/edit/openListingEdit";
 import { useMyListings } from "@/features/listings/useMyListings";
 import { useBreakpoint } from "@/lib/breakpoints";
 import type { Listing } from "@/types/listing";
@@ -50,6 +53,11 @@ type GridItem =
 const CARD_WIDTH = 240;
 const GRID_GAP = 16;
 
+function firstParam(value: string | string[] | undefined): string {
+  if (typeof value === "string") return value.trim();
+  return value?.[0]?.trim() ?? "";
+}
+
 export function HostListingsPage() {
   const bp = useBreakpoint();
   const compact = bp === "mobile" || Platform.OS !== "web";
@@ -60,6 +68,8 @@ export function HostListingsPage() {
   );
   const [layout, setLayout] = useState<HostListingsLayout>("grid");
   const [draftModal, setDraftModal] = useState<DraftModalTarget | null>(null);
+  const editParam = useGlobalSearchParams<{ edit?: string | string[] }>().edit;
+  const editId = Platform.OS === "web" ? firstParam(editParam) : "";
 
   const showMainDraft =
     checkpoint != null && draftHasMeaningfulProgress(checkpoint);
@@ -139,6 +149,10 @@ export function HostListingsPage() {
   function handleListingPress(listing: Listing) {
     if (listing.status === "draft") {
       openServerDraftModal(listing);
+      return;
+    }
+    if (listing.status === "active") {
+      openListingEdit(router, listing.id);
       return;
     }
     router.push({
@@ -235,6 +249,7 @@ export function HostListingsPage() {
                     }
                   }}
                   onListingPress={handleListingPress}
+                  onEditListing={(listing) => openListingEdit(router, listing.id)}
                 />
               ) : (
                 <View style={[styles.grid, compact && styles.gridCompact]}>
@@ -259,6 +274,11 @@ export function HostListingsPage() {
                         <HostListingGridCard
                           listing={item.listing}
                           onPress={() => handleListingPress(item.listing)}
+                          onEdit={
+                            item.listing.status === "active"
+                              ? () => openListingEdit(router, item.listing.id)
+                              : undefined
+                          }
                         />
                       </View>
                     ) : null,
@@ -279,6 +299,13 @@ export function HostListingsPage() {
         onClose={() => setDraftModal(null)}
         onRemoved={() => void handleDraftRemoved()}
       />
+
+      {editId ? (
+        <EditListingDrawer
+          listingId={editId}
+          onClose={() => router.replace(HOST_LISTINGS_PATH as never)}
+        />
+      ) : null}
     </>
   );
 }

@@ -40,7 +40,10 @@ export type EnrichedCreditTransaction = {
   createdAt: Date;
   reviewedAt: Date | null;
   approvedAt: Date | null;
-  reviewedBy: { kind: "clerk" | "api_key"; clerkId: string | null } | null;
+  reviewedBy: {
+    kind: "clerk" | "api_key" | "poster" | "system";
+    clerkId: string | null;
+  } | null;
   user: {
     id: string;
     email: string | null;
@@ -629,6 +632,7 @@ export class AdminService {
     entityType?: string;
     entityId?: string;
     limit?: number;
+    offset?: number;
   }) {
     const filters = [];
     if (query.action) {
@@ -641,12 +645,14 @@ export class AdminService {
       filters.push(eq(adminAuditEvents.entityId, query.entityId));
     }
     const limit = Math.min(Math.max(query.limit ?? 100, 1), 200);
+    const offset = Math.max(query.offset ?? 0, 0);
 
     return db
       .select({
         id: adminAuditEvents.id,
         actorKind: adminAuditEvents.actorKind,
         actorClerkId: adminAuditEvents.actorClerkId,
+        actorUserId: adminAuditEvents.actorUserId,
         action: adminAuditEvents.action,
         entityType: adminAuditEvents.entityType,
         entityId: adminAuditEvents.entityId,
@@ -656,8 +662,68 @@ export class AdminService {
       .from(adminAuditEvents)
       .where(filters.length ? and(...filters) : undefined)
       .orderBy(desc(adminAuditEvents.createdAt))
-      .limit(limit);
+      .limit(limit)
+      .offset(offset);
   }
+
+  async listListingUpdateAudit(
+    listingId: string,
+    query: { limit?: number; offset?: number },
+  ) {
+    if (!UUID_RE.test(listingId)) {
+      throw new NotFoundError("Listing not found");
+    }
+    const listing = await listingsRepository.findById(listingId);
+    if (!listing) throw new NotFoundError("Listing not found");
+
+    const limit = Math.min(Math.max(query.limit ?? 50, 1), 200);
+    const offset = Math.max(query.offset ?? 0, 0);
+    const rows = await this.listAuditEvents({
+      action: "listing.update",
+      entityType: "listing",
+      entityId: listingId,
+      limit: limit + 1,
+      offset,
+    });
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    return {
+      data: page.map(serializeListingUpdateAudit),
+      nextOffset: hasMore ? offset + limit : null,
+    };
+  }
+}
+
+function productAuditActorKind(
+  kind: string,
+): "poster" | "admin" | "system" {
+  if (kind === "poster") return "poster";
+  if (kind === "system") return "system";
+  return "admin";
+}
+
+function serializeListingUpdateAudit(row: {
+  id: string;
+  actorKind: string;
+  actorClerkId: string | null;
+  actorUserId: string | null;
+  action: string;
+  entityType: string;
+  entityId: string;
+  payload: Record<string, unknown>;
+  createdAt: Date;
+}) {
+  return {
+    id: row.id,
+    actorKind: productAuditActorKind(row.actorKind),
+    actorClerkId: row.actorClerkId,
+    actorUserId: row.actorUserId,
+    action: row.action,
+    entityType: row.entityType,
+    entityId: row.entityId,
+    payload: row.payload,
+    createdAt: row.createdAt,
+  };
 }
 
 const UUID_RE =

@@ -36,43 +36,8 @@ import type {
   WaterStatus,
 } from "@/types/listing";
 
-export type BrowseFiltersValue = {
-  areas: string[];
-  universitySlugs: string[];
-  /** Institution kept while campus is still being chosen. */
-  institutionSlug: string | null;
-  /** Campus UUID for geo hub browse. */
-  campusId: string | null;
-  /** Free-text keyword search. */
-  q: string | null;
-  electricity: ElectricityStatus[];
-  water: WaterStatus[];
-  /** true = Wi‑Fi included only; false = any. */
-  wifiIncluded: boolean;
-  listingTypes: ListingType[];
-  minRentUsd: number | null;
-  maxRentUsd: number | null;
-  /** true = students_only only; false = any audience. */
-  studentsOnly: boolean;
-  /** Empty = any gender; otherwise gender_restriction IN (...). */
-  genderRestrictions: ("boys_only" | "girls_only")[];
-};
-
-export const EMPTY_BROWSE_FILTERS: BrowseFiltersValue = {
-  areas: [],
-  universitySlugs: [],
-  institutionSlug: null,
-  campusId: null,
-  q: null,
-  electricity: [],
-  water: [],
-  wifiIncluded: false,
-  listingTypes: [],
-  minRentUsd: null,
-  maxRentUsd: null,
-  studentsOnly: false,
-  genderRestrictions: [],
-};
+import { EMPTY_BROWSE_FILTERS, type BrowseFiltersValue } from "@/lib/browseFiltersValue";
+export { EMPTY_BROWSE_FILTERS, type BrowseFiltersValue } from "@/lib/browseFiltersValue";
 
 const ELECTRICITY_OPTIONS = Object.keys(
   ELECTRICITY_LABELS,
@@ -397,6 +362,7 @@ export function BrowseFiltersPanel({
     setRentError(null);
     setConfirmDiscard(false);
     onApply({
+      radiusKm: applied.radiusKm,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,

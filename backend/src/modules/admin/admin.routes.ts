@@ -44,6 +44,9 @@ adminRouter.post("/reports/listings/:listingId/dismiss", (req, res, next) =>
 adminRouter.get("/listings", (req, res, next) =>
   adminController.searchListings(req, res, next),
 );
+adminRouter.get("/listings/:id/audit", (req, res, next) =>
+  adminController.listListingAudit(req, res, next),
+);
 adminRouter.get("/listings/:id", (req, res, next) =>
   adminController.getListing(req, res, next),
 );

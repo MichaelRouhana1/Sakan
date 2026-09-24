@@ -50,6 +50,16 @@ const rnsvgCommonJS = path.resolve(
   "index.js",
 );
 
+// thinking-orbs 0.3.2 nests its export conditions (`import.default`).
+// Metro fails that package instead of using dist/index.es.js.
+const thinkingOrbsWeb = path.resolve(
+  __dirname,
+  "node_modules",
+  "thinking-orbs",
+  "dist",
+  "index.es.js",
+);
+
 const originalResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -57,6 +67,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // the pre-compiled CommonJS bundle so Metro never enters the src/ tree.
   if (moduleName === "react-native-svg") {
     return { filePath: rnsvgCommonJS, type: "sourceFile" };
+  }
+
+  if (moduleName === "thinking-orbs") {
+    return { filePath: thinkingOrbsWeb, type: "sourceFile" };
   }
 
   // Default resolver

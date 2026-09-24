@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
+import { LockedCluster } from "@/components/listings/create/LockedCluster";
 import { SelectableCard } from "@/components/listings/create/SelectableCard";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
 import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
@@ -16,6 +17,7 @@ export function CreateStepRules() {
   const { draft, patch } = useCreateListingDraft();
   return (
     <View style={{ gap: 16 }}>
+      <LockedCluster fields={["genderRestriction"]}>
       <Enter>
         <LText variant="subtitle">Gender</LText>
         <View style={{ height: 8 }} />
@@ -41,6 +43,8 @@ export function CreateStepRules() {
           onPress={() => patch({ genderRestriction: "boys_only" })}
         />
       </Enter>
+      </LockedCluster>
+      <LockedCluster fields={["targetAudience"]}>
       <Enter delay={80}>
         <LText variant="subtitle">Tenant mix</LText>
         <View style={{ height: 8 }} />
@@ -54,6 +58,7 @@ export function CreateStepRules() {
           onChange={(v) => patch({ targetAudience: v as TargetAudience })}
         />
       </Enter>
+      </LockedCluster>
       <Enter delay={140}>
         <LText variant="subtitle">Smoking</LText>
         <View style={{ height: 8 }} />

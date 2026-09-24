@@ -1,3 +1,4 @@
+import type { MatchPresentation } from "@/features/matcher/types";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
@@ -16,6 +17,7 @@ const CARD_BORDER = "#E2E8F0";
 const GRID_BODY_HEIGHT = 143;
 
 type Props = {
+  matches?: Record<string, MatchPresentation>;
   listings: Listing[];
   loading?: boolean;
   error?: boolean;
@@ -193,6 +195,7 @@ function rowKey(row: MixedListingRow): string {
 
 export function FindResultsGrid({
   listings,
+  matches,
   loading,
   error,
   onRetry,
@@ -275,6 +278,7 @@ export function FindResultsGrid({
             >
               <ListingResultCard
                 listing={row.listing}
+                match={matches?.[row.listing.id]}
                 variant={variant}
                 onHoverListing={onHoverListing}
               />

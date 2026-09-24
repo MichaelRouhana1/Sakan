@@ -32,6 +32,7 @@ import {
 import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDetailUnitSpecs";
 import { ReportListingSheet } from "@/components/listings/ReportListingSheet";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
@@ -57,6 +58,7 @@ type Props = {
 export function ListingDetailMobile({ listingId, onClose }: Props) {
   const { height: winH } = useWindowDimensions();
   const galleryH = Math.round(Math.min(Math.max(winH * 0.44, 280), 420));
+  const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId ?? "");
   const saved = useIsSaved(listingId ?? "");
   const toggleSaved = useToggleSaved();
@@ -279,6 +281,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
           posterPhone={posterPhone}
           reported={Boolean(reported.data)}
           onReport={() => setReportOpen(true)}
+          canReport={session?.role !== "poster"}
         />
 
         <ReportListingSheet

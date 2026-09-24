@@ -50,3 +50,19 @@ export class ConflictError extends AppError {
     this.name = "ConflictError";
   }
 }
+
+/** Hard listing fields after the 24h structural window. */
+export class StructuralFieldsLockedError extends AppError {
+  readonly fields: string[];
+
+  constructor(fields: string[]) {
+    const list = fields.join(", ");
+    super(
+      409,
+      `Structural fields are locked after 24 hours: ${list}`,
+      "STRUCTURAL_FIELDS_LOCKED",
+    );
+    this.name = "StructuralFieldsLockedError";
+    this.fields = fields;
+  }
+}

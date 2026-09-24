@@ -169,6 +169,13 @@
       "when": 1789992000000,
       "tag": "0023_listing_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789995600000,
+      "tag": "0024_listing_update_audit",
+      "breakpoints": true
     }
   ]
 }

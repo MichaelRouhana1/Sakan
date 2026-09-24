@@ -18,7 +18,8 @@
     "db:seed:benefits": "tsx src/db/seeds/run-student-benefits.ts",
     "job:archive-expired": "tsx src/jobs/archive-expired-listings.ts",
     "job:listing-lifecycle": "tsx src/jobs/process-listing-lifecycle.ts",
-    "test:lifecycle": "npm run build && node --test tests/listing-lifecycle.test.mjs"
+    "test:lifecycle": "npm run build && node --test tests/listing-lifecycle.test.mjs && node --import tsx --test tests/listing-update-audit.test.ts",
+    "test:listing-audit": "node --import tsx --test tests/listing-update-audit.test.ts"
   },
   "engines": {
     "node": ">=20"

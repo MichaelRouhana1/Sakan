@@ -2,8 +2,10 @@ import {
   ForbiddenError,
   InsufficientCreditsError,
   NotFoundError,
+  StructuralFieldsLockedError,
   ValidationError,
 } from "../../lib/errors.js";
+import type { AuthUser } from "../../middleware/auth.js";
 import { COINCIDENT_METERS } from "../../constants/mapCoincident.js";
 import { FREE_SLOT_REPLACEMENTS_PER_MONTH } from "../../constants/listings.js";
 import { priceGuideFromAggregate, type PriceGuideInput } from "./price-guide.js";
@@ -16,10 +18,22 @@ import {
   listingsRepository,
   type ListingWithPhotos,
 } from "./listings.repository.js";
+import {
+  diffListingUpdate,
+  isWithinStructuralWindow,
+  lockedHardKeys,
+  readSnapshotLocation,
+} from "./listing-edit-fields.js";
+import {
+  listingWriteFromInput,
+  snapshotFromRow,
+  snapshotFromWrite,
+} from "./listing-update-snapshot.js";
 import type {
   CreateListingInput,
   ListingPropertyFilters,
   ListingSort,
+  UpdateListingInput,
 } from "./listings.schemas.js";
 
 export type ListingsListResult = {
@@ -341,6 +355,65 @@ export class ListingsService {
       await this.consumePublishSlot(posterId, activeBefore);
     }
     return created;
+  }
+
+  /**
+   * Soft/hard edit of an active listing. Never spends a post credit.
+   * Hard fields only while now < publishedAt + 24h.
+   */
+  async update(owner: AuthUser, listingId: string, input: UpdateListingInput) {
+    const listing = await listingsRepository.findById(listingId);
+    if (!listing) {
+      throw new NotFoundError("Listing not found");
+    }
+    const posterId = String(listing.posterId ?? "");
+    if (posterId !== owner.id) {
+      throw new ForbiddenError("You do not own this listing");
+    }
+    const status = String(listing.status ?? "");
+    const publishedAt = listing.publishedAt as Date | string | null | undefined;
+    if (status !== "active" || publishedAt == null || publishedAt === "") {
+      throw new NotFoundError("Listing not found");
+    }
+
+    const now = new Date();
+    const before = snapshotFromRow(listing);
+    const write = listingWriteFromInput(input);
+    const after = snapshotFromWrite(write);
+    const diff = diffListingUpdate(before, after);
+    const locked = lockedHardKeys(diff, publishedAt, now);
+    if (locked.length > 0) {
+      throw new StructuralFieldsLockedError(locked);
+    }
+
+    const withinWindow = isWithinStructuralWindow(publishedAt, now);
+    const beforePin = readSnapshotLocation(before);
+    const afterPin = readSnapshotLocation(after);
+    const samePin =
+      beforePin != null &&
+      afterPin != null &&
+      beforePin.lat === afterPin.lat &&
+      beforePin.lng === afterPin.lng;
+    // Inside the 24h window, persist the submitted pin (small corrections included).
+    // After the window, a move over 25m already threw; jitter must not be written.
+    const writeLocation = withinWindow && !samePin;
+
+    await listingsRepository.updateLive(listingId, input, {
+      writeLocation,
+      audit: {
+        actor: {
+          kind: "poster",
+          clerkId: owner.clerkId,
+          userId: owner.id,
+        },
+        before,
+        after,
+        publishedAt,
+        now,
+      },
+    });
+
+    return listingsRepository.findById(listingId);
   }
 
   async archive(posterId: string, listingId: string) {

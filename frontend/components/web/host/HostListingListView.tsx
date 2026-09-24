@@ -34,6 +34,7 @@ type Props = {
   compact?: boolean;
   onDraftPress: (row: HostListRow) => void;
   onListingPress: (listing: Listing) => void;
+  onEditListing?: (listing: Listing) => void;
 };
 
 export function HostListingListView({
@@ -41,6 +42,7 @@ export function HostListingListView({
   compact = false,
   onDraftPress,
   onListingPress,
+  onEditListing,
 }: Props) {
   return (
     <View style={styles.table}>
@@ -220,6 +222,19 @@ export function HostListingListView({
               ]}
             >
               <HostStatusPill label={status.label} tone={status.tone} />
+              {onEditListing && listing.status === "active" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit listing"
+                  onPress={(event) => {
+                    (event as { stopPropagation?: () => void }).stopPropagation?.();
+                    onEditListing(listing);
+                  }}
+                  style={styles.editBtn}
+                >
+                  <Text style={styles.editText}>Edit</Text>
+                </Pressable>
+              ) : null}
             </View>
           </Pressable>
         );
@@ -312,5 +327,14 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.body,
     fontSize: 13,
     color: Skoun.color.inkMuted,
+  },
+  editBtn: {
+    marginTop: 8,
+    cursor: "pointer",
+  },
+  editText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 13,
+    color: Skoun.color.primary,
   },
 });

@@ -12,5 +12,9 @@ export type CardBadgeDrag = {
   target: CardBadgeDropTarget;
   zoneProps: (zone: BadgeDragSource) => Record<string, unknown>;
   badgeProps: (key: string, source: BadgeDragSource) => Record<string, unknown>;
+  /** Hit-test target for a chip. Does not start a drag. */
+  markerProps: (key: string, source: BadgeDragSource) => Record<string, unknown>;
+  /** Grab handle. Starts a drag without registering a second hit target. */
+  handleProps: (key: string, source: BadgeDragSource) => Record<string, unknown>;
   overlay: ReactNode;
 };

@@ -5,6 +5,7 @@ import { adminUniversitiesService } from "./admin-universities.service.js";
 import {
   adminNoteBodySchema,
   auditQuerySchema,
+  listingAuditQuerySchema,
   listTransactionsQuerySchema,
   listingStatusQuerySchema,
   reportStatusQuerySchema,
@@ -181,6 +182,30 @@ export class AdminController {
     }
   }
 
+  async listListingAudit(req: Request, res: Response, next: NextFunction) {
+    try {
+      const parsed = listingAuditQuerySchema.safeParse({
+        limit: typeof req.query.limit === "string" ? req.query.limit : undefined,
+        offset:
+          typeof req.query.offset === "string" ? req.query.offset : undefined,
+      });
+      if (!parsed.success) {
+        throw new ValidationError(
+          parsed.error.issues
+            .map((i) => `${i.path.join(".")}: ${i.message}`)
+            .join("; "),
+        );
+      }
+      const result = await adminService.listListingUpdateAudit(
+        req.params.id as string,
+        parsed.data,
+      );
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async archiveListing(req: Request, res: Response, next: NextFunction) {
     try {
       const actor = requireActor(req);
@@ -304,6 +329,8 @@ export class AdminController {
             ? req.query.entityId
             : undefined,
         limit: typeof req.query.limit === "string" ? req.query.limit : undefined,
+        offset:
+          typeof req.query.offset === "string" ? req.query.offset : undefined,
       });
       if (!parsed.success) {
         throw new ValidationError(
