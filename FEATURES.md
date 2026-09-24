@@ -73,10 +73,10 @@
 | Photo picker (3–15) + upload | Done | `PhotoPickerGrid.shared` `MIN_LISTING_PHOTOS` / `MAX_LISTING_PHOTOS`; `POST …/photos` |
 | Poster dashboard (mine, views, expiry) | Done | `(poster)/(tabs)/index.tsx`, `/hosting` |
 | Own listing detail + share / archive | Done | `(poster)/listing/[id].tsx` |
-| Edit a live listing | Missing | No `PATCH /api/listings/:id`. Host “Edit listing” on a server draft opens detail, not an editor. Admin `ListingEditDialog` is mockStore. |
+| Edit a live listing | Done | `PATCH /api/listings/:id` owner-only, no post credit. Sectioned host drawer on `/hosting/listing?edit=:id` (old `/hosting/listing/:id/edit` redirects there; native `/(poster)/edit/[id]`), same fields as create, not the 10-step wizard. Hard fields only for 24h after `publishedAt`, then `409 STRUCTURAL_FIELDS_LOCKED`. Pin jitter ≤ 25m (`STRUCTURAL_PIN_MAX_METERS`). |
 | Boost listing | Stub | Boost *credits* can be bought. No `POST …/boost`; no host spend CTA. Browse sorts `boostedUntil` first. |
 | Credit spend on publish | Done | 1 free live listing; 2nd+ needs post credit; free-slot replacements capped/mo (`listings.service`) |
-| Utility legal disclaimer (full PRD) | Done | create utilities step — shown when 24/7 generator, solar, or 24/7 elevator is claimed |
+| Utility legal disclaimer (full PRD) | Done | Create utilities step, and again on live edit when a 24/7 generator, solar, or 24/7 elevator claim is newly turned on |
 | Post-expiry outcome / renew / archive | Done | Owner route `/hosting/listing/:id/outcome`; lifecycle events; one-credit renewal |
 | Expiry notification preferences | Done | Host dashboard + `/api/users/me/notification-preferences` |
 
@@ -331,7 +331,8 @@
 | GET | `/home-popular` | Home rail |
 | GET | `/price-guide` | Auth; guidance only (no charge) |
 | GET | `/:id` | Detail |
-| POST | `/` | Create (auth; publish spend in service). **No `PATCH /:id`.** |
+| POST | `/` | Create (auth; publish spend in service) |
+| PATCH | `/:id` | Owner live edit. No credit. Soft fields anytime. Hard fields (`spaceType`, `propertyType`, `listingType`, `targetAudience`, `genderRestriction`, beds/baths/occupancy/floor/`areaSqm`, `area`, pin, landmark, address, building, `primaryCampusId`) only while `now < publishedAt + 24h`; otherwise `409 STRUCTURAL_FIELDS_LOCKED`. Pin moves ≤ 25m are not a hard change. |
 | POST | `/:id/view` | Record view |
 | POST | `/photos` | Upload images (max 15) |
 | GET | `/:id/nearby` | Nearby listings |
@@ -386,6 +387,7 @@
 | POST | `/reports/listings/:listingId/dismiss` | `adminNote` required |
 | GET | `/listings?q=&status=` | Search (limit 50) |
 | GET | `/listings/:id` | Photos, reports, poster |
+| GET | `/listings/:id/audit` | `listing.update` field-edit events, newest first (limit 50) |
 | POST | `/listings/:id/archive` | Active → archived |
 | POST | `/listings/:id/remove` | `adminNote` required; no refund |
 | POST | `/listings/:id/restore` | Archived → active only |
@@ -393,7 +395,7 @@
 | POST | `/expiry-followups/:id/contacted` | Staff marked contacted |
 | GET | `/users?q=` | Search (limit 50) |
 | PATCH | `/users/:id/status` | `active` / `restricted` / `banned`; ban removes live listings |
-| GET | `/audit` | `admin_audit_events` (admin actions only — not host field edits) |
+| GET | `/audit` | `admin_audit_events` (staff actions; listing field edits also live here as `listing.update`) |
 | GET | `/catalog` | Credit bundle catalog |
 | GET/POST/PATCH | `/institutions`, `/campuses` | University catalog |
 
@@ -422,7 +424,7 @@
 | Module | Responsibility |
 |--------|----------------|
 | `users` | Register, me, free credit on poster signup |
-| `listings` | Browse/create/photos/views/archive/renew/expiry/analytics — **no host PATCH** |
+| `listings` | Browse/create/photos/views/archive/renew/expiry/analytics — **no host PATCH**; `recordListingUpdateAudit` exported for it |
 | `saved` | Account shortlist |
 | `reports` | Listing integrity reports + review status |
 | `universities` | Campus catalog + meta |
@@ -436,7 +438,7 @@
 - `listings` + `listing_photos` (`lookingForRoommate` is a DB column only — not in create wizard/schema)
 - `universities`
 - `credit_transactions`
-- `admin_audit_events` (admin actions; not host field-level edit history)
+- `admin_audit_events` (staff actions + `listing.update` field edits; `listing_lifecycle_events` remain renew/expiry/outcome only)
 - `saved_listings`
 - `listing_reports`
 - Enums: roles, listing types, space/property/price basis, utilities, statuses, report reasons, report review status, etc.
@@ -460,7 +462,7 @@
 - Roommate Finder (removed from product; `lookingForRoommate` column unused by create; legacy DB tables may remain)  
 - Card payment gateways  
 - Real OTP/JWT — N/A; auth is Clerk JWT (email/OAuth), not phone OTP  
-- Host `PATCH /api/listings/:id` / edit live listing (PLANNED policy in `PRD.md` / `NEXT.md`)  
+- Host `PATCH /api/listings/:id` / edit live listing UI (audit writer + admin Change history are Partial; PATCH is still Missing)  
 - Report auto-restrict / broker flagging (reports store only)  
 - Admin desks wired to Postgres (except Institution Registry and expiry follow-up)  
 - Boost spend (`POST …/boost`)  

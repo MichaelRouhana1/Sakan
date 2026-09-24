@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
-import { ListingResultCard } from "@/components/web/ListingResultCard";
+import { ListingResultCard, badgeBandMaxHeight } from "@/components/web/ListingResultCard";
 import { Lister } from "@/constants/listerTheme";
 import {
   applyCardBadgeDrop,
@@ -19,6 +19,8 @@ import {
 } from "@/lib/listingCardBadges";
 import type { Listing } from "@/types/listing";
 import { useCardBadgeDrag } from "./useCardBadgeDrag";
+import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { WizardHeadline } from "./WizardHeadline";
 import { WIZARD_STEPS } from "@/constants/listingWizard";
 
@@ -29,7 +31,8 @@ type Props = {
   onChange: (keys: string[]) => void;
 };
 
-export function CardBadgeEditor({ listing, onChange }: Props) {
+function CardBadgeSubsetEditor({ listing, onChange }: Props) {
+  const { formChrome } = useCreateListingDraft();
   const { width } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
   const [activeControl, setActiveControl] = useState<string | null>(null);
@@ -194,9 +197,9 @@ export function CardBadgeEditor({ listing, onChange }: Props) {
 
   return (
     <View style={styles.root} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
-      {!sideBySide ? heading : null}
+      {formChrome === "edit" ? null : !sideBySide ? heading : null}
       <View style={[styles.editor, sideBySide && styles.editorWide]}>
-        {sideBySide ? <View style={styles.centerColumn}>{heading}{badgePool}</View> : null}
+        {sideBySide ? <View style={styles.centerColumn}>{formChrome === "edit" ? null : heading}{badgePool}</View> : null}
         <View testID="grid-card-preview" style={[styles.gridFrame, sideBySide && styles.gridFrameWide]}>
           <ListingResultCard listing={listing} interactive={false} renderGridBadges={() => cardBadges} />
           <LText variant="caption" tone="muted" style={styles.cardCaption}>
@@ -273,3 +276,226 @@ const styles = StyleSheet.create({
   listPreview: { gap: 10 },
   listCaption: { textAlign: "right" },
 });
+
+const wizardGripStyle = Platform.OS === "web"
+  ? { touchAction: "none", cursor: "grab", userSelect: "none" } as unknown as ViewStyle
+  : {};
+
+const LIST_BADGE_ROWS = 3;
+const LIST_CARD_MIN = 720;
+const LIST_CARD_FIT = 560;
+
+const wizardStyles = StyleSheet.create({
+  stage: { gap: 28, width: "100%" },
+  listStage: { gap: 10, width: "100%", maxWidth: "100%" },
+  listFrame: { width: "100%", maxWidth: "100%", overflow: "hidden" },
+  listCard: { width: "100%", alignSelf: "stretch" },
+  listCardFull: { width: LIST_CARD_MIN },
+  gridStage: { width: "100%", maxWidth: 440, alignSelf: "flex-start" },
+  dropZone: {
+    maxHeight: badgeBandMaxHeight(LIST_BADGE_ROWS),
+    borderWidth: 1,
+    borderColor: "transparent",
+    borderRadius: 10,
+    width: "100%",
+    ...(Platform.OS === "web" ? { overflowY: "auto", overflowX: "hidden" } as unknown as ViewStyle : null),
+  },
+  badgeWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
+  chip: { position: "relative", maxWidth: "100%" },
+  badgeButton: { borderRadius: 999, ...wizardGripStyle },
+  badgeMotion: Platform.OS === "web"
+    ? { transitionProperty: "opacity", transitionDuration: "200ms" } as unknown as ViewStyle
+    : {},
+  caption: { lineHeight: 20 },
+  listPill: { paddingVertical: 5, paddingHorizontal: 10 },
+  listPillText: { fontSize: 12 },
+});
+
+function WizardBadgeOrder({ listing, onChange }: Props) {
+  const reduced = useReducedMotion();
+  const [contentWidth, setContentWidth] = useState(0);
+  const [activeControl, setActiveControl] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const keys = listing.cardBadges ?? [];
+  const pills = listingCardPills(listing);
+  const wide = contentWidth >= 820;
+  const clipList = contentWidth > 0 && contentWidth < LIST_CARD_FIT;
+  const controlIndex = keys.indexOf(activeControl ?? "");
+  const controlPill = pills[controlIndex];
+
+  function drop(key: string, target: CardBadgeDropTarget) {
+    if (target?.zone !== "card") return;
+    if (!pills.some((pill) => pill.key === key)) return;
+    const next = applyCardBadgeDrop(keys, key, target);
+    if (next.full || sameBadgeKeys(next.keys, keys)) return;
+    const label = pills.find((pill) => pill.key === key)!.label;
+    setMessage(`${label} is badge ${next.keys.indexOf(key) + 1} of ${next.keys.length}.`);
+    onChange(next.keys);
+  }
+
+  const drag = useCardBadgeDrag({ pills, onDrop: drop });
+  const cardTarget = drag.target?.zone === "card" ? drag.target : null;
+
+  function keyboardProps(key: string): Record<string, unknown> {
+    if (Platform.OS !== "web") return {};
+    return {
+      onKeyDown: (event: { key: string; altKey: boolean; preventDefault: () => void; stopPropagation: () => void }) => {
+        const index = keys.indexOf(key);
+        if (index < 0 || !event.altKey || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        drop(key, { zone: "card", index: event.key === "ArrowLeft" ? index - 1 : index + 2 });
+      },
+    };
+  }
+
+  function insertion(index: number) {
+    return cardTarget?.index === index ? (
+      <View pointerEvents="none" style={styles.insertion} />
+    ) : null;
+  }
+
+  const listBadges = (
+    <View
+      {...drag.zoneProps("card")}
+      testID="card-badge-drop-zone"
+      style={[wizardStyles.dropZone, !!cardTarget && styles.dropZoneActive]}
+    >
+      <View style={wizardStyles.badgeWrap}>
+        {pills.map((pill, index) => {
+          const marker = drag.markerProps(pill.key, "card");
+          const handle = drag.handleProps(pill.key, "card");
+          return (
+            <View
+              key={pill.key}
+              style={[wizardStyles.chip, drag.activeKey === pill.key && styles.dragging]}
+            >
+              {insertion(index)}
+              <Pressable
+                {...marker}
+                {...handle}
+                dataSet={{
+                  ...(marker.dataSet as Record<string, string>),
+                  ...(handle.dataSet as Record<string, string>),
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Arrange ${pill.label}, badge ${index + 1} of ${pills.length}`}
+                accessibilityHint="Drag to reorder. Alt and the left or right arrow keys move this badge."
+                accessibilityState={{ expanded: activeControl === pill.key }}
+                onPress={() => setActiveControl(activeControl === pill.key ? null : pill.key)}
+                {...keyboardProps(pill.key)}
+                style={[wizardStyles.badgeButton, !reduced && wizardStyles.badgeMotion]}
+              >
+                <ListingAmberPillView
+                  pill={pill}
+                  highlight={isHighlightCardBadge(pill.key)}
+                  style={[wizardStyles.listPill, activeControl === pill.key ? styles.focusedPill : undefined]}
+                  textStyle={wizardStyles.listPillText}
+                />
+              </Pressable>
+            </View>
+          );
+        })}
+        <View style={styles.endMarker}>{insertion(pills.length)}</View>
+        {pills.length === 0 ? (
+          <LText variant="caption" tone="muted" style={styles.empty}>
+            Add details in the earlier steps to see badges on the card.
+          </LText>
+        ) : null}
+      </View>
+      {controlPill && !drag.activeKey ? (
+        <View style={styles.reorderControls}>
+          <LText variant="caption" tone="muted" style={styles.controlLabel}>{controlPill.label}</LText>
+          <ReorderButton
+            label={`Move ${controlPill.label} earlier`}
+            icon="chevron-back"
+            disabled={controlIndex === 0}
+            onPress={() => drop(controlPill.key, { zone: "card", index: controlIndex - 1 })}
+          />
+          <ReorderButton
+            label={`Move ${controlPill.label} later`}
+            icon="chevron-forward"
+            disabled={controlIndex === keys.length - 1}
+            onPress={() => drop(controlPill.key, { zone: "card", index: controlIndex + 2 })}
+          />
+          <ReorderButton label="Close badge controls" icon="close" onPress={() => setActiveControl(null)} />
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const titleSize = Math.min(60, Math.max(42, contentWidth * 0.046));
+  const heading = (
+    <View testID="card-customization-heading">
+      <WizardHeadline
+        title={reviewStep.title}
+        subtitle="Every badge on this listing is on the card. Drag to set the order."
+        titleStyle={wide ? { fontSize: titleSize, lineHeight: titleSize * 1.16 } : undefined}
+      />
+    </View>
+  );
+
+  const listCard = (
+    <View style={clipList ? wizardStyles.listCardFull : wizardStyles.listCard}>
+      <ListingResultCard
+        listing={listing}
+        variant="list"
+        interactive={false}
+        renderListBadges={() => listBadges}
+      />
+    </View>
+  );
+
+  const listHint = message
+    || (Platform.OS === "web"
+      ? (clipList
+        ? "Swipe the card sideways to the badges, then drag one to set the order."
+        : "Drag a badge to set the order. Alt and the arrow keys work too.")
+      : "Tap a badge, then move it earlier or later.");
+
+  const listStage = (
+    <View testID="list-card-preview" style={wizardStyles.listStage}>
+      <View style={wizardStyles.listFrame}>
+        {clipList ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator style={wizardStyles.listFrame}>
+            {listCard}
+          </ScrollView>
+        ) : listCard}
+      </View>
+      <LText variant="caption" tone="muted" accessibilityLiveRegion="polite" style={wizardStyles.caption}>
+        {listHint}
+      </LText>
+    </View>
+  );
+
+  const gridStage = (
+    <View testID="grid-card-preview" style={wizardStyles.gridStage}>
+      <ListingResultCard
+        listing={listing}
+        interactive={false}
+        badgeLimit={null}
+        badgeMaxRows={2}
+      />
+      <LText variant="caption" tone="muted" style={styles.cardCaption}>
+        Grid view · two rows of badges. Scroll the band if there are more.
+      </LText>
+    </View>
+  );
+
+  return (
+    <View style={styles.root} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
+      {heading}
+      <View style={wizardStyles.stage}>
+        {listStage}
+        {gridStage}
+      </View>
+      {drag.overlay}
+    </View>
+  );
+}
+
+export function CardBadgeEditor(props: Props) {
+  const { formChrome } = useCreateListingDraft();
+  if (formChrome === "edit") return <CardBadgeSubsetEditor {...props} />;
+  return <WizardBadgeOrder {...props} />;
+}

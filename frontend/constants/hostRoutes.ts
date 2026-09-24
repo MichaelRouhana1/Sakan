@@ -12,6 +12,11 @@ export function hostListingAnalyticsPath(id: string) {
   return `/hosting/listing/${id}/analytics`;
 }
 
+/** Opens the live-edit drawer on the host listings page. */
+export function hostListingEditPath(id: string) {
+  return `${HOST_LISTINGS_PATH}?edit=${encodeURIComponent(id)}`;
+}
+
 export type HostNavSection = "listings" | "analytics" | "credits";
 
 function stripTrailingSlash(pathname: string): string {

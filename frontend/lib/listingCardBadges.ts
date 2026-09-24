@@ -18,7 +18,7 @@ import {
   labelPosterRole,
 } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
-import { normalizeCardBadgeSelection } from "@/lib/cardBadgeSelection";
+import { completeCardBadgeOrder, normalizeCardBadgeSelection } from "@/lib/cardBadgeSelection";
 
 export type ListingAmberPill = {
   key: string;
@@ -437,12 +437,26 @@ export function defaultCardBadgeKeys(listing: Listing): string[] {
   return [...highlights, ...amenities].map((p) => p.key);
 }
 
-/** Wizard selection: null means defaults; [] is an intentional empty card. */
+/**
+ * Stored selection for publish and live edit.
+ * null means defaults; [] stays empty. Capped at the schema max, and missing
+ * eligible badges are not appended — the edit picker still adds at most six.
+ */
 export function draftCardBadgeKeys(listing: Listing): string[] {
   return normalizeCardBadgeSelection(
     listing.cardBadges,
     defaultCardBadgeKeys(listing),
     listingCardCandidates(listing).map((pill) => pill.key),
+  );
+}
+
+/** Create wizard: every eligible badge, saved order first, schema cap only. */
+export function wizardCardBadgeKeys(listing: Listing): string[] {
+  return completeCardBadgeOrder(
+    listing.cardBadges,
+    defaultCardBadgeKeys(listing),
+    listingCardCandidates(listing).map((pill) => pill.key),
+    CARD_BADGE_MAX,
   );
 }
 

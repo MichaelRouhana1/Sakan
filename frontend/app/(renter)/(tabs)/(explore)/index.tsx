@@ -1,3 +1,4 @@
+import { FindMyPlaceEntry } from "@/components/matcher/MatcherSheet";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Modal,
@@ -299,6 +300,7 @@ export default function RenterNewHomeScreen() {
               />
             </View>
 
+            <View style={{paddingHorizontal:20,paddingTop:16}}><FindMyPlaceEntry onPress={()=>router.push({pathname:SEARCH_PATH,params:{guide:"1"}} as never)} /></View>
             {/* Hero Main Copy Block */}
             <View style={styles.heroTextColumn}>
               <Text style={styles.heroTitleText}>

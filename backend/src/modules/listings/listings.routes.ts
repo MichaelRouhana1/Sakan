@@ -2,7 +2,7 @@ import { Router } from "express";
 import { optionalAuth, requireAuth } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { listingsController } from "./listings.controller.js";
-import { createListingSchema } from "./listings.schemas.js";
+import { createListingSchema, updateListingSchema } from "./listings.schemas.js";
 import { listingPhotoUpload } from "./photos.storage.js";
 import { walkingRouteRateLimit } from "../../middleware/rate-limit.js";
 import { walkingRoutesController } from "../walking-routes/walking-routes.controller.js";
@@ -82,6 +82,13 @@ listingsRouter.post(
 
 listingsRouter.get("/:id", (req, res, next) =>
   listingsController.getById(req, res, next),
+);
+
+listingsRouter.patch(
+  "/:id",
+  requireAuth,
+  validate(updateListingSchema),
+  (req, res, next) => listingsController.update(req, res, next),
 );
 
 listingsRouter.post(

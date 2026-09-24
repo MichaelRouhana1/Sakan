@@ -4,6 +4,7 @@ import { listingsService } from "./listings.service.js";
 import {
   listListingsQuerySchema,
   type CreateListingInput,
+  type UpdateListingInput,
 } from "./listings.schemas.js";
 import { publicUrlForUpload } from "./photos.storage.js";
 import { priceGuideQuerySchema } from "./price-guide.js";
@@ -163,6 +164,19 @@ export class ListingsController {
         req.body as CreateListingInput,
       );
       res.status(201).json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.update(
+        req.user!,
+        req.params.id as string,
+        req.body as UpdateListingInput,
+      );
+      res.json({ data });
     } catch (err) {
       next(err);
     }

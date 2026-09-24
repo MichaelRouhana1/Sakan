@@ -102,6 +102,12 @@ export const auditQuerySchema = z.object({
   entityType: z.string().trim().min(1).max(32).optional(),
   entityId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+});
+
+export const listingAuditQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 export type ListTransactionsQueryInput = z.infer<

@@ -1,8 +1,12 @@
+import { useBrowseController } from "@/features/matcher/useBrowseController";
+import { rankListings, explainWidening } from "@/features/matcher/scoring";
+import { MatcherSheet } from "@/components/matcher/MatcherSheet";
+import { FindMyPlaceFab } from "@/components/web/FindMyPlaceFab";
+import { MatchSummaryBar } from "@/components/matcher/MatchResults";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { Link } from "expo-router";
 import {
   useCallback,
-  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -45,6 +49,7 @@ import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useListings } from "@/features/listings/useListings";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   campusFilterLabel,
   campusPinsFromInstitution,
@@ -54,10 +59,6 @@ import {
 } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
-import {
-  browseSearchSetParams,
-  parseCsvParam,
-} from "@/lib/browseSearchUrl";
 import { campusResultsHeading } from "@/lib/campusProximity";
 import { useStableBreakpoint } from "@/lib/breakpoints";
 import { useDevSearchLoadingDelay } from "@/lib/useDevSearchLoadingDelay";
@@ -101,21 +102,14 @@ export function FindBrowse() {
   const coarsePointer = useCoarsePointer();
   const reducedMotion = useReducedMotion();
   const { setFullBleed, setHideFooter, setLockScroll } = useWebShellChrome();
+  const { user } = useAuthSession();
 
-  const params = useLocalSearchParams<{
-    q?: string;
-    campusId?: string;
-    areas?: string;
-    universitySlugs?: string;
-  }>();
-  const [mode, setMode] = useState<SearchMode>("university");
-  const [filters, setFilters] =
-    useState<BrowseFiltersValue>(EMPTY_BROWSE_FILTERS);
+  const browse = useBrowseController();
+  const { filters, mode, sort: browseSort, setFilters, setMode, setSort: setBrowseSort } = browse;
   const [focusPoint, setFocusPoint] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
-  const [browseSort, setBrowseSort] = useState<BrowseSortKey>("newest");
   const [resultsLayout, setResultsLayout] = useState<ResultsLayout>("grid");
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
@@ -131,9 +125,7 @@ export function FindBrowse() {
   const [filterSection, setFilterSection] =
     useState<FilterSection>("university");
 
-  const deferredFilters = useDeferredValue(filters);
-  const deferredMode = useDeferredValue(mode);
-  const deferredSort = useDeferredValue(browseSort);
+  const { filters: deferredFilters, mode: deferredMode, sort: deferredSort, prefs: deferredPrefs } = browse.deferred;
   const effectiveMode: SearchMode =
     mode === "university" ||
     deferredFilters.universitySlugs.length > 0 ||
@@ -141,18 +133,6 @@ export function FindBrowse() {
     Boolean(deferredFilters.institutionSlug)
       ? "university"
       : "standard";
-
-  const syncUrl = useCallback(
-    (next: {
-      q?: string | null;
-      campusId?: string | null;
-      areas?: string[];
-      universitySlugs?: string[];
-    }) => {
-      router.setParams(browseSearchSetParams(next) as never);
-    },
-    [],
-  );
 
   const resetSearch = useCallback(() => {
     setFocusPoint(null);
@@ -165,13 +145,7 @@ export function FindBrowse() {
       q: null,
     }));
     setMode("university");
-    syncUrl({
-      q: null,
-      campusId: null,
-      areas: [],
-      universitySlugs: [],
-    });
-  }, [syncUrl]);
+  }, [setFilters, setMode]);
 
   const listFilters = useMemo(
     () =>
@@ -185,82 +159,6 @@ export function FindBrowse() {
 
   const universities = useUniversities();
   const institutions = useInstitutions();
-
-  useEffect(() => {
-    const campusId =
-      typeof params.campusId === "string" ? params.campusId.trim() : "";
-    const areas = parseCsvParam(params.areas);
-    const slugs = parseCsvParam(params.universitySlugs);
-    const q =
-      typeof params.q === "string" && params.q.trim()
-        ? params.q.trim()
-        : "";
-
-    if (!campusId && areas.length === 0 && slugs.length === 0 && !q) {
-      setFocusPoint(null);
-      setFilters((prev) => ({
-        ...prev,
-        areas: [],
-        universitySlugs: [],
-        campusId: null,
-        q: null,
-        institutionSlug: null,
-      }));
-      return;
-    }
-
-    if (campusId || slugs.length > 0) {
-      const slug = slugs[0];
-      const campus = slug
-        ? universities.data?.find((u) => u.slug === slug)
-        : universities.data?.find((u) => u.id === campusId);
-      setFilters((prev) => ({
-        ...prev,
-        campusId: campusId || campus?.id || null,
-        universitySlugs: slug ? [slug] : campus ? [campus.slug] : [],
-        areas: [],
-        q: null,
-        institutionSlug: campus?.institutionSlug ?? prev.institutionSlug,
-      }));
-      if (campus?.lat != null && campus?.lng != null) {
-        setFocusPoint({ lat: campus.lat, lng: campus.lng });
-      }
-      setMode("university");
-      setBrowseSort("distance");
-      return;
-    }
-    if (areas.length > 0) {
-      setFocusPoint(null);
-      setFilters((prev) => ({
-        ...prev,
-        areas,
-        universitySlugs: [],
-        campusId: null,
-        q: null,
-        institutionSlug: null,
-      }));
-      setMode("standard");
-      return;
-    }
-    if (q) {
-      setFocusPoint(null);
-      setFilters((prev) => ({
-        ...prev,
-        q,
-        areas: [],
-        universitySlugs: [],
-        campusId: null,
-        institutionSlug: null,
-      }));
-      setMode("standard");
-    }
-  }, [
-    params.campusId,
-    params.areas,
-    params.universitySlugs,
-    params.q,
-    universities.data,
-  ]);
 
   const { data, isLoading, isError, refetch, isFetching } =
     useListings(listFilters);
@@ -287,11 +185,22 @@ export function FindBrowse() {
       ),
     [data?.campuses, selectedInst],
   );
-  const listings = useMemo(
-    () => sortListingsClient(rawListings, deferredSort),
-    [rawListings, deferredSort],
-  );
+  const ranked = useMemo(() => deferredPrefs ? rankListings(rawListings, deferredPrefs) : { listings: rawListings, matches: {} }, [rawListings, deferredPrefs]);
+  const matching = deferredSort === "match" && !!deferredPrefs;
+  const listings = useMemo(() => matching ? ranked.listings : sortListingsClient(deferredPrefs ? rawListings.filter(l => !!ranked.matches[l.id]) : rawListings, deferredSort), [ranked, rawListings, matching, deferredSort, deferredPrefs]);
   const listingsForDisplay = loading ? [] : listings;
+  const widening = useMemo(() => explainWidening(ranked.listings, deferredPrefs ?? {version:1}), [ranked.listings, deferredPrefs]);
+  const openMatcher = () => { setFiltersOpen(false); browse.setOpen(true); };
+  useEffect(() => {
+    if (!browse.applyRevision) return;
+    setMapOpen(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+      document.getElementById("skoun-web-shell")?.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [browse.applyRevision]);
+  useEffect(() => { if (browse.open) setFiltersOpen(false); }, [browse.open]);
+  useEffect(() => { if (browse.prefs?.location?.value.center) setFocusPoint(browse.prefs.location.value.center); }, [browse.prefs]);
 
   const switchMapCampus = useCallback(
     (campus: CampusMeta) => {
@@ -305,15 +214,9 @@ export function FindBrowse() {
         q: null,
       }));
       setMode("university");
-      setBrowseSort("distance");
-      syncUrl({
-        q: null,
-        campusId: uni?.id ?? null,
-        areas: [],
-        universitySlugs: [campus.slug],
-      });
+      if (browse.sort !== "match") setBrowseSort("distance");
     },
-    [syncUrl, universities.data],
+    [setFilters, setMode, universities.data, browse.sort, setBrowseSort],
   );
 
   const activeCampus = useMemo(() => {
@@ -373,10 +276,7 @@ export function FindBrowse() {
     setFilterSection(section);
     setFiltersOpen(true);
   };
-  const clearAll = () => {
-    resetSearch();
-    setBrowseSort("newest");
-  };
+  const clearAll = () => { browse.clear(); setFocusPoint(null); };
 
   const applyBrowseFilters = useCallback(
     (next: typeof filters) => {
@@ -384,7 +284,7 @@ export function FindBrowse() {
       const uniSlug = next.universitySlugs[0];
       if (uniSlug || next.campusId) {
         setMode("university");
-        setBrowseSort("distance");
+        if (browse.sort !== "match") setBrowseSort("distance");
         const campus =
           universities.data?.find((u) => u.slug === uniSlug) ??
           universities.data?.find((u) => u.id === next.campusId) ??
@@ -392,27 +292,10 @@ export function FindBrowse() {
         if (campus?.lat != null && campus?.lng != null) {
           setFocusPoint({ lat: campus.lat, lng: campus.lng });
         }
-        syncUrl({
-          q: null,
-          campusId: next.campusId ?? campus?.id ?? null,
-          areas: [],
-          universitySlugs: uniSlug
-            ? [uniSlug]
-            : campus
-              ? [campus.slug]
-              : [],
-        });
-      } else {
-        syncUrl({
-          q: next.q,
-          campusId: null,
-          areas: next.areas,
-          universitySlugs: [],
-        });
       }
       setFiltersOpen(false);
     },
-    [syncUrl, universities.data],
+    [setFilters, setMode, universities.data, browse.sort, setBrowseSort],
   );
 
   const heading = (
@@ -467,7 +350,7 @@ export function FindBrowse() {
             </>
           ) : (
           <Text style={[styles.h1, isMap && styles.h1Map]}>
-            {universityLabel ? (
+            {matching ? "Closest to what you want" : universityLabel ? (
               <>
                 Student Accommodations near{" "}
                 <Text style={styles.h1Em}>{universityLabel}</Text>
@@ -555,6 +438,7 @@ export function FindBrowse() {
           </View>
         ) : null}
       </View>
+      {deferredPrefs ? <MatchSummaryBar prefs={deferredPrefs} count={ranked.listings.length} widening={widening} onEdit={openMatcher} onStop={browse.stop} onClear={clearAll} onMatch={()=>setBrowseSort("match")} matching={matching} loading={loading || isError} focusRevision={browse.applyRevision} /> : null}
     </View>
   );
 
@@ -574,6 +458,7 @@ export function FindBrowse() {
   const results = (
     <FindResultsGrid
       listings={listingsForDisplay}
+      matches={matching ? ranked.matches : undefined}
       loading={loading}
       error={isError}
       onRetry={() => void refetch()}
@@ -597,8 +482,18 @@ export function FindBrowse() {
 
   return (
     <View style={[styles.page, isMap && styles.pageMap]}>
-      <FindFilterBar
+      <MatcherSheet
+        visible={browse.open}
         filters={filters}
+        applied={browse.prefs}
+        firstName={user?.firstName}
+        onClose={() => browse.setOpen(false)}
+        onApply={browse.apply}
+      />
+      <FindFilterBar
+        key={browse.open ? "guide-open" : "guide-closed"}
+        filters={filters}
+        matchAvailable={!!browse.prefs}
         sort={browseSort}
         sticky={!isMap}
         onOpenFilters={() => openFilters("university")}
@@ -722,6 +617,7 @@ export function FindBrowse() {
           onApply={applyBrowseFilters}
         />
       )}
+      <FindMyPlaceFab onPress={openMatcher} hidden={browse.open} />
     </View>
   );
 }

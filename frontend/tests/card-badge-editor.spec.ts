@@ -2,9 +2,10 @@ import { test, expect, type Page, type Locator } from "@playwright/test";
 import { INITIAL_DRAFT, CREATE_DRAFT_CHECKPOINT_KEY } from "../features/listings/create/draft";
 
 const initialKeys = ["hl-walk_to_campus", "hl-power_24_7", "hl-fiber", "hl-quiet_area"];
-const zone = (page: Page) => page.getByTestId("card-badge-drop-zone");
-const pool = (page: Page) => page.getByTestId("available-badge-pool");
+const zone = (page: Page) => page.getByTestId("list-card-preview").getByTestId("card-badge-drop-zone");
+const grid = (page: Page) => page.getByTestId("grid-card-preview");
 const cardKeys = (page: Page) => zone(page).locator("[data-badge-key]").evaluateAll((els) => els.map((el) => el.getAttribute("data-badge-key")));
+const handle = (page: Page, key: string) => zone(page).locator(`[data-badge-key="${key}"]`);
 
 async function setup(page: Page, keys: string[] | null = initialKeys, step = 9) {
   const draft = {
@@ -51,33 +52,38 @@ async function drag(page: Page, from: Locator, to: Locator, leftEdge = false) {
   await page.mouse.up();
 }
 
-test("step 10: drag, limit, mirror, cancel, save/resume and publish payload", async ({ page }) => {
+test("step 10: every badge is on the card, list reorder, grid scrolls", async ({ page }) => {
   await setup(page, initialKeys, 8);
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page.getByText("10 / 10", { exact: true })).toBeVisible();
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(4);
-  await pool(page).getByRole("button", { name: "Add Solar Power to card", exact: true }).click();
-  await pool(page).getByRole("button", { name: "Add UPS Wi-Fi to card", exact: true }).click();
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(6);
-  const six = await cardKeys(page);
-  await pool(page).getByRole("button", { name: "Add 24/7 Water to card", exact: true }).click();
-  await expect(page.getByText("Remove a badge before adding another.", { exact: true })).toBeVisible();
-  await drag(page, pool(page).locator('[data-badge-key="water_24"]'), zone(page));
-  expect(await cardKeys(page)).toEqual(six);
-  await drag(page, zone(page).locator('[data-badge-key="solar"]'), pool(page).getByText("Available badges", { exact: true }));
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(5);
-  await drag(page, pool(page).locator('[data-badge-key="water_24"]'), zone(page).locator("[data-badge-key]").first(), true);
-  await expect.poll(() => cardKeys(page)).toEqual(["water_24", ...initialKeys, "ups_wifi"]);
-  await drag(page, zone(page).locator('[data-badge-key="ups_wifi"]'), zone(page).locator("[data-badge-key]").first(), true);
-  const reordered = ["ups_wifi", "water_24", ...initialKeys];
+  await expect(page.getByText("Every badge on this listing is on the card. Drag to set the order.")).toBeVisible();
+  await expect(page.getByTestId("available-badge-pool")).toHaveCount(0);
+  await expect(page.getByText("Remove a badge before adding another.")).toHaveCount(0);
+  const loaded = await cardKeys(page);
+  expect(loaded.length).toBeGreaterThan(6);
+  expect(loaded.slice(0, initialKeys.length)).toEqual(initialKeys);
+  expect(loaded).toContain("solar");
+  expect(loaded).toContain("water_24");
+  await expect(grid(page).locator("[data-badge-handle]")).toHaveCount(0);
+  await expect(grid(page).getByRole("button", { name: /^Arrange / })).toHaveCount(0);
+  await expect.poll(() => page.getByTestId("grid-badge-scroller").evaluate((el) => {
+    const scroller = el as HTMLElement;
+    return scroller.scrollHeight > scroller.clientHeight + 8
+      && scroller.clientHeight <= 70
+      && scroller.clientHeight >= 40;
+  })).toBe(true);
+
+  await handle(page, "solar").scrollIntoViewIfNeeded();
+  await drag(page, handle(page, "solar"), zone(page).locator("[data-badge-key]").first(), true);
+  const reordered = ["solar", ...loaded.filter((key) => key !== "solar")];
   await expect.poll(() => cardKeys(page)).toEqual(reordered);
-  const labels = await zone(page).getByRole("button", { name: /^Arrange / }).allTextContents();
-  const listText = await page.getByTestId("list-card-preview").innerText();
-  for (let i = 1; i < labels.length; i++) expect(listText.indexOf(labels[i].trim())).toBeGreaterThan(listText.indexOf(labels[i - 1].trim()));
-  // A drop on the wide preview does not edit it or remove the source badge.
-  await drag(page, zone(page).locator("[data-badge-key]").first(), page.getByTestId("list-card-preview"));
+  const gridText = await grid(page).innerText();
+  expect(gridText.indexOf("Solar Power")).toBeGreaterThanOrEqual(0);
+  expect(gridText.indexOf("Solar Power")).toBeLessThan(gridText.indexOf("Walk to campus"));
+
+  await drag(page, handle(page, "solar"), grid(page));
   expect(await cardKeys(page)).toEqual(reordered);
-  const start = await point(zone(page).locator("[data-badge-key]").first());
+  const start = await point(handle(page, "solar"));
   await page.mouse.move(start.x, start.y);
   await page.mouse.down();
   await page.mouse.move(start.x + 30, start.y + 10);
@@ -102,47 +108,46 @@ test("step 10: drag, limit, mirror, cancel, save/resume and publish payload", as
   expect(published?.cardBadges).toEqual(reordered);
 });
 
-test("keyboard controls and explicitly empty selection", async ({ page }) => {
+test("keyboard reorder keeps every badge", async ({ page }) => {
   await setup(page);
+  const before = await cardKeys(page);
+  expect(before.slice(0, initialKeys.length)).toEqual(initialKeys);
   const first = zone(page).getByRole("button", { name: /^Arrange Walk to campus/ });
   await first.focus();
   await page.keyboard.press("Alt+ArrowRight");
-  await expect.poll(() => cardKeys(page)).toEqual([initialKeys[1], initialKeys[0], ...initialKeys.slice(2)]);
+  await expect.poll(() => cardKeys(page)).toEqual([before[1], before[0], ...before.slice(2)]);
   await page.keyboard.press("Delete");
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(3);
-  while (await pool(page).getByRole("button", { name: /^Remove .* from card$/ }).count()) {
-    await pool(page).getByRole("button", { name: /^Remove .* from card$/ }).first().click();
-  }
-  await expect(zone(page)).toContainText("Drop badges here");
-  await page.getByRole("button", { name: "Save and exit" }).click();
-  await page.goto("/create");
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(0);
+  expect(await cardKeys(page)).toEqual([before[1], before[0], ...before.slice(2)]);
+  await expect(zone(page).getByRole("button", { name: /^Remove / })).toHaveCount(0);
 });
 
 test("desktop reference layout and responsive long labels", async ({ page }, info) => {
   await setup(page, ["amenity:study_desk", "amenity:water_heater_electric", "amenity:parking", "amenity:washer", "amenity:balcony", "amenity:ac_all_rooms"]);
   for (const width of [2048, 1440, 1024, 768, 390]) {
     await page.setViewportSize({ width, height: width === 2048 ? 938 : 1166 });
-    await expect(zone(page).locator("[data-badge-key]")).toHaveCount(6);
+    await expect.poll(() => cardKeys(page).then((keys) => keys.length > 6)).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    // Read all bounds together after responsive layout has settled.
     await expect.poll(() => zone(page).evaluate((area) => {
       const bounds = area.getBoundingClientRect();
-      return Array.from(area.querySelectorAll("[data-badge-key]")).every((chip) => {
+      const chips = Array.from(area.querySelectorAll("[data-badge-key]"));
+      const insideX = chips.every((chip) => {
         const badge = chip.getBoundingClientRect();
-        return badge.right <= bounds.right + 1 && badge.bottom <= bounds.bottom + 1;
+        return badge.left >= bounds.left - 1 && badge.right <= bounds.right + 1;
       });
+      return insideX && bounds.height <= 120 && bounds.height >= 60;
     })).toBe(true);
-    await expect(page.getByTestId("list-card-preview")).toHaveCount(width >= 1024 ? 1 : 0);
+    await expect(page.getByTestId("list-card-preview")).toHaveCount(1);
+    await expect(grid(page).locator("[data-badge-handle]")).toHaveCount(0);
     if (width >= 1440) {
       const heading = await page.getByTestId("card-customization-heading").boundingBox();
-      const badgePool = await pool(page).boundingBox();
-      const card = await page.getByTestId("grid-card-preview").boundingBox();
+      const list = await page.getByTestId("list-card-preview").boundingBox();
+      const card = await grid(page).boundingBox();
       const media = await page.getByTestId("listing-grid-media").boundingBox();
       const footer = await page.getByTestId("create-wizard-footer").boundingBox();
-      expect(badgePool!.y).toBeGreaterThanOrEqual(heading!.y + heading!.height);
-      expect(card!.x).toBeGreaterThan(badgePool!.x + badgePool!.width);
-      expect(card!.y).toBeGreaterThan(heading!.y);
+      expect(list!.y).toBeGreaterThanOrEqual(heading!.y + heading!.height - 1);
+      expect(card!.y).toBeGreaterThanOrEqual(list!.y + list!.height - 1);
+      expect(list!.width).toBeGreaterThan(card!.width);
+      expect(list!.width).toBeGreaterThan(480);
       expect(media!.width / media!.height).toBeCloseTo(16 / 10, 1);
       expect(card!.height / card!.width).toBeLessThan(1.2);
       expect(footer!.height).toBeLessThanOrEqual(82);
@@ -154,36 +159,41 @@ test("desktop reference layout and responsive long labels", async ({ page }, inf
   }
 });
 
-test("legacy selections normalize to six eligible badges", async ({ page }) => {
+test("saved order stays first and every other eligible badge is appended", async ({ page }) => {
   await setup(page, ["invalid", ...initialKeys, initialKeys[0], "solar", "ups_wifi", "water_24"]);
-  await expect.poll(() => cardKeys(page)).toEqual([...initialKeys, "solar", "ups_wifi"]);
+  const keys = await cardKeys(page);
+  expect(keys.slice(0, 7)).toEqual([...initialKeys, "solar", "ups_wifi", "water_24"]);
+  expect(keys).not.toContain("invalid");
+  expect(keys.length).toBeGreaterThan(7);
 });
 
-test("phone touch dragging adds and removes without changing the wide preview", async ({ browser }, info) => {
+test("phone touch reorder stays on the list card", async ({ browser }, info) => {
   const context = await browser.newContext({ baseURL: process.env.SKOUN_TEST_URL ?? "http://localhost:8082", viewport: { width: 390, height: 1200 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
   const page = await context.newPage();
-  await setup(page, []);
-  await pool(page).getByRole("button", { name: "Add Solar Power to card", exact: true }).tap();
-  await expect.poll(() => cardKeys(page)).toEqual(["solar"]);
-  await zone(page).getByRole("button", { name: "Arrange Solar Power, badge 1 of 1" }).tap();
-  await expect(zone(page).getByRole("button", { name: "Move Solar Power later" })).toBeVisible();
-  await zone(page).getByRole("button", { name: "Remove Solar Power", exact: true }).tap();
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(0);
+  await setup(page);
+  const before = await cardKeys(page);
+  const arrange = zone(page).getByRole("button", { name: /^Arrange Walk to campus/ });
+  await arrange.scrollIntoViewIfNeeded();
+  await arrange.tap();
+  await zone(page).getByRole("button", { name: "Move Walk to campus later" }).tap();
+  await expect.poll(() => cardKeys(page)).toEqual([before[1], before[0], ...before.slice(2)]);
+  await expect(zone(page).getByRole("button", { name: /^Remove / })).toHaveCount(0);
+  await expect(grid(page).locator("[data-badge-handle]")).toHaveCount(0);
   const session = await context.newCDPSession(page);
-  const from = pool(page).locator('[data-badge-key="solar"]');
+  const from = handle(page, before[0]);
+  const firstChip = zone(page).locator("[data-badge-key]").first();
+  await firstChip.scrollIntoViewIfNeeded();
   await from.scrollIntoViewIfNeeded();
   const start = await point(from);
-  const target = await point(zone(page));
+  const chip = await firstChip.boundingBox();
+  if (!chip) throw new Error("First badge is missing");
+  const target = { x: chip.x + chip.width * 0.25, y: chip.y + chip.height / 2 };
   await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
   for (let i = 1; i <= 10; i++) {
     await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: start.x + (target.x - start.x) * i / 10, y: start.y + (target.y - start.y) * i / 10 }] });
   }
   await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await expect.poll(() => cardKeys(page)).toEqual(["solar"]);
-  await zone(page).getByRole("button", { name: "Arrange Solar Power, badge 1 of 1" }).tap();
-  await expect(zone(page).getByRole("button", { name: "Move Solar Power later" })).toBeVisible();
-  await zone(page).getByRole("button", { name: "Remove Solar Power", exact: true }).tap();
-  await expect(zone(page).locator("[data-badge-key]")).toHaveCount(0);
+  await expect.poll(() => cardKeys(page)).toEqual(before);
   await page.screenshot({ path: info.outputPath("review-touch.png") });
   await context.close();
 });

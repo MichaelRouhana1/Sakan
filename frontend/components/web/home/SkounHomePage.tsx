@@ -1,3 +1,4 @@
+import { FindMyPlaceEntry } from "@/components/matcher/MatcherSheet";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -696,6 +697,7 @@ export function SkounHomePage() {
 
             <View style={styles.heroSearchWrap}>
               <SearchPill />
+              <View style={{marginTop:16}}><FindMyPlaceEntry onPress={()=>router.push({pathname:"/search",params:{guide:"1"}} as never)} /></View>
             </View>
 
             <View style={styles.popularSearches}>

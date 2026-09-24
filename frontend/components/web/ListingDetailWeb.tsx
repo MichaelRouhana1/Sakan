@@ -28,6 +28,8 @@ import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDeta
 import { ListingContactCard } from "@/components/listings/detail/ListingContactCard";
 import { ReportListingDialog } from "@/components/web/ReportListingDialog";
 import { Skoun } from "@/constants/theme";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { openListingEdit } from "@/features/listings/edit/openListingEdit";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { formatWindowsSummary } from "@/lib/electricityCuts";
 import { formatFreshUsd } from "@/lib/format";
@@ -114,6 +116,7 @@ function resolvePhotos(
 }
 
 export function ListingDetailWeb({ listingId }: Props) {
+  const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId);
   const saved = useIsSaved(listingId);
   const toggleSaved = useToggleSaved();
@@ -529,6 +532,19 @@ export function ListingDetailWeb({ listingId }: Props) {
               <LText variant="body" tone="muted">
                 {listingPlace(listing)}
               </LText>
+              {session?.userId === listing.posterId &&
+              listing.status === "active" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit listing"
+                  onPress={() => openListingEdit(router, listing.id)}
+                  style={styles.editLink}
+                >
+                  <LText variant="caption" tone="primary" style={styles.editLinkText}>
+                    Edit listing
+                  </LText>
+                </Pressable>
+              ) : null}
             </View>
           </View>
 
@@ -707,6 +723,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               onCall={() => void Linking.openURL(`tel:${callPhone}`)}
               reported={Boolean(reported.data)}
               onReport={() => setReportOpen(true)}
+              canReport={session?.role !== "poster"}
             />
           </View>
         </View>
@@ -960,6 +977,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: 6,
+  },
+  editLink: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    cursor: "pointer",
+  },
+  editLinkText: {
+    textDecorationLine: "underline",
   },
   titleRow: {
     flexDirection: "row",

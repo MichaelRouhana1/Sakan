@@ -6,6 +6,7 @@ export const adminAuditEvents = pgTable("admin_audit_events", {
   id: uuid("id").defaultRandom().primaryKey(),
   actorKind: adminActorKindEnum("actor_kind").notNull(),
   actorClerkId: varchar("actor_clerk_id", { length: 255 }),
+  actorUserId: uuid("actor_user_id"),
   action: varchar("action", { length: 64 }).notNull(),
   entityType: varchar("entity_type", { length: 64 }).notNull(),
   entityId: uuid("entity_id").notNull(),

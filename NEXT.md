@@ -24,7 +24,7 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 
 | Item | Status | Why it matters |
 |------|--------|----------------|
-| **Edit a live listing** | Missing | Create wizard exists; there is no `PATCH /api/listings/:id`. Host “Edit listing” on a server draft opens listing detail; admin `ListingEditDialog` is mockStore. **PLANNED (not Done):** sectioned/single-screen editor (not the linear wizard); soft fields anytime, no credit; hard/structural fields only 24h after `publishedAt` then locked; new unit = archive + create + credit. HARD/SOFT lists in `PRD.md` §3.3. `admin_audit_events` does not log host field edits. |
+| **Edit a live listing** | Done | Owner `PATCH /api/listings/:id` never spends a post credit. Soft fields (rent, utilities, rules, copy, photos, contact) anytime. Hard fields (unit type, audience, beds/floor/size, area, pin, address, campus) only for 24h after `publishedAt`, then `409 STRUCTURAL_FIELDS_LOCKED`. Pin jitter threshold is 25m (`STRUCTURAL_PIN_MAX_METERS`), separate from the 10m map grouping. Host UI is a sectioned edit screen. Admin `ListingEditDialog` remains mockStore. |
 | **Renew after 30 days** | Done | Owner outcome screen, append-only cycle history, and atomic one-credit renewal are live. |
 | **Boost spend** | Stub | Boost *credits* can be bought and stored. There is no `POST …/boost` that sets `boostedUntil` and decrements `boostCredits`. Browse already sorts boosted listings first. |
 | **Day-25 still-available nudge** | Done (configuration required) | Hourly lifecycle job sends Expo Push and optional Resend email once per cycle. |
@@ -57,7 +57,7 @@ These are v1 marketplace gaps. Campus can wait; posters and ops cannot.
 |------|------|
 | Payments inbox | `paymentsSource.ts` (comment: `GET /api/admin/transactions` exists, UI not wired) |
 | Users | `mockUsers.ts` |
-| Listings review / takedown | `listingsSource.ts` |
+| Listings review / takedown | `listingsSource.ts` (Change history panel fetches live `GET /api/admin/listings/:id/audit`) |
 | Reports | `reportsSource.ts` |
 | Expiry follow-up | Live at `/admin/expired`; delivery history and staff-initiated personal contact actions |
 | Trust / KYC queue | `trustSource.ts` (Veriff webhook TODO) |
@@ -138,10 +138,9 @@ Do **not** pick these up unless the product decision changes:
 1. Finish profile identity (open branch).  
 2. Wire admin Payments to `/api/admin/transactions`.  
 3. Wire admin Listings + Reports + Users to existing admin APIs.  
-4. Poster **edit** (PATCH + sectioned host UI; renew is already live).  
-5. Boost spend endpoint + host CTA.  
-6. Hide fake ratings (`demoListingRating` in `normalizeListing.ts`).  
-7. Production Clerk keys + object storage.  
+4. Boost spend endpoint + host CTA.  
+5. Hide fake ratings (`demoListingRating` in `normalizeListing.ts`).  
+6. Production Clerk keys + object storage.  
 (Day-25 nudge and credit auto-grant on Whish payment are already live.)
 
 **B — Grow Campus (student traffic)**  
