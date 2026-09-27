@@ -129,6 +129,7 @@ const styles = StyleSheet.create({
     zIndex: 60,
     flexDirection: "row",
     justifyContent: "flex-end",
+    overflow: "hidden",
     pointerEvents: "box-none",
   },
   scrim: {

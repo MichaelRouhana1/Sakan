@@ -45,7 +45,11 @@ import { applyLockedBaseline } from "@/features/listings/edit/mapListingToDraft"
 import { premiumClaimsChanged } from "@/features/listings/edit/premiumUtilityClaims";
 import { useArchiveListing } from "@/features/listings/useArchiveListing";
 import { useUpdateListing } from "@/features/listings/useUpdateListing";
-import { EditPanelDismiss, EditPanelHeader } from "@/components/listings/edit/EditPanelHeader";
+import {
+  EditPanelDismiss,
+  EditPanelHeader,
+  UnitLockedChip,
+} from "@/components/listings/edit/EditPanelHeader";
 import { chipLabel, SectionPills } from "@/components/listings/edit/SectionPills";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { safeBack } from "@/lib/safeBack";
@@ -144,22 +148,14 @@ export function EditListingScreen({
     const { contentSize, layoutMeasurement } = native;
     const maxScroll = Math.max(0, contentSize.height - layoutMeasurement.height);
     const atEnd = maxScroll > 0 && y >= maxScroll - 4;
-    const marker = atEnd ? y + layoutMeasurement.height * 0.4 : y + 12;
+    if (atEnd) return WIZARD_STEPS[WIZARD_STEPS.length - 1].id;
+    const marker = y + 28;
     let next = WIZARD_STEPS[0].id;
     for (const step of WIZARD_STEPS) {
       const top = offsets.current[step.id];
       if (top != null && top <= marker) next = step.id;
     }
-    if (!atEnd) return next;
-    const look = y + Math.min(72, layoutMeasurement.height * 0.35);
-    let visible = next;
-    for (const step of WIZARD_STEPS) {
-      const top = offsets.current[step.id];
-      const height = heights.current[step.id] ?? 0;
-      if (top == null) continue;
-      if (top <= look && top + height > look) visible = step.id;
-    }
-    return visible;
+    return next;
   }
 
   function onFormScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
@@ -309,6 +305,10 @@ export function EditListingScreen({
           }
           message={statusLine}
           pending={update.isPending}
+          confirmArchive={confirmArchive}
+          archivePending={archive.isPending}
+          onRequestArchive={() => setConfirmArchive(true)}
+          onArchive={() => void archiveAndRepost()}
           onClose={leave}
           onSave={() => void save(needsDisclaimer)}
         />
@@ -341,6 +341,14 @@ export function EditListingScreen({
               {statusLine}
             </LText>
           </View>
+          {meta.structuralLocked ? (
+            <UnitLockedChip
+              confirmArchive={confirmArchive}
+              archivePending={archive.isPending}
+              onRequestArchive={() => setConfirmArchive(true)}
+              onArchive={() => void archiveAndRepost()}
+            />
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={needsDisclaimer ? "Confirm and save listing" : "Save changes"}
@@ -364,47 +372,14 @@ export function EditListingScreen({
         </View>
       )}
 
-      {meta.structuralLocked ? (
-        <View style={[styles.lockBanner, panel && styles.bannerInset]}>
-          <Ionicons name="lock-closed" size={18} color={Lister.color.warning} />
-          <View style={styles.lockCopy}>
-            <LText variant="subtitle">The unit itself is locked</LText>
-            <LText variant="caption" tone="muted">
-              Rent, photos, utilities, and house rules can still change. The address, size, and who the place is for stay as first published.
-            </LText>
-            {confirmArchive ? (
-              <View style={styles.archiveRow}>
-                <LText variant="caption">
-                  Archive takes this listing off search. The next unit spends a post credit.
-                </LText>
-                <LButton
-                  label="Archive and post again"
-                  variant="secondary"
-                  loading={archive.isPending}
-                  onPress={() => void archiveAndRepost()}
-                />
-              </View>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setConfirmArchive(true)}
-                style={styles.linkBtn}
-              >
-                <LText variant="caption" tone="primary" style={styles.link}>
-                  Need a different unit? Archive this listing and post again.
-                </LText>
-              </Pressable>
-            )}
-          </View>
-        </View>
-      ) : panel ? null : (
+      {!meta.structuralLocked && !panel ? (
         <View style={styles.openBanner}>
           <Ionicons name="time-outline" size={18} color={Lister.color.primary} />
           <LText variant="caption" style={styles.openCopy}>
             First day after publish: you can still correct the floor, beds, or pin. After that, those fields lock to this unit.
           </LText>
         </View>
-      )}
+      ) : null}
 
       <SectionPills activeId={active} onSelect={jumpTo} />
 
@@ -492,6 +467,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingBottom: 8,
+    zIndex: 8,
   },
   back: {
     width: 36,
@@ -512,17 +488,6 @@ const styles = StyleSheet.create({
   serifTitle: {
     fontFamily: Lister.type.displaySerif,
   },
-  lockBanner: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    padding: 14,
-    borderRadius: Lister.radius.lg,
-    backgroundColor: Lister.color.warningSoft,
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "flex-start",
-  },
-  lockCopy: { flex: 1, gap: 6 },
   openBanner: {
     marginHorizontal: 16,
     marginBottom: 4,
@@ -535,12 +500,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   openCopy: { flex: 1 },
-  bannerInset: {
-    marginTop: 10,
-  },
-  archiveRow: { gap: 8, marginTop: 4 },
-  linkBtn: { alignSelf: "flex-start", cursor: "pointer" },
-  link: { textDecorationLine: "underline" },
   formScroll: {
     flex: 1,
     minHeight: 0,

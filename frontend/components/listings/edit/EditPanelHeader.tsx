@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-native";
+import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -9,7 +11,14 @@ const GRACE =
 
 type Tone = "idle" | "saved" | "error" | "disclaimer";
 
-type Props = {
+type ArchiveProps = {
+  confirmArchive: boolean;
+  archivePending: boolean;
+  onRequestArchive: () => void;
+  onArchive: () => void;
+};
+
+type Props = ArchiveProps & {
   /** Floor, beds, and pin can still change. */
   structuralOpen: boolean;
   tone: Tone;
@@ -62,6 +71,10 @@ export function EditPanelHeader({
   tone,
   message,
   pending,
+  confirmArchive,
+  archivePending,
+  onRequestArchive,
+  onArchive,
   onClose,
   onSave,
 }: Props) {
@@ -73,6 +86,14 @@ export function EditPanelHeader({
     <View accessibilityRole="header" style={styles.bar}>
       <CloseButton onPress={onClose} />
       <SlipNote slip={slip} />
+      {structuralOpen ? null : (
+        <UnitLockedChip
+          confirmArchive={confirmArchive}
+          archivePending={archivePending}
+          onRequestArchive={onRequestArchive}
+          onArchive={onArchive}
+        />
+      )}
       <SaveButton
         label={saveLabel}
         pending={pending}
@@ -80,6 +101,108 @@ export function EditPanelHeader({
         accessibilityLabel={tone === "disclaimer" ? "Confirm and save listing" : "Save changes"}
         onPress={onSave}
       />
+    </View>
+  );
+}
+
+export function UnitLockedChip({
+  confirmArchive,
+  archivePending,
+  onRequestArchive,
+  onArchive,
+}: ArchiveProps) {
+  const [hovered, setHovered] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const anchorRef = useRef<View>(null);
+  const open = hovered || pinned || confirmArchive;
+
+  function show() {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setHovered(true);
+  }
+
+  function hideUnlessInside(event?: { relatedTarget?: EventTarget | null }) {
+    const next = event?.relatedTarget;
+    const node = anchorRef.current as unknown as HTMLElement | null;
+    if (node && next instanceof Node && node.contains(next)) return;
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setHovered(false), 80);
+  }
+
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    },
+    [],
+  );
+
+  return (
+    <View
+      ref={anchorRef}
+      style={styles.lockAnchor}
+      {...(Platform.OS === "web"
+        ? {
+            onMouseEnter: show,
+            onMouseLeave: (event: { nativeEvent?: { relatedTarget?: EventTarget | null } }) =>
+              hideUnlessInside(event.nativeEvent),
+          }
+        : null)}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Unit locked"
+        accessibilityHint="Rent, photos, utilities, and house rules can still change. The address, size, and who the place is for stay as first published."
+        accessibilityState={{ expanded: open }}
+        onHoverIn={show}
+        onHoverOut={hideUnlessInside}
+        onPress={(event) => {
+          const pointerType = (event.nativeEvent as { pointerType?: string }).pointerType;
+          if (Platform.OS !== "web" || pointerType === "touch") {
+            setPinned((value) => !value);
+          }
+        }}
+        style={({ hovered: chipHover, pressed }) => [
+          styles.lockChip,
+          (chipHover || open) && styles.lockChipOn,
+          pressed && styles.lockChipPressed,
+        ]}
+      >
+        <Ionicons name="lock-closed" size={12} color={Lister.color.warning} />
+        <LText style={styles.lockChipLabel}>Unit locked</LText>
+      </Pressable>
+      {open ? (
+        <View style={styles.lockPop}>
+          <View style={styles.lockCard}>
+            <LText variant="caption" tone="muted">
+              Rent, photos, utilities, and house rules can still change. The address, size, and who the place is for stay as first published.
+            </LText>
+            {confirmArchive ? (
+              <View style={styles.archiveRow}>
+                <LText variant="caption">
+                  Archive takes this listing off search. The next unit spends a post credit.
+                </LText>
+                <LButton
+                  label="Archive and post again"
+                  variant="secondary"
+                  loading={archivePending}
+                  onPress={onArchive}
+                />
+              </View>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                onPress={onRequestArchive}
+                style={styles.linkBtn}
+              >
+                <LText variant="caption" tone="primary" style={styles.link}>
+                  Need a different unit? Archive this listing and post again.
+                </LText>
+              </Pressable>
+            )}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -197,6 +320,8 @@ const styles = StyleSheet.create({
     borderBottomColor: Lister.color.border,
     paddingVertical: 10,
     paddingHorizontal: 12,
+    zIndex: 8,
+    overflow: "visible",
   },
   close: {
     width: 34,
@@ -301,4 +426,51 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 16,
   },
+  lockAnchor: {
+    position: "relative",
+    flexShrink: 0,
+    zIndex: 2,
+  },
+  lockChip: {
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: Lister.radius.pill,
+    backgroundColor: Lister.color.warningSoft,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    cursor: "pointer",
+  },
+  lockChipOn: {
+    backgroundColor: "#FDE68A",
+  },
+  lockChipPressed: {
+    opacity: 0.82,
+  },
+  lockChipLabel: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Lister.color.warning,
+  },
+  lockPop: {
+    position: "absolute",
+    top: "100%",
+    right: 0,
+    width: 280,
+    paddingTop: 8,
+    zIndex: 30,
+  },
+  lockCard: {
+    padding: 12,
+    borderRadius: Lister.radius.lg,
+    backgroundColor: Lister.color.warningSoft,
+    gap: 8,
+    ...(Platform.OS === "web"
+      ? { boxShadow: "0 12px 28px rgba(18, 24, 38, 0.16)" }
+      : { elevation: 8 }),
+  },
+  archiveRow: { gap: 8 },
+  linkBtn: { alignSelf: "flex-start", cursor: "pointer" },
+  link: { textDecorationLine: "underline" },
 });

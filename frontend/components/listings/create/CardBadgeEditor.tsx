@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import { LButton } from "@/components/lister/Button";
+import { EditBadgesSheet } from "@/components/listings/edit/EditBadgesSheet";
 import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingResultCard, badgeBandMaxHeight } from "@/components/web/ListingResultCard";
 import { Lister } from "@/constants/listerTheme";
+import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import {
   applyCardBadgeDrop,
   CARD_BADGE_FULL_MESSAGE,
@@ -29,6 +32,10 @@ const reviewStep = WIZARD_STEPS.find((step) => step.id === "review")!;
 type Props = {
   listing: Listing;
   onChange: (keys: string[]) => void;
+  /** Wizard cards without the review headline. Used by the edit slide page. */
+  showHeading?: boolean;
+  /** Cap the list card at the search-page results column width. */
+  matchSearchList?: boolean;
 };
 
 function CardBadgeSubsetEditor({ listing, onChange }: Props) {
@@ -284,6 +291,17 @@ const wizardGripStyle = Platform.OS === "web"
 const LIST_BADGE_ROWS = 3;
 const LIST_CARD_MIN = 720;
 const LIST_CARD_FIT = 560;
+const SEARCH_LIST_SIDEBAR = 300;
+const SEARCH_LIST_GAP = 24;
+const SEARCH_DESKTOP_MIN = 1024;
+
+/** Width of one list card in the search results column. */
+function searchListCardWidth(viewport: number): number {
+  const content = Math.min(viewport, WEB_CONTENT_MAX);
+  const inner = content - WEB_CONTENT_PAD_X * 2;
+  if (viewport >= SEARCH_DESKTOP_MIN) return inner - SEARCH_LIST_GAP - SEARCH_LIST_SIDEBAR;
+  return inner;
+}
 
 const wizardStyles = StyleSheet.create({
   stage: { gap: 28, width: "100%" },
@@ -311,9 +329,11 @@ const wizardStyles = StyleSheet.create({
   listPillText: { fontSize: 12 },
 });
 
-function WizardBadgeOrder({ listing, onChange }: Props) {
+export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchSearchList = false }: Props) {
   const reduced = useReducedMotion();
+  const { width: viewport } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
+  const searchListWidth = matchSearchList ? searchListCardWidth(viewport) : 0;
   const [activeControl, setActiveControl] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const keys = listing.cardBadges ?? [];
@@ -454,7 +474,13 @@ function WizardBadgeOrder({ listing, onChange }: Props) {
       : "Tap a badge, then move it earlier or later.");
 
   const listStage = (
-    <View testID="list-card-preview" style={wizardStyles.listStage}>
+    <View
+      testID="list-card-preview"
+      style={[
+        wizardStyles.listStage,
+        searchListWidth > 0 && { maxWidth: searchListWidth, alignSelf: "flex-start" },
+      ]}
+    >
       <View style={wizardStyles.listFrame}>
         {clipList ? (
           <ScrollView horizontal showsHorizontalScrollIndicator style={wizardStyles.listFrame}>
@@ -484,7 +510,7 @@ function WizardBadgeOrder({ listing, onChange }: Props) {
 
   return (
     <View style={styles.root} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
-      {heading}
+      {showHeading ? heading : null}
       <View style={wizardStyles.stage}>
         {listStage}
         {gridStage}
@@ -494,8 +520,33 @@ function WizardBadgeOrder({ listing, onChange }: Props) {
   );
 }
 
+function EditBadgeLauncher({ listing, onChange }: Props) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={launcherStyles.row}>
+      <LButton
+        label="Edit badges"
+        variant="secondary"
+        onPress={() => setOpen(true)}
+        accessibilityHint="Opens the list and grid card so you can set badge order."
+      />
+      {open ? (
+        <EditBadgesSheet onClose={() => setOpen(false)}>
+          <WizardBadgeOrder listing={listing} onChange={onChange} showHeading={false} matchSearchList />
+        </EditBadgesSheet>
+      ) : null}
+    </View>
+  );
+}
+
+const launcherStyles = StyleSheet.create({
+  row: { alignItems: "flex-start", paddingTop: 4 },
+});
+
 export function CardBadgeEditor(props: Props) {
   const { formChrome } = useCreateListingDraft();
-  if (formChrome === "edit") return <CardBadgeSubsetEditor {...props} />;
-  return <WizardBadgeOrder {...props} />;
+  if (props.showHeading === false || formChrome !== "edit") {
+    return <WizardBadgeOrder {...props} />;
+  }
+  return <EditBadgeLauncher {...props} />;
 }

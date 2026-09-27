@@ -185,15 +185,25 @@ export function FindMyPlaceEntry({
   );
 }
 
+const LOCATION_MODES = [
+  ["campus", "Campus"],
+  ["area", "Area"],
+  ["anywhere", "Anywhere"],
+] as const;
+
 function LocationPicker({
   value,
   onSelect,
+  onClear,
 }: {
   value?: MatchLocation;
   onSelect: (location: MatchLocation) => void;
+  onClear: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<"campus" | "area">(value?.kind ?? "campus");
+  const [kind, setKind] = useState<(typeof LOCATION_MODES)[number][0]>(
+    value?.kind ?? "campus",
+  );
   const [searching, setSearching] = useState(!value);
   const [fieldFocused, setFieldFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -213,7 +223,7 @@ function LocationPicker({
       onSelect({ ...value, center: hydratedArea.center });
   }, [hydratedArea, value]);
   useEffect(() => {
-    if (!searching) return;
+    if (!searching || kind === "anywhere") return;
     const timer = setTimeout(() => {
       const node = inputRef.current as unknown as {
         focus?: (options?: { preventScroll?: boolean }) => void;
@@ -224,7 +234,9 @@ function LocationPicker({
   }, [searching, kind]);
   const needle = query.trim().toLowerCase();
   const choices: MatchLocation[] =
-    kind === "campus"
+    kind === "anywhere"
+      ? []
+      : kind === "campus"
       ? (universities.data ?? [])
           .filter((university) =>
             [
@@ -247,53 +259,63 @@ function LocationPicker({
               ?.center,
           }));
 
+  const segment = (
+    <View style={s.segment}>
+      {LOCATION_MODES.map(([option, label]) => (
+        <Pressable
+          key={option}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          aria-pressed={kind === option}
+          accessibilityState={{ selected: kind === option }}
+          onPress={() => {
+            setKind(option);
+            setQuery("");
+            if (option === "anywhere") {
+              setSearching(false);
+              onClear();
+            } else setSearching(true);
+          }}
+          style={[s.segmentOption, kind === option && s.segmentSelected]}
+        >
+          <Text
+            style={[s.segmentText, kind === option && s.segmentTextSelected]}
+          >
+            {label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+
+  if (kind === "anywhere") return segment;
+
   if (value && !searching) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={"Change location: " + value.label}
-        onPress={() => setSearching(true)}
-        style={({ hovered, pressed }) => [
-          s.selectedLocation,
-          (hovered || pressed) && s.chipHover,
-        ]}
-      >
-        <MapPin size={20} color={Skoun.color.primary} />
-        <View style={s.locationCopy}>
-          <Text style={s.locationLabel}>{value.label}</Text>
-          <Text style={s.caption}>Selected {value.kind} · Tap to change</Text>
-        </View>
-        <Pencil size={15} color={Skoun.color.inkMuted} />
-      </Pressable>
+      <View style={s.locationPicker}>
+        {segment}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={"Change location: " + value.label}
+          onPress={() => setSearching(true)}
+          style={({ hovered, pressed }) => [
+            s.selectedLocation,
+            (hovered || pressed) && s.chipHover,
+          ]}
+        >
+          <MapPin size={20} color={Skoun.color.primary} />
+          <View style={s.locationCopy}>
+            <Text style={s.locationLabel}>{value.label}</Text>
+            <Text style={s.caption}>Selected {value.kind} · Tap to change</Text>
+          </View>
+          <Pencil size={15} color={Skoun.color.inkMuted} />
+        </Pressable>
+      </View>
     );
   }
   return (
     <View style={s.locationPicker}>
-      <View style={s.segment}>
-          {(["campus", "area"] as const).map((option) => (
-            <Pressable
-              key={option}
-              accessibilityRole="button"
-              accessibilityLabel={option === "campus" ? "Campus" : "Area"}
-              aria-pressed={kind === option}
-              accessibilityState={{ selected: kind === option }}
-              onPress={() => {
-                setKind(option);
-                setQuery("");
-              }}
-              style={[s.segmentOption, kind === option && s.segmentSelected]}
-            >
-              <Text
-                style={[
-                  s.segmentText,
-                  kind === option && s.segmentTextSelected,
-                ]}
-              >
-                {option === "campus" ? "Campus" : "Area"}
-              </Text>
-            </Pressable>
-          ))}
-      </View>
+      {segment}
       <View style={[s.searchField, fieldFocused && s.searchFieldFocused]}>
         <Search size={17} color={Skoun.color.inkMuted} />
         <TextInput
@@ -432,13 +454,7 @@ function MatcherControls({
     <PreferenceChip
       tile={question.key === "type"}
       icon={question.key === "type" ? SlidersHorizontal : undefined}
-      label={
-        question.key === "budget"
-          ? "No limit"
-          : question.key === "location"
-            ? "Anywhere"
-            : "No preference"
-      }
+      label={question.key === "budget" ? "No limit" : "No preference"}
       selected={!draft[question.key]}
       onPress={() => clearAnswer(question.key)}
     />
@@ -536,14 +552,11 @@ function MatcherControls({
         </View>
       ) : null}
       {question.key === "location" ? (
-        <View style={s.controlsStack}>
-          <LocationPicker
-            key={draft.location ? "selected" : "empty"}
-            value={draft.location?.value}
-            onSelect={(value) => answer("location", value)}
-          />
-          {noPreference}
-        </View>
+        <LocationPicker
+          value={draft.location?.value}
+          onSelect={(value) => answer("location", value)}
+          onClear={() => clearAnswer("location")}
+        />
       ) : null}
       {question.key === "gender" ? (
         <View style={s.chips}>
@@ -650,6 +663,40 @@ function UnderContinue({
   );
 }
 
+function hoverAvailable() {
+  return (
+    Platform.OS === "web" &&
+    typeof window !== "undefined" &&
+    !!window.matchMedia?.("(hover: hover) and (pointer: fine)").matches
+  );
+}
+
+function useHoverCapability() {
+  const [canHover, setCanHover] = useState(hoverAvailable);
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window.matchMedia !== "function") {
+      setCanHover(false);
+      return;
+    }
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setCanHover(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return canHover;
+}
+
+function importanceCopy(
+  importance: "prefer" | "required",
+  radiusNote: string,
+) {
+  if (importance === "required") {
+    return "Only places that meet this." + radiusNote;
+  }
+  return "Prioritised in your matches.\nOther options stay visible.";
+}
+
 function ImportanceNote({
   question,
   draft,
@@ -659,10 +706,37 @@ function ImportanceNote({
   draft: MatcherPreferences;
   update: (next: MatcherPreferences) => void;
 }) {
+  const canHover = useHoverCapability();
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [peek, setPeek] = useState<"prefer" | "required" | null>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (blurTimer.current) clearTimeout(blurTimer.current);
+    },
+    [],
+  );
   if (!draft[question.key] || question.key === "gender") return null;
-  const selected = draft[question.key]?.importance;
+  const selected = draft[question.key]?.importance ?? "prefer";
+  const radiusNote =
+    question.key === "location" && draft.location?.value.kind === "campus"
+      ? " Within " + (draft.location.value.radiusKm ?? 2) + " km."
+      : "";
+  const showHint = !canHover || hovered || focused;
   return (
-    <View style={s.importance}>
+    <View
+      style={s.importance}
+      {...(Platform.OS === "web"
+        ? {
+            onMouseEnter: () => setHovered(true),
+            onMouseLeave: () => {
+              setHovered(false);
+              setPeek(null);
+            },
+          }
+        : {})}
+    >
       <Text style={s.importanceLabel}>How important?</Text>
       <View style={s.importanceSegment}>
         {(["prefer", "required"] as const).map((importance) => (
@@ -672,8 +746,22 @@ function ImportanceNote({
             accessibilityLabel={
               importance === "prefer" ? "Prefer" : "Must have"
             }
+            accessibilityHint={importanceCopy(importance, radiusNote)}
             accessibilityState={{ selected: selected === importance }}
             aria-pressed={selected === importance}
+            onHoverIn={() => setPeek(importance)}
+            onHoverOut={() => setPeek(null)}
+            onFocus={() => {
+              if (blurTimer.current) clearTimeout(blurTimer.current);
+              setPeek(importance);
+              setFocused(true);
+            }}
+            onBlur={() => {
+              blurTimer.current = setTimeout(() => {
+                setPeek(null);
+                setFocused(false);
+              }, 0);
+            }}
             onPress={() =>
               update({
                 ...draft,
@@ -696,15 +784,16 @@ function ImportanceNote({
           </Pressable>
         ))}
       </View>
-      <Text style={s.importanceHint}>
-        {selected === "required"
-          ? "Only places that meet this."
-          : "Prioritised in your matches.\nOther options stay visible."}
-        {question.key === "location" &&
-        draft.location?.value.kind === "campus" &&
-        selected === "required"
-          ? " Within " + (draft.location.value.radiusKm ?? 2) + " km."
-          : ""}
+      <Text
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={[
+          s.importanceHint,
+          canHover && s.importanceHintFloat,
+          canHover && !showHint && s.importanceHintHidden,
+        ]}
+      >
+        {importanceCopy(peek ?? selected, radiusNote)}
       </Text>
     </View>
   );

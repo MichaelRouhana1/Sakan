@@ -237,6 +237,8 @@ export const matcherStyles = StyleSheet.create({
   importance: {
     alignItems: "flex-end",
     gap: 3,
+    position: "relative",
+    zIndex: 2,
   },
   importanceLabel: {
     fontFamily: t.body,
@@ -259,6 +261,27 @@ export const matcherStyles = StyleSheet.create({
     color: c.inkMuted,
     textAlign: "right",
   },
+  importanceHintFloat: {
+    position: "absolute",
+    bottom: "100%",
+    right: 0,
+    marginBottom: 4,
+    maxWidth: 176,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: c.surface,
+    pointerEvents: "none",
+    zIndex: 3,
+    ...skounShadow({ blur: 10, y: 4, opacity: 0.12, elevation: 4 }),
+    ...(Platform.OS === "web"
+      ? ({
+          transitionProperty: "opacity",
+          transitionDuration: "120ms",
+        } as ViewStyle)
+      : {}),
+  },
+  importanceHintHidden: { opacity: 0 },
   segment: {
     flexDirection: "row",
     borderRadius: 8,

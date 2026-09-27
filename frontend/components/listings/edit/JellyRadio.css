@@ -103,6 +103,8 @@
 }
 
 .edit-section-pills {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   border-bottom: 1px solid #c5cdd8;
   background: #f9fafb;
