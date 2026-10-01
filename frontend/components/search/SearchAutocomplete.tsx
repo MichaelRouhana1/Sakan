@@ -17,6 +17,8 @@ import {
   View,
   type LayoutChangeEvent,
   type TextInputProps,
+  type StyleProp,
+  type ViewStyle,
   type View as RNView,
 } from "react-native";
 import { Skoun } from "@/constants/theme";
@@ -55,6 +57,7 @@ type Props = {
   autoFocus?: boolean;
   style?: TextInputProps["style"];
   containerStyle?: object;
+  barStyle?: StyleProp<ViewStyle>;
   variant?: "pill" | "bar";
 };
 
@@ -235,6 +238,7 @@ export function SearchAutocomplete({
   autoFocus,
   style,
   containerStyle,
+  barStyle,
   variant = "bar",
 }: Props) {
   const [focused, setFocused] = useState(false);
@@ -439,7 +443,7 @@ export function SearchAutocomplete({
         ref={barRef}
         nativeID={anchorDomId}
         {...(IS_WEB ? ({ id: anchorDomId } as object) : {})}
-        style={[styles.bar, isPill ? styles.barPill : styles.barDefault]}
+        style={[styles.bar, isPill ? styles.barPill : styles.barDefault, barStyle]}
         collapsable={false}
       >
         {!isPill ? (

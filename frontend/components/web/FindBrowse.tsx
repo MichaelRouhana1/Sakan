@@ -10,6 +10,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -41,6 +42,7 @@ import {
 } from "@/components/web/FindFiltersDialog";
 import { FindMapPane } from "@/components/web/FindMapPane";
 import { FindResultsGrid, FindSkeletonBone } from "@/components/web/FindResultsGrid";
+import { useResultsLayoutTransition } from "@/components/web/useResultsLayoutTransition";
 import {
   HoverCommitCursor,
   type HoverPoint,
@@ -111,6 +113,13 @@ export function FindBrowse() {
     lng: number;
   } | null>(null);
   const [resultsLayout, setResultsLayout] = useState<ResultsLayout>("grid");
+  const requestedLayout = useRef<ResultsLayout>("grid");
+  const transitionLayout = useResultsLayoutTransition(reducedMotion);
+  const changeResultsLayout = (next: ResultsLayout) => {
+    if (requestedLayout.current === next) return;
+    requestedLayout.current = next;
+    transitionLayout(() => setResultsLayout(next));
+  };
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
   const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
@@ -162,8 +171,8 @@ export function FindBrowse() {
 
   const { data, isLoading, isError, refetch, isFetching } =
     useListings(listFilters);
-  const queryLoading = isLoading || isFetching;
-  const loading = useDevSearchLoadingDelay(queryLoading);
+  // First load only. A focus refetch has data already, so the results stay up.
+  const loading = useDevSearchLoadingDelay(isLoading);
 
   useEffect(() => {
     if (mapOpen) setMapMounted(true);
@@ -416,7 +425,7 @@ export function FindBrowse() {
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={`${opt.label} view`}
-                  onPress={() => setResultsLayout(opt.value)}
+                  onPress={() => changeResultsLayout(opt.value)}
                   style={[styles.viewBtn, active && styles.viewBtnActive]}
                 >
                   <Ionicons

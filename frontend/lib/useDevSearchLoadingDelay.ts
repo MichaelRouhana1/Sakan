@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 const DEV_SEARCH_DELAY_MS = 3000;
 
 /**
- * Keeps loading true for at least {@link DEV_SEARCH_DELAY_MS} after each fetch
- * starts. No-op in production builds.
+ * Keeps loading true for at least {@link DEV_SEARCH_DELAY_MS} after a blocking
+ * load starts. Pass the initial load only — a background refetch should not
+ * restart this. No-op in production builds.
  */
 export function useDevSearchLoadingDelay(isLoading: boolean): boolean {
   const minMs = __DEV__ ? DEV_SEARCH_DELAY_MS : 0;

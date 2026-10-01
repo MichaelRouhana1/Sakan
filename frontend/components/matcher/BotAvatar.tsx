@@ -1,31 +1,59 @@
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
-import { Compass } from "lucide-react-native";
-import { Skoun } from "@/constants/theme";
+import LottieView from "lottie-react-native";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 import { skounShadow } from "@/lib/skounShadow";
 
+const BOT_LOTTIE = require("../../assets/lottie/find-place-bot.json");
+const STILL_FRAME = Math.floor((BOT_LOTTIE.op - BOT_LOTTIE.ip) * 0.55);
+
 export function BotAvatar({
+  playing = false,
+  playOnHover = false,
   size = 32,
 }: {
   playing?: boolean;
   playOnHover?: boolean;
   size?: number;
 }) {
+  const animation = useRef<LottieView>(null);
+  const [pressed, setPressed] = useState(false);
+  const reduce = useReducedMotion();
+  // Touch is the mobile equivalent of hovering the bot in the header.
+  const active = !reduce && (playOnHover ? pressed : playing);
+  const syncPlayback = useCallback(() => {
+    if (active) animation.current?.play();
+    else if (playOnHover && !reduce) animation.current?.pause();
+    else animation.current?.play(STILL_FRAME, STILL_FRAME);
+  }, [active, playOnHover, reduce]);
+
+  useEffect(syncPlayback, [syncPlayback]);
+
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      pointerEvents={playOnHover ? "auto" : "none"}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      onTouchCancel={() => setPressed(false)}
       style={{
         width: size,
         height: size,
-        alignItems: "center",
-        justifyContent: "center",
-        ...skounShadow({ blur: 6, y: 2, opacity: 0.28, elevation: 3 }),
+        ...skounShadow({ blur: 4, y: 3, opacity: 0.35 }),
       }}
     >
-      <Compass
-        size={Math.round(size * 0.62)}
-        color={Skoun.color.primary}
-        strokeWidth={1.6}
+      <LottieView
+        ref={animation}
+        source={BOT_LOTTIE}
+        autoPlay={false}
+        loop={active}
+        resizeMode="contain"
+        onAnimationLoaded={() => {
+          if (active) animation.current?.play();
+          else animation.current?.play(STILL_FRAME, STILL_FRAME);
+        }}
+        style={{ width: size, height: size }}
       />
     </View>
   );

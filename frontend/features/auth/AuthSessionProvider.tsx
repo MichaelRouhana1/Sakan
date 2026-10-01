@@ -10,6 +10,8 @@ import React, {
 import { useAuth, useClerk, useUser } from "@clerk/expo";
 
 import { fetchMe } from "@/features/auth/userApi";
+import { setActiveDraftUserId } from "@/features/listings/create/createDraftCheckpoint";
+import "@/features/listings/create/draftAccountSync";
 import { setAuthTokenGetter } from "@/lib/api";
 import {
   completeOAuthRedirectIfPresent,
@@ -65,6 +67,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   clerkRef.current = clerk;
+  setActiveDraftUserId(session?.userId ?? null);
 
   useEffect(() => {
     setAuthTokenGetter(async () => {
@@ -199,6 +202,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
   const clerkEnabled = useClerkEnabled();
 
   if (!clerkEnabled) {
+    setActiveDraftUserId(null);
     return (
       <AuthSessionContext.Provider value={disabledValue}>
         {children}

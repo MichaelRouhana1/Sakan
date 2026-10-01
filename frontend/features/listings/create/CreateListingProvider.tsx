@@ -13,6 +13,8 @@ import {
 } from "react";
 import { router } from "expo-router";
 import { Platform } from "react-native";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
+import { flushDraftAccountSync } from "./draftAccountSync";
 import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { createListingReducer } from "./createListingReducer";
@@ -23,6 +25,7 @@ import {
   readCheckpoint,
   readWorkingCheckpoint,
   resumeStepFromCheckpoint,
+  setActiveDraftUserId,
   setCheckpointCache,
   writeCheckpoint,
   writeWorkingCheckpoint,
@@ -74,6 +77,8 @@ export function CreateListingProvider({
   const draftRef = useRef(draft);
   const draftSlotRef = useRef(draftSlot);
   const releasedRef = useRef(false);
+  const { session } = useAuthSession();
+  const userId = session?.userId ?? null;
 
   useEffect(() => {
     draftSlotRef.current = draftSlot;
@@ -86,6 +91,7 @@ export function CreateListingProvider({
   useEffect(() => {
     let cancelled = false;
     const slot = draftSlot;
+    setActiveDraftUserId(userId);
 
     async function hydrate() {
       if (startFresh) {
@@ -135,7 +141,7 @@ export function CreateListingProvider({
     return () => {
       cancelled = true;
     };
-  }, [startFresh, draftSlot]);
+  }, [startFresh, draftSlot, userId]);
 
   const fieldErrors = stepFieldErrors(draft, draft.step);
 
@@ -208,6 +214,7 @@ export function CreateListingProvider({
     });
     if (hasProgress) {
       await persistCheckpoint(current, committedStep, current.step);
+      await flushDraftAccountSync();
     }
     if (Platform.OS === "web") {
       router.replace(HOST_LISTINGS_PATH as never);

@@ -33,6 +33,18 @@ listingsRouter.get("/mine/analytics", requireAuth, (req, res, next) =>
   listingsController.mineAnalytics(req, res, next),
 );
 
+listingsRouter.get("/drafts", requireAuth, (req, res, next) =>
+  listingsController.listDrafts(req, res, next),
+);
+
+listingsRouter.put("/drafts/:slot", requireAuth, (req, res, next) =>
+  listingsController.saveDraft(req, res, next),
+);
+
+listingsRouter.delete("/drafts/:slot", requireAuth, (req, res, next) =>
+  listingsController.deleteDraft(req, res, next),
+);
+
 listingsRouter.get("/home-popular", (req, res, next) =>
   listingsController.homePopular(req, res, next),
 );

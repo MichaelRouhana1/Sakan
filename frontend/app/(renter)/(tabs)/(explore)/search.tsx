@@ -1,6 +1,6 @@
 import { useBrowseController } from "@/features/matcher/useBrowseController";
 import { rankListings, explainWidening } from "@/features/matcher/scoring";
-import { MatcherSheet, FindMyPlaceEntry } from "@/components/matcher/MatcherSheet";
+import { MatcherSheet } from "@/components/matcher/MatcherSheet";
 import { MatchSummaryBar } from "@/components/matcher/MatchResults";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
@@ -340,7 +340,11 @@ export default function RenterSearchScreen() {
   const listings = matching ? ranked.listings : deferredPrefs ? rawListings.filter(l => !!ranked.matches[l.id]) : rawListings;
   const widening = useMemo(() => explainWidening(listings, deferredPrefs ?? {version:1}), [listings,deferredPrefs]);
   const openMatcher = () => { closeSheets(); setViewMode("list"); browse.setOpen(true); };
-  useEffect(() => {if(browse.open) closeSheets();}, [browse.open]);
+  useEffect(() => {
+    if (!browse.open) return;
+    closeSheets();
+    setViewMode("list");
+  }, [browse.open, closeSheets]);
   useEffect(() => { if(browse.applyRevision) {setViewMode("list");setSearchVal("");carouselScroll.listRef.current?.scrollToOffset({offset:0,animated:false});} }, [browse.applyRevision]);
   useEffect(() => {if(browse.prefs?.location?.value.center)setFocusPoint(browse.prefs.location.value.center);}, [browse.prefs]);
   const campuses = useMemo(
@@ -597,7 +601,6 @@ export default function RenterSearchScreen() {
       </>
       ) : null}
 
-      {viewMode === "list" ? <View style={{paddingHorizontal:20,paddingVertical:8}}><FindMyPlaceEntry onPress={openMatcher} /></View> : null}
       {/* SEARCH RESULTS LIST / MAP VIEW */}
       {viewMode === "map" ? (
         <Modal

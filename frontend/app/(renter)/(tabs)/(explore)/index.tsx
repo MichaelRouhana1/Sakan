@@ -1,6 +1,6 @@
-import { FindMyPlaceEntry } from "@/components/matcher/MatcherSheet";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
+  Animated,
   Modal,
   ScrollView,
   StyleSheet,
@@ -13,10 +13,11 @@ import {
   Platform,
 } from "react-native";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import Svg, { Path } from "react-native-svg";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -57,6 +58,38 @@ import { useHomePopular } from "@/features/listings/useHomePopular";
 /** NativeTabs + groups: `/search` is unmatched at root (hits +not-found). */
 const SEARCH_PATH = "/(renter)/(tabs)/(explore)/search" as const;
 
+/** Shallow white arch behind the floating search, like the mobile reference. */
+const HERO_CURVE = 28;
+
+/** Minimum pill height; normal flow accommodates larger accessibility text. */
+const HERO_SEARCH_PILL = 56;
+
+/** Half the search pill overlaps the photo's lower edge. */
+const HERO_SEARCH_OVERLAP = 28;
+
+/**
+ * The photo ends lower at the sides; the white page rises gently in the middle.
+ */
+function HeroBottomCurve({ width }: { width: number }) {
+  const depth = HERO_CURVE;
+  const d = [
+    `M0,${depth}`,
+    `Q${width / 2},${-depth} ${width},${depth}`,
+    `L${width},${depth + 1} L0,${depth + 1} Z`,
+  ].join(" ");
+  return (
+    <Svg
+      width={width}
+      height={depth}
+      style={styles.heroCurve}
+      pointerEvents="none"
+      accessible={false}
+    >
+      <Path d={d} fill="#ffffff" />
+    </Svg>
+  );
+}
+
 function pushSearch(params?: {
   q?: string;
   campusId?: string;
@@ -80,7 +113,19 @@ export default function RenterNewHomeScreen() {
       )
     : null;
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [heroBox, setHeroBox] = useState({ width: 0, height: 0 });
+  const searchHeaderTop = insets.top + 8;
+  const searchStickOffset = Math.max(
+    1,
+    heroBox.height - HERO_SEARCH_OVERLAP - searchHeaderTop,
+  );
+  const searchHeaderOpacity = scrollY.interpolate({
+    inputRange: [Math.max(0, searchStickOffset - 16), searchStickOffset],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
   const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
@@ -208,114 +253,132 @@ export default function RenterNewHomeScreen() {
   return (
     <View style={styles.container}>
       <HideIosTabScrollFade style={styles.scroll}>
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentInsetAdjustmentBehavior="never"
+        stickyHeaderIndices={[1]}
+        removeClippedSubviews={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: Platform.OS !== "web" },
+        )}
       >
-        {/* HERO SECTION WITH IMAGE BACKGROUND */}
-        <View
-          style={styles.hero}
-          onLayout={(e) => {
-            const { width, height } = e.nativeEvent.layout;
-            setHeroBox({ width, height });
-          }}
-        >
-          {heroBox.width > 0 ? (
-          <Image
-            source={{ uri: HERO.heroImage }}
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 0,
-              width: heroBox.width,
-              height: heroBox.height,
+        {/* HERO — photo with a bottom arc; search sits on the curve */}
+        <View style={{ marginBottom: -(HERO_SEARCH_OVERLAP + searchHeaderTop) }}>
+          <View
+            style={styles.hero}
+            onLayout={(e) => {
+              const { width: w, height } = e.nativeEvent.layout;
+              setHeroBox({ width: w, height });
             }}
-            contentFit="cover"
-          />
-          ) : null}
-          <LinearGradient
-            colors={["rgba(18,24,38,0.2)", "rgba(18,24,38,0.85)"]}
-            style={styles.heroOverlay}
-          />
-          
-          <View style={styles.heroTopContent}>
-            {/* Top header navigation spacer */}
-            <View style={styles.headerSpacer} />
-            
-            {/* Logo and Listing Trigger */}
-            <View style={styles.brandRow}>
-              <Text style={styles.brandText}>skoun</Text>
-              <View style={styles.brandActions}>
-                <ProductSwitchControl
-                  variant="toCampus"
-                  style={styles.listBtn}
-                  textStyle={styles.listBtnText}
-                />
-                <Pressable
-                  onPress={handleHostCta}
-                  style={styles.listBtn}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.listBtnText}>{hostCtaLabel}</Text>
-                </Pressable>
+          >
+            {heroBox.width > 0 ? (
+            <Image
+              source={{ uri: HERO.heroImage }}
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: heroBox.width,
+                height: heroBox.height,
+              }}
+              contentFit="cover"
+            />
+            ) : null}
+            <LinearGradient
+              colors={["rgba(18,24,38,0.28)", "rgba(18,24,38,0.55)", "rgba(18,24,38,0.2)"]}
+              locations={[0, 0.42, 1] as const}
+              style={styles.heroOverlay}
+            />
+
+            <View style={styles.heroTopContent}>
+              <View style={styles.headerSpacer} />
+
+              <View style={styles.brandRow}>
+                <Text style={styles.brandText}>skoun</Text>
+                <View style={styles.brandActions}>
+                  <ProductSwitchControl
+                    variant="toCampus"
+                    style={styles.listBtn}
+                    textStyle={styles.listBtnText}
+                  />
+                  <Pressable
+                    onPress={handleHostCta}
+                    style={styles.listBtn}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.listBtnText}>{hostCtaLabel}</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={styles.heroTextColumn}>
+                <Text style={styles.heroTitleText}>
+                  Save Big on Student Accommodation
+                </Text>
+                <Text style={styles.heroSubtitleText}>
+                  {campusLabel
+                    ? `Find a place near ${campusLabel}`
+                    : "Best student accommodations near top Lebanese universities & neighborhoods"}
+                </Text>
+                <View style={styles.lowestPriceBadge}>
+                  <Ionicons name="pricetag" size={14} color="#ffffff" />
+                  <Text style={styles.lowestPriceText}>Lowest Price</Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.searchContainer}>
-              <SearchAutocomplete
-                variant="pill"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder={
-                  campusLabel
-                    ? `Near ${campusLabel}`
-                    : "Search area, university, listing…"
-                }
-                onSelectArea={(s) => pushSearch({ areas: [s.label] })}
-                onSelectUniversity={(s) =>
+            {heroBox.width > 0 ? <HeroBottomCurve width={heroBox.width} /> : null}
+          </View>
+        </View>
+
+        {/* Keep one input mounted as the native sticky header takes over. */}
+        <View>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.searchHeaderBackground, { opacity: searchHeaderOpacity }]}
+          />
+          <View style={[styles.searchHeaderContent, { paddingTop: searchHeaderTop }]}>
+            <SearchAutocomplete
+              variant="pill"
+              barStyle={styles.heroSearchPill}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={
+                campusLabel
+                  ? `Near ${campusLabel}`
+                  : "Search area, university, listing…"
+              }
+              onSelectArea={(s) => pushSearch({ areas: [s.label] })}
+              onSelectUniversity={(s) =>
+                pushSearch({
+                  campusId: s.campusId,
+                  universitySlugs: [s.slug],
+                })
+              }
+              onSelectListing={(s) => {
+                router.push(`/(renter)/listing/${s.id}` as never);
+              }}
+              onSubmitText={(q) => {
+                const campus = resolveCampusFromTypedQuery(
+                  q,
+                  universities.data ?? [],
+                );
+                if (campus) {
                   pushSearch({
-                    campusId: s.campusId,
-                    universitySlugs: [s.slug],
-                  })
+                    campusId: campus.id,
+                    universitySlugs: [campus.slug],
+                  });
+                  return;
                 }
-                onSelectListing={(s) => {
-                  router.push(`/(renter)/listing/${s.id}` as never);
-                }}
-                onSubmitText={(q) => {
-                  const campus = resolveCampusFromTypedQuery(
-                    q,
-                    universities.data ?? [],
-                  );
-                  if (campus) {
-                    pushSearch({
-                      campusId: campus.id,
-                      universitySlugs: [campus.slug],
-                    });
-                    return;
-                  }
-                  pushSearch({ q });
-                }}
-                onClear={() => setSearchQuery("")}
-              />
-            </View>
-
-            <View style={{paddingHorizontal:20,paddingTop:16}}><FindMyPlaceEntry onPress={()=>router.push({pathname:SEARCH_PATH,params:{guide:"1"}} as never)} /></View>
-            {/* Hero Main Copy Block */}
-            <View style={styles.heroTextColumn}>
-              <Text style={styles.heroTitleText}>
-                Save Big on Student Accommodation
-              </Text>
-              <Text style={styles.heroSubtitleText}>
-                {campusLabel
-                  ? `Find a place near ${campusLabel}`
-                  : "Best student accommodations near top Lebanese universities & neighborhoods"}
-              </Text>
-              <View style={styles.lowestPriceBadge}>
-                <Ionicons name="pricetag" size={14} color="#ffffff" />
-                <Text style={styles.lowestPriceText}>Lowest Price</Text>
-              </View>
-            </View>
+                pushSearch({ q });
+              }}
+              onClear={() => setSearchQuery("")}
+            />
           </View>
         </View>
 
@@ -752,7 +815,7 @@ export default function RenterNewHomeScreen() {
           </Text>
         </View>
 
-      </ScrollView>
+      </Animated.ScrollView>
       </HideIosTabScrollFade>
 
       <SkounAuthModal
@@ -841,11 +904,14 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   hero: {
-    paddingBottom: 32,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    paddingBottom: HERO_CURVE + 28,
     overflow: "hidden",
     position: "relative",
+  },
+  heroCurve: {
+    position: "absolute",
+    left: 0,
+    bottom: 0,
   },
   heroImg: {
     ...StyleSheet.absoluteFillObject,
@@ -892,10 +958,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  searchContainer: {
-    zIndex: 50,
-    overflow: "visible",
-    marginBottom: 16,
+  searchHeaderBackground: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "#ffffff",
+  },
+  searchHeaderContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  heroSearchPill: {
+    minHeight: HERO_SEARCH_PILL,
+    backgroundColor: "#ffffff",
+    borderColor: "transparent",
+    paddingLeft: 16,
+    ...skounShadow({ color: "#000000", y: 6, blur: 12, opacity: 0.16, elevation: 8 }),
   },
   searchFieldMock: {
     flexDirection: "row",
@@ -931,6 +1007,7 @@ const styles = StyleSheet.create({
   heroTextColumn: {
     flex: 1.2,
     gap: 8,
+    marginTop: 28,
   },
   heroTitleText: {
     fontFamily: Skoun.type.display,
@@ -981,7 +1058,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingVertical: 18,
+    paddingTop: 28,
+    paddingBottom: 18,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
     backgroundColor: "#ffffff",

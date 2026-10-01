@@ -73,6 +73,14 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     return { filePath: thinkingOrbsWeb, type: "sourceFile" };
   }
 
+  // Native SVG rendering shares the orb math without importing its DOM renderer.
+  if (moduleName === "thinking-orbs/engine") {
+    return {
+      filePath: path.resolve(__dirname, "node_modules/thinking-orbs/dist/engine.cjs"),
+      type: "sourceFile",
+    };
+  }
+
   // Default resolver
   if (originalResolveRequest) {
     return originalResolveRequest(context, moduleName, platform);

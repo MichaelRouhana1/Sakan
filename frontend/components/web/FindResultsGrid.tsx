@@ -1,4 +1,5 @@
 import type { MatchPresentation } from "@/features/matcher/types";
+import { useId } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
@@ -206,6 +207,7 @@ export function FindResultsGrid({
   universityLabel = "",
 }: Props) {
   const reduced = useReducedMotion();
+  const transitionScope = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const isList = variant === "list";
   const layoutStyle = isList
     ? styles.list
@@ -274,7 +276,15 @@ export function FindResultsGrid({
           return (
             <View
               key={rowKey(row)}
-              style={isList ? undefined : styles.gridCell}
+              testID={`result-card-${row.listing.id}`}
+              style={[
+                styles.gridCell,
+                {
+                  // Keep identities across the different list/grid card trees.
+                  // Encode IDs as CSS identifiers and scope to this results set.
+                  viewTransitionName: `skoun-result-${transitionScope}-${Array.from(row.listing.id, (c) => c.codePointAt(0)!.toString(16)).join("-")}`,
+                } as object,
+              ]}
             >
               <ListingResultCard
                 listing={row.listing}

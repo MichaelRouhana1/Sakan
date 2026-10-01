@@ -304,6 +304,46 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
       },
     );
     await t.test(
+      "mobile location search dismisses the keyboard without choosing a result",
+      async () => {
+        // A reduced viewport approximates the space above a phone keyboard.
+        const { page } = await pageFor(375, { height: 500 });
+        await page.getByRole("button", { name: "Find my place", exact: true }).click();
+        await page.getByRole("button", { name: "Skip", exact: true }).click();
+        await page.getByRole("button", { name: "Skip", exact: true }).click();
+        const search = page.getByRole("textbox", { name: "Search campuses" });
+        await expect(search).toBeFocused();
+        await search.fill("LAU");
+        const done = page.getByRole("button", { name: "Hide keyboard" });
+        await expect(done).toBeInViewport({ ratio: 1 });
+        await expect(page.getByTestId("matcher-current-question")).toBeInViewport({ ratio: 1 });
+        await expect(page.getByRole("button", { name: "LAU Beirut", exact: true })).toBeInViewport({ ratio: 1 });
+        await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeInViewport({ ratio: 1 });
+        await page.screenshot({ path: path.join(output, "location-keyboard-375.png") });
+
+        await done.click();
+        await expect(search).not.toBeFocused();
+        await expect(search).toHaveValue("LAU");
+        await expect(page.getByRole("button", { name: /Change location:/ })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "Show what I have so far" })).toBeVisible();
+
+        await search.focus();
+        await search.press("Enter");
+        await expect(search).not.toBeFocused();
+        await expect(page.getByRole("button", { name: /Change location:/ })).toHaveCount(0);
+
+        await search.focus();
+        await page.getByRole("button", { name: "LAU Beirut", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Change location: LAU Beirut" })).toBeVisible();
+        await expect(done).toHaveCount(0);
+        await page.getByRole("button", { name: "Change location: LAU Beirut" }).click();
+        await expect(search).toBeFocused();
+        await page.getByRole("button", { name: "Skip", exact: true }).click();
+        await expect(page.getByRole("button", { name: "Girls-only listings", exact: true })).toBeVisible();
+        await page.close();
+      },
+    );
+    await t.test(
       "right drawer, personalized greeting, persistent transcript and staged answer editing",
       async () => {
         const { page } = await pageFor(1024, { path: "/?name=Maya" });

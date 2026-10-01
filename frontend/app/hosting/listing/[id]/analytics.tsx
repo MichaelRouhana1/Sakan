@@ -6,6 +6,10 @@ import {
 } from "expo-router";
 import { Platform } from "react-native";
 import { HostListingAnalyticsPage } from "@/components/web/host/HostListingAnalyticsPage";
+import {
+  POSTER_ANALYTICS_TAB,
+  posterListingAnalyticsPath,
+} from "@/constants/hostRoutes";
 
 function firstParam(value: string | string[] | undefined): string {
   if (typeof value === "string") return value;
@@ -31,8 +35,8 @@ export default function HostListingAnalyticsRoute() {
       <Redirect
         href={
           listingId
-            ? (`/(poster)/listing/${listingId}` as never)
-            : ("/(poster)/(tabs)" as never)
+            ? (posterListingAnalyticsPath(listingId) as never)
+            : (POSTER_ANALYTICS_TAB as never)
         }
       />
     );

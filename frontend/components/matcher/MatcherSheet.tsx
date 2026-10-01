@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
   findNodeHandle,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -46,8 +47,7 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaListener, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Skoun } from "@/constants/theme";
 import { useLiveLebanonAreas } from "@/constants/areas";
 import { useUniversities } from "@/features/universities/useUniversities";
@@ -117,6 +117,8 @@ export function PreferenceChip({
   icon: Icon,
   displayLabel,
   tile = false,
+  hug = false,
+  mobileVariant,
 }: {
   label: string;
   selected?: boolean;
@@ -124,6 +126,8 @@ export function PreferenceChip({
   icon?: LucideIcon;
   displayLabel?: string;
   tile?: boolean;
+  hug?: boolean;
+  mobileVariant?: "tile" | "row" | "compact";
 }) {
   return (
     <Pressable
@@ -135,6 +139,11 @@ export function PreferenceChip({
       style={({ pressed, hovered }) => [
         s.chip,
         tile && s.choiceTile,
+        mobileVariant && s.mobileChoice,
+        mobileVariant === "tile" && s.mobileChoiceTile,
+        mobileVariant === "row" && s.mobileChoiceRow,
+        mobileVariant === "compact" && s.mobileChoiceCompact,
+        hug && s.budgetPresetHug,
         selected && s.chipSelected,
         (pressed || hovered) && s.chipHover,
       ]}
@@ -142,15 +151,31 @@ export function PreferenceChip({
       {Icon ? (
         <Icon
          
-          size={17}
+          size={mobileVariant ? 19 : 17}
           strokeWidth={1.6}
           color={selected ? Skoun.color.primary : Skoun.color.inkMuted}
         />
       ) : null}
-      <Text style={[s.chipText, selected && s.chipTextSelected]}>
+      <Text
+        numberOfLines={mobileVariant === "compact" ? 1 : undefined}
+        style={[
+          s.chipText,
+          mobileVariant && s.mobileChoiceText,
+          mobileVariant === "compact" && s.mobilePresetText,
+          selected && s.chipTextSelected,
+        ]}
+      >
         {displayLabel ?? label}
       </Text>
-      {selected && !tile ? (
+      {mobileVariant && mobileVariant !== "compact" ? (
+        <View style={[
+          s.mobileChoiceMark,
+          mobileVariant === "tile" && s.mobileChoiceMarkTile,
+          selected && s.mobileChoiceMarkSelected,
+        ]}>
+          {selected ? <Check size={11} color="white" strokeWidth={2.5} /> : null}
+        </View>
+      ) : selected && !tile && !mobileVariant ? (
         <Check size={13} color={Skoun.color.primary} />
       ) : null}
     </Pressable>
@@ -173,13 +198,7 @@ export function FindMyPlaceEntry({
         (pressed || hovered) && { opacity: 0.86 },
       ]}
     >
-      <Ionicons
-       
-        aria-hidden={true}
-        name="compass-outline"
-        size={20}
-        color="white"
-      />
+      <BotAvatar playing size={28} />
       <Text style={s.entryText}>{label}</Text>
     </Pressable>
   );
@@ -195,10 +214,14 @@ function LocationPicker({
   value,
   onSelect,
   onClear,
+  mobile = false,
+  onSearchFocusChange,
 }: {
   value?: MatchLocation;
   onSelect: (location: MatchLocation) => void;
   onClear: () => void;
+  mobile?: boolean;
+  onSearchFocusChange?: (focused: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<(typeof LOCATION_MODES)[number][0]>(
@@ -207,6 +230,11 @@ function LocationPicker({
   const [searching, setSearching] = useState(!value);
   const [fieldFocused, setFieldFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const dismissKeyboard = () => {
+    inputRef.current?.blur();
+    Keyboard.dismiss();
+  };
+  useEffect(() => () => onSearchFocusChange?.(false), [onSearchFocusChange]);
   const universities = useUniversities();
   const areas = useLiveLebanonAreas();
   const suggestions = useSearchSuggestions(
@@ -246,11 +274,11 @@ function LocationPicker({
               university.institutionShortName,
             ].some((name) => name?.toLowerCase().includes(needle)),
           )
-          .slice(0, 3)
+          .slice(0, mobile ? 6 : 3)
           .map(campusLocation)
       : areas
           .filter((area) => area.toLowerCase().includes(needle))
-          .slice(0, 3)
+          .slice(0, mobile ? 6 : 3)
           .map((area) => ({
             kind: "area",
             label: area,
@@ -260,7 +288,7 @@ function LocationPicker({
           }));
 
   const segment = (
-    <View style={s.segment}>
+    <View style={[s.segment, mobile && s.mobileLocationSegment]}>
       {LOCATION_MODES.map(([option, label]) => (
         <Pressable
           key={option}
@@ -268,15 +296,23 @@ function LocationPicker({
           accessibilityLabel={label}
           aria-pressed={kind === option}
           accessibilityState={{ selected: kind === option }}
+          onPointerDown={(event) => {
+            if (mobile && Platform.OS === "web") event.preventDefault();
+          }}
           onPress={() => {
             setKind(option);
             setQuery("");
             if (option === "anywhere") {
+              if (mobile) Keyboard.dismiss();
               setSearching(false);
               onClear();
             } else setSearching(true);
           }}
-          style={[s.segmentOption, kind === option && s.segmentSelected]}
+          style={[
+            s.segmentOption,
+            mobile && s.mobileLocationTab,
+            kind === option && s.segmentSelected,
+          ]}
         >
           <Text
             style={[s.segmentText, kind === option && s.segmentTextSelected]}
@@ -329,18 +365,40 @@ function LocationPicker({
           placeholderTextColor={Skoun.color.inkMuted}
           value={query}
           onChangeText={setQuery}
-          onFocus={() => setFieldFocused(true)}
-          onBlur={() => setFieldFocused(false)}
+          onFocus={() => {
+            setFieldFocused(true);
+            onSearchFocusChange?.(true);
+          }}
+          onBlur={() => {
+            setFieldFocused(false);
+            onSearchFocusChange?.(false);
+          }}
           onSubmitEditing={() => {
+            if (mobile) {
+              dismissKeyboard();
+              return;
+            }
             const first = choices[0];
             if (!first) return;
             onSelect(first);
             setSearching(false);
+            if (mobile) Keyboard.dismiss();
           }}
           style={s.input}
           autoCorrect={false}
-          returnKeyType="search"
+          returnKeyType={mobile ? "done" : "search"}
+          submitBehavior="blurAndSubmit"
         />
+        {mobile && fieldFocused ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Hide keyboard"
+            onPress={dismissKeyboard}
+            style={({ pressed }) => [s.keyboardDone, pressed && s.softHover]}
+          >
+            <Text style={s.keyboardDoneText}>Done</Text>
+          </Pressable>
+        ) : null}
       </View>
       {kind === "campus" && universities.isLoading ? (
         <ActivityIndicator style={s.loading} color={Skoun.color.primary} />
@@ -361,12 +419,18 @@ function LocationPicker({
                 key={location.campusId ?? location.label}
                 accessibilityRole="button"
                 accessibilityLabel={location.label}
+                onPointerDown={(event) => {
+                  // Commit the result before blur can move the search panel.
+                  if (mobile && Platform.OS === "web") event.preventDefault();
+                }}
                 onPress={() => {
                   onSelect(location);
                   setSearching(false);
+                  if (mobile) Keyboard.dismiss();
                 }}
                 style={({ hovered, pressed }) => [
                   s.locationResult,
+                  mobile && s.mobileLocationResult,
                   (hovered || pressed) && s.softHover,
                 ]}
               >
@@ -436,6 +500,137 @@ const STEP_LABELS = [
   "Power setup",
   "Staying connected",
 ];
+const STEP_HINTS = [
+  "Choose one or more",
+  "Set a comfortable limit",
+  "Choose a starting point",
+  "Choose one",
+  "Choose one",
+  "Choose one",
+];
+
+function BudgetAmountField({
+  mobile,
+  min,
+  max,
+  onCommit,
+  onClear,
+}: {
+  mobile: boolean;
+  min: number | null;
+  max: number | null;
+  onCommit: (max: number) => void;
+  onClear: () => void;
+}) {
+  const inputRef = useRef<TextInput>(null);
+  const echo = useRef<number | undefined>(undefined);
+  const [focused, setFocused] = useState(false);
+  const [text, setText] = useState(max != null ? String(max) : "");
+  const [fieldWidth, setFieldWidth] = useState(28);
+  useEffect(() => {
+    if (echo.current !== undefined && echo.current === max) {
+      echo.current = undefined;
+      return;
+    }
+    echo.current = undefined;
+    setText(max != null ? String(max) : "");
+  }, [max]);
+  const parsed = Number.parseInt(text, 10);
+  const hasAmount = text.length > 0 && Number.isInteger(parsed) && parsed > 0;
+  const showPrefix = focused || hasAmount;
+  const prefix = !showPrefix
+    ? null
+    : min != null && hasAmount && parsed >= min
+      ? `$${min}–$`
+      : "Up to $";
+  const measure = text.length > 0 ? text : focused ? "00" : "No limit";
+  return (
+    <View style={s.budgetCopy}>
+      <View style={s.budgetAmountRow}>
+        <Text
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          style={[s.budgetAmount, s.budgetMeasure, mobile && s.mobileBudgetAmount]}
+          onLayout={(event) => {
+            const next = Math.ceil(event.nativeEvent.layout.width);
+            setFieldWidth((current) => (current === next ? current : next));
+          }}
+        >
+          {measure}
+        </Text>
+        {prefix ? (
+          <Pressable
+            accessible={false}
+            focusable={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no"
+            onPress={() => inputRef.current?.focus()}
+          >
+            <Text style={[s.budgetAmount, s.budgetPrefix, mobile && s.mobileBudgetAmount]}>
+              {prefix}
+            </Text>
+          </Pressable>
+        ) : null}
+        <TextInput
+          ref={inputRef}
+          value={text}
+          onChangeText={(raw) => {
+            const digits = raw.replace(/\D/g, "").slice(0, 6);
+            setText(digits);
+            const next = Number.parseInt(digits, 10);
+            if (!Number.isInteger(next) || next <= 0) return;
+            echo.current = next;
+            onCommit(next);
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false);
+            const next = Number.parseInt(text, 10);
+            if (!text || !Number.isInteger(next) || next <= 0) {
+              onClear();
+              setText("");
+              return;
+            }
+            setText(String(next));
+          }}
+          accessibilityLabel="Maximum monthly rent in US dollars"
+          accessibilityHint={
+            hasAmount
+              ? `Up to ${parsed} dollars per month`
+              : "No limit. Type a maximum rent."
+          }
+          keyboardType="number-pad"
+          inputMode="numeric"
+          returnKeyType="done"
+          blurOnSubmit
+          selectTextOnFocus
+          maxLength={6}
+          placeholder={focused ? "" : "No limit"}
+          placeholderTextColor={Skoun.color.ink}
+          underlineColorAndroid="transparent"
+          selectionColor={Skoun.color.primary}
+          style={[
+            s.budgetAmount,
+            s.budgetAmountInput,
+            mobile && s.mobileBudgetAmount,
+            focused && s.budgetAmountInputFocused,
+            { width: Math.max(fieldWidth + 12, mobile ? 36 : 32) },
+            Platform.OS === "web"
+              ? ({
+                  outlineStyle: "none",
+                  caretColor: Skoun.color.primary,
+                  cursor: "text",
+                  transitionProperty: "border-bottom-color",
+                  transitionDuration: "150ms",
+                } as object)
+              : null,
+          ]}
+        />
+      </View>
+      <Text style={s.caption}>USD / month</Text>
+    </View>
+  );
+}
 
 function MatcherControls({
   question,
@@ -443,15 +638,27 @@ function MatcherControls({
   update,
   answer,
   clearAnswer,
+  mobile = false,
+  onLocationFocusChange,
 }: {
   question: (typeof QUESTIONS)[number];
   draft: MatcherPreferences;
   update: (next: MatcherPreferences) => void;
   answer: (dimension: Dimension, value: unknown) => void;
   clearAnswer: (dimension: Dimension) => void;
+  mobile?: boolean;
+  onLocationFocusChange?: (focused: boolean) => void;
 }) {
+  const mobileVariant = mobile
+    ? question.key === "type"
+      ? "tile"
+      : question.key === "budget"
+        ? "compact"
+        : "row"
+    : undefined;
   const noPreference = (
     <PreferenceChip
+      mobileVariant={mobileVariant}
       tile={question.key === "type"}
       icon={question.key === "type" ? SlidersHorizontal : undefined}
       label={question.key === "budget" ? "No limit" : "No preference"}
@@ -465,6 +672,7 @@ function MatcherControls({
         <View testID="matcher-choices" style={s.choicesGrid}>
           {(Object.keys(LISTING_TYPE_LABELS) as ListingType[]).map((type) => (
             <PreferenceChip
+              mobileVariant={mobileVariant}
               key={type}
               tile
               icon={TYPE_ICONS[type]}
@@ -486,8 +694,13 @@ function MatcherControls({
         </View>
       ) : null}
       {question.key === "budget" ? (
-        <View style={s.controlsStack}>
-          <View style={s.stepper}>
+        <View
+          style={[
+            s.budgetCluster,
+            Platform.OS === "web" && ({ width: "fit-content" } as object),
+          ]}
+        >
+          <View style={[s.stepper, mobile && s.mobileStepper]}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Decrease maximum rent by 50 dollars"
@@ -508,12 +721,19 @@ function MatcherControls({
             >
               <Minus size={18} color={Skoun.color.ink} />
             </Pressable>
-            <View style={s.budgetCopy}>
-              <Text style={s.budgetAmount}>
-                {answerLabel(draft, "budget").replace("/month", "")}
-              </Text>
-              <Text style={s.caption}>USD / month</Text>
-            </View>
+            <BudgetAmountField
+              mobile={mobile}
+              min={draft.budget?.value.min ?? null}
+              max={draft.budget?.value.max ?? null}
+              onCommit={(next) => {
+                const floor = draft.budget?.value.min ?? null;
+                answer("budget", {
+                  min: floor != null && next >= floor ? floor : null,
+                  max: next,
+                });
+              }}
+              onClear={() => clearAnswer("budget")}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Increase maximum rent by 50 dollars"
@@ -534,9 +754,11 @@ function MatcherControls({
               <Plus size={18} color={Skoun.color.ink} />
             </Pressable>
           </View>
-          <View style={s.chips}>
+          <View style={[s.chips, s.budgetPresets, mobile && s.mobileBudgetPresets]}>
             {[300, 500, 750, 1000].map((amount) => (
               <PreferenceChip
+                hug
+                mobileVariant={mobileVariant}
                 key={amount}
                 label={"Up to $" + amount}
                 displayLabel={"$" + amount}
@@ -547,21 +769,30 @@ function MatcherControls({
                 onPress={() => answer("budget", { min: null, max: amount })}
               />
             ))}
-            {noPreference}
+            <PreferenceChip
+              hug
+              mobileVariant={mobileVariant}
+              label="No limit"
+              selected={!draft.budget}
+              onPress={() => clearAnswer("budget")}
+            />
           </View>
         </View>
       ) : null}
       {question.key === "location" ? (
         <LocationPicker
+          mobile={mobile}
+          onSearchFocusChange={onLocationFocusChange}
           value={draft.location?.value}
           onSelect={(value) => answer("location", value)}
           onClear={() => clearAnswer("location")}
         />
       ) : null}
       {question.key === "gender" ? (
-        <View style={s.chips}>
+        <View style={mobile ? s.mobileOptionRows : s.chips}>
           {(["girls_only", "boys_only"] as const).map((gender) => (
             <PreferenceChip
+              mobileVariant={mobileVariant}
               key={gender}
               label={
                 gender === "girls_only"
@@ -576,14 +807,16 @@ function MatcherControls({
         </View>
       ) : null}
       {question.key === "power" ? (
-        <View style={s.chips}>
+        <View style={mobile ? s.mobileOptionRows : s.chips}>
           <PreferenceChip
+            mobileVariant={mobileVariant}
             icon={Sun}
             label="Solar"
             selected={draft.power?.value.join() === "solar"}
             onPress={() => answer("power", ["solar"])}
           />
           <PreferenceChip
+            mobileVariant={mobileVariant}
             icon={Zap}
             label="Solar or 24/7 generator"
             selected={
@@ -595,6 +828,7 @@ function MatcherControls({
           />
           {draft.power?.value.includes("scheduled_cuts") ? (
             <PreferenceChip
+              mobileVariant={mobileVariant}
               label="Scheduled cuts (existing filter)"
               selected
               onPress={() => clearAnswer("power")}
@@ -602,6 +836,7 @@ function MatcherControls({
           ) : null}
           {draft.power?.value.join() === "generator_24_7" ? (
             <PreferenceChip
+              mobileVariant={mobileVariant}
               label="24/7 generator (existing filter)"
               selected
               onPress={() => clearAnswer("power")}
@@ -611,8 +846,9 @@ function MatcherControls({
         </View>
       ) : null}
       {question.key === "wifi" ? (
-        <View style={s.chips}>
+        <View style={mobile ? s.mobileOptionRows : s.chips}>
           <PreferenceChip
+            mobileVariant={mobileVariant}
             icon={Wifi}
             label="Wi-Fi included"
             selected={!!draft.wifi}
@@ -701,10 +937,12 @@ function ImportanceNote({
   question,
   draft,
   update,
+  mobile = false,
 }: {
   question: (typeof QUESTIONS)[number];
   draft: MatcherPreferences;
   update: (next: MatcherPreferences) => void;
+  mobile?: boolean;
 }) {
   const canHover = useHoverCapability();
   const [hovered, setHovered] = useState(false);
@@ -726,7 +964,7 @@ function ImportanceNote({
   const showHint = !canHover || hovered || focused;
   return (
     <View
-      style={s.importance}
+      style={[s.importance, mobile && s.mobileImportance]}
       {...(Platform.OS === "web"
         ? {
             onMouseEnter: () => setHovered(true),
@@ -737,7 +975,18 @@ function ImportanceNote({
           }
         : {})}
     >
-      <Text style={s.importanceLabel}>How important?</Text>
+      <View style={mobile && s.mobileImportanceCopy}>
+        <Text style={[s.importanceLabel, mobile && s.mobileImportanceLabel]}>
+          How important?
+        </Text>
+        {mobile ? (
+          <Text style={s.mobileImportanceHint}>
+            {selected === "required"
+              ? "Only matching places." + radiusNote
+              : "Keep other options open."}
+          </Text>
+        ) : null}
+      </View>
       <View style={s.importanceSegment}>
         {(["prefer", "required"] as const).map((importance) => (
           <Pressable
@@ -770,6 +1019,7 @@ function ImportanceNote({
             }
             style={[
               s.segmentOption,
+              mobile && s.mobileImportanceOption,
               selected === importance && s.segmentSelected,
             ]}
           >
@@ -784,7 +1034,7 @@ function ImportanceNote({
           </Pressable>
         ))}
       </View>
-      <Text
+      {!mobile ? <Text
         accessibilityElementsHidden
         importantForAccessibility="no"
         style={[
@@ -794,7 +1044,7 @@ function ImportanceNote({
         ]}
       >
         {importanceCopy(peek ?? selected, radiusNote)}
-      </Text>
+      </Text> : null}
     </View>
   );
 }
@@ -819,11 +1069,29 @@ function MatcherSession({
   onExited,
 }: Props & { onExited: () => void }) {
   const universities = useUniversities();
-  const insets = useSafeAreaInsets();
+  const parentInsets = useSafeAreaInsets();
+  const [insets, setModalInsets] = useState(parentInsets);
   const { width } = useWindowDimensions();
   const reduced = useReducedMotion();
   const desktop = Platform.OS === "web" && width >= 768;
   const wideFooter = width >= 720;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [locationSearchFocused, setLocationSearchFocused] = useState(false);
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const [draft, setDraft] = useState<MatcherPreferences>(() =>
     prefillPreferences(filters, universities.data ?? [], applied),
   );
@@ -848,6 +1116,9 @@ function MatcherSession({
   const thinking = editingStep == null && revealed < step;
   const activeIndex = editingStep ?? Math.min(step, QUESTIONS.length - 1);
   const question = QUESTIONS[activeIndex];
+  const locationKeyboardOpen = !wideFooter && !thinking &&
+    (!done || editingStep != null) && question.key === "location" &&
+    (Platform.OS === "web" ? locationSearchFocused : keyboardVisible);
   const existing = existingFilterLabels(filters);
   const draftContext = JSON.stringify({ filters, applied });
   const greetingName = firstName?.trim();
@@ -1096,7 +1367,17 @@ function MatcherSession({
       onRequestClose={close}
       statusBarTranslucent
     >
-      <View style={s.overlay}>
+      <SafeAreaListener
+        style={s.overlay}
+        onChange={({ insets: modalInsets }) => setModalInsets((current) =>
+          current.top === modalInsets.top &&
+          current.bottom === modalInsets.bottom &&
+          current.left === modalInsets.left &&
+          current.right === modalInsets.right
+            ? current
+            : modalInsets,
+        )}
+      >
         <Pressable
           accessible={false}
           focusable={false}
@@ -1183,15 +1464,15 @@ function MatcherSession({
             style={s.drawerInner}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
           >
-            <View style={[s.header, { paddingTop: Math.max(12, insets.top) }]}>
-              <View style={s.headerMark}>
-                <BotAvatar playOnHover size={48} />
+            <View style={[s.header, locationKeyboardOpen && s.keyboardHeader, { paddingTop: Math.max(12, insets.top) }]}>
+              <View style={[s.headerMark, locationKeyboardOpen && s.keyboardHeaderMark]}>
+                <BotAvatar playOnHover size={locationKeyboardOpen ? 32 : 48} />
               </View>
               <View style={s.headerCopy}>
                 <Text style={s.title}>Find my place</Text>
-                <Text style={s.headerSubtitle}>
+                {!locationKeyboardOpen ? <Text style={s.headerSubtitle}>
                   A little guidance from Skoun
-                </Text>
+                </Text> : null}
               </View>
               <Text
                 accessibilityLabel={
@@ -1233,14 +1514,19 @@ function MatcherSession({
             </View>
 
             <View style={s.menuBody}>
-            <MenuCubes />
+            {!locationKeyboardOpen ? <MenuCubes /> : null}
             <ScrollView
               ref={scroll}
               testID="matcher-transcript"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={s.threadContent}
-              style={s.threadScroll}
+              contentContainerStyle={[s.threadContent, locationKeyboardOpen && s.keyboardThreadContent]}
+              style={[s.threadScroll, locationKeyboardOpen && s.keyboardTranscript]}
+              onLayout={() => {
+                // The answer tray and keyboard can resize the viewport without
+                // changing the transcript's content size.
+                scroll.current?.scrollToEnd({ animated: false });
+              }}
               onContentSizeChange={() => {
                 if (followLatest.current)
                   scroll.current?.scrollToEnd({ animated: false });
@@ -1254,7 +1540,8 @@ function MatcherSession({
               }}
               scrollEventThrottle={100}
             >
-              <View style={s.conversation} testID="matcher-messages">
+              <View style={[s.conversation, locationKeyboardOpen && s.keyboardConversation]} testID="matcher-messages">
+                {!locationKeyboardOpen ? <>
                 <BotLine avatar={false}>
                   <Text style={s.greeting}>Hi {greetingName || "there"}!</Text>
                   <Text style={s.welcomeCopy}>
@@ -1318,12 +1605,17 @@ function MatcherSession({
                     </ChatBubble>
                   </View>
                 ))}
+                </> : null}
 
                 <View
                   style={s.currentMessage}
                   testID="matcher-current-question"
                 >
-                  {thinking ? (
+                  {locationKeyboardOpen ? (
+                    <Text accessibilityRole="header" style={s.keyboardQuestionTitle}>
+                      {question.prompt}
+                    </Text>
+                  ) : thinking ? (
                     <BotLine avatar thinking playing>
                       <ThinkingLabel />
                     </BotLine>
@@ -1371,10 +1663,128 @@ function MatcherSession({
             <View
               style={[
                 s.footer,
-                { paddingBottom: Math.max(12, insets.bottom + 6) },
+                !wideFooter && s.mobileFooter,
+                locationKeyboardOpen && s.keyboardFooter,
+                {
+                  paddingBottom: !wideFooter && keyboardVisible ? 6 : wideFooter
+                    ? Math.max(12, insets.bottom + 6)
+                    : Math.max(6, insets.bottom),
+                },
               ]}
             >
-              {!thinking && (editingStep != null || !done) ? (
+              {!thinking && (editingStep != null || !done) ? !wideFooter ? (
+                <>
+                  <ScrollView
+                    key={activeIndex}
+                    testID="matcher-mobile-options"
+                    style={[s.mobileOptionsScroll, locationKeyboardOpen && s.keyboardOptionsScroll]}
+                    contentContainerStyle={s.mobileOptionsContent}
+                    contentInsetAdjustmentBehavior="never"
+                    automaticallyAdjustContentInsets={false}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled
+                  >
+                    <View testID="matcher-composer" style={s.mobileComposer}>
+                      {!locationKeyboardOpen ? <View style={s.mobileComposerHeading}>
+                        <Text
+                          ref={editingStep != null ? promptRef : undefined}
+                          {...(Platform.OS === "web" && editingStep != null ? { tabIndex: -1 } : {})}
+                          accessibilityRole="header"
+                          style={s.mobileComposerTitle}
+                        >
+                          {editingStep != null ? "Editing · " : ""}{STEP_LABELS[activeIndex]}
+                        </Text>
+                        <Text style={s.mobileComposerHint}>
+                          {STEP_HINTS[activeIndex]}
+                        </Text>
+                      </View> : null}
+                      <MatcherControls
+                        mobile
+                        onLocationFocusChange={setLocationSearchFocused}
+                        question={question}
+                        draft={composer}
+                        update={updateComposer}
+                        answer={answer}
+                        clearAnswer={clearAnswer}
+                      />
+                    </View>
+                    {!locationKeyboardOpen ? <ImportanceNote
+                      mobile
+                      question={question}
+                      draft={composer}
+                      update={updateComposer}
+                    /> : null}
+                  </ScrollView>
+                  <View
+                    style={s.mobileNavigation}
+                    onPointerDown={(event) => {
+                      if (locationKeyboardOpen && Platform.OS === "web") event.preventDefault();
+                    }}
+                  >
+                    {editingStep != null ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => { Keyboard.dismiss(); cancelEdit(); }}
+                        style={({ pressed }) => [s.mobileSkip, pressed && s.softHover]}
+                      >
+                        <Text style={s.secondaryText}>Cancel</Text>
+                      </Pressable>
+                    ) : (
+                      <>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Back"
+                          accessibilityState={{ disabled: step === 0 }}
+                          disabled={step === 0}
+                          onPress={() => { Keyboard.dismiss(); goBack(); }}
+                          style={({ pressed }) => [s.mobileBack, step === 0 && s.disabled, pressed && s.softHover]}
+                        >
+                          <ArrowLeft size={19} color={Skoun.color.ink} />
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => { Keyboard.dismiss(); skipQuestion(); }}
+                          style={({ pressed }) => [s.mobileSkip, pressed && s.softHover]}
+                        >
+                          <Text style={s.secondaryText}>Skip</Text>
+                        </Pressable>
+                      </>
+                    )}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={editingStep != null ? "Save changes" : "Continue"}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        if (editingStep != null) saveEdit();
+                        else continueConversation();
+                      }}
+                      style={({ pressed }) => [s.primary, s.mobileContinue, pressed && s.primaryHover]}
+                    >
+                      <Text style={s.mobileContinueText}>
+                        {editingStep != null ? "Save changes" : "Continue"}
+                      </Text>
+                      {editingStep != null
+                        ? <Check size={17} color="white" />
+                        : <ArrowRight size={17} color="white" />}
+                    </Pressable>
+                  </View>
+                  {locationKeyboardOpen ? null : editingStep != null ? (
+                    <Text style={s.mobileFooterHint}>Your other answers stay as they are.</Text>
+                  ) : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Show what I have so far"
+                      onPress={() => apply(composer)}
+                      style={({ pressed }) => [s.mobilePartial, pressed && s.softHover]}
+                    >
+                      <Text style={s.partialText}>See matches so far</Text>
+                      <ArrowUpRight size={13} color={Skoun.color.inkMuted} />
+                    </Pressable>
+                  )}
+                </>
+              ) : (
                 <>
                 <View style={s.footerBand}>
                   <View style={wideFooter ? s.footerRail : s.footerRailStack}>
@@ -1514,7 +1924,7 @@ function MatcherSession({
             </View>
           </KeyboardAvoidingView>
         </Animated.View>
-      </View>
+      </SafeAreaListener>
     </Modal>
   );
 }
