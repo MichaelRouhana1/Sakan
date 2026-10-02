@@ -34,7 +34,20 @@
     -webkit-font-smoothing: antialiased;
     position: relative;
     color-scheme: light;
-    overflow: visible;
+  }
+
+  /*
+   * Class is hoisted onto <html> (AdminNeuShell). Do not set overflow:visible
+   * here — that fights body/#root scroll and Expo's viewport clip, so the desk
+   * cannot scroll. Lock the document; main is the scroller.
+   */
+  html.skoun-admin,
+  html.skoun-admin body,
+  html.skoun-admin #root,
+  html.skoun-admin #root > div {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .skoun-admin[data-theme="dark"] {

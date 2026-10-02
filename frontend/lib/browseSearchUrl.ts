@@ -69,3 +69,6 @@ export function parseCsvParam(value: string | string[] | undefined): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+
+/** Full browse state codec used by both Explore renderers, including guided preferences. */
+export { parseBrowseState, serializeBrowseState } from "@/features/matcher/browseState";

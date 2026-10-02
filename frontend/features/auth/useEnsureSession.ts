@@ -36,7 +36,7 @@ export async function switchToRole(role: UserRole): Promise<User> {
   return data.data;
 }
 
-/** Open listing wizard — resumes local main checkpoint if one exists. */
+/** Open listing wizard — resumes this account's main draft if one exists. */
 export function openCreateListing(router: Pick<Router, "push">): void {
   router.push({
     pathname: "/(poster)/create",

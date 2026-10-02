@@ -2,7 +2,7 @@ import { Router } from "express";
 import { optionalAuth, requireAuth } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { listingsController } from "./listings.controller.js";
-import { createListingSchema } from "./listings.schemas.js";
+import { createListingSchema, updateListingSchema } from "./listings.schemas.js";
 import { listingPhotoUpload } from "./photos.storage.js";
 import { walkingRouteRateLimit } from "../../middleware/rate-limit.js";
 import { walkingRoutesController } from "../walking-routes/walking-routes.controller.js";
@@ -31,6 +31,18 @@ listingsRouter.get("/mine", requireAuth, (req, res, next) =>
 
 listingsRouter.get("/mine/analytics", requireAuth, (req, res, next) =>
   listingsController.mineAnalytics(req, res, next),
+);
+
+listingsRouter.get("/drafts", requireAuth, (req, res, next) =>
+  listingsController.listDrafts(req, res, next),
+);
+
+listingsRouter.put("/drafts/:slot", requireAuth, (req, res, next) =>
+  listingsController.saveDraft(req, res, next),
+);
+
+listingsRouter.delete("/drafts/:slot", requireAuth, (req, res, next) =>
+  listingsController.deleteDraft(req, res, next),
 );
 
 listingsRouter.get("/home-popular", (req, res, next) =>
@@ -82,6 +94,13 @@ listingsRouter.post(
 
 listingsRouter.get("/:id", (req, res, next) =>
   listingsController.getById(req, res, next),
+);
+
+listingsRouter.patch(
+  "/:id",
+  requireAuth,
+  validate(updateListingSchema),
+  (req, res, next) => listingsController.update(req, res, next),
 );
 
 listingsRouter.post(

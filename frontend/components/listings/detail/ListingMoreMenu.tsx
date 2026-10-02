@@ -10,6 +10,7 @@ export function ListingMoreMenu({
   reported,
   onShare,
   onReport,
+  canReport = true,
 }: ListingMoreMenuProps) {
   const [open, setOpen] = useState(false);
 
@@ -31,7 +32,7 @@ export function ListingMoreMenu({
               color={Skoun.color.ink}
             />
           </Pressable>
-          {reported ? null : (
+          {reported || !canReport ? null : (
             <Pressable
               onPress={() => {
                 onReport();

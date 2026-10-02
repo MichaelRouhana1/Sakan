@@ -3,6 +3,7 @@ import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
 import { SelectableCard } from "@/components/listings/create/SelectableCard";
+import { LockedCluster } from "@/components/listings/create/LockedCluster";
 import { StepperControl } from "@/components/listings/create/StepperControl";
 import {
   WizardFieldLabel,
@@ -30,6 +31,15 @@ export function CreateStepSpecs() {
 
   return (
     <View style={{ gap: 8 }}>
+      <LockedCluster
+        fields={[
+          "bedrooms",
+          "beds",
+          "bathrooms",
+          "maxOccupancy",
+          "floorNumber",
+        ]}
+      >
       <Enter>
         <StepperControl
           label="Bedrooms"
@@ -74,6 +84,7 @@ export function CreateStepSpecs() {
           format={floorLabel}
         />
       </Enter>
+      </LockedCluster>
       <Enter delay={80}>
         <WizardFieldLabel required style={{ marginTop: 12 }}>
           Furnishing
@@ -86,6 +97,7 @@ export function CreateStepSpecs() {
           onChange={(v) => patch({ furnishingType: v as FurnishingType })}
         />
       </Enter>
+      <LockedCluster fields={["areaSqm"]}>
       <Enter delay={140}>
         <LText variant="subtitle" style={{ marginTop: 12 }}>
           Size (m²)
@@ -100,6 +112,7 @@ export function CreateStepSpecs() {
           style={wizardInputStyle()}
         />
       </Enter>
+      </LockedCluster>
       <Enter delay={180}>
         <SelectableCard
           selected={draft.hasElevator}

@@ -1,6 +1,6 @@
 import type { ListingSort } from "@/components/listings/ListingSortControl";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
-import type { BrowseFiltersValue } from "@/components/listings/BrowseFiltersPanel";
+import type { BrowseFiltersValue } from "@/lib/browseFiltersValue";
 import type { ListingListFilters } from "@/features/listings/keys";
 
 /** Shared filter → API param mapping for browse (native + web). */
@@ -25,6 +25,7 @@ export function toListFilters(
         : undefined,
     q: browse.q?.trim() ? browse.q.trim() : undefined,
     campusId: browse.campusId ?? undefined,
+    radiusKm: browse.radiusKm ?? undefined,
   };
   const areas = browse.areas.length > 0 ? browse.areas : undefined;
 

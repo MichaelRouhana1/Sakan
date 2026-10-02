@@ -387,8 +387,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     ...(Platform.OS === "web"
       ? ({
-          clipPath: "inset(0)",
-          WebkitClipPath: "inset(0)",
+          clipPath: "inset(-2px 0px -2px 0px)",
+          WebkitClipPath: "inset(-2px 0px -2px 0px)",
         } as ViewStyle)
       : null),
   },

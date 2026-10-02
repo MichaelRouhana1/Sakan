@@ -6,6 +6,17 @@ Housing is the **monetization engine** (landlords, owners, agents pay to list). 
 
 > **Do not rebuild** buying, renting, listing, browse, maps, credits, hosting, or admin. Treat `FEATURES.md` as the housing inventory. This file is only the new Campus surface and the data it needs.
 
+**Current vs this roadmap (Sep 2026 — code wins):** Campus is a third shell, not a future placeholder. Web shell + calculator + holiday calendar + benefits catalog are live; the university directory is not.
+
+| Tool | Status in code |
+|------|----------------|
+| Shell + Housing ↔ Campus switch | **Built (web)** — `CampusShell`, `CampusTopNav`, `ProductSwitchControl`, `/campus`. Native `app/campus/_layout.tsx` skips the shell/footer. |
+| Persist last product | Helper `lib/skounProduct.ts` **writes** on switch; `getSkounProduct` is unused (restore not confirmed). |
+| Tuition calculator | **Built** for seeded unis — `/campus/calculator`, `/api/campus/*`. |
+| Academic calendar | **Holidays only** (`lebanonHolidays.ts`, 2026–2027). No per-uni registration / add-drop / exams, no ICS. |
+| Student benefits | **Built** — catalog + detail + signed-in `/api/benefits/:id/redemption`. No partner “list your offer” form, no admin CMS. |
+| Universities directory | **Not built.** Campus home card `live: false`. No `/campus/universities/[slug]`. |
+
 ---
 
 ## 1. Product thesis
@@ -37,7 +48,7 @@ Skoun already has Housing (renter) and Hosting (poster). Campus is a **third she
 |-------|-----|-------|--------|
 | Housing | Students + general renters | `/`, Find, listing detail | Built |
 | Hosting | Landlords / agents | “Become a host” / “Switch to hosting” | Built |
-| Campus | Students (even when not hunting housing) | Header **Campus** button | **To build** |
+| Campus | Students (even when not hunting housing) | Header **Campus** button | **Built (web)**; native campus routes skip `CampusShell`. Directory still not built. |
 
 ---
 
@@ -122,6 +133,8 @@ Analytics instrumentation (events, not a full growth program) starts in Phase 0 
 
 ## 4. Phase 0 — Campus shell
 
+**Status in code:** built on web (`CampusShell` + header switch). Native campus routes skip the shell. Last-product restore is write-only. Analytics events listed below are **not** instrumented.
+
 **Goal:** Students can leave Housing, land on a Campus home, and come back. Empty states are OK. No fake tools.
 
 ### Features
@@ -150,6 +163,8 @@ Visual redesign of Housing. Campus may look different (more editorial / director
 ---
 
 ## 5. Phase 1 — Tuition & study-cost calculator *(start here)*
+
+**Status in code:** built for seeded universities (AUB, LAU, USJ, …) with housing-stats CTA and shareable query params. Compare-two-programs is not built.
 
 **Goal:** A student can answer “what will this major actually cost me at this university?” for a semester and a year, in USD, with a breakdown they can screenshot or share.
 
@@ -258,6 +273,8 @@ Until a CMS exists: edit seeds, re-run seed. Track `academic_year`. When a uni p
 
 ## 6. Phase 2 — University & campus information system
 
+**Status in code:** **not built.** Campus home Universities card is `live: false`. No `/campus/universities/[slug]` pages.
+
 **Goal:** Skoun is the place you look up “where is the library / which faculty is on this campus / what majors exist” for private universities in Lebanon. This is also the **SEO foundation** (one indexable page per university, then per campus).
 
 Reuse Phase 1 tables. Expand entities. Housing already has institution + campus gate coordinates — that is the map skeleton, not the encyclopedia.
@@ -343,6 +360,8 @@ Each university page: unique title/description, slug already on `institutions`, 
 
 ## 7. Phase 3 — Academic calendar
 
+**Status in code:** national holidays only (`lebanonHolidays.ts`, 2026–2027). No per-uni dates, no ICS.
+
 **Goal:** “When does fall start at LAU?” / “is Monday a holiday?” — a reason to open Skoun in September, December, and April.
 
 ### Features
@@ -383,6 +402,8 @@ Event `type` examples: `holiday`, `registration`, `term_start`, `term_end`, `add
 ---
 
 ## 8. Phase 4 — Student benefits
+
+**Status in code:** catalog + detail + signed-in redemption API. No partner inquiry form, no admin CMS.
 
 **Goal:** Discounts, student plans, and useful subscriptions. This is partnership-led. Build the **catalog product** before promising 50 brands.
 
@@ -640,4 +661,4 @@ Lagging indicators (Campus helps the marketplace):
 | Admin `/admin/universities` | Extend into academic CMS |
 | `FindBrowseSeo` | Pattern for calculator + uni FAQ |
 
-Housing marketplace = done. Campus = new product beside it, starting with the shell and the **tuition calculator**.
+Housing marketplace = in production. Campus shell + calculator + holiday calendar + benefits catalog are live; the university directory is the remaining Campus home card.

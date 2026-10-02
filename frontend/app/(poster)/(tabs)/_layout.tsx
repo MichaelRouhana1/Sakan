@@ -1,11 +1,5 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { DynamicColorIOS, Platform } from "react-native";
-import {
-  Icon,
-  Label,
-  NativeTabs,
-  VectorIcon,
-} from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { Lister } from "@/constants/listerTheme";
 
 const tint =
@@ -16,6 +10,11 @@ const tint =
       })
     : Lister.color.primary;
 
+/**
+ * SDK 55+ uses NativeTabs.Trigger.Label / .Icon (standalone Label/Icon
+ * imports are ignored, which showed raw route names like "index").
+ * Glyphs match the desktop host side nav: house, chart, wallet.
+ */
 export default function PosterTabsLayout() {
   return (
     <NativeTabs
@@ -25,17 +24,24 @@ export default function PosterTabsLayout() {
       disableTransparentOnScrollEdge
     >
       <NativeTabs.Trigger name="index">
-        <Label>Listings</Label>
-        <Icon
+        <NativeTabs.Trigger.Label>Listings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
           sf={{ default: "house", selected: "house.fill" }}
-          androidSrc={<VectorIcon family={Ionicons} name="home-outline" />}
+          md="home"
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="analytics">
+        <NativeTabs.Trigger.Label>Analytics</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "chart.bar", selected: "chart.bar.fill" }}
+          md="bar_chart"
         />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="credits">
-        <Label>Credits</Label>
-        <Icon
-          sf={{ default: "sparkles", selected: "sparkles" }}
-          androidSrc={<VectorIcon family={Ionicons} name="sparkles-outline" />}
+        <NativeTabs.Trigger.Label>Credits</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "wallet.pass", selected: "wallet.pass.fill" }}
+          md="account_balance_wallet"
         />
       </NativeTabs.Trigger>
     </NativeTabs>

@@ -4,7 +4,7 @@ import { HostAnalyticsPage } from "@/components/web/host/HostAnalyticsPage";
 
 export default function HostAnalyticsRoute() {
   if (Platform.OS !== "web") {
-    return <Redirect href="/(poster)/(tabs)" />;
+    return <Redirect href="/(poster)/(tabs)/analytics" />;
   }
   return <HostAnalyticsPage />;
 }

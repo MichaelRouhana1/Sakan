@@ -1,7 +1,9 @@
 # Skoun — Features & Components Inventory
 
 > Snapshot of what exists in the codebase (Expo frontend + Express backend).  
-> Product: Lebanon rental classifieds matchmaking (Sakan / Skoun).
+> Product: Lebanon rental classifieds matchmaking. **Skoun** is the product name; **Sakan** is the legacy / working title (GitHub repo `MichaelRouhana1/Sakan`).
+>
+> **Docs vs code:** Field inventory and wizard steps must match `createListingSchema` + `listingWizard.ts`; when in doubt, code wins.
 
 ---
 
@@ -31,7 +33,7 @@
 |--------|--------|--------|
 | Cities vs University Hub mode | Done | `SearchModeToggle`, renter `index.tsx` |
 | Multi-area / multi-campus filters panel | Done | `BrowseFiltersPanel.tsx`, renter Search |
-| Property filters (type, rent, utilities, students, gender) | Done | panel + `listListingsQuerySchema` / list repo |
+| Property filters (type, rent, utilities, students, gender, `q`, geo radius) | Done | panel + `listListingsQuerySchema` / list repo |
 | Sort (newest / lowest price) | Done (Cities) | `ListingSortControl` |
 | List ↔ map toggle | Done | `BrowseViewToggle` |
 | Renter browse map (pins, campus, walking route + distance) | Done | `ListingBrowseMap` (+ `.web`); public walking-route GET is 90 req / 15 min per IP |
@@ -51,7 +53,7 @@
 | View count recording | Done | `POST /api/listings/:id/view`, `useRecordListingView` |
 | Save / unsave shortlist | Done (synced) | saved module + `useSavedListings` |
 | WhatsApp deep-link helper | Done | `lib/whatsapp.ts` |
-| WhatsApp CTA with poster phone | Stub (phone null) | listing detail `getPosterPhone` |
+| WhatsApp / call CTA with poster phone | Done | `ListingDetailBottomBar`, `ListingDetailWeb` — `whatsappNumber` / `contactPhone` from `contactNumbers`; fallback “WhatsApp soon” only when both empty |
 | Report listing | Done | Quiet text + `ReportListingSheet`; `POST /api/reports` |
 
 ### Renter — saved
@@ -64,15 +66,17 @@
 ### Poster — create & manage
 | Feature | Status | Where |
 |--------|--------|--------|
-| Multi-step create wizard | Done | `(poster)/(tabs)/create.tsx` |
-| Audience / type / rent / utilities | Done | create flow |
-| Map pin + landmarks + GPS | Done | `LocationPicker` (+ `.web`) |
-| Photo picker (1–8) + upload | Done | `PhotoPickerGrid`, `uploadListingPhotos`, `POST …/photos` |
-| Poster dashboard (mine, views, expiry) | Done | `(poster)/(tabs)/index.tsx` |
-| Own listing detail + share | Done | `(poster)/listing/[id].tsx` |
-| Boost listing | Stub (“coming soon”) | poster listing detail |
-| Credit spend on publish | Done | 1 free live listing; 2nd+ needs post credit; free-slot replacements capped/mo |
-| Utility legal disclaimer (full PRD) | Done | create utilities step — shown when 24/7 generator, solar, or 24/7 elevator is claimed |
+| 10-step create wizard | Done | `(poster)/create.tsx` — type → location → specs → utilities → rules → photos → pricing → copy → contact → review (`listingWizard.ts`) |
+| Space / property / price basis | Done | `CreateStepType`; `listingType` derived, not a primary picker |
+| Audience, gender, house rules | Done | `CreateStepRules` — `anyone` / `students_only` / `students_professionals` |
+| Map pin + landmarks + GPS | Done | `LocationPicker` (+ `.web`); `locationWkt` required |
+| Photo picker (3–15) + upload | Done | `PhotoPickerGrid.shared` `MIN_LISTING_PHOTOS` / `MAX_LISTING_PHOTOS`; `POST …/photos` |
+| Poster dashboard (mine, views, expiry) | Done | `(poster)/(tabs)/index.tsx`, `/hosting` |
+| Own listing detail + share / archive | Done | `(poster)/listing/[id].tsx` |
+| Edit a live listing | Done | `PATCH /api/listings/:id` owner-only, no post credit. Sectioned host drawer on `/hosting/listing?edit=:id` (old `/hosting/listing/:id/edit` redirects there; native `/(poster)/edit/[id]`), same fields as create, not the 10-step wizard. Hard fields only for 24h after `publishedAt`, then `409 STRUCTURAL_FIELDS_LOCKED`. Pin jitter ≤ 25m (`STRUCTURAL_PIN_MAX_METERS`). |
+| Boost listing | Stub | Boost *credits* can be bought. No `POST …/boost`; no host spend CTA. Browse sorts `boostedUntil` first. |
+| Credit spend on publish | Done | 1 free live listing; 2nd+ needs post credit; free-slot replacements capped/mo (`listings.service`) |
+| Utility legal disclaimer (full PRD) | Done | Create utilities step, and again on live edit when a 24/7 generator, solar, or 24/7 elevator claim is newly turned on |
 | Post-expiry outcome / renew / archive | Done | Owner route `/hosting/listing/:id/outcome`; lifecycle events; one-credit renewal |
 | Expiry notification preferences | Done | Host dashboard + `/api/users/me/notification-preferences` |
 
@@ -89,7 +93,7 @@
 | Whish Pay checkout | Done | `POST /api/credits/purchase` returns `checkoutUrl`; live API or local mock |
 | Auto-grant on verified payment | Done | Whish callbacks + `POST /api/credits/:referenceId/confirm` |
 | Admin approve/reject APIs | Done | `/api/admin/transactions/*` (Clerk staff or `x-admin-key`; leftover pending only) |
-| Admin console UI | Done (web Phase 2) | `/admin` — payments, reports inbox, listing review, users/listings search |
+| Admin console UI | Partial | `/admin` neu desks exist and nav marks `live: true`, but most still read `mockStore`. Institution Registry wired; `/admin/expired` live. Payments `GET /api/admin/transactions` exists, UI unwired. |
 | Payment reminders / push | N/A | Replaced by Whish hosted checkout |
 
 ### Universities & distance
@@ -98,6 +102,15 @@
 | Universities API + seed | Done | `universities` module + seeds |
 | PostGIS distance sort (Hub) | Done | `listings.repository.ts` |
 | Format distance for UI | Done | `lib/formatDistance.ts` |
+
+### Campus
+| Feature | Status | Where |
+|--------|--------|--------|
+| Shell + Housing ↔ Campus switch | Done (web) | `CampusShell`, `CampusTopNav`; native `app/campus/_layout.tsx` skips shell |
+| Tuition calculator | Done | `/campus/calculator`, `/api/campus/*` |
+| Academic calendar | Holidays only | `lebanonHolidays.ts` (2026–2027); no per-uni ICS |
+| Student benefits | Catalog + redemption | `/campus/benefits`, `/api/benefits` |
+| Universities directory | Not built | Campus home card `live: false`; no `/campus/universities/[slug]` |
 
 ### Platform / infra
 | Feature | Status | Where |
@@ -127,19 +140,31 @@
 
 ### Poster
 - `/(poster)/(tabs)/` — Dashboard
-- `/(poster)/(tabs)/create` — New listing
+- `/(poster)/create` — New listing (10-step wizard; not a tab)
 - `/(poster)/(tabs)/credits` — Buy credits
 - `/(poster)/listing/[id]` — Own listing detail
+- `/hosting` — Web host dashboard
+- `/hosting/credits` — Buy credits
+- `/hosting/analytics` — Host analytics
+- `/hosting/listing/:id/outcome` — Post-expiry outcome / renew
+- `/hosting/listing/:id/analytics` — Per-listing analytics
+
+### Campus (web shell; native routes exist without `CampusShell`)
+- `/campus` — Campus home
+- `/campus/calculator` — Tuition calculator
+- `/campus/calendar` — National holidays
+- `/campus/benefits`, `/campus/benefits/[id]` — Offers + redemption
+- Universities directory — **not built**
 
 ### Admin (web)
-- `/admin` — KPI home (payments + open-reports queues)
-- `/admin/payments` — Inbox + history
-- `/admin/reports` — Grouped open-report inbox
-- `/admin/listings` — Search + archive/remove
-- `/admin/listings/[id]` — Listing review (dismiss / archive / remove / restrict / ban)
-- `/admin/users` — Search + restrict / unrestrict / ban
-- `/admin/universities` — Institution Registry (demo)
-- `/admin/zoning` — Geographic Zoning (demo)
+- `/admin` — KPI home (payments + open-reports queues; overview API exists, home still mock-shaped)
+- `/admin/payments` — Inbox + history (**UI mock**; `GET /api/admin/transactions` exists)
+- `/admin/reports` — Grouped open-report inbox (**mockStore**)
+- `/admin/listings` — Search + archive/remove (**mockStore**; admin listing APIs exist)
+- `/admin/users` — Search + restrict / unrestrict / ban (**mockStore**; `PATCH /api/admin/users/:id/status` exists)
+- `/admin/universities` — Institution Registry (**wired** to `/api/admin/institutions` + campuses)
+- `/admin/expired` — Expiry follow-up (**live**)
+- `/admin/trust`, `/admin/communication`, `/admin/pricing`, `/admin/analytics`, `/admin/zoning`, `/admin/security`, `/admin/conversion` — neu UI, **mockStore** / demo
 
 ### Misc
 - `+not-found`
@@ -164,7 +189,7 @@
 | `SkounMapPin` | Custom map pin (listing / campus variants) |
 | `LocationPicker` | Poster pin drop, landmarks, GPS (native) |
 | `LocationPicker.web` | Same for web + `StaticPinMap` |
-| `PhotoPickerGrid` | Draft photo grid (max 8) |
+| `PhotoPickerGrid` | Draft photo grid (3–15) |
 | `ListingGallery` | Detail photo gallery |
 | `ReportListingSheet` | Quiet report reasons bottom sheet |
 | `UtilityBadges` | Electricity / water / Wi‑Fi / elevator badges |
@@ -274,6 +299,7 @@
 | `areaCoordinates.ts` | Area centroids |
 | `landmarks.ts` | Neighborhood landmarks |
 | `utilities.ts` | Utility enum ↔ copy |
+| `listingWizard.ts` | Create-wizard steps, amenity/highlight options, photo caption presets |
 | `bundles.ts` | Credit pack definitions |
 
 ### `types/`
@@ -292,16 +318,30 @@
 | PATCH | `/me/role` | Switch renter ↔ poster |
 | PATCH | `/me/campus` | Set study / property campus |
 | PATCH | `/me/gender` | Set gender (locked after first set) |
+| PATCH | `/me/identity` | Sync name / email / phone from Clerk |
+| GET/PATCH | `/me/notification-preferences` | Expiry push/email prefs |
+| POST/DELETE | `/me/push-tokens` | Expo push token register / remove |
 
 ### Listings — `/api/listings`
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/` | Browse (area(s), university slug(s), sort) |
+| GET | `/` | Browse (`areas`, `universitySlugs` / `campusId`, `q`, lat/lng/`radiusKm`, electricity, water, wifi, listingTypes, rent, studentsOnly, genderRestrictions, sort) |
 | GET | `/mine` | Poster’s listings |
+| GET | `/mine/analytics` | Host dashboard totals |
+| GET | `/home-popular` | Home rail |
+| GET | `/price-guide` | Auth; guidance only (no charge) |
 | GET | `/:id` | Detail |
-| POST | `/` | Create (auth poster) |
+| POST | `/` | Create (auth; publish spend in service) |
+| PATCH | `/:id` | Owner live edit. No credit. Soft fields anytime. Hard fields (`spaceType`, `propertyType`, `listingType`, `targetAudience`, `genderRestriction`, beds/baths/occupancy/floor/`areaSqm`, `area`, pin, landmark, address, building, `primaryCampusId`) only while `now < publishedAt + 24h`; otherwise `409 STRUCTURAL_FIELDS_LOCKED`. Pin moves ≤ 25m are not a hard change. |
 | POST | `/:id/view` | Record view |
-| POST | `/photos` | Upload images |
+| POST | `/photos` | Upload images (max 15) |
+| GET | `/:id/nearby` | Nearby listings |
+| GET | `/:id/walking-route` | Cached walking polyline |
+| GET | `/:id/analytics` | Owner listing analytics |
+| GET/POST | `/:id/expiry-decision` | Owner expiry outcome |
+| POST | `/:id/renew` | One-credit 30-day renew |
+| POST | `/:id/archive` | Owner archive |
+| POST | `/copy-suggest` | Title/description suggestions |
 
 ### Saved — `/api/saved`
 | Method | Path | Notes |
@@ -347,16 +387,35 @@
 | POST | `/reports/listings/:listingId/dismiss` | `adminNote` required |
 | GET | `/listings?q=&status=` | Search (limit 50) |
 | GET | `/listings/:id` | Photos, reports, poster |
+| GET | `/listings/:id/audit` | `listing.update` field-edit events, newest first (limit 50) |
 | POST | `/listings/:id/archive` | Active → archived |
 | POST | `/listings/:id/remove` | `adminNote` required; no refund |
 | POST | `/listings/:id/restore` | Archived → active only |
+| GET | `/expiry-followups` | Expiry admin inbox |
+| POST | `/expiry-followups/:id/contacted` | Staff marked contacted |
 | GET | `/users?q=` | Search (limit 50) |
 | PATCH | `/users/:id/status` | `active` / `restricted` / `banned`; ban removes live listings |
+| GET | `/audit` | `admin_audit_events` (staff actions; listing field edits also live here as `listing.update`) |
+| GET | `/catalog` | Credit bundle catalog |
 | GET/POST/PATCH | `/institutions`, `/campuses` | University catalog |
+
+### Campus — `/api/campus`
+| Method | Path | Notes |
+|--------|------|--------|
+| GET | `/institutions` | Directory wrapper |
+| GET | `/programs/:id/costs` | Computed tuition breakdown |
+| GET | `/campuses/:slug/housing-stats` | Live listing stats near campus |
+
+### Benefits — `/api/benefits`
+| Method | Path | Notes |
+|--------|------|--------|
+| GET | `/` | Offer catalog (redemption nulled if anonymous) |
+| GET | `/:id` | Offer detail |
+| GET | `/:id/redemption` | Signed-in redemption payload |
 
 ### Other
 - `GET /health`
-- Job: archive expired listings
+- Job: `npm run job:listing-lifecycle` (hourly; `job:archive-expired` is an alias)
 
 ---
 
@@ -365,22 +424,24 @@
 | Module | Responsibility |
 |--------|----------------|
 | `users` | Register, me, free credit on poster signup |
-| `listings` | CRUD-ish browse/create, photos, views, archive |
+| `listings` | Browse/create/photos/views/archive/renew/expiry/analytics — **no host PATCH**; `recordListingUpdateAudit` exported for it |
 | `saved` | Account shortlist |
 | `reports` | Listing integrity reports + review status |
 | `universities` | Campus catalog + meta |
 | `credits` | Purchase / reference lookup |
-| `admin` | Payments, reports, listings, users, university catalog |
+| `admin` | Payments, reports, listings, users, university catalog, expiry follow-ups, audit |
+| `campus` | Institutions, program costs, housing-stats |
+| `benefits` | Student offer catalog + redemption |
 
 ### Schema tables
 - `users`
-- `listings` + `listing_photos`
+- `listings` + `listing_photos` (`lookingForRoommate` is a DB column only — not in create wizard/schema)
 - `universities`
 - `credit_transactions`
-- `admin_audit_events`
+- `admin_audit_events` (staff actions + `listing.update` field edits; `listing_lifecycle_events` remain renew/expiry/outcome only)
 - `saved_listings`
 - `listing_reports`
-- Enums: roles, listing types, utilities, statuses, report reasons, report review status, etc.
+- Enums: roles, listing types, space/property/price basis, utilities, statuses, report reasons, report review status, etc.
 
 ---
 
@@ -390,20 +451,20 @@
 - **Maps:** Mapbox Standard (`@rnmapbox/maps` native, needs a **dev client**; Mapbox GL JS on web). University mode draws cached walking Directions polylines (straight dashed line if Directions fail).  
 - **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
 - **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
-- **Monetization today:** Whish Pay checkout (live or local mock); credits grant on verified payment; publish does not spend credits; boost UI stubbed
-- **Admin:** web `/admin` (Clerk staff) + `x-admin-key` for scripts; reports/listings/users + payments inbox  
+- **Monetization today:** Whish Pay checkout (live or local mock); credits grant on verified payment; publish spends a post credit for a 2nd+ live listing (first concurrent live slot is free); boost *purchase* exists, boost *spend* stubbed  
+- **Admin:** web `/admin` (Clerk staff) + `x-admin-key` for scripts; Institution Registry + expiry inbox live; most other neu desks still `mockStore` despite `live: true`  
 
 ---
 
 ## Explicitly not built (PRD out of scope or backlog)
 
 - In-app chat  
-- Roommate Finder (removed from product; legacy DB tables may remain)  
+- Roommate Finder (removed from product; `lookingForRoommate` column unused by create; legacy DB tables may remain)  
 - Card payment gateways  
 - Real OTP/JWT — N/A; auth is Clerk JWT (email/OAuth), not phone OTP  
-- Working WhatsApp contact (phone exposure)  
+- Host `PATCH /api/listings/:id` / edit live listing UI (audit writer + admin Change history are Partial; PATCH is still Missing)  
 - Report auto-restrict / broker flagging (reports store only)  
-- Admin Phase 2+ (reports queue, user restrict, listing takedown, campus map UI)  
-- Boost spend  
-- Renew / day-25 notifications  
+- Admin desks wired to Postgres (except Institution Registry and expiry follow-up)  
+- Boost spend (`POST …/boost`)  
+- Listing reviews (`demoListingRating()` in `normalizeListing.ts` still hashes fake scores)  
 - Arabic / RTL  

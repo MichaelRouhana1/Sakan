@@ -7,9 +7,22 @@ export const HOST_CREDITS_PATH = "/hosting/credits";
 /** Public web URL for host portfolio analytics. */
 export const HOST_ANALYTICS_PATH = "/hosting/analytics";
 
+/** Native poster tab for host portfolio analytics. */
+export const POSTER_ANALYTICS_TAB = "/(poster)/(tabs)/analytics";
+
 /** Public web URL for one listing's analytics. */
 export function hostListingAnalyticsPath(id: string) {
   return `/hosting/listing/${id}/analytics`;
+}
+
+/** Native stack screen for one listing's analytics. */
+export function posterListingAnalyticsPath(id: string) {
+  return `/(poster)/analytics/${id}`;
+}
+
+/** Opens the live-edit drawer on the host listings page. */
+export function hostListingEditPath(id: string) {
+  return `${HOST_LISTINGS_PATH}?edit=${encodeURIComponent(id)}`;
 }
 
 export type HostNavSection = "listings" | "analytics" | "credits";

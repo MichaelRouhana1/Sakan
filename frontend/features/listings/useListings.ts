@@ -47,7 +47,7 @@ export function useListings(
         params.lat = String(filters.lat);
         params.lng = String(filters.lng);
         params.radiusKm = String(filters.radiusKm ?? 2);
-      } else if (filters.radiusKm != null && filters.campusId) {
+      } else if (filters.radiusKm != null && (filters.campusId || filters.universitySlugs?.length)) {
         params.radiusKm = String(filters.radiusKm);
       }
       // Cities mode only — ignored by API when universitySlugs / campusId present.

@@ -1,6 +1,7 @@
 import { TextInput, View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
+import { LockedCluster } from "@/components/listings/create/LockedCluster";
 import { LocationPicker } from "@/components/listings/LocationPicker";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
 import { WizardCampusSearch } from "@/components/listings/create/WizardCampusSearch";
@@ -50,6 +51,16 @@ export function CreateStepLocation() {
       : null;
 
   return (
+    <LockedCluster
+      fields={[
+        "area",
+        "pin",
+        "landmark",
+        "addressLine",
+        "buildingName",
+        "primaryCampusId",
+      ]}
+    >
     <View style={{ gap: 16 }}>
       <Enter>
         <WizardFieldLabel required>Area</WizardFieldLabel>
@@ -124,5 +135,6 @@ export function CreateStepLocation() {
         ) : null}
       </Enter>
     </View>
+    </LockedCluster>
   );
 }

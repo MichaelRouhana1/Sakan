@@ -27,7 +27,10 @@ import {
 } from "@/components/web/host/hostListingStatus";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { appleTabScrollInset } from "@/components/ui/Glass";
-import { HOST_ANALYTICS_PATH } from "@/constants/hostRoutes";
+import {
+  HOST_ANALYTICS_PATH,
+  POSTER_ANALYTICS_TAB,
+} from "@/constants/hostRoutes";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import type { HostAnalyticsListing } from "@/features/listings/hostAnalytics";
@@ -73,8 +76,11 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
   const canViewPublic =
     data != null && data.status !== "archived" && data.status !== "removed";
 
+  const analyticsHome =
+    Platform.OS === "web" ? HOST_ANALYTICS_PATH : POSTER_ANALYTICS_TAB;
+
   function goOverview() {
-    router.push(HOST_ANALYTICS_PATH as never);
+    router.push(analyticsHome as never);
   }
 
   function openPublicListing() {
@@ -226,7 +232,7 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
     >
       <View style={[styles.page, compact && styles.pageCompact]}>
         <View style={styles.backRow}>
-          <Link href={HOST_ANALYTICS_PATH as never} asChild>
+          <Link href={analyticsHome as never} asChild>
             <Pressable
               onPress={goOverview}
               accessibilityRole="link"

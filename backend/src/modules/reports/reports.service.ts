@@ -19,7 +19,11 @@ export class ReportsService {
     role: "renter" | "poster",
     listingId: string,
   ) {
-    this.assertRenter(role);
+    // Hosts cannot file reports. The listing page still asks this after
+    // publish (role flips renter → poster); answer no instead of 403.
+    if (role !== "renter") {
+      return { reported: false };
+    }
     return {
       reported: await reportsRepository.hasReported(userId, listingId),
     };

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { api } from "@/lib/api";
 import { reportKeys } from "./keys";
 
@@ -26,10 +27,11 @@ async function fetchIsReported(listingId: string): Promise<boolean> {
 }
 
 export function useIsReported(listingId: string) {
+  const { session, isLoading } = useAuthSession();
   return useQuery({
     queryKey: reportKeys.one(listingId),
     queryFn: () => fetchIsReported(listingId),
-    enabled: Boolean(listingId),
+    enabled: Boolean(listingId) && !isLoading && session?.role !== "poster",
   });
 }
 

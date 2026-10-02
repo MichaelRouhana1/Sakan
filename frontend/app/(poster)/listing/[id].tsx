@@ -17,6 +17,7 @@ import { UtilityPills } from "@/components/lister/UtilityPills";
 import { ListingGallery } from "@/components/listings/ListingGallery";
 import { NearLandmark } from "@/components/listings/NearLandmark";
 import { Lister } from "@/constants/listerTheme";
+import { openListingEdit } from "@/features/listings/edit/openListingEdit";
 import { useListing } from "@/features/listings/useListing";
 import { useArchiveListing } from "@/features/listings/useArchiveListing";
 import { formatFreshUsd } from "@/lib/format";
@@ -172,6 +173,12 @@ export default function PosterListingDetailScreen() {
               Actions
             </LText>
             <View style={styles.actions}>
+              {listing.status === "active" ? (
+                <LButton
+                  label="Edit listing"
+                  onPress={() => openListingEdit(router, listing.id)}
+                />
+              ) : null}
               <LButton
                 label="Share listing"
                 variant="secondary"

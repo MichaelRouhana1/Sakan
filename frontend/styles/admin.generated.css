@@ -29,7 +29,21 @@
   -webkit-font-smoothing: antialiased;
   position: relative;
   color-scheme: light;
-  overflow: visible;
+}
+
+/*
+   * Class is hoisted onto <html> (AdminNeuShell). Do not set overflow:visible
+   * here — that fights body/#root scroll and Expo's viewport clip, so the desk
+   * cannot scroll. Lock the document; main is the scroller.
+   */
+
+html.skoun-admin,
+  html.skoun-admin body,
+  html.skoun-admin #root,
+  html.skoun-admin #root > div {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .skoun-admin[data-theme="dark"] {
@@ -555,6 +569,10 @@
   height: 100%;
 }
 
+.skoun-admin .max-h-48{
+  max-height: 12rem;
+}
+
 .skoun-admin .max-h-56{
   max-height: 14rem;
 }
@@ -573,10 +591,6 @@
 
 .skoun-admin .min-h-0{
   min-height: 0px;
-}
-
-.skoun-admin .min-h-\[100dvh\]{
-  min-height: 100dvh;
 }
 
 .skoun-admin .min-h-\[200px\]{
@@ -838,6 +852,10 @@
   resize: both;
 }
 
+.skoun-admin .list-none{
+  list-style-type: none;
+}
+
 .skoun-admin .grid-cols-1{
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -975,6 +993,12 @@
   row-gap: 0.25rem;
 }
 
+.skoun-admin :is(.space-y-1 > :not([hidden]) ~ :not([hidden])){
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
+}
+
 .skoun-admin :is(.space-y-1\.5 > :not([hidden]) ~ :not([hidden])){
   --tw-space-y-reverse: 0;
   margin-top: calc(0.375rem * calc(1 - var(--tw-space-y-reverse)));
@@ -1015,6 +1039,10 @@
   align-self: flex-start;
 }
 
+.skoun-admin .overflow-auto{
+  overflow: auto;
+}
+
 .skoun-admin .overflow-hidden{
   overflow: hidden;
 }
@@ -1047,6 +1075,14 @@
 
 .skoun-admin .whitespace-nowrap{
   white-space: nowrap;
+}
+
+.skoun-admin .whitespace-pre-wrap{
+  white-space: pre-wrap;
+}
+
+.skoun-admin .break-all{
+  word-break: break-all;
 }
 
 .skoun-admin .rounded{
@@ -1674,6 +1710,12 @@
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
+.skoun-admin .transition-colors{
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
 .skoun-admin .transition-opacity{
   transition-property: opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -1690,6 +1732,10 @@
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+.skoun-admin .duration-200{
+  transition-duration: 200ms;
 }
 
 .skoun-admin .duration-panel{
@@ -1832,6 +1878,12 @@
 
 .skoun-admin .disabled\:opacity-60:disabled{
   opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .skoun-admin .motion-reduce\:transition-none{
+    transition-property: none;
+  }
 }
 
 @media (min-width: 640px){
@@ -2116,4 +2168,8 @@
   .skoun-admin .xl\:justify-between{
     justify-content: space-between;
   }
+}
+
+.skoun-admin .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker{
+  display: none;
 }

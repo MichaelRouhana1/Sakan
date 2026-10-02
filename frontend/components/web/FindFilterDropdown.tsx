@@ -238,6 +238,7 @@ export function BudgetRangeControl({
                   border: 2px solid #ffffff;
                   box-shadow: 0 1px 4px rgba(18, 24, 38, 0.28);
                   cursor: pointer;
+                  pointer-events: auto;
                 }
                 input[data-skoun-range]::-moz-range-thumb {
                   width: 16px;
@@ -247,6 +248,7 @@ export function BudgetRangeControl({
                   border: 2px solid #ffffff;
                   box-shadow: 0 1px 4px rgba(18, 24, 38, 0.28);
                   cursor: pointer;
+                  pointer-events: auto;
                 }
               `,
             },
@@ -267,10 +269,11 @@ export function BudgetRangeControl({
             max: RENT_MAX,
             step: RENT_STEP,
             value: lo,
-            "data-skoun-range": "true",
+            "data-skoun-range": "low",
+            "aria-label": "Minimum budget",
             onChange: (e: { target: { value: string } }) =>
               commit(Number(e.target.value), hi),
-            style: webRangeStyle("low"),
+            style: webRangeStyle("low", lo, hi),
           })}
           {createElement("input", {
             type: "range",
@@ -278,10 +281,11 @@ export function BudgetRangeControl({
             max: RENT_MAX,
             step: RENT_STEP,
             value: hi,
-            "data-skoun-range": "true",
+            "data-skoun-range": "high",
+            "aria-label": "Maximum budget",
             onChange: (e: { target: { value: string } }) =>
               commit(lo, Number(e.target.value)),
-            style: webRangeStyle("high"),
+            style: webRangeStyle("high", lo, hi),
           })}
         </View>
       ) : null}
@@ -321,7 +325,20 @@ export function BudgetRangeControl({
   );
 }
 
-function webRangeStyle(layer: "low" | "high"): Record<string, string | number> {
+function webRangeStyle(
+  layer: "low" | "high",
+  lo: number,
+  hi: number,
+): Record<string, string | number> {
+  // Each input only covers its own half of the track, plus a little past the
+  // midpoint so the 16px thumb is never sliced. Without this, the max input
+  // sits on top of the whole track and the min thumb cannot be dragged.
+  const mid = (lo + hi) / 2 / (RENT_MAX - RENT_MIN);
+  const clip =
+    layer === "low"
+      ? `inset(-12px calc(${(1 - mid) * 100}% - 18px) -12px -12px)`
+      : `inset(-12px -12px -12px calc(${mid * 100}% - 18px))`;
+  const close = hi - lo <= 300;
   return {
     position: "absolute",
     left: 0,
@@ -330,8 +347,10 @@ function webRangeStyle(layer: "low" | "high"): Record<string, string | number> {
     height: 28,
     margin: 0,
     background: "transparent",
-    pointerEvents: "auto",
-    zIndex: layer === "high" ? 2 : 1,
+    pointerEvents: "none",
+    zIndex: layer === "low" ? (close ? 4 : 2) : 3,
+    clipPath: clip,
+    WebkitClipPath: clip,
     accentColor: Skoun.color.primary,
     WebkitAppearance: "none",
     appearance: "none",

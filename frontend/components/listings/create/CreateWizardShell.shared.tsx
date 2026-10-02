@@ -232,7 +232,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
             <View
               ref={scrollContentRef}
               collapsable={false}
-              style={[styles.rightInner, review && isWeb && sharedStyles.reviewInner]}
+              style={review && isWeb ? sharedStyles.reviewInner : styles.rightInner}
             >
               {form}
             </View>
@@ -295,10 +295,12 @@ export function CreateWizardShellWithArt({
 const sharedStyles = StyleSheet.create({
   reviewArt: { width: "30%", maxWidth: 700, justifyContent: "center" },
   reviewInner: {
+    width: "100%",
     maxWidth: "100%",
     paddingLeft: 48,
-    paddingRight: 96,
+    paddingRight: 20,
     paddingTop: 24,
+    paddingBottom: 64,
   },
   mobileChrome: {
     backgroundColor: "transparent",

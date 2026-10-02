@@ -29,11 +29,13 @@ Living checklist for setup, integrations, and product work.
 
 ## Product backlog
 
-- [ ] WhatsApp contact — expose poster phone on listing detail
-- [ ] Boost spend (credits UI exists; spend path stubbed)
-- [ ] Report auto-restrict / broker flagging
-- [x] Admin web UI (Phase 0–1: payments inbox + KPI home; stubs for reports/users/listings/unis)
-- [ ] Renew / day-25 listing notifications
+- [x] WhatsApp contact — listing detail uses `whatsappNumber` / `contactPhone` (`ListingDetailBottomBar`, `ListingDetailWeb`, `lib/whatsapp.ts`)
+- [ ] Boost spend (credits can be bought; no `POST …/boost` that sets `boostedUntil`)
+- [ ] Report auto-restrict / broker flagging (reports store only; admin Reports UI is mock)
+- [x] Admin web UI (neu desks exist). Mostly `mockStore` despite `live: true`. Wired: Institution Registry; `/admin/expired`. Payments API exists, UI unwired. Not “Phase 2 complete.”
+- [x] Renew / day-25 listing notifications (`POST /api/listings/:id/renew`; hourly `job:listing-lifecycle` Expo Push + optional Resend)
+- [ ] Host PATCH / edit a live listing (`PATCH /api/listings/:id` absent; host/admin edit dialogs mock or view-only)
+- [ ] Hide or replace fake `demoListingRating()` in `normalizeListing.ts`
 - [ ] Arabic / RTL
 - [ ] In-app chat (out of scope for v1 — track if priority changes)
 

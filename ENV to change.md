@@ -58,9 +58,9 @@ EAS project `@rouhanamichael/skoun` already exists. Push tokens only register fr
 | `MAPBOX_ACCESS_TOKEN` | (optional locally) Mapbox secret `sk.` or URL-restricted `pk.` for Directions | Required in production so walking routes persist; never `EXPO_PUBLIC_*`. Client `EXPO_PUBLIC_MAPBOX_*` is tiles/GL only |
 | `TRUST_PROXY` | unset | `1` when the API sits behind nginx/Caddy so walking-route rate limits key by client IP (do not set `true`) |
 | `EXPO_ACCESS_TOKEN` | Optional unless Expo enhanced push security is enabled | EAS/Expo server access token when enhanced push security is enabled (expo.dev → Access tokens). Used by the [hourly listing-lifecycle job](#hetzner--vps-cron); leave blank for early testing. See [Before real push notifications](#before-real-push-notifications). |
-| `RESEND_API_KEY` | Optional; email delivery is skipped when absent | Resend server key for the [listing-lifecycle job](#hetzner--vps-cron). Unset skips email; the rest of the job still runs. Set this in the [before-production checklist](#before-real-push-notifications) before hourly cron. |
-| `EMAIL_FROM` | Optional locally | Verified Resend sender, such as `Skoun <listings@yourdomain.com>`. Required with `RESEND_API_KEY` for the [hourly job](#hetzner--vps-cron) to send mail |
-| `ADMIN_NOTIFICATION_EMAILS` | Optional comma-separated list | Staff inboxes that receive expiry follow-ups from the [hourly job](#hetzner--vps-cron) |
+| `RESEND_API_KEY` | Optional; email delivery is skipped when absent | Resend server key for the [listing-lifecycle job](#hetzner--vps-cron). Unset skips email; the rest of the job still runs. Set this in the [before-production checklist](#before-real-push-notifications) before hourly cron. Local send checks: [docs/resend.md](docs/resend.md). |
+| `EMAIL_FROM` | Optional locally | Verified Resend sender, such as `Skoun <listings@yourdomain.com>` (tests: `Skoun <onboarding@resend.dev>`). Required with `RESEND_API_KEY` for the [hourly job](#hetzner--vps-cron) to send mail. [docs/resend.md](docs/resend.md) |
+| `ADMIN_NOTIFICATION_EMAILS` | Optional comma-separated list | Staff inboxes that receive expiry follow-ups from the [hourly job](#hetzner--vps-cron). [docs/resend.md](docs/resend.md) |
 
 ---
 

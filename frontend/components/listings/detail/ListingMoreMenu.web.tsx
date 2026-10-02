@@ -63,6 +63,7 @@ export function ListingMoreMenu({
   reported,
   onShare,
   onReport,
+  canReport = true,
 }: ListingMoreMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -134,7 +135,7 @@ export function ListingMoreMenu({
           </RoundBtn>
         </Liquid.Item>
 
-        {reported ? null : (
+        {reported || !canReport ? null : (
           <Liquid.Item
             x={open ? OFFSET : 0}
             y={open ? 52 : 0}

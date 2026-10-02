@@ -54,6 +54,20 @@ export default function PosterLayout() {
           animation: "slide_from_right",
         }}
       />
+      <Stack.Screen
+        name="analytics/[id]"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
+      <Stack.Screen
+        name="edit/[id]"
+        options={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
     </Stack>
   );
 }

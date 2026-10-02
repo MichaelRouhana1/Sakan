@@ -178,6 +178,7 @@ export function FindFiltersDialog({
       return;
     }
     onApply({
+      radiusKm: applied.radiusKm,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,

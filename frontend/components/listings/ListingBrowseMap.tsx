@@ -59,9 +59,11 @@ import {
 } from "@/lib/nativeMapCamera";
 import {
   OFFSCREEN_BEACON_SIZE,
+  offscreenBeaconRect,
   offscreenEdgeBeacon,
   projectOnRegion,
   sameOffscreenBeacon,
+  type AvoidRect,
   type OffscreenBeacon,
 } from "@/lib/offscreenBeacon";
 import { rentPriceTypeCompact } from "@/lib/rentPriceType";
@@ -429,6 +431,9 @@ export function ListingBrowseMap({
   const [campusBeacon, setCampusBeacon] = useState<OffscreenBeacon | null>(
     null,
   );
+  const [listingBeacon, setListingBeacon] = useState<OffscreenBeacon | null>(
+    null,
+  );
 
   const visibleFeatures = useMemo((): VisibleMapFeature[] => {
     // Keep Supercluster while carousel open. Forcing all leaves + mass thaw
@@ -572,8 +577,18 @@ export function ListingBrowseMap({
     : null;
   const beaconCampusRef = useRef(beaconCampus);
   beaconCampusRef.current = beaconCampus;
+  const selectedListingRef = useRef(selectedListing);
+  selectedListingRef.current = selectedListing;
   const universityModeRef = useRef(universityMode);
   universityModeRef.current = universityMode;
+  /** Pixels of map covered by the carousel, so the listing beacon stays in view. */
+  const listingCoverRef = useRef(0);
+  listingCoverRef.current =
+    fillContainer && sheet.kind === "carousel"
+      ? mapCarouselOverlayHeight(shellSize.width || mapWidthPx) +
+        Math.max(insets.bottom, 12) +
+        20
+      : 0;
 
   const walkingRoute = useWalkingRoute({
     enabled: Boolean(universityMode && selectedListing && focusCampus),
@@ -675,28 +690,71 @@ export function ListingBrowseMap({
     animateRegion(mapRef.current, region, durationMs);
   }
 
-  function applyCampusBeacon(region: MapRegion, width: number, height: number) {
-    const campus = beaconCampusRef.current;
-    if (!universityModeRef.current || !campus || width < 40 || height < 40) {
-      setCampusBeacon((prev) => (prev ? null : prev));
-      return;
-    }
-    const pt = projectOnRegion(campus, region, { width, height });
-    const next = offscreenEdgeBeacon(pt, { width, height }, {
+  function applyEdgeBeacons(region: MapRegion, width: number, height: number) {
+    const chromeAvoid: AvoidRect[] = [
+      { left: width - 62, top: 0, right: width, bottom: 58 },
+    ];
+    const beaconOpts = {
       size: OFFSCREEN_BEACON_SIZE,
       hideInset: 16,
       pad: { top: 16, left: 14, bottom: 24, right: 14 },
-      avoid: [{ left: width - 62, top: 0, right: width, bottom: 58 }],
-    });
-    setCampusBeacon((prev) => (sameOffscreenBeacon(prev, next) ? prev : next));
+    };
+
+    let campusNext: OffscreenBeacon | null = null;
+    const campus = beaconCampusRef.current;
+    if (!universityModeRef.current || !campus || width < 40 || height < 40) {
+      setCampusBeacon((prev) => (prev ? null : prev));
+    } else {
+      const pt = projectOnRegion(campus, region, { width, height });
+      campusNext = offscreenEdgeBeacon(pt, { width, height }, {
+        ...beaconOpts,
+        avoid: chromeAvoid,
+      });
+      setCampusBeacon((prev) =>
+        sameOffscreenBeacon(prev, campusNext) ? prev : campusNext,
+      );
+    }
+
+    const listing = selectedListingRef.current;
+    if (
+      !listing ||
+      listing.lat == null ||
+      listing.lng == null ||
+      width < 40 ||
+      height < 40
+    ) {
+      setListingBeacon((prev) => (prev ? null : prev));
+      return;
+    }
+    const cover = listingCoverRef.current;
+    const viewH = Math.max(height - cover, 1);
+    const listingPt = projectOnRegion(
+      { lat: listing.lat, lng: listing.lng },
+      region,
+      { width, height },
+    );
+    const listingNext = offscreenEdgeBeacon(
+      listingPt,
+      { width, height: viewH },
+      {
+        ...beaconOpts,
+        avoid: campusNext
+          ? [...chromeAvoid, offscreenBeaconRect(campusNext)]
+          : chromeAvoid,
+      },
+    );
+    setListingBeacon((prev) =>
+      sameOffscreenBeacon(prev, listingNext) ? prev : listingNext,
+    );
   }
 
   useEffect(() => {
     if (!mapRegion) {
       setCampusBeacon(null);
+      setListingBeacon(null);
       return;
     }
-    applyCampusBeacon(
+    applyEdgeBeacons(
       mapRegion,
       shellSize.width || mapWidthPx,
       shellSize.height || mapHeightPx,
@@ -707,6 +765,10 @@ export function ListingBrowseMap({
     shellSize.height,
     universityMode,
     beaconCampus,
+    selectedListing,
+    fillContainer,
+    sheet.kind,
+    insets.bottom,
     mapWidthPx,
     mapHeightPx,
   ]);
@@ -1136,7 +1198,7 @@ export function ListingBrowseMap({
               latitudeDelta: region.latitudeDelta,
               longitudeDelta: region.longitudeDelta,
             };
-            applyCampusBeacon(
+            applyEdgeBeacons(
               next,
               shellSize.width || mapWidthPx,
               shellSize.height || mapHeightPx,
@@ -1378,6 +1440,40 @@ export function ListingBrowseMap({
                   ...current,
                   latitude: beaconCampus.lat,
                   longitude: beaconCampus.lng,
+                },
+                reduceMotion ? 0 : 500,
+              );
+            }}
+          />
+        ) : null}
+        {listingBeacon && selectedListing ? (
+          <CampusOffscreenArrow
+            tone="danger"
+            x={listingBeacon.x}
+            y={listingBeacon.y}
+            angleDeg={listingBeacon.angleDeg}
+            accessibilityLabel={
+              selectedListing.title
+                ? `Show ${selectedListing.title} on the map`
+                : "Show selected listing on the map"
+            }
+            onPress={() => {
+              const current = mapRegion;
+              const listing = selectedListing;
+              if (!current || listing.lat == null || listing.lng == null) {
+                return;
+              }
+              const height = shellSize.height || mapHeightPx;
+              const cover = listingCoverRef.current;
+              const shift =
+                height > 0
+                  ? (cover / (2 * height)) * current.latitudeDelta
+                  : 0;
+              scheduleAnim(
+                {
+                  ...current,
+                  latitude: listing.lat - shift,
+                  longitude: listing.lng,
                 },
                 reduceMotion ? 0 : 500,
               );

@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
@@ -22,6 +23,10 @@ export function WebProfileMenu({
   const { isSignedIn, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const anchorRef = useRef<View>(null);
+  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(
+    null,
+  );
 
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
@@ -41,8 +46,33 @@ export function WebProfileMenu({
   };
 
   const handleProfileTriggerClick = () => {
-    setMenuOpen((prev) => !prev);
+    setMenuOpen((prev) => {
+      const next = !prev;
+      if (next && Platform.OS === "web") {
+        const node = anchorRef.current as unknown as HTMLElement | null;
+        const rect = node?.getBoundingClientRect();
+        if (rect) {
+          setAnchor({
+            top: rect.bottom + 8,
+            right: Math.max(8, window.innerWidth - rect.right),
+          });
+        }
+      }
+      return next;
+    });
   };
+
+  useEffect(() => {
+    if (!menuOpen || Platform.OS !== "web") return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMenuOpen(false);
+    }
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [menuOpen]);
 
   const handleLogoutClick = async () => {
     setMenuOpen(false);
@@ -60,7 +90,7 @@ export function WebProfileMenu({
 
   return (
     <>
-      <View style={styles.wrap}>
+      <View ref={anchorRef} style={styles.wrap}>
         {showLoginButton && !isSignedIn ? (
           <Pressable
             onPress={handleLoginClick}
@@ -90,13 +120,10 @@ export function WebProfileMenu({
         </Pressable>
 
         {menuOpen ? (
-          <>
-            <Pressable
-              style={styles.backdrop}
-              onPress={() => setMenuOpen(false)}
-            />
-
-            <View style={styles.dropdown}>
+          <ProfileMenuLayer
+            anchor={anchor}
+            onClose={() => setMenuOpen(false)}
+          >
               {!isSignedIn ? (
                 <Pressable
                   style={({ pressed }) => [
@@ -186,8 +213,7 @@ export function WebProfileMenu({
                   </Pressable>
                 </>
               ) : null}
-            </View>
-          </>
+          </ProfileMenuLayer>
         ) : null}
       </View>
 
@@ -198,6 +224,40 @@ export function WebProfileMenu({
       />
     </>
   );
+}
+
+function ProfileMenuLayer({
+  anchor,
+  onClose,
+  children,
+}: {
+  anchor: { top: number; right: number } | null;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const menu = (
+    <>
+      <Pressable
+        accessibilityLabel="Close menu"
+        style={styles.backdrop}
+        onPress={onClose}
+      />
+      <View
+        style={[
+          styles.dropdown,
+          anchor ? styles.dropdownFixed : null,
+          anchor ? { top: anchor.top, right: anchor.right } : null,
+        ]}
+      >
+        {children}
+      </View>
+    </>
+  );
+
+  if (Platform.OS === "web" && typeof document !== "undefined" && anchor) {
+    return createPortal(menu, document.body);
+  }
+  return menu;
 }
 
 const styles = StyleSheet.create({
@@ -268,6 +328,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     zIndex: 100,
     boxShadow: "0 6px 16px rgba(0, 0, 0, 0.12)",
+  },
+  dropdownFixed: {
+    position: "fixed" as unknown as "absolute",
   },
   banner: {
     backgroundColor: "#F1F5F9",

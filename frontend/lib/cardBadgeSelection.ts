@@ -1,5 +1,8 @@
 export const GRID_TAG_LIMIT = 6;
 
+/** Matches `cardBadges` `.max(32)` on the listing schema. */
+export const CARD_BADGE_SCHEMA_MAX = 32;
+
 export const CARD_BADGE_FULL_MESSAGE = "Remove a badge before adding another.";
 
 export type CardBadgeDropTarget =
@@ -28,7 +31,7 @@ export function applyCardBadgeDrop(
   return { keys: next, full: false };
 }
 
-/** Keep eligibility, uniqueness and order; preserve an explicitly empty choice. */
+/** Keep eligibility, uniqueness and order; preserve an explicitly empty choice. Does not append missing badges. */
 export function normalizeCardBadgeSelection(
   keys: string[] | null | undefined,
   defaults: string[],
@@ -37,5 +40,28 @@ export function normalizeCardBadgeSelection(
   const allowed = new Set(eligible);
   return [...new Set(keys ?? defaults)]
     .filter((key) => allowed.has(key))
-    .slice(0, GRID_TAG_LIMIT);
+    .slice(0, CARD_BADGE_SCHEMA_MAX);
+}
+
+/**
+ * Wizard order: keep a saved sequence, drop ineligible keys, then append every
+ * other eligible badge. Null or empty uses `defaults` before that append.
+ * Caps at the schema max. Does not mutate the inputs.
+ */
+export function completeCardBadgeOrder(
+  saved: string[] | null | undefined,
+  defaults: string[],
+  eligible: string[],
+  max = CARD_BADGE_SCHEMA_MAX,
+): string[] {
+  const allowed = new Set(eligible);
+  const base = saved == null || saved.length === 0 ? defaults : saved;
+  const ordered = [...new Set(base)].filter((key) => allowed.has(key));
+  const seen = new Set(ordered);
+  for (const key of eligible) {
+    if (seen.has(key)) continue;
+    seen.add(key);
+    ordered.push(key);
+  }
+  return ordered.slice(0, max);
 }

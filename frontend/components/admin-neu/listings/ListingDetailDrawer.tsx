@@ -12,6 +12,7 @@ import { H } from "../h";
 import { ADMIN_MUTED } from "../theme";
 import { NeuIconButton, NeuSurface } from "../NeuPrimitives";
 import { ListingActions } from "./ListingActions";
+import { ListingChangeHistory } from "./ListingChangeHistory";
 import { ListingImageReview } from "./ListingImageReview";
 import { ListingStatusPill } from "./ListingStatusPill";
 import {
@@ -246,6 +247,8 @@ export function ListingDetailDrawer({
                   </H>
                 )}
               </H>
+
+              <ListingChangeHistory listingId={listing.id} />
             </H>
 
             <H className="shrink-0 border-t border-clay-200/70 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

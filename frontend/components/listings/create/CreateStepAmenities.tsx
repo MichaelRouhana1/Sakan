@@ -30,15 +30,16 @@ const ELEC: ElectricityStatus[] = ["generator_24_7", "scheduled_cuts", "solar"];
 const WATER: WaterStatus[] = ["state_well_24_7", "tank_delivery"];
 
 export function CreateStepAmenities() {
-  const { draft, patch, fieldInvalid } = useCreateListingDraft();
+  const { draft, patch, fieldInvalid, formChrome } = useCreateListingDraft();
   const electricityInvalid = fieldInvalid("electricity");
   const windowsInvalid = fieldInvalid("electricityCutWindows");
   const waterInvalid = fieldInvalid("water");
   const showUtilityDisclaimer =
-    draft.electricity === "generator_24_7" ||
-    draft.electricity === "solar" ||
-    draft.hasSolar ||
-    draft.elevator24_7;
+    formChrome !== "edit" &&
+    (draft.electricity === "generator_24_7" ||
+      draft.electricity === "solar" ||
+      draft.hasSolar ||
+      draft.elevator24_7);
 
   const windows: CutWindow[] =
     draft.electricityCutWindows?.length > 0

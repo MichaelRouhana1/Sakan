@@ -65,6 +65,27 @@ test("migration contains append-only cycle history and delivery deduplication", 
   assert.match(sql, /CREATE TABLE IF NOT EXISTS "user_push_tokens"/);
 });
 
+test("owner patch is authenticated and does not spend publish credits", async () => {
+  const { listingsRouter } = await import("../dist/modules/listings/listings.routes.js");
+  const { requireAuth } = await import("../dist/middleware/auth.js");
+  const { StructuralFieldsLockedError } = await import("../dist/lib/errors.js");
+  const patch = listingsRouter.stack.find(
+    (layer) => layer.route?.path === "/:id" && layer.route?.methods?.patch,
+  );
+  assert.ok(patch, "PATCH /:id");
+  assert.equal(patch.route.stack[0].handle, requireAuth);
+  const err = new StructuralFieldsLockedError(["bedrooms", "area"]);
+  assert.equal(err.statusCode, 409);
+  assert.equal(err.code, "STRUCTURAL_FIELDS_LOCKED");
+  assert.match(err.message, /bedrooms/);
+  const service = await readFile(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../src/modules/listings/listings.service.ts"),
+    "utf8",
+  );
+  const updateFn = service.slice(service.indexOf("async update("), service.indexOf("async archive("));
+  assert.doesNotMatch(updateFn, /debitPostCredit|consumePublishSlot/);
+});
+
 test("owner decision routes are authenticated and precede public listing lookup", async () => {
   const { listingsRouter } = await import("../dist/modules/listings/listings.routes.js");
   const { requireAuth } = await import("../dist/middleware/auth.js");
@@ -78,4 +99,26 @@ test("owner decision routes are authenticated and precede public listing lookup"
       assert.equal(layer.route.stack[0].handle, requireAuth, `${routePath} auth`);
     }
   }
+});
+
+test("listing field-edit audit route is registered behind requireAdmin", async () => {
+  const { adminRouter } = await import("../dist/modules/admin/admin.routes.js");
+  const { requireAdmin } = await import("../dist/middleware/auth.js");
+  assert.equal(adminRouter.stack[0].handle, requireAdmin);
+  const matches = adminRouter.stack.filter(
+    (layer) => layer.route?.path === "/listings/:id/audit",
+  );
+  assert.ok(matches.length > 0, "/listings/:id/audit");
+  assert.ok(matches[0].route.methods.get, "GET listing audit");
+});
+
+test("listing update audit migration is journaled", async () => {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const sql = await readFile(
+    path.resolve(here, "../drizzle/0024_listing_update_audit.sql"),
+    "utf8",
+  );
+  assert.match(sql, /ADD VALUE 'poster'/);
+  assert.match(sql, /ADD VALUE 'system'/);
+  assert.match(sql, /actor_user_id/);
 });

@@ -1,3 +1,4 @@
+import type { MatchFacts } from "@/features/matcher/types";
 export type ListingStatus = "draft" | "active" | "archived" | "removed";
 
 export type ListingType =
@@ -95,6 +96,7 @@ export type StandardUnitSpecs = {
 };
 
 export type Listing = {
+  matchFacts?: MatchFacts;
   id: string;
   posterId: string;
   status: ListingStatus;

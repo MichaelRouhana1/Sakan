@@ -9,6 +9,7 @@ import {
 } from "./validators";
 import {
   CREATE_DRAFT_CHECKPOINT_KEY,
+  CREATE_DRAFT_LEGACY_OWNER_KEY,
   CREATE_DRAFT_STORAGE_KEY,
   CREATE_DRAFT_WORKING_KEY,
   INITIAL_DRAFT,
@@ -110,14 +111,83 @@ export function resumeStepFromCheckpoint(checkpoint: DraftCheckpoint): number {
   return preferred;
 }
 
+let activeDraftUserId: string | null = null;
+let draftRevision = 0;
+
+type DraftSyncHooks = {
+  ensure: () => Promise<void>;
+  onWrite: (slot: DraftSlot, checkpoint: DraftCheckpoint) => void;
+  onClear: (slot: DraftSlot) => void;
+  flush: () => Promise<void>;
+};
+
+const draftSyncHooks: DraftSyncHooks = {
+  ensure: async () => {},
+  onWrite: () => {},
+  onClear: () => {},
+  flush: async () => {},
+};
+
+export function setActiveDraftUserId(userId: string | null): void {
+  activeDraftUserId = userId;
+}
+
+export function getActiveDraftUserId(): string | null {
+  return activeDraftUserId;
+}
+
+export function getDraftRevision(): number {
+  return draftRevision;
+}
+
+export function setDraftSyncHooks(next: DraftSyncHooks): void {
+  draftSyncHooks.ensure = next.ensure;
+  draftSyncHooks.onWrite = next.onWrite;
+  draftSyncHooks.onClear = next.onClear;
+  draftSyncHooks.flush = next.flush;
+}
+
+function storageKey(slot: DraftSlot): string {
+  const base =
+    slot === "working" ? CREATE_DRAFT_WORKING_KEY : CREATE_DRAFT_CHECKPOINT_KEY;
+  return activeDraftUserId ? `${base}:${activeDraftUserId}` : base;
+}
+
+function legacyStorageKey(slot: DraftSlot): string {
+  return slot === "working"
+    ? CREATE_DRAFT_WORKING_KEY
+    : CREATE_DRAFT_CHECKPOINT_KEY;
+}
+
 export async function readCheckpoint(): Promise<DraftCheckpoint | null> {
-  const raw = await AsyncStorage.getItem(CREATE_DRAFT_CHECKPOINT_KEY);
+  await draftSyncHooks.ensure();
+  return readVisibleDraftSlot("main");
+}
+
+async function readVisibleDraftSlot(
+  slot: DraftSlot,
+): Promise<DraftCheckpoint | null> {
+  const saved = await readLocalDraftSlot(slot);
+  if (saved || !activeDraftUserId) return saved;
+  const owner = await AsyncStorage.getItem(CREATE_DRAFT_LEGACY_OWNER_KEY);
+  if (owner && owner !== activeDraftUserId) return null;
+  return readLegacyDraftSlot(slot);
+}
+
+/** Device copy for the signed-in account. Does not talk to the server. */
+export async function readLocalDraftSlot(
+  slot: DraftSlot,
+): Promise<DraftCheckpoint | null> {
+  const key = storageKey(slot);
+  const raw = await AsyncStorage.getItem(key);
   if (raw) {
     try {
       return parseCheckpointJson(raw);
     } catch {
-      /* fall through to legacy migration */
+      if (slot !== "main" || activeDraftUserId) return null;
     }
+  } else if (slot !== "main" || activeDraftUserId) {
+    return null;
   }
 
   const legacy = await AsyncStorage.getItem(CREATE_DRAFT_STORAGE_KEY);
@@ -140,6 +210,60 @@ export async function readCheckpoint(): Promise<DraftCheckpoint | null> {
   }
 }
 
+/** Pre-account drafts saved on this device before checkpoints were scoped. */
+export async function readLegacyDraftSlot(
+  slot: DraftSlot,
+): Promise<DraftCheckpoint | null> {
+  const raw = await AsyncStorage.getItem(legacyStorageKey(slot));
+  if (raw) {
+    try {
+      return parseCheckpointJson(raw);
+    } catch {
+      if (slot !== "main") return null;
+    }
+  } else if (slot !== "main") {
+    return null;
+  }
+
+  const legacy = await AsyncStorage.getItem(CREATE_DRAFT_STORAGE_KEY);
+  if (!legacy) return null;
+  try {
+    const parsed = JSON.parse(legacy) as CreateListingDraft;
+    const draft = hydrateDraft(parsed);
+    const committedStep = draft.step > 0 ? Math.max(-1, draft.step - 1) : -1;
+    return {
+      committedStep,
+      draft,
+      savedAt: "1970-01-01T00:00:00.000Z",
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function storeDraftSlot(
+  slot: DraftSlot,
+  checkpoint: DraftCheckpoint | null,
+  options?: { notify?: boolean; bump?: boolean },
+): Promise<void> {
+  const notify = options?.notify !== false;
+  const bump = options?.bump !== false;
+  if (bump) draftRevision += 1;
+
+  if (!checkpoint) {
+    await AsyncStorage.removeItem(storageKey(slot));
+    if (slot === "working") setWorkingCheckpointCache(null);
+    else setCheckpointCache(null);
+    if (notify) draftSyncHooks.onClear(slot);
+    return;
+  }
+
+  await AsyncStorage.setItem(storageKey(slot), JSON.stringify(checkpoint));
+  if (slot === "working") setWorkingCheckpointCache(checkpoint);
+  else setCheckpointCache(checkpoint);
+  if (notify) draftSyncHooks.onWrite(slot, checkpoint);
+}
+
 function parseCheckpointJson(raw: string): DraftCheckpoint {
   const parsed = JSON.parse(raw) as DraftCheckpoint;
   return {
@@ -154,13 +278,8 @@ function parseCheckpointJson(raw: string): DraftCheckpoint {
 }
 
 export async function readWorkingCheckpoint(): Promise<DraftCheckpoint | null> {
-  const raw = await AsyncStorage.getItem(CREATE_DRAFT_WORKING_KEY);
-  if (!raw) return null;
-  try {
-    return parseCheckpointJson(raw);
-  } catch {
-    return null;
-  }
+  await draftSyncHooks.ensure();
+  return readVisibleDraftSlot("working");
 }
 
 async function writeCheckpointToSlot(
@@ -169,20 +288,13 @@ async function writeCheckpointToSlot(
   committedStep: number,
   savedStep?: number,
 ): Promise<DraftCheckpoint> {
-  const storageKey =
-    slot === "working" ? CREATE_DRAFT_WORKING_KEY : CREATE_DRAFT_CHECKPOINT_KEY;
   const checkpoint: DraftCheckpoint = {
     committedStep,
     draft: persistable(draft),
     savedAt: new Date().toISOString(),
     ...(savedStep !== undefined ? { savedStep } : {}),
   };
-  await AsyncStorage.setItem(storageKey, JSON.stringify(checkpoint));
-  if (slot === "working") {
-    setWorkingCheckpointCache(checkpoint);
-  } else {
-    setCheckpointCache(checkpoint);
-  }
+  await storeDraftSlot(slot, checkpoint);
   return checkpoint;
 }
 
@@ -250,16 +362,16 @@ export async function parkWorkingDraftBeforeFresh(): Promise<FreshStartPlan> {
 }
 
 export async function clearWorkingCheckpoint(): Promise<void> {
-  await AsyncStorage.removeItem(CREATE_DRAFT_WORKING_KEY);
-  setWorkingCheckpointCache(null);
+  await storeDraftSlot("working", null);
+  await draftSyncHooks.flush();
 }
 
 export async function clearMainCheckpoint(): Promise<void> {
-  await Promise.all([
-    AsyncStorage.removeItem(CREATE_DRAFT_CHECKPOINT_KEY),
-    AsyncStorage.removeItem(CREATE_DRAFT_STORAGE_KEY),
-  ]);
-  setCheckpointCache(null);
+  await storeDraftSlot("main", null);
+  if (!activeDraftUserId) {
+    await AsyncStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
+  }
+  await draftSyncHooks.flush();
 }
 
 /** Clear only the slot that was just published or discarded. */
@@ -272,13 +384,12 @@ export async function clearDraftSlot(slot: DraftSlot): Promise<void> {
 }
 
 export async function clearAllDraftStorage(): Promise<void> {
-  await Promise.all([
-    AsyncStorage.removeItem(CREATE_DRAFT_CHECKPOINT_KEY),
-    AsyncStorage.removeItem(CREATE_DRAFT_WORKING_KEY),
-    AsyncStorage.removeItem(CREATE_DRAFT_STORAGE_KEY),
-  ]);
-  setCheckpointCache(null);
-  setWorkingCheckpointCache(null);
+  await storeDraftSlot("main", null);
+  await storeDraftSlot("working", null);
+  if (!activeDraftUserId) {
+    await AsyncStorage.removeItem(CREATE_DRAFT_STORAGE_KEY);
+  }
+  await draftSyncHooks.flush();
 }
 
 export function draftHasMeaningfulProgress(

@@ -30,6 +30,10 @@ export const CREATE_DRAFT_CHECKPOINT_KEY = "skoun.createListing.checkpoint.v1";
 
 export const CREATE_DRAFT_WORKING_KEY = "skoun.createListing.working.v1";
 
+/** Which account may claim device drafts saved before account sync. */
+export const CREATE_DRAFT_LEGACY_OWNER_KEY =
+  "skoun.createListing.legacyDraftOwner.v1";
+
 /** Main = resumed primary draft; working = started via + (new listing). */
 export type DraftSlot = "main" | "working";
 

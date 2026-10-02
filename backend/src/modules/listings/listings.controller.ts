@@ -4,10 +4,14 @@ import { listingsService } from "./listings.service.js";
 import {
   listListingsQuerySchema,
   type CreateListingInput,
+  type UpdateListingInput,
 } from "./listings.schemas.js";
 import { publicUrlForUpload } from "./photos.storage.js";
 import { priceGuideQuerySchema } from "./price-guide.js";
 import { listingExpiryService } from "./listing-expiry.service.js";
+import { wizardDraftCheckpointSchema } from "./listing-wizard-drafts.schemas.js";
+import { listingWizardDraftsService } from "./listing-wizard-drafts.service.js";
+import type { WizardDraftSlot } from "../../db/schema/listing-wizard-drafts.js";
 import type {
   ListingExpiryDecisionInput,
   ListingRenewInput,
@@ -96,6 +100,43 @@ export class ListingsController {
     }
   }
 
+  async listDrafts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingWizardDraftsService.list(req.user!.id);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveDraft(req: Request, res: Response, next: NextFunction) {
+    try {
+      const slot = draftSlotParam(req.params.slot);
+      const parsed = wizardDraftCheckpointSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new ValidationError("Invalid listing draft");
+      }
+      const data = await listingWizardDraftsService.save(
+        req.user!.id,
+        slot,
+        parsed.data,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteDraft(req: Request, res: Response, next: NextFunction) {
+    try {
+      const slot = draftSlotParam(req.params.slot);
+      await listingWizardDraftsService.remove(req.user!.id, slot);
+      res.status(204).end();
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async mineAnalytics(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.mineAnalytics(req.user!.id);
@@ -163,6 +204,19 @@ export class ListingsController {
         req.body as CreateListingInput,
       );
       res.status(201).json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.update(
+        req.user!,
+        req.params.id as string,
+        req.body as UpdateListingInput,
+      );
+      res.json({ data });
     } catch (err) {
       next(err);
     }
@@ -244,6 +298,11 @@ export class ListingsController {
       next(err);
     }
   }
+}
+
+function draftSlotParam(value: unknown): WizardDraftSlot {
+  if (value === "main" || value === "working") return value;
+  throw new ValidationError("Draft slot must be main or working");
 }
 
 export const listingsController = new ListingsController();

@@ -9,6 +9,7 @@ import {
   planFreshStart,
   readCheckpoint,
   readWorkingCheckpoint,
+  setActiveDraftUserId,
   writeCheckpoint,
   writeWorkingCheckpoint,
 } from "./createDraftCheckpoint";
@@ -114,8 +115,27 @@ async function assertPublishClearsOnlyActiveSlot() {
   );
 }
 
+async function assertDraftsStayOnTheirAccount() {
+  setActiveDraftUserId("user-a");
+  try {
+    await writeCheckpoint(
+      { ...INITIAL_DRAFT, title: "Account A draft" },
+      1,
+    );
+    setActiveDraftUserId("user-b");
+    const other = await readCheckpoint();
+    assert(other == null, "another account must not see this device draft");
+    setActiveDraftUserId("user-a");
+    const mine = await readCheckpoint();
+    assert(mine?.draft.title === "Account A draft", "owner account keeps its draft");
+  } finally {
+    setActiveDraftUserId(null);
+  }
+}
+
 void (async () => {
   await assertPublishClearsOnlyActiveSlot();
+  await assertDraftsStayOnTheirAccount();
   for (const cardBadges of [["hl-fiber", "power_24", "water_24"], []]) {
     const draft = { ...INITIAL_DRAFT, step: 9, title: "Badge checkpoint", cardBadges };
     await writeCheckpoint(draft, 8, 9);

@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   draftHasMeaningfulProgress,
@@ -7,6 +7,9 @@ import {
   getWorkingCheckpointCache,
   refreshCheckpointCache,
   refreshWorkingCheckpointCache,
+  setActiveDraftUserId,
+  setCheckpointCache,
+  setWorkingCheckpointCache,
 } from "@/features/listings/create/createDraftCheckpoint";
 import type { DraftCheckpoint } from "@/features/listings/create/draft";
 import { useMyListings } from "@/features/listings/useMyListings";
@@ -32,17 +35,35 @@ export function useCreateDraftMeta(): {
   const [loading, setLoading] = useState(
     !getCheckpointCache() && !getWorkingCheckpointCache(),
   );
+  const { session } = useAuthSession();
+  const userId = session?.userId ?? null;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const [ownerId, setOwnerId] = useState(userId);
+  if (ownerId !== userId) {
+    setOwnerId(userId);
+    setCheckpoint(null);
+    setWorkingCheckpoint(null);
+    setCheckpointCache(null);
+    setWorkingCheckpointCache(null);
+  }
 
   const refresh = useCallback(async () => {
+    const requested = userId;
+    setActiveDraftUserId(requested);
     setLoading(true);
-    const [cp, working] = await Promise.all([
-      refreshCheckpointCache(),
-      refreshWorkingCheckpointCache(),
-    ]);
-    setCheckpoint(cp);
-    setWorkingCheckpoint(working);
-    setLoading(false);
-  }, []);
+    try {
+      const [cp, working] = await Promise.all([
+        refreshCheckpointCache(),
+        refreshWorkingCheckpointCache(),
+      ]);
+      if (userIdRef.current !== requested) return;
+      setCheckpoint(cp);
+      setWorkingCheckpoint(working);
+    } finally {
+      if (userIdRef.current === requested) setLoading(false);
+    }
+  }, [userId]);
 
   useFocusEffect(
     useCallback(() => {

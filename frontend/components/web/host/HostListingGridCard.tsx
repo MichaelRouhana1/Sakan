@@ -10,13 +10,14 @@ import type { Listing } from "@/types/listing";
 type Props = {
   listing: Listing;
   onPress?: () => void;
+  onEdit?: () => void;
 };
 
 function listingStatus(listing: Listing) {
   return hostListingStatus(listing);
 }
 
-export function HostListingGridCard({ listing, onPress }: Props) {
+export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
   const cover = resolveMediaUrl(
     listing.coverUrl ?? listing.photos[0]?.url ?? null,
   );
@@ -24,38 +25,53 @@ export function HostListingGridCard({ listing, onPress }: Props) {
   const title = listing.title?.trim() || listing.area;
   const subtitle = `Home in ${listing.area}`;
 
+  const showEdit = Boolean(onEdit) && listing.status === "active";
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-    >
-      <View style={styles.media}>
-        {cover ? (
-          <Image
-            source={{ uri: cover }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={200}
-          />
-        ) : (
-          <View style={styles.placeholder}>
-            <Ionicons name="image-outline" size={22} color={Skoun.color.inkFaint} />
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        onPress={onPress}
+        style={({ pressed }) => [pressed && styles.pressed]}
+      >
+        <View style={styles.media}>
+          {cover ? (
+            <Image
+              source={{ uri: cover }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={200}
+            />
+          ) : (
+            <View style={styles.placeholder}>
+              <Ionicons name="image-outline" size={22} color={Skoun.color.inkFaint} />
+            </View>
+          )}
+          <View style={styles.pillWrap}>
+            <HostStatusPill label={status.label} tone={status.tone} />
           </View>
-        )}
-        <View style={styles.pillWrap}>
-          <HostStatusPill label={status.label} tone={status.tone} />
         </View>
-      </View>
-      <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
-          {subtitle}
-        </Text>
-      </View>
-    </Pressable>
+        <View style={styles.body}>
+          <Text style={styles.title} numberOfLines={2}>
+            {title}
+          </Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
+      </Pressable>
+      {showEdit ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Edit listing"
+          onPress={onEdit}
+          style={styles.editBtn}
+        >
+          <Text style={styles.editText}>Edit</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -99,5 +115,15 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.body,
     fontSize: 13,
     color: Skoun.color.inkMuted,
+  },
+  editBtn: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    cursor: "pointer",
+  },
+  editText: {
+    fontFamily: Skoun.type.bodySemi,
+    fontSize: 13,
+    color: Skoun.color.primary,
   },
 });

@@ -19,7 +19,10 @@ import {
 } from "@/components/web/host/analytics/hostAnalyticsFormat";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
-import { hostListingAnalyticsPath } from "@/constants/hostRoutes";
+import {
+  hostListingAnalyticsPath,
+  posterListingAnalyticsPath,
+} from "@/constants/hostRoutes";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
@@ -43,7 +46,11 @@ export function HostAnalyticsPage() {
   const hasData = data != null;
 
   function openListing(listing: HostAnalyticsListing) {
-    router.push(hostListingAnalyticsPath(listing.id) as never);
+    const href =
+      Platform.OS === "web"
+        ? hostListingAnalyticsPath(listing.id)
+        : posterListingAnalyticsPath(listing.id);
+    router.push(href as never);
   }
 
   return (

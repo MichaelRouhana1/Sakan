@@ -110,12 +110,22 @@ export function AdminNeuShell({ children }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, minHeight: "100%" as unknown as number, overflow: "visible" }}>
+    <View
+      nativeID="skoun-admin-shell"
+      style={
+        {
+          flex: 1,
+          height: "100%",
+          minHeight: 0,
+          overflow: "hidden",
+        } as object
+      }
+    >
       <H
-        className="skoun-admin bg-clay-100 text-clay-900"
+        className="skoun-admin flex h-full min-h-0 flex-col overflow-hidden bg-clay-100 text-clay-900"
         data-theme={theme}
       >
-        <H className="flex min-h-[100dvh]">
+        <H className="flex min-h-0 flex-1">
         {mobileOpen ? (
           <H
             className="admin-scrim fixed inset-0 z-40 lg:hidden"
@@ -161,10 +171,10 @@ export function AdminNeuShell({ children }: Props) {
 
         <H className="hidden w-[248px] shrink-0 lg:block" aria-hidden />
 
-        <H className="flex min-w-0 flex-1 flex-col">
+        <H className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <H
             as="header"
-            className="flex items-center gap-3 px-4 py-4 md:px-6 lg:hidden"
+            className="flex shrink-0 items-center gap-3 px-4 py-4 md:px-6 lg:hidden"
           >
             <NeuIconButton
               ariaLabel="Open navigation"
@@ -179,7 +189,7 @@ export function AdminNeuShell({ children }: Props) {
           </H>
           <H
             as="main"
-            className="relative isolate min-w-0 flex-1 overflow-x-hidden bg-clay-100 px-4 pb-8 pt-2 md:px-6 lg:px-8 lg:pt-8"
+            className="relative isolate min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-clay-100 px-4 pb-8 pt-2 md:px-6 lg:px-8 lg:pt-8"
           >
             <H key={pathname} className="min-h-full">
               {children ?? <Slot />}

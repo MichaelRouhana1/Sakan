@@ -15,6 +15,7 @@ import { useWhishCheckout } from "@/features/credits/useWhishCheckout";
 import { useCredits } from "@/features/credits/useCredits";
 import { formatUsdFromCents } from "@/lib/format";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { HostCreditsAura } from "@/components/web/host/HostCreditsAura";
 import type { CreditBundleType, CreditTransaction } from "@/types/credits";
 import {
   PopularBadge,
@@ -81,7 +82,7 @@ export function HostCreditsPage() {
   const boostCredits = credits.data?.boostCredits ?? user?.boostCredits ?? 0;
 
   return (
-    <View style={styles.page}>
+    <View style={[styles.page, !web && styles.pageNative]}>
       <View style={styles.hero}>
         <Text style={styles.eyebrow}>Credits</Text>
         <Text style={styles.title}>Choose a pack</Text>
@@ -110,7 +111,7 @@ export function HostCreditsPage() {
         />
       ) : null}
 
-      <View style={styles.grid}>
+      <View style={[styles.grid, !web && styles.gridNative]}>
         {CREDIT_BUNDLES.map((item) => {
           const copy = packCopy(item);
           const popular = item.type === POPULAR;
@@ -130,7 +131,7 @@ export function HostCreditsPage() {
               <View style={styles.cardBody}>
                 {popular ? (
                   <View style={styles.badgeWrap}>
-                    <PopularBadge />
+                    <PopularBadge active={!reduceMotion} />
                   </View>
                 ) : (
                   <View style={styles.badgeSpacer} />
@@ -189,7 +190,10 @@ export function HostCreditsPage() {
 
           if (!popular) {
             return (
-              <View key={item.type} style={styles.packSlot}>
+              <View
+                key={item.type}
+                style={[styles.packSlot, !web && styles.packSlotNative]}
+              >
                 {card}
               </View>
             );
@@ -221,7 +225,9 @@ function CardAura({ type }: { type: CreditBundleType }) {
           type === "starter" && styles.orbStarter,
           type === "boost_pack" && styles.orbBoost,
         ]}
-      />
+      >
+        {!web ? <HostCreditsAura starter={type === "starter"} /> : null}
+      </View>
     </View>
   );
 }
@@ -257,6 +263,12 @@ const styles = StyleSheet.create({
     paddingBottom: 72,
     gap: 28,
     ...(web ? { boxSizing: "border-box" as const } : null),
+  },
+  pageNative: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 20,
   },
   hero: {
     alignItems: "center",
@@ -318,6 +330,11 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     justifyContent: "center",
   },
+  gridNative: {
+    flexDirection: "column",
+    width: "100%",
+    alignItems: "stretch",
+  },
   card: {
     flexGrow: 1,
     flexBasis: 280,
@@ -344,6 +361,13 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     minWidth: 260,
     alignSelf: "stretch",
+  },
+  packSlotNative: {
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    flexBasis: "auto",
+    flexGrow: 0,
   },
   cardPopular: {
     overflow: "visible",
@@ -376,7 +400,7 @@ const styles = StyleSheet.create({
   orbStarter: {
     top: -90,
     left: -80,
-    backgroundColor: "rgba(47,111,237,0.08)",
+    backgroundColor: "transparent",
     ...(web
       ? {
           backgroundImage:
@@ -388,7 +412,7 @@ const styles = StyleSheet.create({
   orbBoost: {
     top: -88,
     left: -76,
-    backgroundColor: "rgba(47,111,237,0.08)",
+    backgroundColor: "transparent",
     ...(web
       ? {
           backgroundImage:

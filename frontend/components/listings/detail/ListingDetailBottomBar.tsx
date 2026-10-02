@@ -15,6 +15,7 @@ type Props = {
   posterPhone: string | null;
   reported: boolean;
   onReport: () => void;
+  canReport?: boolean;
 };
 
 export function ListingDetailBottomBar({
@@ -22,6 +23,7 @@ export function ListingDetailBottomBar({
   posterPhone,
   reported,
   onReport,
+  canReport = true,
 }: Props) {
   const insets = useSafeAreaInsets();
   const canContact = hasUsableWhatsAppPhone(posterPhone);
@@ -103,13 +105,13 @@ export function ListingDetailBottomBar({
         </Pressable>
       ) : null}
 
-      {reported ? (
+      {canReport && reported ? (
         <View style={styles.outline}>
           <LText variant="subtitle" style={styles.reportedText}>
             Reported
           </LText>
         </View>
-      ) : (
+      ) : canReport ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Report listing"
@@ -121,7 +123,7 @@ export function ListingDetailBottomBar({
             Report
           </LText>
         </Pressable>
-      )}
+      ) : null}
     </View>
   );
 }

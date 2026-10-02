@@ -180,6 +180,8 @@ export const notificationDeliveryStatusEnum = pgEnum(
 export const adminActorKindEnum = pgEnum("admin_actor_kind", [
   "clerk",
   "api_key",
+  "poster",
+  "system",
 ]);
 
 export const degreeLevelEnum = pgEnum("degree_level", ["bachelor", "master"]);

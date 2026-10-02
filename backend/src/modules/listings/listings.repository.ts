@@ -29,11 +29,16 @@ import {
   deriveContactPhones,
   resolveContactNumbers,
 } from "../../lib/lebanonPhone.js";
+import type { AuditActor } from "../admin/admin.audit.js";
+import { recordListingUpdateAudit } from "./listing-update-audit.js";
+import type { ListingUpdateSnapshot } from "./listing-edit-fields.js";
+import { listingWriteFromInput } from "./listing-update-snapshot.js";
 import type {
   CreateListingInput,
   ListingPhotoDto,
   ListingPropertyFilters,
   ListingSort,
+  UpdateListingInput,
 } from "./listings.schemas.js";
 import { EMPTY_PROPERTY_FILTERS } from "./listings.schemas.js";
 import { priceGuideAggregateQuery, type PriceGuideAggregate, type PriceGuideInput } from "./price-guide.js";
@@ -900,6 +905,119 @@ export class ListingsRepository {
         displayName: shortName ? `${shortName} — ${name}` : name,
         count: Number(row.count ?? 0),
       };
+    });
+  }
+
+  /**
+   * Owner live edit. Does not touch status, publishedAt, expiresAt,
+   * boostedUntil, viewCount, or post credits.
+   * Location is rewritten only inside the structural window.
+   */
+  async updateLive(
+    id: string,
+    input: UpdateListingInput,
+    options: {
+      writeLocation: boolean;
+      audit: {
+        actor: AuditActor;
+        before: ListingUpdateSnapshot;
+        after: ListingUpdateSnapshot;
+        publishedAt: Date | string | null;
+        now: Date;
+      };
+    },
+  ) {
+    const write = listingWriteFromInput(input);
+    const now = options.audit.now;
+    return db.transaction(async (tx) => {
+      await tx
+        .update(listings)
+        .set({
+          listingType: write.listingType,
+          spaceType: write.spaceType,
+          propertyType: write.propertyType,
+          priceBasis: write.priceBasis,
+          targetAudience: write.targetAudience,
+          genderRestriction: write.genderRestriction,
+          monthlyRentUsd: write.monthlyRentUsd,
+          securityDepositUsd: write.securityDepositUsd,
+          leaseTerm: write.leaseTerm,
+          availableFrom: write.availableFrom,
+          paymentModality: write.paymentModality,
+          electricity: write.electricity,
+          electricityCutsStart: write.electricityCutsStart,
+          electricityCutsEnd: write.electricityCutsEnd,
+          electricityHoursOn: write.electricityHoursOn,
+          electricityCutWindows: write.electricityCutWindows,
+          water: write.water,
+          wifiIncluded: write.wifiIncluded,
+          routerUps: write.routerUps,
+          elevator24_7: write.elevator24_7,
+          hasElevator: write.hasElevator,
+          hasSolar: write.hasSolar,
+          generatorAmperes: write.generatorAmperes,
+          generatorIncluded: write.generatorIncluded,
+          conciergeIncluded: write.conciergeIncluded,
+          cookingGasIncluded: write.cookingGasIncluded,
+          amenities: write.amenities,
+          bedrooms: write.bedrooms,
+          beds: write.beds,
+          bathrooms: write.bathrooms,
+          maxOccupancy: write.maxOccupancy,
+          furnishingType: write.furnishingType,
+          floorNumber: write.floorNumber,
+          areaSqm: write.areaSqm,
+          smokingPolicy: write.smokingPolicy,
+          petsPolicy: write.petsPolicy,
+          guestsPolicy: write.guestsPolicy,
+          quietHours: write.quietHours,
+          title: write.title,
+          description: write.description,
+          highlightTags: write.highlightTags,
+          cardBadges: write.cardBadges,
+          listingPosterRole: write.listingPosterRole,
+          contactName: write.contactName,
+          contactPhone: write.contactPhone,
+          whatsappNumber: write.whatsappNumber,
+          contactNumbers: write.contactNumbers,
+          area: write.area,
+          landmark: write.landmark,
+          addressLine: write.addressLine,
+          buildingName: write.buildingName,
+          primaryCampusId: write.primaryCampusId,
+          ...(options.writeLocation
+            ? { location: sql`ST_GeogFromText(${write.locationWkt})` }
+            : {}),
+          updatedAt: now,
+        })
+        .where(eq(listings.id, id));
+
+      await tx.delete(listingPhotos).where(eq(listingPhotos.listingId, id));
+      if (write.photos.length > 0) {
+        await tx.insert(listingPhotos).values(
+          write.photos.map((photo, index) => ({
+            listingId: id,
+            url: photo.url,
+            caption: photo.caption,
+            sortOrder: index,
+          })),
+        );
+      }
+
+      await recordListingUpdateAudit(
+        {
+          actor: options.audit.actor,
+          listingId: id,
+          channel: "host_patch",
+          publishedAt: options.audit.publishedAt,
+          before: options.audit.before,
+          after: options.audit.after,
+          now,
+        },
+        tx,
+      );
+
+      return id;
     });
   }
 
