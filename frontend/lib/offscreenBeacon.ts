@@ -173,6 +173,19 @@ export function offscreenEdgeBeacon(
   };
 }
 
+/** Circle bounds for one beacon, so a second beacon can dodge it. */
+export function offscreenBeaconRect(
+  beacon: OffscreenBeacon,
+  size = OFFSCREEN_BEACON_SIZE,
+): AvoidRect {
+  return {
+    left: beacon.x,
+    top: beacon.y,
+    right: beacon.x + size,
+    bottom: beacon.y + size,
+  };
+}
+
 export function sameOffscreenBeacon(
   a: OffscreenBeacon | null,
   b: OffscreenBeacon | null,

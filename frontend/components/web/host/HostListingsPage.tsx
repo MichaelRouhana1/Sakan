@@ -1,4 +1,5 @@
-import { router, useGlobalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useIsFocused } from "expo-router/react-navigation";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -68,8 +69,12 @@ export function HostListingsPage() {
   );
   const [layout, setLayout] = useState<HostListingsLayout>("grid");
   const [draftModal, setDraftModal] = useState<DraftModalTarget | null>(null);
-  const editParam = useGlobalSearchParams<{ edit?: string | string[] }>().edit;
-  const editId = Platform.OS === "web" ? firstParam(editParam) : "";
+  const focused = useIsFocused();
+  const editParam = useLocalSearchParams<{ edit?: string | string[] }>().edit;
+  // Only the focused listings screen owns the drawer. A stacked copy
+  // reading the global query was mounting a second sheet behind it.
+  const editId =
+    Platform.OS === "web" && focused ? firstParam(editParam) : "";
 
   const showMainDraft =
     checkpoint != null && draftHasMeaningfulProgress(checkpoint);

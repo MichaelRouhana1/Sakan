@@ -9,6 +9,7 @@ import type { MapPinGroup } from "@/lib/mapPinGroups";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import { CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 import { getMapboxStyle, getMapboxToken } from "@/lib/mapboxEnv";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 export type MapboxGL = typeof import("mapbox-gl").default;
 export type { MapboxMap, Marker, Popup };
@@ -944,8 +945,7 @@ export function createAmberPopupHtml(listing: Listing): string {
   const subtitle = escapeHtml(listingCardSubtitle(listing));
   const price = `$${listing.monthlyRentUsd.toLocaleString("en-US")}`;
   const coverUrl =
-    listing.coverUrl ||
-    listing.photos?.[0]?.url ||
+    resolveMediaUrl(listing.coverUrl || listing.photos?.[0]?.url) ||
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80";
   const url = `/listing/${listing.id}`;
 

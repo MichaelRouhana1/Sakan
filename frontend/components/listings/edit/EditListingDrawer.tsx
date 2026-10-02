@@ -12,6 +12,7 @@ import { Lister } from "@/constants/listerTheme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { EditListingProvider } from "@/features/listings/edit/EditListingProvider";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { useHostRailInset } from "@/components/web/hostRailInset";
 
 const PANEL_WIDTH = 480;
 const SLIDE_MS = 280;
@@ -23,6 +24,7 @@ type Props = {
 
 export function EditListingDrawer({ listingId, onClose }: Props) {
   const reduced = useReducedMotion();
+  const railInset = useHostRailInset();
   const { width } = useWindowDimensions();
   const fullBleed = width < 760;
   const shift = fullBleed ? Math.max(width, PANEL_WIDTH) : PANEL_WIDTH;
@@ -50,21 +52,36 @@ export function EditListingDrawer({ listingId, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!portalRoot) return;
     closing.current = false;
+    if (closeTimer.current != null) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, [listingId]);
+
+  useEffect(() => {
+    if (!portalRoot) return;
+    // A close already in flight must not replay the enter animation.
+    // Re-running this effect mid-close was opening a second sheet
+    // behind the one sliding away, then dismissing that one too.
+    if (closing.current) return;
     if (reduced) {
       setOpen(true);
       return;
     }
     setOpen(false);
-    const frame = requestAnimationFrame(() => setOpen(true));
+    const frame = requestAnimationFrame(() => {
+      if (closing.current) return;
+      setOpen(true);
+    });
     return () => cancelAnimationFrame(frame);
   }, [listingId, portalRoot, reduced]);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") beginClose();
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      beginClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -88,7 +105,7 @@ export function EditListingDrawer({ listingId, onClose }: Props) {
   if (!portalRoot) return null;
 
   const sheet = (
-    <View style={styles.root}>
+    <View style={[styles.root, railInset > 0 ? { left: railInset } : null]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Close edit"

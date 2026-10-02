@@ -9,6 +9,7 @@ import { HostTopNav } from "@/components/web/HostTopNav";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useBreakpoint } from "@/lib/breakpoints";
+import { setHostRailInset } from "@/components/web/hostRailInset";
 
 const SIDE_NAV_COLLAPSED_KEY = "skoun.host.sideNavCollapsed";
 
@@ -50,6 +51,12 @@ export function HostWebShell({ children }: Props) {
   useEffect(() => {
     if (desktop) setDrawerOpen(false);
   }, [desktop]);
+
+  useEffect(() => {
+    const next = desktop ? (railCollapsed ? 48 : 228) : 0;
+    setHostRailInset(next);
+    return () => setHostRailInset(0);
+  }, [desktop, railCollapsed]);
 
   function toggleRail() {
     setRailCollapsed((prev) => {
