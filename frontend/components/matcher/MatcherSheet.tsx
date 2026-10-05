@@ -39,6 +39,7 @@ import {
   Minus,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
   SlidersHorizontal,
   Sun,
@@ -58,6 +59,7 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 import {
   campusLocation,
   existingFilterLabels,
+  hasAnswers,
   prefillPreferences,
 } from "@/features/matcher/preferences";
 import {
@@ -955,7 +957,7 @@ function ImportanceNote({
     },
     [],
   );
-  if (!draft[question.key] || question.key === "gender") return null;
+  const hidden = !draft[question.key] || question.key === "gender";
   const selected = draft[question.key]?.importance ?? "prefer";
   const radiusNote =
     question.key === "location" && draft.location?.value.kind === "campus"
@@ -964,8 +966,16 @@ function ImportanceNote({
   const showHint = !canHover || hovered || focused;
   return (
     <View
-      style={[s.importance, mobile && s.mobileImportance]}
-      {...(Platform.OS === "web"
+      style={[
+        s.importance,
+        mobile && s.mobileImportance,
+        hidden && s.importanceReserved,
+      ]}
+      pointerEvents={hidden ? "none" : "auto"}
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
+      {...(hidden && Platform.OS === "web" ? ({ "aria-hidden": true } as object) : {})}
+      {...(!hidden && Platform.OS === "web"
         ? {
             onMouseEnter: () => setHovered(true),
             onMouseLeave: () => {
@@ -1011,12 +1021,14 @@ function ImportanceNote({
                 setFocused(false);
               }, 0);
             }}
-            onPress={() =>
+            onPress={() => {
+              if (hidden || !draft[question.key]) return;
               update({
                 ...draft,
                 [question.key]: { ...draft[question.key], importance },
-              })
-            }
+              });
+            }}
+            {...(hidden ? { tabIndex: -1, focusable: false } : {})}
             style={[
               s.segmentOption,
               mobile && s.mobileImportanceOption,
@@ -1045,6 +1057,41 @@ function ImportanceNote({
       >
         {importanceCopy(peek ?? selected, radiusNote)}
       </Text> : null}
+    </View>
+  );
+}
+
+function FooterSizer({
+  reduced,
+  children,
+}: {
+  reduced: boolean;
+  children: ReactNode;
+}) {
+  const [height, setHeight] = useState<number | null>(null);
+  return (
+    <View
+      style={[
+        { flexShrink: 0 },
+        height != null && { height, overflow: "hidden" },
+        Platform.OS === "web" &&
+          !reduced &&
+          height != null && {
+            transitionProperty: "height",
+            transitionDuration: "200ms",
+            transitionTimingFunction: "ease",
+          },
+      ]}
+    >
+      <View
+        style={{ flexShrink: 0 }}
+        onLayout={(event) => {
+          const next = Math.ceil(event.nativeEvent.layout.height);
+          setHeight((current) => (current === next ? current : next));
+        }}
+      >
+        {children}
+      </View>
     </View>
   );
 }
@@ -1098,11 +1145,13 @@ function MatcherSession({
   const [composer, setComposer] = useState<MatcherPreferences>(() =>
     prefillPreferences(filters, universities.data ?? [], applied),
   );
-  const [step, setStep] = useState(0);
-  const [revealed, setRevealed] = useState(-1);
+  const resumeFinished = hasAnswers(applied);
+  const [step, setStep] = useState(resumeFinished ? QUESTIONS.length : 0);
+  const [revealed, setRevealed] = useState(resumeFinished ? QUESTIONS.length : -1);
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const dirty = useRef(false);
+  const abandonedRestart = useRef(false);
   const editBase = useRef(draft);
   const returnComposer = useRef(composer);
   const latestToSave = useRef(composer);
@@ -1199,8 +1248,22 @@ function MatcherSession({
   const close = () => {
     if (closing.current) return;
     closing.current = true;
-    void saveMatcherPreferences(latestToSave.current, "draft", draftContext);
+    if (!abandonedRestart.current)
+      void saveMatcherPreferences(latestToSave.current, "draft", draftContext);
     onClose();
+  };
+  const restart = () => {
+    const fresh: MatcherPreferences = { version: 1 };
+    abandonedRestart.current = true;
+    dirty.current = false;
+    editBase.current = fresh;
+    returnComposer.current = fresh;
+    latestToSave.current = fresh;
+    setEditingStep(null);
+    setDraft(fresh);
+    setComposer(fresh);
+    setStep(0);
+    setRevealed(-1);
   };
   const closeRef = useRef(close);
   closeRef.current = close;
@@ -1276,6 +1339,7 @@ function MatcherSession({
 
   const updateComposer = (next: MatcherPreferences) => {
     dirty.current = true;
+    abandonedRestart.current = false;
     setComposer(next);
   };
   const clearAnswer = (d: Dimension) => {
@@ -1486,6 +1550,21 @@ function MatcherSession({
               </Text>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Restart"
+                onPress={restart}
+                style={({ pressed, hovered }) => [
+                  s.iconButton,
+                  (pressed || hovered) && s.softHover,
+                ]}
+              >
+                <RotateCcw
+                  size={18}
+                  color={Skoun.color.ink}
+                  strokeWidth={1.6}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
                 accessibilityLabel="Close guide"
                 onPress={close}
                 style={({ pressed, hovered }) => [
@@ -1494,7 +1573,6 @@ function MatcherSession({
                 ]}
               >
                 <X
-                 
                   size={21}
                   color={Skoun.color.ink}
                   strokeWidth={1.6}
@@ -1660,6 +1738,7 @@ function MatcherSession({
               </View>
             </ScrollView>
 
+            <FooterSizer reduced={reduced}>
             <View
               style={[
                 s.footer,
@@ -1921,6 +2000,7 @@ function MatcherSession({
                 </>
               ) : null}
             </View>
+            </FooterSizer>
             </View>
           </KeyboardAvoidingView>
         </Animated.View>

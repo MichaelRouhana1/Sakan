@@ -12,14 +12,17 @@ import {
   View,
 } from "react-native";
 import {
+  AnalyticsCardIconMark,
   HostAnalyticsGlassPane,
   HostAnalyticsStatCard,
 } from "@/components/web/host/analytics/HostAnalyticsStatCard";
+import { SilenceNextStep } from "@/components/web/host/analytics/SilenceNextStep";
 import {
   formatAnalyticsDate,
   formatAnalyticsDaysLeft,
   formatAnalyticsViews,
 } from "@/components/web/host/analytics/hostAnalyticsFormat";
+import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
 import {
   hostListingStatus,
@@ -47,6 +50,11 @@ type Props = {
 function errorStatus(error: unknown): number | null {
   if (!axios.isAxiosError(error)) return null;
   return error.response?.status ?? null;
+}
+
+function leadTotal(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.floor(value));
 }
 
 export function HostListingAnalyticsPage({ listingId }: Props) {
@@ -190,6 +198,7 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
     const numbers = (
       <NumbersColumn
         listing={data}
+        cardListing={cardListing}
         compact={compact}
         showDaysCard={showDaysCard}
         endingSoon={endingSoon}
@@ -202,10 +211,7 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
 
     body = (
       <View
-        style={[
-          styles.layout,
-          compact && Platform.OS !== "web" ? styles.layoutCompact : null,
-        ]}
+        style={[styles.layout, compact ? styles.layoutCompact : null]}
       >
         <View style={styles.identitySlot}>{identity}</View>
         <View style={styles.numbersSlot}>
@@ -311,6 +317,7 @@ function IdentityColumn({
 
 function NumbersColumn({
   listing,
+  cardListing,
   compact,
   showDaysCard,
   endingSoon,
@@ -320,6 +327,7 @@ function NumbersColumn({
   viewCta,
 }: {
   listing: HostAnalyticsListing;
+  cardListing: Listing | null;
   compact: boolean;
   showDaysCard: boolean;
   endingSoon: boolean;
@@ -334,16 +342,41 @@ function NumbersColumn({
         <View style={[styles.statSlot, compact && styles.statSlotCompact]}>
           <HostAnalyticsStatCard
             label="Views"
+            icon="eye-outline"
             value={formatAnalyticsViews(listing.viewCount)}
             dense={compact || !showDaysCard}
             fill
             glass
           />
         </View>
+        <View
+          style={[
+            styles.statSlot,
+            styles.statSlotFront,
+            compact && styles.statSlotCompact,
+          ]}
+        >
+          <HostAnalyticsStatCard
+            label="Leads"
+            icon="chatbubble-ellipses-outline"
+            value={formatAnalyticsViews(leadTotal(listing.leadCount))}
+            hint="Leads = taps on contact WhatsApp. Not the same as a reply."
+            dense={compact || !showDaysCard}
+            fill
+            glass
+          />
+        </View>
         {showDaysCard ? (
-          <View style={[styles.statSlot, compact && styles.statSlotCompact]}>
+          <View
+            style={[
+              styles.statSlot,
+              styles.statSlotDays,
+              compact && styles.statSlotCompact,
+            ]}
+          >
             <HostAnalyticsStatCard
               label={endingSoon ? "Expires soon" : "Days left"}
+              icon={endingSoon ? "alarm-outline" : "time-outline"}
               value={formatAnalyticsDaysLeft(daysLeft)}
               tone={endingSoon ? "warning" : "default"}
               dense={compact}
@@ -353,6 +386,12 @@ function NumbersColumn({
           </View>
         ) : null}
       </View>
+      <SilenceNextStep
+        live={listing.status === "active"}
+        viewCount={listing.viewCount}
+        leadCount={leadTotal(listing.leadCount)}
+        place={cardListing}
+      />
       <Text style={styles.comingLine}>Daily views breakdown coming later.</Text>
       <HostAnalyticsGlassPane
         style={[styles.metaCard, compact && styles.metaCardCompact]}
@@ -360,13 +399,19 @@ function NumbersColumn({
       >
         <View style={[styles.metaPrimary, compact && styles.metaPrimaryCompact]}>
           <View style={styles.metaExpires}>
-            <Text style={styles.metaLabel}>Expires</Text>
+            <View style={styles.metaLabelRow}>
+              <AnalyticsCardIconMark name="calendar-outline" />
+              <Text style={styles.metaLabel}>Expires</Text>
+            </View>
             <Text style={styles.metaExpiresValue}>
               {formatAnalyticsDate(listing.expiresAt)}
             </Text>
           </View>
           <View style={styles.metaPublished}>
-            <Text style={styles.metaLabel}>Published</Text>
+            <View style={styles.metaLabelRow}>
+              <AnalyticsCardIconMark name="checkmark-circle-outline" />
+              <Text style={styles.metaLabel}>Published</Text>
+            </View>
             <Text
               style={[
                 styles.metaPublishedValue,
@@ -390,6 +435,12 @@ function NumbersColumn({
             {formatAnalyticsDaysLeft(listing.daysLeft)}
           </Text>
         </View>
+        {listing.status === "active" && cardListing ? (
+          <ListingAvailabilityControl
+            listingId={listing.id}
+            availability={cardListing.availability}
+          />
+        ) : null}
         <Text style={styles.trust}>
           Views count when someone opens the listing. Search appearances aren’t
           counted yet.
@@ -469,6 +520,12 @@ const styles = StyleSheet.create({
   layoutCompact: {
     flexDirection: "column",
     gap: 14,
+    ...(web
+      ? ({
+          display: "flex",
+          gridTemplateColumns: "none",
+        } as Record<string, unknown>)
+      : null),
   },
   identitySlot: {
     minWidth: 0,
@@ -537,29 +594,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    ...(web
-      ? ({
-          "@media (max-width: 767px)": {
-            flexDirection: "column",
-            gap: 8,
-          },
-        } as Record<string, unknown>)
-      : null),
   },
   statsCompact: {
-    flexDirection: "column",
     gap: 8,
   },
   statSlot: {
     flexGrow: 1,
     flexBasis: 0,
-    minWidth: 160,
+    minWidth: 120,
+  },
+  statSlotFront: {
+    zIndex: 2,
+    position: "relative",
+  },
+  statSlotDays: {
+    minWidth: 150,
   },
   statSlotCompact: {
-    flexGrow: 0,
-    flexBasis: "auto",
-    minWidth: 0,
-    width: "100%",
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 120,
   },
   comingLine: {
     fontFamily: Skoun.type.body,
@@ -605,6 +659,11 @@ const styles = StyleSheet.create({
     flexBasis: 130,
     minWidth: 130,
     gap: 4,
+  },
+  metaLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   metaLabel: {
     fontFamily: Skoun.type.bodySemi,

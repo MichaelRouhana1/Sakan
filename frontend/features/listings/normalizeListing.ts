@@ -221,6 +221,10 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     id: String(row.id),
     posterId: String(row.posterId ?? row.poster_id),
     status: (row.status as Listing["status"]) ?? "active",
+    availability:
+      row.availability === "pending" || row.availability === "rented"
+        ? row.availability
+        : "available",
     listingType,
     spaceType: (row.spaceType ?? row.space_type) as Listing["spaceType"],
     propertyType: (row.propertyType ??

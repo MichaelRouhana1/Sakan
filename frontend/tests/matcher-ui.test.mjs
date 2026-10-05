@@ -471,7 +471,7 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
           .getByRole("button", { name: "Find my best matches", exact: true })
           .click();
         await expect(
-          page.getByText("Closest to your prefs", { exact: true }),
+          page.getByText("Best match", { exact: true }),
         ).toHaveCount(1);
         await expect(
           page.locator('[data-testid^="result-"]').first(),
@@ -500,14 +500,14 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
           unknown.getByText("UPS Wi-Fi", { exact: true }),
         ).toHaveCount(0);
         const best = page.getByTestId("result-best");
-        await best.getByRole("button", { name: "Why this one" }).click();
+        await best.getByRole("button", { name: "Best match" }).hover();
         await expect(best.getByText("100/100 preference score")).toBeVisible();
         await expect(best.getByText("Per unit / month")).toBeVisible();
         await best.getByRole("button", { name: "Save listing" }).click();
         assert.equal(await page.evaluate(() => window.savedListing.id), "best");
         await page.reload();
         await expect(
-          page.getByText("Closest to your prefs", { exact: true }),
+          page.getByText("Best match", { exact: true }),
         ).toHaveCount(1);
         await page
           .getByRole("button", { name: "Set manual budget 400" })
@@ -524,13 +524,13 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
         await expect(page.getByTestId("result-best")).toBeVisible();
         await page.getByRole("button", { name: "Sort newest" }).click();
         await expect(
-          page.getByText("Closest to your prefs", { exact: true }),
+          page.getByText("Best match", { exact: true }),
         ).toHaveCount(0);
         await page
           .getByRole("button", { name: "Best matches", exact: true })
           .click();
         await expect(
-          page.getByText("Closest to your prefs", { exact: true }),
+          page.getByText("Best match", { exact: true }),
         ).toHaveCount(1);
         await page.close();
       },
@@ -612,6 +612,10 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
           );
           await page.getByRole("button", { name: "Close guide" }).focus();
           await page.keyboard.press("Shift+Tab");
+          await expect(
+            page.getByRole("button", { name: "Restart", exact: true }),
+          ).toBeFocused();
+          await page.keyboard.press("Shift+Tab");
           const focused = await page.evaluate(
             () => document.activeElement?.textContent,
           );
@@ -658,13 +662,18 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
           .getByRole("button", { name: "Show what I have so far" })
           .click();
         await page
-          .getByRole("button", { name: "Ask again", exact: true })
+          .getByRole("button", { name: "Edit", exact: true })
           .click();
         await page
-          .getByRole("button", { name: "Continue", exact: true })
+          .getByRole("button", {
+            name: "Edit answer to What monthly rent works for you?: Up to $500/month",
+          })
           .click();
         await page
           .getByRole("button", { name: "No limit", exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: "Save changes", exact: true })
           .click();
         await page.getByRole("button", { name: "Close guide" }).click();
         assert.equal(
@@ -673,10 +682,12 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
           500,
         );
         await page
-          .getByRole("button", { name: "Ask again", exact: true })
+          .getByRole("button", { name: "Edit", exact: true })
           .click();
         await page
-          .getByRole("button", { name: "Continue", exact: true })
+          .getByRole("button", {
+            name: "Edit answer to What monthly rent works for you?: No limit",
+          })
           .click();
         await expect(
           page.getByRole("button", { name: "No limit", exact: true }),

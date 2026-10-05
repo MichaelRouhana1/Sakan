@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
 import { AREA_ALIASES } from "../../constants/areaAliases.js";
 import { AREA_COORDINATES } from "../../constants/areaCoordinates.js";
 import { LEBANON_AREAS, type LebanonArea } from "../../constants/lebanonAreas.js";
@@ -176,7 +176,13 @@ async function matchListings(q: string): Promise<ListingSuggestion[]> {
       lat: sql<number | null>`ST_Y(${listings.location}::geometry)`.as("lat"),
     })
     .from(listings)
-    .where(and(eq(listings.status, "active"), matchCond))
+    .where(
+      and(
+        eq(listings.status, "active"),
+        ne(listings.availability, "rented"),
+        matchCond,
+      ),
+    )
     .orderBy(desc(titleSim))
     .limit(LISTING_LIMIT);
 

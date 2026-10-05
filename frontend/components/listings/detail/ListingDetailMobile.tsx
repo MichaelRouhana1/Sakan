@@ -1,3 +1,5 @@
+import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
+import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -60,6 +62,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   const galleryH = Math.round(Math.min(Math.max(winH * 0.44, 280), 420));
   const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId ?? "");
+  const inquiry = useWhatsAppInquiry(listing);
   const saved = useIsSaved(listingId ?? "");
   const toggleSaved = useToggleSaved();
   const reported = useIsReported(listingId ?? "");
@@ -234,7 +237,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               style={styles.sectionPad}
               onLayout={onSectionLayout("rooms")}
             >
-              <ListingDetailRooms listing={listing} posterPhone={posterPhone} />
+              <ListingDetailRooms listing={listing} posterPhone={posterPhone} onWhatsApp={inquiry.open} />
             </View>
           ) : !isPbsa ? (
             <View style={styles.sectionPad}>
@@ -277,12 +280,15 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
         </ScrollView>
 
         <ListingDetailBottomBar
+          onWhatsApp={inquiry.open}
           listing={listing}
           posterPhone={posterPhone}
           reported={Boolean(reported.data)}
           onReport={() => setReportOpen(true)}
           canReport={session?.role !== "poster"}
         />
+
+        <WhatsAppInquirySheet inquiry={inquiry} />
 
         <ReportListingSheet
           listingId={listing.id}

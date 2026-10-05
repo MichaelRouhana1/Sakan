@@ -12,6 +12,8 @@ import { Enter } from "@/components/lister/Enter";
 import { LButton } from "@/components/lister/Button";
 import { ListerScreen } from "@/components/lister/Screen";
 import { StatusChip } from "@/components/lister/StatusChip";
+import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
+import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { LText } from "@/components/lister/Typography";
 import { UtilityPills } from "@/components/lister/UtilityPills";
 import { ListingGallery } from "@/components/listings/ListingGallery";
@@ -108,6 +110,13 @@ export default function PosterListingDetailScreen() {
           <Enter>
             <View style={styles.hero}>
               <StatusChip status={listing.status} />
+              <ListingAvailabilityBadge availability={listing.availability} />
+              {listing.status === "active" ? (
+                <ListingAvailabilityControl
+                  listingId={listing.id}
+                  availability={listing.availability}
+                />
+              ) : null}
               <LText variant="display" style={styles.area}>
                 {listing.area}
               </LText>

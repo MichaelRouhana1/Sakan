@@ -125,7 +125,7 @@ test(
         .getByRole("button", { name: "Show what I have so far" })
         .click();
       await expect(
-        page.getByText("Closest to your prefs", { exact: true }),
+        page.getByText("Best match", { exact: true }),
       ).toBeVisible({ timeout: 15000 });
       await expect(
         page.getByRole("button", { name: "Best matches", exact: true }),
@@ -134,7 +134,7 @@ test(
       assert.notEqual(new URL(page.url()).searchParams.get("guide"), "1");
       await page.reload();
       await expect(
-        page.getByText("Closest to your prefs", { exact: true }),
+        page.getByText("Best match", { exact: true }),
       ).toBeVisible({ timeout: 15000 });
       await page.screenshot({
         path: path.join(
@@ -143,7 +143,15 @@ test(
         ),
       });
       await page
-        .getByRole("button", { name: "Ask again", exact: true })
+        .getByRole("button", { name: "Edit", exact: true })
+        .click();
+      await expect(
+        page.getByText("You can edit any answer above."),
+      ).toBeVisible();
+      await page
+        .getByRole("button", {
+          name: "Edit answer to What kind of place feels right?: Studio",
+        })
         .click();
       await expect(
         page.getByRole("button", { name: "Studio", exact: true }),
@@ -155,20 +163,21 @@ test(
         .getByRole("button", { name: "Close guide", exact: true })
         .click();
       await page
-        .getByRole("button", { name: "Stop matching", exact: true })
+        .getByRole("button", { name: "Best matches", exact: true })
         .click();
+      await page.getByRole("button", { name: "Newest", exact: true }).click();
       await expect(
-        page.getByText("Closest to your prefs", { exact: true }),
+        page.getByText("Best match", { exact: true }),
       ).toHaveCount(0);
       await page.reload();
       await expect(
-        page.getByText("Closest to your prefs", { exact: true }),
+        page.getByText("Best match", { exact: true }),
       ).toHaveCount(0);
       await page.goto(
         `${base}/search?sort=match&match=${encodeURIComponent(JSON.stringify(prefs))}`,
       );
       await expect(
-        page.getByText("Closest to your prefs", { exact: true }),
+        page.getByText("Best match", { exact: true }),
       ).toBeVisible({ timeout: 15000 });
       await page.setViewportSize({ width: 375, height: 812 });
       await page

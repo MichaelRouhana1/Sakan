@@ -175,7 +175,7 @@ export function ListingContactCard({
         </View>
 
         <View style={styles.actions}>
-          {canContact ? (
+          {listing.availability === "rented" ? null : canContact ? (
             <Pressable
               onPress={onWhatsApp}
               accessibilityRole="button"

@@ -15,6 +15,13 @@ export const listingStatusEnum = pgEnum("listing_status", [
   "removed",
 ]);
 
+/** Host-controlled offer state. Separate from draft / active / archived / removed. */
+export const listingAvailabilityEnum = pgEnum("listing_availability", [
+  "available",
+  "pending",
+  "rented",
+]);
+
 export const listingTypeEnum = pgEnum("listing_type", [
   "entire_apartment",
   "studio",

@@ -1,6 +1,6 @@
-import { MatchCardChrome } from "@/components/matcher/MatchResults";
+import { BestMatchBadge } from "@/components/matcher/BestMatchBadge";
+import { BestMatchBeam } from "@/components/matcher/BestMatchBeam";
 import type { MatchPresentation } from "@/features/matcher/types";
-import { skounShadow } from "@/lib/skounShadow";
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -8,6 +8,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
+import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   ListingFeatureBadge,
@@ -314,6 +315,8 @@ export function ListingResultCard({
   const isList = variant === "list";
   const coarsePointer = useCoarsePointer();
   const [listHovered, setListHovered] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [cardWidth, setCardWidth] = useState(0);
   const touchPanX =
     Platform.OS === "web" && coarsePointer
       ? ({ touchAction: "pan-x" } as object)
@@ -358,6 +361,27 @@ export function ListingResultCard({
     listing.rating != null &&
     Number.isFinite(listing.rating);
 
+  const onCardLayout = match?.top
+    ? (event: { nativeEvent: { layout: { width: number } } }) => {
+        const next = Math.round(event.nativeEvent.layout.width);
+        setCardWidth((prev) => (prev === next ? prev : next));
+      }
+    : undefined;
+
+  const frameMatch = (card: ReactNode) =>
+    match?.top ? (
+      <BestMatchBeam active raised={explainOpen}>
+        {card}
+        <BestMatchBadge
+          match={match}
+          room={cardWidth}
+          onOpenChange={setExplainOpen}
+        />
+      </BestMatchBeam>
+    ) : (
+      card
+    );
+
   if (isList) {
     const listHoverProps =
       Platform.OS === "web"
@@ -380,6 +404,7 @@ export function ListingResultCard({
           <Text style={styles.title} numberOfLines={2}>
             {title}
           </Text>
+          <ListingAvailabilityBadge availability={listing.availability} />
           <Text style={styles.meta} numberOfLines={1}>
             {subtitle}
             {listing.landmark ? ` · ${typeBadge}` : ""}
@@ -438,12 +463,12 @@ export function ListingResultCard({
         </View>
       </>
     );
-    return (
+    return frameMatch(
       <View
+        onLayout={onCardLayout}
         style={[
           styles.card,
           styles.cardList,
-          match?.top && styles.matchTop,
           Platform.OS === "web" && styles.listHoverShell,
           Platform.OS === "web" && listHovered && styles.listHoverShellActive,
         ]}
@@ -485,7 +510,6 @@ export function ListingResultCard({
             </Pressable>
           )}
         </View>
-        {match ? <MatchCardChrome match={match} /> : null}
       </View>
     );
   }
@@ -497,8 +521,8 @@ export function ListingResultCard({
     : gridSource.slice(0, badgeLimit ?? GRID_TAG_LIMIT);
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
-  return (
-    <View style={[styles.card, styles.cardGrid, match?.top && styles.matchTop]} {...mapHoverHandlers}>
+  return frameMatch(
+    <View onLayout={onCardLayout} style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
       <View testID="listing-grid-media" style={[touchPanX, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
@@ -518,6 +542,7 @@ export function ListingResultCard({
             <Text style={styles.gridTitle} numberOfLines={1}>
               {title}
             </Text>
+            <ListingAvailabilityBadge availability={listing.availability} />
             <Text style={styles.gridMeta} numberOfLines={1}>
               {metaLine}
             </Text>
@@ -566,13 +591,11 @@ export function ListingResultCard({
           )}
         </View>
       </GridCardBody>
-      {match ? <MatchCardChrome match={match} /> : null}
     </View>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
-  matchTop: {borderColor: Skoun.color.primarySoft, ...skounShadow({blur:20,y:5,opacity:.1,elevation:3})},
   card: {
     backgroundColor: Skoun.color.surface,
     borderRadius: 16,

@@ -358,6 +358,7 @@ export function FindBrowse() {
               ) : null}
             </>
           ) : (
+          <>
           <Text style={[styles.h1, isMap && styles.h1Map]}>
             {matching ? "Closest to what you want" : universityLabel ? (
               <>
@@ -383,6 +384,23 @@ export function FindBrowse() {
               </Text>
             ) : null}
           </Text>
+          {deferredPrefs ? (
+            <View style={styles.matchActions}>
+              <MatchSummaryBar
+                prefs={deferredPrefs}
+                count={ranked.listings.length}
+                widening={widening}
+                onEdit={openMatcher}
+                onStop={browse.stop}
+                onClear={clearAll}
+                onMatch={() => setBrowseSort("match")}
+                matching={matching}
+                loading={loading || isError}
+                focusRevision={browse.applyRevision}
+              />
+            </View>
+          ) : null}
+          </>
           )}
           </View>
           {showDistanceSplit && universityLabel && !loading ? (
@@ -447,7 +465,6 @@ export function FindBrowse() {
           </View>
         ) : null}
       </View>
-      {deferredPrefs ? <MatchSummaryBar prefs={deferredPrefs} count={ranked.listings.length} widening={widening} onEdit={openMatcher} onStop={browse.stop} onClear={clearAll} onMatch={()=>setBrowseSort("match")} matching={matching} loading={loading || isError} focusRevision={browse.applyRevision} /> : null}
     </View>
   );
 
@@ -729,8 +746,12 @@ const styles = StyleSheet.create({
   headingTitleRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
     minHeight: 34,
     gap: 10,
+  },
+  matchActions: {
+    marginTop: 4,
   },
   headingTitleBone: {
     height: 22,

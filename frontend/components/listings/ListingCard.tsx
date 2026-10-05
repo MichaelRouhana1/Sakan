@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
+import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import {
   ListingFeatureBadge,
@@ -99,6 +100,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
         <Text style={styles.title} numberOfLines={2}>
           {title}
         </Text>
+        <ListingAvailabilityBadge availability={listing.availability} />
         <Text style={styles.meta} numberOfLines={1}>
           {subtitle} · {typeBadge}
         </Text>

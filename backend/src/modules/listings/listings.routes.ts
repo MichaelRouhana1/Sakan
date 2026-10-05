@@ -2,7 +2,11 @@ import { Router } from "express";
 import { optionalAuth, requireAuth } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { listingsController } from "./listings.controller.js";
-import { createListingSchema, updateListingSchema } from "./listings.schemas.js";
+import {
+  createListingSchema,
+  setListingAvailabilitySchema,
+  updateListingSchema,
+} from "./listings.schemas.js";
 import { listingPhotoUpload } from "./photos.storage.js";
 import { walkingRouteRateLimit } from "../../middleware/rate-limit.js";
 import { walkingRoutesController } from "../walking-routes/walking-routes.controller.js";
@@ -60,6 +64,10 @@ listingsRouter.post("/:id/view", optionalAuth, (req, res, next) =>
   listingsController.recordView(req, res, next),
 );
 
+listingsRouter.post("/:id/contact-tap", optionalAuth, (req, res, next) =>
+  listingsController.recordContactTap(req, res, next),
+);
+
 listingsRouter.get("/:id/nearby", (req, res, next) =>
   listingsController.listNearby(req, res, next),
 );
@@ -97,6 +105,13 @@ listingsRouter.get("/:id", (req, res, next) =>
 );
 
 listingsRouter.patch(
+  "/:id/availability",
+  requireAuth,
+  validate(setListingAvailabilitySchema),
+  (req, res, next) => listingsController.setAvailability(req, res, next),
+);
+
+listingsRouter.patch(
   "/:id",
   requireAuth,
   validate(updateListingSchema),
@@ -112,4 +127,8 @@ listingsRouter.post(
 
 listingsRouter.post("/:id/archive", requireAuth, (req, res, next) =>
   listingsController.archive(req, res, next),
+);
+
+listingsRouter.delete("/:id", requireAuth, (req, res, next) =>
+  listingsController.remove(req, res, next),
 );

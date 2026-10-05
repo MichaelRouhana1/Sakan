@@ -3,16 +3,16 @@ import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
-import { labelListingType } from "@/lib/listingLabels";
 import {
-  buildWhatsAppListingUrl,
   hasUsableWhatsAppPhone,
+  listingAllowsWhatsApp,
 } from "@/lib/whatsapp";
 import type { Listing } from "@/types/listing";
 
 type Props = {
   listing: Listing;
   posterPhone: string | null;
+  onWhatsApp: () => void;
   reported: boolean;
   onReport: () => void;
   canReport?: boolean;
@@ -21,25 +21,18 @@ type Props = {
 export function ListingDetailBottomBar({
   listing,
   posterPhone,
+  onWhatsApp,
   reported,
   onReport,
   canReport = true,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const canContact = hasUsableWhatsAppPhone(posterPhone);
+  const whatsAppOpen = listingAllowsWhatsApp(listing.availability);
+  const canContact = whatsAppOpen && hasUsableWhatsAppPhone(posterPhone);
   const callPhone = listing.contactPhone ?? null;
   const canCall = Boolean(callPhone && callPhone.replace(/\D/g, "").length >= 8);
 
-  const openWhatsApp = () => {
-    if (!posterPhone || !canContact) return;
-    void Linking.openURL(
-      buildWhatsAppListingUrl({
-        phone: posterPhone,
-        propertyType: labelListingType(listing.listingType),
-        area: listing.area,
-      }),
-    );
-  };
+
 
   const openCall = () => {
     if (!callPhone || !canCall) return;
@@ -57,7 +50,7 @@ export function ListingDetailBottomBar({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Contact on WhatsApp"
-          onPress={openWhatsApp}
+          onPress={onWhatsApp}
           style={styles.primary}
         >
           <Ionicons
@@ -92,7 +85,7 @@ export function ListingDetailBottomBar({
         </Pressable>
       ) : null}
 
-      {!canContact && !canCall ? (
+      {!canContact && !canCall && whatsAppOpen ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="WhatsApp contact soon"

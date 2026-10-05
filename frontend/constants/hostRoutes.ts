@@ -20,9 +20,25 @@ export function posterListingAnalyticsPath(id: string) {
   return `/(poster)/analytics/${id}`;
 }
 
+export type HostEditSection = "photos" | "pricing" | "location";
+
+const HOST_EDIT_SECTIONS = new Set<string>(["photos", "pricing", "location"]);
+
+export function hostEditSection(value: string | null | undefined): HostEditSection | null {
+  if (value && HOST_EDIT_SECTIONS.has(value)) return value as HostEditSection;
+  return null;
+}
+
 /** Opens the live-edit drawer on the host listings page. */
-export function hostListingEditPath(id: string) {
-  return `${HOST_LISTINGS_PATH}?edit=${encodeURIComponent(id)}`;
+export function hostListingEditPath(id: string, section?: HostEditSection | null) {
+  const params = new URLSearchParams({ edit: id });
+  if (section) params.set("section", section);
+  return `${HOST_LISTINGS_PATH}?${params.toString()}`;
+}
+
+/** Boost pack on the credits screen. Buying it does not pin a listing by itself. */
+export function hostBoostPurchasePath() {
+  return `${HOST_CREDITS_PATH}?pack=boost_pack`;
 }
 
 export type HostNavSection = "listings" | "analytics" | "credits";

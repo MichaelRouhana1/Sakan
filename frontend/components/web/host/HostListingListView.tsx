@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
 import {
   checkpointCoverPhoto,
@@ -222,6 +223,12 @@ export function HostListingListView({
               ]}
             >
               <HostStatusPill label={status.label} tone={status.tone} />
+              {listing.status === "active" ? (
+                <ListingAvailabilityControl
+                  listingId={listing.id}
+                  availability={listing.availability}
+                />
+              ) : null}
               {onEditListing && listing.status === "active" ? (
                 <Pressable
                   accessibilityRole="button"

@@ -1,6 +1,9 @@
 import type { MatchFacts } from "@/features/matcher/types";
 export type ListingStatus = "draft" | "active" | "archived" | "removed";
 
+/** Offer state. Separate from the lifecycle status above. */
+export type ListingAvailability = "available" | "pending" | "rented";
+
 export type ListingType =
   | "entire_apartment"
   | "studio"
@@ -100,6 +103,8 @@ export type Listing = {
   id: string;
   posterId: string;
   status: ListingStatus;
+  /** Defaults to available. Pending stays on the feed. Rented leaves search. */
+  availability?: ListingAvailability;
   listingType: ListingType;
   spaceType?: SpaceType;
   propertyType?: PropertyType;

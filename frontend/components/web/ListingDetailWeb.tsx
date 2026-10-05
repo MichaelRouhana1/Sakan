@@ -1,3 +1,5 @@
+import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
+import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
@@ -25,6 +27,8 @@ import { ListingDetailMapSection } from "@/components/listings/detail/ListingDet
 import { ListingNearbyCampuses } from "@/components/listings/detail/ListingNearbyCampuses";
 import { ListingDetailRooms } from "@/components/listings/detail/ListingDetailRooms";
 import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDetailUnitSpecs";
+import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
+import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { ListingContactCard } from "@/components/listings/detail/ListingContactCard";
 import { ReportListingDialog } from "@/components/web/ReportListingDialog";
 import { Skoun } from "@/constants/theme";
@@ -43,8 +47,8 @@ import {
 } from "@/lib/listingLabels";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
-  buildWhatsAppListingUrl,
   hasUsableWhatsAppPhone,
+  listingAllowsWhatsApp,
 } from "@/lib/whatsapp";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
@@ -118,6 +122,7 @@ function resolvePhotos(
 export function ListingDetailWeb({ listingId }: Props) {
   const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId);
+  const inquiry = useWhatsAppInquiry(listing);
   const saved = useIsSaved(listingId);
   const toggleSaved = useToggleSaved();
   const reported = useIsReported(listingId);
@@ -206,7 +211,9 @@ export function ListingDetailWeb({ listingId }: Props) {
         )
       : listing.monthlyRentUsd;
   const posterPhone = listing.whatsappNumber || null;
-  const canContact = hasUsableWhatsAppPhone(posterPhone);
+  const canContact =
+    listingAllowsWhatsApp(listing.availability) &&
+    hasUsableWhatsAppPhone(posterPhone);
   const callPhone = listing.contactPhone ?? null;
   const canCall = Boolean(
     callPhone && callPhone.replace(/\D/g, "").length >= 8,
@@ -277,16 +284,7 @@ export function ListingDetailWeb({ listingId }: Props) {
     }
   };
 
-  const openWhatsApp = () => {
-    if (!posterPhone || !canContact) return;
-    void Linking.openURL(
-      buildWhatsAppListingUrl({
-        phone: posterPhone,
-        propertyType: labelListingType(listing.listingType),
-        area: listing.area,
-      }),
-    );
-  };
+
 
   const jumpToMap = () => {
     if (!IS_WEB) return;
@@ -532,6 +530,14 @@ export function ListingDetailWeb({ listingId }: Props) {
               <LText variant="body" tone="muted">
                 {listingPlace(listing)}
               </LText>
+              <ListingAvailabilityBadge availability={listing.availability} />
+              {session?.userId === listing.posterId &&
+              listing.status === "active" ? (
+                <ListingAvailabilityControl
+                  listingId={listing.id}
+                  availability={listing.availability}
+                />
+              ) : null}
               {session?.userId === listing.posterId &&
               listing.status === "active" ? (
                 <Pressable
@@ -639,6 +645,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           {hasRooms ? (
             <View nativeID="listing-unit" style={[styles.anchor, styles.stackRoomy]}>
               <ListingDetailRooms
+                onWhatsApp={inquiry.open}
                 listing={listing}
                 posterPhone={posterPhone}
                 variant="web"
@@ -719,7 +726,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               canCall={canCall}
               onSave={() => toggleSaved.mutate(listing)}
               onShare={() => void shareLink()}
-              onWhatsApp={openWhatsApp}
+              onWhatsApp={inquiry.open}
               onCall={() => void Linking.openURL(`tel:${callPhone}`)}
               reported={Boolean(reported.data)}
               onReport={() => setReportOpen(true)}
@@ -779,6 +786,8 @@ export function ListingDetailWeb({ listingId }: Props) {
           </View>
         </View>
       </Modal>
+
+      <WhatsAppInquirySheet inquiry={inquiry} />
 
       <ReportListingDialog
         listingId={listing.id}

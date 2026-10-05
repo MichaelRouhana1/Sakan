@@ -23,6 +23,7 @@ import {
 } from "@/lib/clerkEnabled";
 import { queryClient } from "@/lib/queryClient";
 import { NotificationBootstrap } from "@/features/notifications/NotificationBootstrap";
+import { SaveAuthPrompt } from "@/features/saved/saveAuthPrompt";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -102,6 +103,7 @@ function RootLayoutNav() {
   return (
     <QueryClientProvider client={queryClient}>
       <NotificationBootstrap />
+      <SaveAuthPrompt />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
           <Stack screenOptions={{ headerShown: false }}>

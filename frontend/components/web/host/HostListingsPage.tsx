@@ -28,7 +28,7 @@ import {
 import { HostNotificationPreferences } from "@/components/web/host/HostNotificationPreferences";
 import { EditListingDrawer } from "@/components/listings/edit/EditListingDrawer";
 import { appleTabScrollInset } from "@/components/ui/Glass";
-import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
+import { hostEditSection, HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { Skoun } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -70,7 +70,12 @@ export function HostListingsPage() {
   const [layout, setLayout] = useState<HostListingsLayout>("grid");
   const [draftModal, setDraftModal] = useState<DraftModalTarget | null>(null);
   const focused = useIsFocused();
-  const editParam = useLocalSearchParams<{ edit?: string | string[] }>().edit;
+  const params = useLocalSearchParams<{
+    edit?: string | string[];
+    section?: string | string[];
+  }>();
+  const editParam = params.edit;
+  const editSection = hostEditSection(firstParam(params.section));
   // Only the focused listings screen owns the drawer. A stacked copy
   // reading the global query was mounting a second sheet behind it.
   const editId =
@@ -308,6 +313,7 @@ export function HostListingsPage() {
       {editId ? (
         <EditListingDrawer
           listingId={editId}
+          initialSection={editSection}
           onClose={() => router.replace(HOST_LISTINGS_PATH as never)}
         />
       ) : null}

@@ -138,6 +138,7 @@ export class CampusRepository {
       FROM listings l
       JOIN universities u ON u.slug = ${slug}
       WHERE l.status = 'active'
+        AND l.availability <> 'rented'
         AND l.location IS NOT NULL
         AND ST_DWithin(l.location, u.location, ${HOUSING_RADIUS_METERS})
     `);

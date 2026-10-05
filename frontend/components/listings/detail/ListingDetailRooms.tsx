@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import {
   listingDetailChrome as chrome,
@@ -9,11 +9,10 @@ import {
 } from "@/components/listings/detail/listingDetailChrome";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
-import { labelListingType } from "@/lib/listingLabels";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
-  buildWhatsAppListingUrl,
   hasUsableWhatsAppPhone,
+  listingAllowsWhatsApp,
 } from "@/lib/whatsapp";
 import type { Listing, PbsaRoomType } from "@/types/listing";
 
@@ -51,12 +50,14 @@ const CAT_ORDER: Category[] = [
 type Props = {
   listing: Listing;
   posterPhone: string | null;
+  onWhatsApp: () => void;
   variant?: ListingDetailVariant;
 };
 
 export function ListingDetailRooms({
   listing,
   posterPhone,
+  onWhatsApp,
   variant = "card",
 }: Props) {
   const rooms = listing.pbsaRoomTypes ?? [];
@@ -76,7 +77,8 @@ export function ListingDetailRooms({
   }, [rooms]);
 
   const [filter, setFilter] = useState<"all" | Category>("all");
-  const canContact = hasUsableWhatsAppPhone(posterPhone);
+  const whatsAppOpen = listingAllowsWhatsApp(listing.availability);
+  const canContact = whatsAppOpen && hasUsableWhatsAppPhone(posterPhone);
   const web = variant === "web";
 
   if (rooms.length === 0) return null;
@@ -94,16 +96,7 @@ export function ListingDetailRooms({
     return filter === "all" || filter === c;
   });
 
-  const openWhatsApp = () => {
-    if (!posterPhone || !canContact) return;
-    void Linking.openURL(
-      buildWhatsAppListingUrl({
-        phone: posterPhone,
-        propertyType: labelListingType(listing.listingType),
-        area: listing.area,
-      }),
-    );
-  };
+
 
   return (
     <View style={[web ? chrome.web : chrome.card, styles.gap]}>
@@ -190,16 +183,18 @@ export function ListingDetailRooms({
                     <Feat key={f} icon="checkmark-outline" label={f} />
                   ))}
                 </View>
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={!canContact}
-                  onPress={openWhatsApp}
-                  style={[styles.book, !canContact && styles.bookOff]}
-                >
-                  <LText variant="subtitle" style={styles.bookText}>
-                    {canContact ? "WhatsApp" : "WhatsApp soon"}
-                  </LText>
-                </Pressable>
+                {whatsAppOpen ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={!canContact}
+                    onPress={onWhatsApp}
+                    style={[styles.book, !canContact && styles.bookOff]}
+                  >
+                    <LText variant="subtitle" style={styles.bookText}>
+                      {canContact ? "WhatsApp" : "WhatsApp soon"}
+                    </LText>
+                  </Pressable>
+                ) : null}
               </View>
             );
           })}

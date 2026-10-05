@@ -6,6 +6,8 @@ export type HostAnalyticsListing = {
   area: string;
   status: ListingStatus;
   viewCount: number;
+  /** Lifetime WhatsApp contact taps for this listing id. Not replies. */
+  leadCount: number;
   expiresAt: string | null;
   daysLeft: number | null;
   coverUrl: string | null;

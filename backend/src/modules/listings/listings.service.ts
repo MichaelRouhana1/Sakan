@@ -29,6 +29,11 @@ import {
   snapshotFromRow,
   snapshotFromWrite,
 } from "./listing-update-snapshot.js";
+import {
+  contactTapActorKey,
+  contactTapWindow,
+  planContactTap,
+} from "./contact-tap.js";
 import type {
   CreateListingInput,
   ListingPropertyFilters,
@@ -47,6 +52,8 @@ export type HostAnalyticsListing = {
   area: string;
   status: string;
   viewCount: number;
+  /** Lifetime WhatsApp contact taps for this listing id. Not replies. */
+  leadCount: number;
   expiresAt: Date | string | null;
   daysLeft: number | null;
   coverUrl: string | null;
@@ -93,6 +100,9 @@ function toHostAnalyticsListing(
     area: String(listing.area ?? ""),
     status: String(listing.status ?? ""),
     viewCount: Number(listing.viewCount ?? 0),
+    leadCount: Number(
+      (listing as { contactTapCount?: number }).contactTapCount ?? 0,
+    ),
     expiresAt,
     daysLeft: daysUntilExpiry(expiresAt),
     coverUrl: listing.coverUrl ?? null,
@@ -167,6 +177,58 @@ export class ListingsService {
     return {
       id: updated.id,
       viewCount: updated.viewCount,
+      counted: true as const,
+    };
+  }
+
+  /**
+   * One WhatsApp / contact CTA tap. Guests and signed-in users both count.
+   * Share opens are not taps. The total stays on this listing id.
+   */
+  async recordContactTap(
+    id: string,
+    actor: { userId?: string | null; ip?: string | null },
+  ) {
+    const listing = await listingsRepository.findContactTap(id);
+    const key = contactTapActorKey(id, actor);
+    const withinDedupeWindow =
+      listing?.status === "active" ? !contactTapWindow.claim(key) : false;
+    const plan = planContactTap({
+      found: listing != null,
+      status: listing?.status ?? "",
+      leadCount: listing?.contactTapCount ?? 0,
+      withinDedupeWindow,
+    });
+
+    if (plan.type === "not_found") {
+      throw new NotFoundError("Listing not found");
+    }
+    if (plan.type === "unchanged") {
+      return { id, leadCount: plan.leadCount, counted: false as const };
+    }
+
+    let updated: { id: string; contactTapCount: number } | null;
+    try {
+      updated = await listingsRepository.incrementContactTapCount(id);
+    } catch (err) {
+      contactTapWindow.release(key);
+      throw err;
+    }
+    if (!updated) {
+      contactTapWindow.release(key);
+      const again = await listingsRepository.findContactTap(id);
+      if (!again) {
+        throw new NotFoundError("Listing not found");
+      }
+      return {
+        id,
+        leadCount: again.contactTapCount,
+        counted: false as const,
+      };
+    }
+    return {
+      id: updated.id,
+      leadCount: updated.contactTapCount,
       counted: true as const,
     };
   }
@@ -270,8 +332,16 @@ export class ListingsService {
 
   async mineAnalytics(userId: string): Promise<HostAnalyticsOverview> {
     await this.assertHost(userId);
-    const rows = await listingsRepository.listByPoster(userId);
-    const listings = rows.map(toHostAnalyticsListing);
+    const [rows, tapCounts] = await Promise.all([
+      listingsRepository.listByPoster(userId),
+      listingsRepository.contactTapCountsForPoster(userId),
+    ]);
+    const listings = rows.map((row) =>
+      toHostAnalyticsListing({
+        ...row,
+        contactTapCount: tapCounts.get(String(row.id)) ?? 0,
+      }),
+    );
 
     const totalViews = listings.reduce((sum, row) => sum + row.viewCount, 0);
     const live = listings.filter((row) => row.status === "active");
@@ -307,7 +377,11 @@ export class ListingsService {
       throw new ForbiddenError("You do not own this listing");
     }
     await this.assertHost(userId);
-    return toHostAnalyticsListing(listing);
+    const taps = await listingsRepository.findContactTap(listingId);
+    return toHostAnalyticsListing({
+      ...listing,
+      contactTapCount: taps?.contactTapCount ?? 0,
+    });
   }
 
   /** First listing promotes renter → poster (host) in DB. */
@@ -414,6 +488,53 @@ export class ListingsService {
     });
 
     return listingsRepository.findById(listingId);
+  }
+
+  async setAvailability(
+    userId: string,
+    listingId: string,
+    availability: "available" | "pending" | "rented",
+  ) {
+    const listing = await listingsRepository.findById(listingId);
+    if (!listing) {
+      throw new NotFoundError("Listing not found");
+    }
+    const posterId = String(listing.posterId ?? "");
+    if (posterId !== userId) {
+      throw new ForbiddenError("You do not own this listing");
+    }
+    if (String(listing.status ?? "") !== "active") {
+      throw new ValidationError(
+        "Availability can change while the listing is live",
+      );
+    }
+    const updated = await listingsRepository.setAvailability(
+      listingId,
+      userId,
+      availability,
+    );
+    if (!updated) {
+      throw new NotFoundError("Listing not found");
+    }
+    return updated;
+  }
+
+  async remove(posterId: string, listingId: string) {
+    const listing = await listingsRepository.findById(listingId);
+    if (!listing) {
+      throw new NotFoundError("Listing not found");
+    }
+    if (String(listing.posterId ?? "") !== posterId) {
+      throw new ForbiddenError("You do not own this listing");
+    }
+    if (String(listing.status ?? "") !== "active") {
+      throw new ValidationError("Only a live listing can be deleted");
+    }
+    const row = await listingsRepository.deleteByOwner(listingId, posterId);
+    if (!row) {
+      throw new NotFoundError("Listing not found");
+    }
+    return { id: row.id };
   }
 
   async archive(posterId: string, listingId: string) {

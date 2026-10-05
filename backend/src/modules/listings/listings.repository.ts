@@ -57,6 +57,7 @@ export const listingPublicColumns = {
   id: listings.id,
   posterId: listings.posterId,
   status: listings.status,
+  availability: listings.availability,
   listingType: listings.listingType,
   spaceType: listings.spaceType,
   propertyType: listings.propertyType,
@@ -364,6 +365,7 @@ export class ListingsRepository {
       .where(
         and(
           eq(listings.status, "active"),
+          ne(listings.availability, "rented"),
           ne(listings.id, listingId),
           isNotNull(listings.location),
           sql`ST_DWithin(
@@ -397,6 +399,7 @@ export class ListingsRepository {
   ) {
     const conditions = [
       eq(listings.status, "active"),
+      ne(listings.availability, "rented"),
       ...propertyDrizzleConditions(property),
       ...textSearchDrizzleConditions(q),
     ];
@@ -479,6 +482,7 @@ export class ListingsRepository {
           LIMIT 1
         ) d
         WHERE l.status = 'active'
+          AND l.availability <> 'rented'
           AND l.location IS NOT NULL
           ${areaFilter}
           ${propertyFilter}
@@ -489,6 +493,7 @@ export class ListingsRepository {
         l.id,
         l.poster_id,
         l.status,
+        l.availability,
         l.listing_type,
         l.space_type,
         l.property_type,
@@ -571,6 +576,7 @@ export class ListingsRepository {
     const meters = radiusKm * 1000;
     const conditions = [
       eq(listings.status, "active"),
+      ne(listings.availability, "rented"),
       isNotNull(listings.location),
       sql`ST_DWithin(
         ${listings.location},
@@ -620,6 +626,7 @@ export class ListingsRepository {
       id: String(row.id),
       posterId: String(row.poster_id),
       status: row.status as "active",
+      availability: (row.availability as string) ?? "available",
       listingType: row.listing_type,
       spaceType: row.space_type,
       propertyType: row.property_type,
@@ -783,6 +790,7 @@ export class ListingsRepository {
         primaryCampusId: input.primaryCampusId ?? null,
         location: sql`ST_GeogFromText(${input.locationWkt})`,
         status: publishNow ? "active" : "draft",
+        availability: "available",
         publishedAt: publishNow ? now : null,
         expiresAt: publishNow ? expiresAt : null,
       })
@@ -820,6 +828,56 @@ export class ListingsRepository {
     return row ?? null;
   }
 
+  async contactTapCountsForPoster(posterId: string) {
+    const rows = await db
+      .select({
+        id: listings.id,
+        contactTapCount: listings.contactTapCount,
+      })
+      .from(listings)
+      .where(eq(listings.posterId, posterId));
+    return new Map(
+      rows.map((row) => [row.id, Number(row.contactTapCount ?? 0)]),
+    );
+  }
+
+  async findContactTap(id: string) {
+    const [row] = await db
+      .select({
+        id: listings.id,
+        status: listings.status,
+        contactTapCount: listings.contactTapCount,
+      })
+      .from(listings)
+      .where(eq(listings.id, id))
+      .limit(1);
+    if (!row) return null;
+    return {
+      id: row.id,
+      status: String(row.status),
+      contactTapCount: Number(row.contactTapCount ?? 0),
+    };
+  }
+
+  /** Adds one WhatsApp tap. Does not touch updatedAt, views, or expiry. */
+  async incrementContactTapCount(id: string) {
+    const [row] = await db
+      .update(listings)
+      .set({
+        contactTapCount: sql`${listings.contactTapCount} + 1`,
+      })
+      .where(and(eq(listings.id, id), eq(listings.status, "active")))
+      .returning({
+        id: listings.id,
+        contactTapCount: listings.contactTapCount,
+      });
+    if (!row) return null;
+    return {
+      id: row.id,
+      contactTapCount: Number(row.contactTapCount ?? 0),
+    };
+  }
+
   async countActiveByPoster(posterId: string) {
     const rows = await db
       .select({ id: listings.id })
@@ -838,7 +896,9 @@ export class ListingsRepository {
         count: sql<number>`count(*)::int`.as("count"),
       })
       .from(listings)
-      .where(eq(listings.status, "active"))
+      .where(
+        and(eq(listings.status, "active"), ne(listings.availability, "rented")),
+      )
       .groupBy(listings.area)
       .orderBy(desc(sql`count(*)`), asc(listings.area))
       .limit(limit);
@@ -868,6 +928,7 @@ export class ListingsRepository {
       LEFT JOIN institutions i ON i.id = u.institution_id
       LEFT JOIN listings l
         ON l.status = 'active'
+        AND l.availability <> 'rented'
         AND l.location IS NOT NULL
         AND u.location IS NOT NULL
         AND ST_DWithin(l.location, u.location, ${campusHousingRadiusMeters})
@@ -910,7 +971,7 @@ export class ListingsRepository {
 
   /**
    * Owner live edit. Does not touch status, publishedAt, expiresAt,
-   * boostedUntil, viewCount, or post credits.
+   * boostedUntil, viewCount, contactTapCount, or post credits.
    * Location is rewritten only inside the structural window.
    */
   async updateLive(
@@ -1036,6 +1097,21 @@ export class ListingsRepository {
     return row ?? null;
   }
 
+  /** Owner delete. Photos and saved rows cascade. */
+  async deleteByOwner(id: string, posterId: string) {
+    const [row] = await db
+      .delete(listings)
+      .where(
+        and(
+          eq(listings.id, id),
+          eq(listings.posterId, posterId),
+          eq(listings.status, "active"),
+        ),
+      )
+      .returning({ id: listings.id });
+    return row ?? null;
+  }
+
   async archiveExpired() {
     return db
       .update(listings)
@@ -1067,9 +1143,37 @@ export class ListingsRepository {
 
     const [row] = await db
       .update(listings)
-      .set({ status: next, updatedAt: new Date() })
+      .set({
+        status: next,
+        updatedAt: new Date(),
+        ...(next === "active" ? { availability: "available" as const } : {}),
+      })
       .where(eq(listings.id, id))
       .returning({ id: listings.id, status: listings.status });
+    return row ?? null;
+  }
+
+  /** Owner sets offer state. Lifecycle status stays active. */
+  async setAvailability(
+    id: string,
+    posterId: string,
+    availability: "available" | "pending" | "rented",
+  ) {
+    const [row] = await db
+      .update(listings)
+      .set({ availability, updatedAt: new Date() })
+      .where(
+        and(
+          eq(listings.id, id),
+          eq(listings.posterId, posterId),
+          eq(listings.status, "active"),
+        ),
+      )
+      .returning({
+        id: listings.id,
+        status: listings.status,
+        availability: listings.availability,
+      });
     return row ?? null;
   }
 

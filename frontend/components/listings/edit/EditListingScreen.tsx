@@ -51,6 +51,7 @@ import {
   UnitLockedChip,
 } from "@/components/listings/edit/EditPanelHeader";
 import { chipLabel, SectionPills } from "@/components/listings/edit/SectionPills";
+import type { HostEditSection } from "@/constants/hostRoutes";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { safeBack } from "@/lib/safeBack";
 
@@ -72,12 +73,15 @@ type Props = {
   /** Page is the native screen. Panel is the host listings drawer. */
   layout?: "page" | "panel";
   onClose?: () => void;
+  /** Scroll to photos, rent, or the pin when opened from a host next step. */
+  initialSection?: HostEditSection | null;
 };
 
 export function EditListingScreen({
   listingId,
   layout = "page",
   onClose,
+  initialSection = null,
 }: Props) {
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
@@ -113,6 +117,26 @@ export function EditListingScreen({
   useEffect(() => {
     if (meta.baseline && !claimBaseline) setClaimBaseline(meta.baseline);
   }, [meta.baseline, claimBaseline]);
+
+  useEffect(() => {
+    if (!initialSection || !fontsLoaded || meta.loading) return;
+    let frames = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const attempt = () => {
+      frames += 1;
+      if (offsets.current[initialSection] != null) {
+        jumpTo(initialSection);
+        return;
+      }
+      if (frames < 30) timer = setTimeout(attempt, 50);
+    };
+    timer = setTimeout(attempt, 50);
+    return () => {
+      if (timer != null) clearTimeout(timer);
+    };
+    // jumpTo reads layout refs. Re-running it on every render would fight the scroll spy.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSection, listingId, fontsLoaded, meta.loading]);
 
   function syncActive(id: string) {
     if (activeRef.current === id) return;

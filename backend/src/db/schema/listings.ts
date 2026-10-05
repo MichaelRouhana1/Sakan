@@ -20,6 +20,7 @@ import {
   leaseTermEnum,
   listingPosterRoleEnum,
   listingPropertyTypeEnum,
+  listingAvailabilityEnum,
   listingStatusEnum,
   listingTypeEnum,
   paymentModalityEnum,
@@ -39,6 +40,10 @@ export const listings = pgTable("listings", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   status: listingStatusEnum("status").notNull().default("draft"),
+  /** Offer state while the listing is live. Rented leaves public search immediately. */
+  availability: listingAvailabilityEnum("availability")
+    .notNull()
+    .default("available"),
   listingType: listingTypeEnum("listing_type").notNull(),
   spaceType: spaceTypeEnum("space_type").notNull().default("entire_place"),
   propertyType: listingPropertyTypeEnum("property_type")
@@ -134,6 +139,12 @@ export const listings = pgTable("listings", {
   /** Nullable while draft; required before publish (enforced in Service). */
   location: geographyPoint("location"),
   viewCount: integer("view_count").notNull().default(0),
+  /**
+   * Lifetime WhatsApp contact taps for this listing id.
+   * Counts only while status is active. Renewals keep the same id and total.
+   * Not replies, and not share-link opens.
+   */
+  contactTapCount: integer("contact_tap_count").notNull().default(0),
   publishedAt: timestamp("published_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   boostedUntil: timestamp("boosted_until", { withTimezone: true }),

@@ -611,8 +611,15 @@ export const updateListingSchema = createListingSchema.transform(
   ({ publishNow: _publishNow, ...rest }) => rest,
 );
 
+export const setListingAvailabilitySchema = z.object({
+  availability: z.enum(["available", "pending", "rented"]),
+});
+
 export type CreateListingInput = z.infer<typeof createListingSchema>;
 export type UpdateListingInput = z.infer<typeof updateListingSchema>;
+export type SetListingAvailabilityInput = z.infer<
+  typeof setListingAvailabilitySchema
+>;
 export type ListListingsQuery = z.infer<typeof listListingsQuerySchema>;
 
 export type ListingPhotoDto = {

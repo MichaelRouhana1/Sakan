@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
 import {
@@ -66,6 +67,7 @@ export function HostCreditsPage() {
   const params = useLocalSearchParams<{
     ref?: string | string[];
     returnTo?: string | string[];
+    pack?: string | string[];
   }>();
   const initialRef = firstParam(params.ref);
   const requestedReturnTo = firstParam(params.returnTo);
@@ -80,6 +82,26 @@ export function HostCreditsPage() {
 
   const postCredits = credits.data?.postCredits ?? user?.postCredits ?? 0;
   const boostCredits = credits.data?.boostCredits ?? user?.boostCredits ?? 0;
+  const focusPack = firstParam(params.pack);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || focusPack !== "boost_pack") return;
+    let frames = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const attempt = () => {
+      const node = document.getElementById("credit-pack-boost_pack");
+      if (node) {
+        node.scrollIntoView({ block: "center" });
+        return;
+      }
+      frames += 1;
+      if (frames < 20) timer = setTimeout(attempt, 50);
+    };
+    timer = setTimeout(attempt, 50);
+    return () => {
+      if (timer != null) clearTimeout(timer);
+    };
+  }, [focusPack]);
 
   return (
     <View style={[styles.page, !web && styles.pageNative]}>
@@ -118,11 +140,13 @@ export function HostCreditsPage() {
           const paying = isStarting && pendingBundle === item.type;
           const card = (
             <Pressable
+              nativeID={item.type === "boost_pack" ? "credit-pack-boost_pack" : undefined}
               accessibilityRole="none"
               style={({ hovered }) => [
                 styles.card,
                 styles.cardBeamed,
                 popular && styles.cardPopular,
+                focusPack === item.type && styles.cardFocus,
                 hovered && styles.cardHover,
                 !reduceMotion && styles.cardMotion,
               ]}
@@ -372,6 +396,9 @@ const styles = StyleSheet.create({
   cardPopular: {
     overflow: "visible",
     backgroundColor: Skoun.color.surfaceMuted,
+  },
+  cardFocus: {
+    borderColor: Skoun.color.primary,
   },
   cardBeamed: {
     flexGrow: 0,

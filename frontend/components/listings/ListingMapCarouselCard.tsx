@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import {
   ListingFeatureBadge,
   ListingGridRatingBadge,
@@ -102,6 +103,7 @@ export function ListingMapCarouselCard({ listing, width, onPress }: Props) {
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
+        <ListingAvailabilityBadge availability={listing.availability} />
         <Text style={styles.meta} numberOfLines={1}>
           {subtitle}
         </Text>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import * as Haptics from "expo-haptics";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { api } from "@/lib/api";
 import {
@@ -12,9 +12,32 @@ import {
 import type { Listing } from "@/types/listing";
 import { normalizeListing } from "@/features/listings/normalizeListing";
 import { savedKeys } from "./keys";
+import { requestSaveAuth } from "./saveAuthPrompt";
 
 type ListResponse = { data: unknown };
 type ToggleResponse = { data: { saved: boolean; listingId: string } };
+type ToggleVars = { listing: Listing; wantSaved: boolean; seq: number };
+
+/**
+ * Overlapping heart taps share one cache. Only the newest tap may roll it
+ * back, and only to the list from before this burst — never to another
+ * tap's optimistic snapshot.
+ */
+let toggleEpoch = 0;
+let pendingToggles = 0;
+let confirmedList: Listing[] | null = null;
+
+function applySavedToggle(
+  list: Listing[],
+  listing: Listing,
+  wantSaved: boolean,
+): Listing[] {
+  if (wantSaved) {
+    if (list.some((item) => item.id === listing.id)) return list;
+    return [listing, ...list];
+  }
+  return list.filter((item) => item.id !== listing.id);
+}
 
 async function fetchSavedListings(): Promise<Listing[]> {
   const { data } = await api.get<ListResponse>("/api/saved");
@@ -35,11 +58,13 @@ let localSavedMigrationStarted = false;
 /** One-time merge of device AsyncStorage IDs into the account shortlist. */
 export function useMigrateLocalSaved() {
   const queryClient = useQueryClient();
-  const { isSignedIn } = useAuthSession();
+  const { isSignedIn, isLoading: authLoading } = useAuthSession();
 
   useEffect(() => {
+    if (authLoading) return;
     if (!isSignedIn) {
       localSavedMigrationStarted = false;
+      queryClient.removeQueries({ queryKey: savedKeys.all });
       return;
     }
     if (localSavedMigrationStarted) return;
@@ -59,7 +84,7 @@ export function useMigrateLocalSaved() {
         localSavedMigrationStarted = false;
       }
     })();
-  }, [isSignedIn, queryClient]);
+  }, [isSignedIn, authLoading, queryClient]);
 }
 
 export function useSavedListings() {
@@ -79,9 +104,12 @@ export function useSavedListings() {
 
 /** Heart state from the shortlist query — one GET /api/saved, not one per card. */
 export function useIsSaved(id: string) {
+  const { isSignedIn } = useAuthSession();
   const { data: listings, isLoading, isFetching, isError } = useSavedListings();
   return {
-    data: listings?.some((listing) => listing.id === id) ?? false,
+    data: Boolean(
+      isSignedIn && listings?.some((listing) => listing.id === id),
+    ),
     isLoading,
     isFetching,
     isError,
@@ -90,71 +118,69 @@ export function useIsSaved(id: string) {
 
 export function useToggleSaved() {
   const queryClient = useQueryClient();
-  const preMutationState = useRef(new Map<string, boolean>());
+  const { isSignedIn, isLoading: authLoading } = useAuthSession();
 
-  return useMutation({
-    mutationFn: async (listing: Listing) => {
-      const currentlySaved =
-        preMutationState.current.get(listing.id) ??
-        queryClient
-          .getQueryData<Listing[]>(savedKeys.list())
-          ?.some((item) => item.id === listing.id) ??
-        false;
-
-      if (currentlySaved) {
-        const { data } = await api.delete<ToggleResponse>(
+  const mutation = useMutation<boolean, unknown, ToggleVars, { seq: number }>({
+    mutationFn: async ({ listing, wantSaved }) => {
+      if (wantSaved) {
+        const { data } = await api.post<ToggleResponse>(
           `/api/saved/${listing.id}`,
         );
         return data.data.saved;
       }
-
-      const { data } = await api.post<ToggleResponse>(
+      const { data } = await api.delete<ToggleResponse>(
         `/api/saved/${listing.id}`,
       );
       return data.data.saved;
     },
-    onMutate: async (listing) => {
+    onMutate: async ({ listing, wantSaved, seq }) => {
       await queryClient.cancelQueries({ queryKey: savedKeys.list() });
-
-      const previousList = queryClient.getQueryData<Listing[]>(
-        savedKeys.list(),
-      );
-
-      const currentlySaved =
-        previousList?.some((item) => item.id === listing.id) ?? false;
-
-      preMutationState.current.set(listing.id, currentlySaved);
-
-      const nextSaved = !currentlySaved;
-
-      queryClient.setQueryData<Listing[]>(savedKeys.list(), (prev) => {
-        const list = prev ?? [];
-        if (nextSaved) {
-          if (list.some((item) => item.id === listing.id)) return list;
-          return [listing, ...list];
-        }
-        return list.filter((item) => item.id !== listing.id);
-      });
-
+      if (seq === toggleEpoch) {
+        queryClient.setQueryData<Listing[]>(savedKeys.list(), (prev) =>
+          applySavedToggle(prev ?? [], listing, wantSaved),
+        );
+      }
       void Haptics.impactAsync(
-        nextSaved
+        wantSaved
           ? Haptics.ImpactFeedbackStyle.Medium
           : Haptics.ImpactFeedbackStyle.Light,
       ).catch(() => undefined);
-
-      return { previousList, listingId: listing.id };
+      return { seq };
     },
-    onError: (_err, listing, context) => {
-      preMutationState.current.delete(listing.id);
-      if (!context) return;
-      queryClient.setQueryData(savedKeys.list(), context.previousList);
+    onError: (error, vars) => {
+      if (vars.seq !== toggleEpoch) return;
+      queryClient.setQueryData(savedKeys.list(), confirmedList ?? []);
+      if (isAuthStatusError(error)) requestSaveAuth();
     },
-    onSettled: (_data, _err, listing) => {
-      preMutationState.current.delete(listing.id);
+    onSettled: (_data, _err, vars) => {
+      pendingToggles = Math.max(0, pendingToggles - 1);
+      if (pendingToggles === 0) confirmedList = null;
+      if (vars.seq !== toggleEpoch) return;
       void queryClient.invalidateQueries({ queryKey: savedKeys.list() });
       void queryClient.invalidateQueries({
-        queryKey: savedKeys.one(listing.id),
+        queryKey: savedKeys.one(vars.listing.id),
       });
     },
   });
+
+  const mutate = (listing: Listing) => {
+    if (authLoading) return;
+    if (!isSignedIn) {
+      requestSaveAuth();
+      return;
+    }
+
+    const list =
+      queryClient.getQueryData<Listing[]>(savedKeys.list()) ?? [];
+    if (pendingToggles === 0) confirmedList = list;
+    pendingToggles += 1;
+    const wantSaved = !list.some((item) => item.id === listing.id);
+    const seq = ++toggleEpoch;
+    queryClient.setQueryData<Listing[]>(savedKeys.list(), (prev) =>
+      applySavedToggle(prev ?? [], listing, wantSaved),
+    );
+    mutation.mutate({ listing, wantSaved, seq });
+  };
+
+  return { ...mutation, mutate };
 }

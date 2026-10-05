@@ -240,6 +240,7 @@ export const matcherStyles = StyleSheet.create({
     position: "relative",
     zIndex: 2,
   },
+  importanceReserved: { opacity: 0 },
   importanceLabel: {
     fontFamily: t.body,
     fontSize: 10,

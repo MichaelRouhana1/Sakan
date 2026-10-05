@@ -50,6 +50,7 @@ export function priceGuideAggregateQuery(input: PriceGuideInput) {
       percentile_cont(0.75) WITHIN GROUP (ORDER BY ${listings.monthlyRentUsd}) AS "highUsd"
     FROM ${listings}
     WHERE ${listings.status} = 'active'
+      AND ${listings.availability} <> 'rented'
       AND ${listings.monthlyRentUsd} > 0
       AND (${listings.expiresAt} IS NULL OR ${listings.expiresAt} > now())
       AND ${listings.area} = ${input.area}

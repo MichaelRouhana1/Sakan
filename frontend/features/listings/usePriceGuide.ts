@@ -15,12 +15,29 @@ export type PriceGuide = {
 type PriceGuideDraft = Pick<CreateListingDraft,
   "area" | "spaceType" | "propertyType" | "bedrooms" | "priceBasis">;
 
-/** Only mounted by Pricing; never retain guidance for a different draft/session. */
-export function usePriceGuide(draft: PriceGuideDraft): PriceGuide | null {
+type PriceGuideOptions = {
+  excludeListingId?: string;
+  /** When false, do not request comps. `ready` is still true. */
+  enabled?: boolean;
+};
+
+/** Live comps for pricing and silence diagnosis. Fail closed while a refetch is in flight. */
+export function usePriceGuideState(
+  draft: PriceGuideDraft,
+  options: PriceGuideOptions = {},
+): { guide: PriceGuide | null; ready: boolean } {
   const { session, isSignedIn, isLoading } = useAuthSession();
   const { area, spaceType, propertyType, bedrooms, priceBasis } = draft;
-  const params = { area, spaceType, propertyType, bedrooms, priceBasis };
-  const enabled = !isLoading && isSignedIn && Boolean(session?.userId) &&
+  const excludeListingId = options.excludeListingId;
+  const params = {
+    area,
+    spaceType,
+    propertyType,
+    bedrooms,
+    priceBasis,
+    ...(excludeListingId ? { excludeListingId } : {}),
+  };
+  const enabled = options.enabled !== false && !isLoading && isSignedIn && Boolean(session?.userId) &&
     Boolean(area && spaceType && propertyType && priceBasis) &&
     Number.isInteger(bedrooms) && bedrooms >= 0 && bedrooms <= 12;
   const query = useQuery({
@@ -38,6 +55,16 @@ export function usePriceGuide(draft: PriceGuideDraft): PriceGuide | null {
     refetchOnMount: "always",
   });
 
+  const ready = !enabled || (query.isFetched && !query.isFetching);
   // An error may coexist with cached data after a failed refetch. Fail closed.
-  return enabled && query.isSuccess && !query.isFetching ? query.data ?? null : null;
+  const guide = enabled && query.isSuccess && !query.isFetching ? query.data ?? null : null;
+  return { guide, ready };
+}
+
+/** Only mounted by Pricing; never retain guidance for a different draft/session. */
+export function usePriceGuide(
+  draft: PriceGuideDraft,
+  excludeListingId?: string,
+): PriceGuide | null {
+  return usePriceGuideState(draft, { excludeListingId }).guide;
 }

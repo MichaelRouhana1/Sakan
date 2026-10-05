@@ -4,6 +4,7 @@ import { listingsService } from "./listings.service.js";
 import {
   listListingsQuerySchema,
   type CreateListingInput,
+  type SetListingAvailabilityInput,
   type UpdateListingInput,
 } from "./listings.schemas.js";
 import { publicUrlForUpload } from "./photos.storage.js";
@@ -16,6 +17,13 @@ import type {
   ListingExpiryDecisionInput,
   ListingRenewInput,
 } from "./listing-expiry.schemas.js";
+
+function clientIp(req: Request): string | undefined {
+  const raw = req.ip || req.socket?.remoteAddress;
+  if (!raw) return undefined;
+  const ip = raw.replace(/^::ffff:/, "").trim();
+  return ip || undefined;
+}
 
 function queryString(value: unknown): string | undefined {
   if (typeof value === "string") return value;
@@ -197,6 +205,21 @@ export class ListingsController {
     }
   }
 
+  async recordContactTap(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.recordContactTap(
+        req.params.id as string,
+        {
+          userId: req.user?.id,
+          ip: clientIp(req),
+        },
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.create(
@@ -209,12 +232,38 @@ export class ListingsController {
     }
   }
 
+  async setAvailability(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = req.body as SetListingAvailabilityInput;
+      const data = await listingsService.setAvailability(
+        req.user!.id,
+        req.params.id as string,
+        body.availability,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.update(
         req.user!,
         req.params.id as string,
         req.body as UpdateListingInput,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async remove(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await listingsService.remove(
+        req.user!.id,
+        req.params.id as string,
       );
       res.json({ data });
     } catch (err) {

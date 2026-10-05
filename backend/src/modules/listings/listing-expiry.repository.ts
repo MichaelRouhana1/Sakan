@@ -187,6 +187,7 @@ export class ListingExpiryRepository {
           status: "active",
           expiresAt: nextExpiry,
           updatedAt: now,
+          availability: sql`CASE WHEN ${listings.status} = 'archived' THEN 'available'::listing_availability ELSE ${listings.availability} END`,
         })
         .where(
           and(

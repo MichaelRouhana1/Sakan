@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBadge";
 import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
@@ -56,6 +57,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
               ? `${listing.landmark}, ${listing.area}`
               : listing.area}
           </LText>
+          <ListingAvailabilityBadge availability={listing.availability} />
         </View>
         <View style={styles.priceCol}>
           <LText variant="caption" tone="muted">

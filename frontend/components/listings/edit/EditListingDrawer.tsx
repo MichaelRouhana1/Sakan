@@ -13,6 +13,7 @@ import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { EditListingProvider } from "@/features/listings/edit/EditListingProvider";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useHostRailInset } from "@/components/web/hostRailInset";
+import type { HostEditSection } from "@/constants/hostRoutes";
 
 const PANEL_WIDTH = 480;
 const SLIDE_MS = 280;
@@ -20,9 +21,10 @@ const SLIDE_MS = 280;
 type Props = {
   listingId: string;
   onClose: () => void;
+  initialSection?: HostEditSection | null;
 };
 
-export function EditListingDrawer({ listingId, onClose }: Props) {
+export function EditListingDrawer({ listingId, onClose, initialSection = null }: Props) {
   const reduced = useReducedMotion();
   const railInset = useHostRailInset();
   const { width } = useWindowDimensions();
@@ -123,10 +125,11 @@ export function EditListingDrawer({ listingId, onClose }: Props) {
       >
         <EditListingProvider listingId={listingId}>
           <EditListingScreen
-            key={listingId}
+            key={`${listingId}:${initialSection ?? ""}`}
             listingId={listingId}
             layout="panel"
             onClose={beginClose}
+            initialSection={initialSection}
           />
         </EditListingProvider>
       </View>

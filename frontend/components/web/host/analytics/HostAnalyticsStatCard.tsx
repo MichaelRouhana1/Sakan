@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useState, type ReactNode } from "react";
 import {
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -8,6 +10,8 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Skoun } from "@/constants/theme";
+
+export type AnalyticsCardIcon = keyof typeof Ionicons.glyphMap;
 
 type Tone = "default" | "warning";
 
@@ -22,6 +26,10 @@ type Props = {
   fill?: boolean;
   /** Clear glass pane. */
   glass?: boolean;
+  /** Shown from the info mark beside the label. */
+  hint?: string;
+  /** Outline mark beside the label. Decorative; the label stays the name. */
+  icon?: AnalyticsCardIcon;
 };
 
 const web = Platform.OS === "web";
@@ -81,6 +89,52 @@ export function HostAnalyticsGlassPane({
   );
 }
 
+export function AnalyticsCardIconMark({
+  name,
+  warning = false,
+}: {
+  name: AnalyticsCardIcon;
+  warning?: boolean;
+}) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={styles.iconMark}
+    >
+      <Ionicons
+        name={name}
+        size={20}
+        color={warning ? Skoun.color.warning : Skoun.color.primary}
+      />
+    </View>
+  );
+}
+
+function InfoHint({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.hintWrap}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={text}
+        onHoverIn={web ? () => setOpen(true) : undefined}
+        onHoverOut={web ? () => setOpen(false) : undefined}
+        onPress={web ? undefined : () => setOpen((value) => !value)}
+        hitSlop={6}
+        style={styles.hintBtn}
+      >
+        <Text style={styles.hintMark}>i</Text>
+      </Pressable>
+      {open ? (
+        <View style={styles.tooltip} pointerEvents="none">
+          <Text style={styles.tooltipText}>{text}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function HostAnalyticsStatCard({
   label,
   value,
@@ -89,10 +143,18 @@ export function HostAnalyticsStatCard({
   dense = false,
   fill = false,
   glass = false,
+  hint,
+  icon,
 }: Props) {
   const inner = (
     <>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.labelRow}>
+        {icon ? (
+          <AnalyticsCardIconMark name={icon} warning={tone === "warning"} />
+        ) : null}
+        <Text style={styles.label}>{label}</Text>
+        {hint ? <InfoHint text={hint} /> : null}
+      </View>
       <Text style={[styles.value, compact && styles.valueCompact]}>{value}</Text>
     </>
   );
@@ -104,6 +166,7 @@ export function HostAnalyticsStatCard({
     fill && styles.cardFill,
     glass ? styles.cardGlass : styles.cardSolid,
     !glass && tone === "warning" ? styles.cardWarning : null,
+    hint ? styles.cardHint : null,
   ];
 
   if (glass) {
@@ -151,6 +214,10 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexBasis: "auto",
   },
+  cardHint: {
+    zIndex: 4,
+    overflow: "visible",
+  },
   cardWarning: {
     backgroundColor: Skoun.color.warningSoft,
     borderColor: "rgba(180,83,9,0.22)",
@@ -195,12 +262,66 @@ const styles = StyleSheet.create({
     zIndex: 1,
     gap: 8,
   },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    zIndex: 2,
+  },
+  iconMark: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   label: {
     fontFamily: Skoun.type.bodySemi,
     fontSize: 11,
     color: "#8B95A1",
     textTransform: "uppercase",
     letterSpacing: 1.2,
+  },
+  hintWrap: {
+    position: "relative",
+    zIndex: 3,
+  },
+  hintBtn: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#C5CED8",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    ...(web ? { cursor: "pointer" as const } : null),
+  },
+  hintMark: {
+    fontFamily: Skoun.type.bodyBold,
+    fontSize: 10,
+    lineHeight: 12,
+    color: "#8B95A1",
+    ...(web ? { fontStyle: "italic" as const } : null),
+  },
+  tooltip: {
+    position: "absolute",
+    bottom: 22,
+    left: -96,
+    width: 220,
+    zIndex: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: Skoun.color.ink,
+    ...(web
+      ? { boxShadow: "0 10px 24px rgba(18,24,38,0.18)" }
+      : null),
+  },
+  tooltipText: {
+    fontFamily: Skoun.type.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#FFFFFF",
   },
   value: {
     fontFamily: Skoun.type.bodyBold,
