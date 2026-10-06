@@ -1,3 +1,4 @@
+import { mobileHeroHeight } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -59,7 +60,7 @@ type Props = {
 
 export function ListingDetailMobile({ listingId, onClose }: Props) {
   const { height: winH } = useWindowDimensions();
-  const galleryH = Math.round(Math.min(Math.max(winH * 0.44, 280), 420));
+  const galleryH = mobileHeroHeight(winH);
   const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId ?? "");
   const inquiry = useWhatsAppInquiry(listing);

@@ -1,3 +1,7 @@
+import { removePhotoUri } from "@/features/listings/photoUriOwnership";
+import { usePhotoCropQueue } from "@/features/listings/usePhotoCropQueue";
+import { PhotoCropModal } from "./photos/PhotoCropModal";
+import { PhotoGuidance } from "./photos/PhotoGuidance";
 import { createElement, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -11,8 +15,6 @@ import {
   PhotoGridFooter,
   PhotoGridHeader,
   PhotoTile,
-  addPhotosFromUris,
-  pickAndUploadPhotos,
   photoPickerStyles,
   reorderPhotos,
   TileEnter,
@@ -22,7 +24,10 @@ import {
 } from "./PhotoPickerGrid.shared";
 
 export type { DraftPhoto } from "./PhotoPickerGrid.shared";
-export { MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from "./PhotoPickerGrid.shared";
+export {
+  MAX_LISTING_PHOTOS,
+  MIN_LISTING_PHOTOS,
+} from "./PhotoPickerGrid.shared";
 
 function isFileDrag(event: DragEvent): boolean {
   const types = Array.from(event.dataTransfer?.types ?? []);
@@ -30,13 +35,12 @@ function isFileDrag(event: DragEvent): boolean {
 }
 
 function imageFilesFromDrop(event: DragEvent): File[] {
-  return Array.from(event.dataTransfer?.files ?? []).filter((file) =>
-    file.type.startsWith("image/"),
-  );
+  return Array.from(event.dataTransfer?.files ?? []);
 }
 
 function isDeleteTarget(target: EventTarget | null) {
-  if (!target || typeof (target as Element).closest !== "function") return false;
+  if (!target || typeof (target as Element).closest !== "function")
+    return false;
   return Boolean((target as Element).closest("[data-photo-delete]"));
 }
 
@@ -59,7 +63,12 @@ type PointerDownEvent = {
   };
 };
 
-export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridProps) {
+export function PhotoPickerGrid({
+  photos,
+  setPhotos,
+  style,
+}: PhotoPickerGridProps) {
+  const cropController = usePhotoCropQueue({ photos, setPhotos });
   const remaining = MAX_LISTING_PHOTOS - photos.length;
   const readyCount = photos.filter((p) => p.status === "ready").length;
   const uploading = photos.some((p) => p.status === "uploading");
@@ -73,9 +82,8 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
   const previousCursorRef = useRef<string | null>(null);
   const dropRef = useRef<HTMLDivElement | null>(null);
   const remainingRef = useRef(remaining);
-  const setPhotosRef = useRef(setPhotos);
+  const queueRef = useRef(cropController.queue);
   remainingRef.current = remaining;
-  setPhotosRef.current = setPhotos;
 
   useEffect(() => {
     dragIdRef.current = dragId;
@@ -126,13 +134,18 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
     if (!el) return;
 
     const onEnter = (event: DragEvent) => {
-      if (!isFileDrag(event) || remainingRef.current <= 0) return;
+      if (
+        !isFileDrag(event) ||
+        remainingRef.current <= 0 ||
+        queueRef.current.state.phase !== "idle"
+      )
+        return;
       event.preventDefault();
       event.stopPropagation();
       setFileDropActive(true);
     };
     const onOver = (event: DragEvent) => {
-      if (!isFileDrag(event) || remainingRef.current <= 0) return;
+      if (!isFileDrag(event)) return;
       event.preventDefault();
       event.stopPropagation();
       if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
@@ -148,12 +161,13 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
       event.preventDefault();
       event.stopPropagation();
       setFileDropActive(false);
-      const slots = remainingRef.current;
-      if (slots <= 0) return;
-      const uris = imageFilesFromDrop(event).map((file) =>
-        URL.createObjectURL(file),
-      );
-      void addPhotosFromUris(uris, slots, setPhotosRef.current);
+      if (queueRef.current.state.phase !== "idle") return;
+      const sources = imageFilesFromDrop(event).map((file) => ({
+        uri: URL.createObjectURL(file),
+        name: file.name,
+        owned: true,
+      }));
+      void queueRef.current.admit(sources);
     };
 
     el.addEventListener("dragenter", onEnter);
@@ -169,6 +183,8 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
   }, []);
 
   function removePhoto(localId: string) {
+    const photo = photos.find((p) => p.localId === localId);
+    if (photo) removePhotoUri(photo.uri);
     setPhotos((prev) => prev.filter((p) => p.localId !== localId));
   }
 
@@ -202,6 +218,14 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
   return (
     <View style={[photoPickerStyles.root, style]}>
       <PhotoGridHeader photoCount={photos.length} uploading={uploading} />
+      <PhotoGuidance />
+      {!cropController.locked &&
+        cropController.state.notices.map((notice, i) => (
+          <LText key={i} accessibilityLiveRegion="polite" variant="caption">
+            {notice}
+          </LText>
+        ))}
+      <PhotoCropModal controller={cropController} photoCount={photos.length} />
 
       {createElement(
         "div",
@@ -215,6 +239,13 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
             <View key={photo.localId} style={photoPickerStyles.cell}>
               <TileEnter index={index}>
                 <PhotoTile
+                  onCaption={(caption) =>
+                    setPhotos((prev) =>
+                      prev.map((p) =>
+                        p.localId === photo.localId ? { ...p, caption } : p,
+                      ),
+                    )
+                  }
                   photo={photo}
                   index={index}
                   isDragging={dragId === photo.localId}
@@ -234,13 +265,17 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
               remaining={remaining}
               index={photos.length}
               dropActive={fileDropActive}
-              onPress={() => void pickAndUploadPhotos(remaining, setPhotos)}
+              disabled={cropController.locked}
+              onPress={() => void cropController.pick()}
             />
           ) : null}
         </View>,
         fileDropActive && remaining > 0 ? (
           <View style={photoPickerStyles.fileDropOverlay}>
-            <LText variant="subtitle" style={photoPickerStyles.fileDropOverlayText}>
+            <LText
+              variant="subtitle"
+              style={photoPickerStyles.fileDropOverlayText}
+            >
               Drop to add photos
             </LText>
           </View>
@@ -249,7 +284,9 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
 
       <PhotoGridFooter readyCount={readyCount} />
 
-      {ghost ? <PhotoPickerGridDragGhost ghost={ghost} pointer={pointer} /> : null}
+      {ghost ? (
+        <PhotoPickerGridDragGhost ghost={ghost} pointer={pointer} />
+      ) : null}
     </View>
   );
 }

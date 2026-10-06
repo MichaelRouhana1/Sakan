@@ -88,6 +88,10 @@ export type CreateListingDraft = {
   routerUps: boolean;
   conciergeIncluded: boolean;
   cookingGasIncluded: boolean;
+  waterBillIncluded: boolean;
+  buildingFeesIncluded: boolean;
+  /** True only after the host turns the parking amenity on, unless they opt out. */
+  parkingIncludedInRent: boolean;
   amenities: string[];
   genderRestriction: GenderRestriction;
   targetAudience: TargetAudience;
@@ -149,6 +153,9 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   routerUps: false,
   conciergeIncluded: false,
   cookingGasIncluded: false,
+  waterBillIncluded: false,
+  buildingFeesIncluded: false,
+  parkingIncludedInRent: false,
   amenities: [],
   genderRestriction: "anyone",
   targetAudience: "students_only",

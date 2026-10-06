@@ -43,6 +43,9 @@ export type CreateListingBody = {
   generatorIncluded: boolean;
   conciergeIncluded: boolean;
   cookingGasIncluded: boolean;
+  waterBillIncluded: boolean;
+  buildingFeesIncluded: boolean;
+  parkingIncludedInRent: boolean;
   amenities: string[];
   bedrooms: number;
   beds: number;

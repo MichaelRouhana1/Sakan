@@ -1,5 +1,9 @@
+import { PHOTO_CAPTION_LIMIT, normalizePhotoCaption } from "@/lib/photoCaption";
+import {
+  beginPhotoUpload,
+  endPhotoUpload,
+} from "@/features/listings/photoUriOwnership";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import {
   useEffect,
@@ -14,6 +18,7 @@ import {
   Platform,
   Pressable,
   StyleSheet,
+  TextInput,
   View,
   type ViewStyle,
 } from "react-native";
@@ -98,6 +103,8 @@ export async function uploadDraft(
         : p,
     ),
   );
+  beginPhotoUpload(uri);
+  let succeeded = false;
   try {
     const compressed = await compressListingPhoto(uri);
     const [url] = await uploadListingPhotos([
@@ -110,6 +117,7 @@ export async function uploadDraft(
           : p,
       ),
     );
+    succeeded = true;
   } catch (err) {
     const message =
       isAxiosError(err) &&
@@ -127,6 +135,8 @@ export async function uploadDraft(
           : p,
       ),
     );
+  } finally {
+    endPhotoUpload(uri, succeeded);
   }
 }
 
@@ -145,52 +155,6 @@ export function reorderPhotos(
   return copy;
 }
 
-export async function addPhotosFromUris(
-  uris: string[],
-  remaining: number,
-  setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>,
-) {
-  if (remaining <= 0 || uris.length === 0) return;
-
-  const slots = uris.slice(0, remaining);
-  const drafts: DraftPhoto[] = slots.map((uri, index) => ({
-    localId: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 7)}`,
-    uri,
-    status: "uploading",
-  }));
-
-  setPhotos((prev) => [...prev, ...drafts]);
-
-  await Promise.all(
-    drafts.map((draft) => uploadDraft(draft.localId, draft.uri, setPhotos)),
-  );
-}
-
-export async function pickAndUploadPhotos(
-  remaining: number,
-  setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>,
-) {
-  if (remaining <= 0) return;
-
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) return;
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ["images"],
-    allowsMultipleSelection: true,
-    selectionLimit: remaining,
-    quality: 1,
-  });
-
-  if (result.canceled || result.assets.length === 0) return;
-
-  await addPhotosFromUris(
-    result.assets.map((asset) => asset.uri),
-    remaining,
-    setPhotos,
-  );
-}
-
 type PhotoTileProps = {
   photo: DraftPhoto;
   index: number;
@@ -199,6 +163,7 @@ type PhotoTileProps = {
   onRemove: () => void;
   onRetry: () => void;
   onDrag?: () => void;
+  onCaption: (value: string) => void;
   webDragProps?: Record<string, unknown>;
   photoTileId?: string;
   style?: ViewStyle;
@@ -212,6 +177,7 @@ export function PhotoTile({
   onRemove,
   onRetry,
   onDrag,
+  onCaption,
   webDragProps,
   photoTileId,
   style,
@@ -224,22 +190,24 @@ export function PhotoTile({
       style={[
         photoPickerStyles.tileWrap,
         isDragging && photoPickerStyles.cellDragging,
-        isDragging && Platform.OS === "web" ? photoPickerStyles.cellPlaceholder : null,
-        isDropTarget && photoPickerStyles.cellDropTarget,
-        Platform.OS === "web"
-          ? (photoPickerStyles.webDraggable as ViewStyle)
+        isDragging && Platform.OS === "web"
+          ? photoPickerStyles.cellPlaceholder
           : null,
+        isDropTarget && photoPickerStyles.cellDropTarget,
         style,
       ]}
-      {...webDragProps}
       {...(Platform.OS === "web" && photoTileId
         ? ({ dataSet: { photoTile: photoTileId } } as object)
         : {})}
     >
       <View
+        {...webDragProps}
         style={[
           photoPickerStyles.tile,
-          isDragging && Platform.OS === "web" ? photoPickerStyles.tilePlaceholder : null,
+          Platform.OS === "web" ? photoPickerStyles.webDraggable : null,
+          isDragging && Platform.OS === "web"
+            ? photoPickerStyles.tilePlaceholder
+            : null,
         ]}
       >
         <Pressable
@@ -258,10 +226,14 @@ export function PhotoTile({
           delayLongPress={120}
           style={[
             StyleSheet.absoluteFill,
-            isDragging && Platform.OS === "web" ? photoPickerStyles.tileContentHidden : null,
+            isDragging && Platform.OS === "web"
+              ? photoPickerStyles.tileContentHidden
+              : null,
             {
               pointerEvents:
-                Platform.OS === "web" && photo.status !== "error" ? "none" : "auto",
+                Platform.OS === "web" && photo.status !== "error"
+                  ? "none"
+                  : "auto",
             },
           ]}
         >
@@ -289,7 +261,10 @@ export function PhotoTile({
           ) : null}
 
           {photo.status === "ready" ? (
-            <View style={photoPickerStyles.readyDot} accessibilityLabel="Uploaded" />
+            <View
+              style={photoPickerStyles.readyDot}
+              accessibilityLabel="Uploaded"
+            />
           ) : null}
         </Pressable>
 
@@ -303,7 +278,6 @@ export function PhotoTile({
             }}
             {...(Platform.OS === "web"
               ? ({
-                  // @ts-expect-error RN Web data attribute
                   dataSet: { photoDelete: "true" },
                   onPointerDown: (event: { stopPropagation: () => void }) => {
                     event.stopPropagation();
@@ -312,7 +286,11 @@ export function PhotoTile({
               : {})}
             style={photoPickerStyles.deleteBtn}
           >
-            <Ionicons name="trash-outline" size={16} color={Lister.color.surface} />
+            <Ionicons
+              name="trash-outline"
+              size={16}
+              color={Lister.color.surface}
+            />
           </Pressable>
         ) : null}
 
@@ -324,6 +302,34 @@ export function PhotoTile({
           </View>
         ) : null}
       </View>
+      <View style={{ marginTop: 8, gap: 4 }}>
+        <LText variant="caption" tone="muted">
+          Optional caption
+        </LText>
+        <TextInput
+          accessibilityLabel={`Caption for photo ${index + 1}`}
+          placeholder="e.g. Sofa bed sleeps 2"
+          placeholderTextColor={Lister.color.inkMuted}
+          value={photo.caption ?? ""}
+          maxLength={PHOTO_CAPTION_LIMIT}
+          onChangeText={onCaption}
+          onBlur={() => onCaption(normalizePhotoCaption(photo.caption))}
+          style={{
+            minHeight: 44,
+            padding: 10,
+            borderRadius: 10,
+            borderWidth: 1,
+            borderColor: Lister.color.border,
+            color: Lister.color.ink,
+            backgroundColor: Lister.color.surface,
+            fontFamily: Lister.type.body,
+            fontSize: 14,
+          }}
+        />
+        <LText variant="caption" tone="faint" style={{ textAlign: "right" }}>
+          {(photo.caption ?? "").length}/{PHOTO_CAPTION_LIMIT}
+        </LText>
+      </View>
     </View>
   );
 }
@@ -333,17 +339,21 @@ export function AddPhotoTile({
   index,
   onPress,
   dropActive,
+  disabled = false,
 }: {
   remaining: number;
   index: number;
   onPress: () => void;
   dropActive?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <View style={photoPickerStyles.cell}>
       <TileEnter index={index}>
         <Pressable
           accessibilityRole="button"
+          disabled={disabled}
+          accessibilityState={{ disabled }}
           accessibilityLabel={`Add photos, ${remaining} slots remaining. Drop images here.`}
           onPress={onPress}
           style={[
@@ -352,14 +362,22 @@ export function AddPhotoTile({
           ]}
         >
           <View style={photoPickerStyles.addIcon}>
-            <Ionicons name="images-outline" size={26} color={Lister.color.primary} />
+            <Ionicons
+              name="images-outline"
+              size={26}
+              color={Lister.color.primary}
+            />
           </View>
-          <LText variant="caption" tone="primary" style={photoPickerStyles.addLabel}>
+          <LText
+            variant="caption"
+            tone="primary"
+            style={photoPickerStyles.addLabel}
+          >
             {dropActive ? "Drop photos" : "Add photos"}
           </LText>
           <LText variant="caption" tone="faint">
             {dropActive
-              ? "Release to upload"
+              ? "Release to crop"
               : Platform.OS === "web"
                 ? `Drop or browse · ${remaining} left`
                 : `${remaining} left`}
@@ -381,7 +399,14 @@ export function PhotoGridHeader({
     <>
       <View style={photoPickerStyles.headerRow}>
         <View style={photoPickerStyles.headerCopy}>
-          <LText variant="subtitle">Photos of the place</LText>
+          <LText
+            nativeID="photo-step-heading"
+            accessibilityRole="header"
+            tabIndex={-1}
+            variant="subtitle"
+          >
+            Photos of the place
+          </LText>
           <LText variant="body" tone="muted">
             {Platform.OS === "web"
               ? "Drop images here or click to add. Drag photos to reorder. First is the search cover."
@@ -504,7 +529,7 @@ export const photoPickerStyles = StyleSheet.create({
       cursor: "grab",
       touchAction: "none",
       userSelect: "none",
-    } as ViewStyle,
+    } as unknown as ViewStyle,
     default: {},
   }),
   tile: {
@@ -520,7 +545,7 @@ export const photoPickerStyles = StyleSheet.create({
     height: "100%",
   },
   tileWash: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(18,24,38,0.06)",
     pointerEvents: "none",
   },
@@ -535,9 +560,7 @@ export const photoPickerStyles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(18,24,38,0.62)",
     zIndex: 2,
-    ...(Platform.OS === "web"
-      ? ({ cursor: "pointer" } as ViewStyle)
-      : null),
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as ViewStyle) : null),
   },
   coverBadge: {
     position: "absolute",
@@ -555,7 +578,7 @@ export const photoPickerStyles = StyleSheet.create({
     fontSize: 11,
   },
   statusOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(18,24,38,0.45)",
     alignItems: "center",
     justifyContent: "center",
@@ -597,7 +620,7 @@ export const photoPickerStyles = StyleSheet.create({
     position: "relative",
   },
   fileDropOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: Lister.radius.lg,
     borderWidth: 2,
     borderStyle: "dashed",

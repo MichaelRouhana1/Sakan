@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { labelListingType } from "@/lib/listingLabels";
 import { openWhatsAppUrl } from "@/lib/openWhatsAppUrl";
 import { handoffWhatsApp } from "@/lib/whatsappHandoff";
+import { formatWhatsAppInclusionLines } from "@/lib/rentInclusion";
 import {
   buildWhatsAppListingMessage,
   buildWhatsAppListingUrl,
@@ -56,6 +57,17 @@ export function useWhatsAppInquiry(listing?: Listing) {
     monthlyRentUsd: listing?.monthlyRentUsd,
     availability: listing?.availability,
     answers,
+    inclusionLines: listing
+      ? formatWhatsAppInclusionLines({
+          generatorIncluded: listing.generatorIncluded,
+          waterBillIncluded: listing.waterBillIncluded,
+          wifiIncluded: listing.wifiIncluded,
+          cookingGasIncluded: listing.cookingGasIncluded,
+          buildingFeesIncluded: listing.buildingFeesIncluded,
+          parkingIncludedInRent: listing.parkingIncludedInRent,
+          amenities: listing.amenities,
+        })
+      : undefined,
   };
 
   const submit = async (skip = false) => {

@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Skoun } from "@/constants/theme";
-import { resolveMediaUrls } from "@/lib/mediaUrl";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { ListingPhoto } from "@/types/listing";
 
 type Props = {
@@ -34,13 +34,10 @@ export function ListingGallery({
   onIndexChange,
 }: Props) {
   const { width } = useWindowDimensions();
-  const urls = resolveMediaUrls(
-    photos.length > 0
-      ? photos.map((p) => p.url)
-      : coverUrl
-        ? [coverUrl]
-        : [],
-  );
+  const resolved = (photos.length ? photos : coverUrl ? [{ url: coverUrl, caption: null }] : [])
+    .map(photo => ({ uri: resolveMediaUrl(photo.url), caption: photo.caption?.trim() }))
+    .filter((photo): photo is { uri: string; caption: string | undefined } => Boolean(photo.uri));
+  const urls = resolved.map(photo => photo.uri);
   const [index, setIndex] = useState(0);
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
 
@@ -101,6 +98,7 @@ export function ListingGallery({
         }}
         renderItem={({ item }) => (
           <Image
+            testID="detail-hero-image"
             source={{ uri: item }}
             style={{ width, height }}
             contentFit="cover"
@@ -114,6 +112,7 @@ export function ListingGallery({
         locations={[0, 0.35, 1]}
         style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
       />
+      {resolved[index]?.caption ? <View pointerEvents="none" style={{ position: "absolute", left: 14, right: 14, bottom: hideOverlays ? 82 : 38, alignItems: "flex-start" }}><LText testID="gallery-caption" style={{ color: "white", backgroundColor: "#121826BB", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}>{resolved[index].caption}</LText></View> : null}
       {hideOverlays ? null : urls.length > 1 ? (
         <View style={styles.dots} accessibilityRole="adjustable">
           {urls.map((_, i) => (

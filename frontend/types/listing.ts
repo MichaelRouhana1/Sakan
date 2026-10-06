@@ -131,6 +131,12 @@ export type Listing = {
   generatorIncluded?: boolean;
   conciergeIncluded?: boolean;
   cookingGasIncluded?: boolean;
+  /** False when unset: the water bill is outside the USD rent. */
+  waterBillIncluded?: boolean;
+  /** Syndic / common fees. Distinct from concierge. */
+  buildingFeesIncluded?: boolean;
+  /** Only meaningful with the parking amenity. False = parking is extra. */
+  parkingIncludedInRent?: boolean;
   bedrooms?: number;
   beds?: number;
   bathrooms?: number;

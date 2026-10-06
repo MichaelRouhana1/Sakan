@@ -276,6 +276,21 @@ function extraFactPills(listing: Listing): ListingAmberPill[] {
     pills.push({ key: "cooking_gas", label: "Cooking gas" });
   }
 
+  if (listing.waterBillIncluded) {
+    pills.push({ key: "water_in_rent", label: "Water in rent" });
+  }
+
+  if (listing.buildingFeesIncluded) {
+    pills.push({ key: "fees_in_rent", label: "Fees in rent" });
+  }
+
+  if (
+    listing.parkingIncludedInRent &&
+    (listing.amenities ?? []).includes("parking")
+  ) {
+    pills.push({ key: "parking_in_rent", label: "Parking in rent" });
+  }
+
   if (listing.conciergeIncluded) {
     pills.push({ key: "concierge", label: "Concierge" });
   }
@@ -347,7 +362,10 @@ function groupForKey(key: string): CardBadgeGroupId {
     key === "gen_amps" ||
     key === "generator" ||
     key === "has_elevator" ||
-    key === "has_solar"
+    key === "has_solar" ||
+    key === "water_in_rent" ||
+    key === "fees_in_rent" ||
+    key === "parking_in_rent"
   ) {
     return "utilities";
   }

@@ -4,6 +4,7 @@ import { LText } from "@/components/lister/Typography";
 import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBadge";
 import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
+import { RentInclusionLines } from "@/components/listings/detail/RentInclusionLines";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
 import { Skoun } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
@@ -210,6 +211,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
             </View>
           </View>
         </View>
+        <RentInclusionLines listing={listing} />
       </View>
     </View>
   );

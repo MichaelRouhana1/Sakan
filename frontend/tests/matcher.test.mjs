@@ -60,6 +60,9 @@ test("missing fields never inherit legacy solar, Wi-Fi, or unrestricted-gender d
   const l = m.normalizeListing({ id: "missing" });
   assert.equal(l.electricity, "solar");
   assert.equal(l.wifiIncluded, true);
+  assert.equal(l.waterBillIncluded, false);
+  assert.equal(l.buildingFeesIncluded, false);
+  assert.equal(l.parkingIncludedInRent, false);
   assert.equal(l.matchFacts.power, null);
   assert.equal(l.matchFacts.wifi, null);
   assert.equal(l.matchFacts.gender, null);

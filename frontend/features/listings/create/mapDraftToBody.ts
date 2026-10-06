@@ -1,3 +1,4 @@
+import { normalizePhotoCaption } from "@/lib/photoCaption";
 import { toWkt } from "@/lib/locationWkt";
 import { hoursWithPowerFromWindows, toHHMM, windowComplete } from "@/lib/electricityCuts";
 import {
@@ -71,6 +72,10 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     generatorIncluded: draft.generatorIncluded,
     conciergeIncluded: draft.conciergeIncluded,
     cookingGasIncluded: draft.cookingGasIncluded,
+    waterBillIncluded: draft.waterBillIncluded,
+    buildingFeesIncluded: draft.buildingFeesIncluded,
+    parkingIncludedInRent:
+      draft.amenities.includes("parking") && draft.parkingIncludedInRent,
     amenities: draft.amenities,
     bedrooms: draft.bedrooms,
     beds: draft.beds,
@@ -99,7 +104,7 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     primaryCampusId: draft.primaryCampusId,
     locationWkt: toWkt({ lng: draft.pin.lng, lat: draft.pin.lat }),
     photoUrls: ready.map((p) => p.url!),
-    photoCaptions: ready.map((p) => p.caption ?? ""),
+    photoCaptions: ready.map((p) => normalizePhotoCaption(p.caption)),
     publishNow: true,
   };
 }

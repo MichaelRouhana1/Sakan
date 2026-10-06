@@ -52,6 +52,9 @@ export type ListingUpdateRow = {
   generatorAmperes: unknown;
   conciergeIncluded: unknown;
   cookingGasIncluded: unknown;
+  waterBillIncluded: unknown;
+  buildingFeesIncluded: unknown;
+  parkingIncludedInRent: unknown;
   amenities: unknown;
   furnishingType: unknown;
   smokingPolicy: unknown;
@@ -135,6 +138,9 @@ export function listingWriteFromInput(input: UpdateListingInput) {
     generatorIncluded: input.generatorIncluded,
     conciergeIncluded: input.conciergeIncluded,
     cookingGasIncluded: input.cookingGasIncluded,
+    waterBillIncluded: input.waterBillIncluded,
+    buildingFeesIncluded: input.buildingFeesIncluded,
+    parkingIncludedInRent: input.parkingIncludedInRent,
     amenities: input.amenities,
     bedrooms: input.bedrooms,
     beds: input.beds,
@@ -231,6 +237,9 @@ export function snapshotFromRow(row: ListingUpdateRow): ListingUpdateSnapshot {
     generatorAmperes: asNumber(row.generatorAmperes),
     conciergeIncluded: Boolean(row.conciergeIncluded),
     cookingGasIncluded: Boolean(row.cookingGasIncluded),
+    waterBillIncluded: Boolean(row.waterBillIncluded),
+    buildingFeesIncluded: Boolean(row.buildingFeesIncluded),
+    parkingIncludedInRent: Boolean(row.parkingIncludedInRent),
     amenities: asStringArray(row.amenities),
     furnishingType: row.furnishingType,
     smokingPolicy: row.smokingPolicy,

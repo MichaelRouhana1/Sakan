@@ -1,3 +1,4 @@
+import { SEARCH_PHOTO_ASPECT, cardPhotoHeight } from "@/lib/listingPhotoFrames";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useEffect, useRef, useState } from "react";
@@ -19,7 +20,7 @@ import { resolveMediaUrls } from "@/lib/mediaUrl";
 import { skounShadow } from "@/lib/skounShadow";
 
 const MAX_PHOTOS = 5;
-const PHOTO_ASPECT = 16 / 10;
+const PHOTO_ASPECT = SEARCH_PHOTO_ASPECT;
 
 type Props = {
   urls: string[];
@@ -156,7 +157,7 @@ export function ListingCardCarousel({
         const nextH = Math.round(
           fill
             ? Math.max(height, minHeight)
-            : Math.max(nextW / PHOTO_ASPECT, minHeight),
+            : cardPhotoHeight(nextW, minHeight),
         );
         if (nextW !== cardWidth) setCardWidth(nextW);
         if (nextH !== cardHeight) setCardHeight(nextH);

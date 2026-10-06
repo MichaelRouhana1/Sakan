@@ -84,6 +84,14 @@ export const listings = pgTable("listings", {
   generatorIncluded: boolean("generator_included").notNull().default(false),
   conciergeIncluded: boolean("concierge_included").notNull().default(false),
   cookingGasIncluded: boolean("cooking_gas_included").notNull().default(false),
+  /** Municipality, tanker, or overage. False = renter pays it outside the USD rent. */
+  waterBillIncluded: boolean("water_bill_included").notNull().default(false),
+  /** Syndic, elevator fund, shared generator share. Distinct from concierge. */
+  buildingFeesIncluded: boolean("building_fees_included").notNull().default(false),
+  /** Meaningful when the parking amenity is on. False = parking is extra. */
+  parkingIncludedInRent: boolean("parking_included_in_rent")
+    .notNull()
+    .default(false),
   amenities: jsonb("amenities")
     .$type<string[]>()
     .notNull()

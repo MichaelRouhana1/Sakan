@@ -8,7 +8,15 @@ import { LText } from "./Typography";
 type Props = {
   listing: Pick<
     Listing,
-    "electricity" | "water" | "wifiIncluded" | "routerUps" | "elevator24_7"
+    | "electricity"
+    | "water"
+    | "wifiIncluded"
+    | "routerUps"
+    | "elevator24_7"
+    | "waterBillIncluded"
+    | "buildingFeesIncluded"
+    | "parkingIncludedInRent"
+    | "amenities"
   >;
 };
 
@@ -42,6 +50,16 @@ export function UtilityPills({ listing }: Props) {
       ) : null}
       {listing.elevator24_7 ? (
         <Pill icon="swap-vertical-outline" label="24/7 Elevator" />
+      ) : null}
+      {listing.waterBillIncluded ? (
+        <Pill icon="water-outline" label="Water in rent" />
+      ) : null}
+      {listing.buildingFeesIncluded ? (
+        <Pill icon="business-outline" label="Fees in rent" />
+      ) : null}
+      {listing.parkingIncludedInRent &&
+      (listing.amenities ?? []).includes("parking") ? (
+        <Pill icon="car-outline" label="Parking in rent" />
       ) : null}
     </View>
   );

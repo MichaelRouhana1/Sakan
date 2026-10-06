@@ -8,7 +8,15 @@ import type { Listing } from "@/types/listing";
 type Props = {
   listing: Pick<
     Listing,
-    "electricity" | "water" | "wifiIncluded" | "routerUps" | "elevator24_7"
+    | "electricity"
+    | "water"
+    | "wifiIncluded"
+    | "routerUps"
+    | "elevator24_7"
+    | "waterBillIncluded"
+    | "buildingFeesIncluded"
+    | "parkingIncludedInRent"
+    | "amenities"
   >;
   compact?: boolean;
 };
@@ -47,6 +55,18 @@ export function UtilityBadges({ listing, compact }: Props) {
   }
   if (listing.elevator24_7) {
     items.push({ icon: "swap-vertical-outline", label: "Elevator" });
+  }
+  if (listing.waterBillIncluded) {
+    items.push({ icon: "water-outline", label: "Water in rent" });
+  }
+  if (listing.buildingFeesIncluded) {
+    items.push({ icon: "business-outline", label: "Fees in rent" });
+  }
+  if (
+    listing.parkingIncludedInRent &&
+    (listing.amenities ?? []).includes("parking")
+  ) {
+    items.push({ icon: "car-outline", label: "Parking in rent" });
   }
 
   const shown = compact ? items.slice(0, 3) : items;

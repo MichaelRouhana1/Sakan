@@ -51,6 +51,10 @@ export function previewListingFromDraft(draft: CreateListingDraft): Listing {
     generatorIncluded: draft.generatorIncluded,
     conciergeIncluded: draft.conciergeIncluded,
     cookingGasIncluded: draft.cookingGasIncluded,
+    waterBillIncluded: draft.waterBillIncluded,
+    buildingFeesIncluded: draft.buildingFeesIncluded,
+    parkingIncludedInRent:
+      draft.amenities.includes("parking") && draft.parkingIncludedInRent,
     bedrooms: draft.bedrooms,
     beds: draft.beds,
     bathrooms: draft.bathrooms,
@@ -80,6 +84,7 @@ export function previewListingFromDraft(draft: CreateListingDraft): Listing {
       id: p.localId,
       url: (p.url || p.uri) as string,
       sortOrder: i,
+      caption: p.caption?.trim() || null,
     })),
     coverUrl: ready[0] ? (ready[0].url || ready[0].uri) ?? null : null,
     amenities: draft.amenities,

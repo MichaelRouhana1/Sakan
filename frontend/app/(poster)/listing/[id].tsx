@@ -16,6 +16,7 @@ import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabil
 import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { LText } from "@/components/lister/Typography";
 import { UtilityPills } from "@/components/lister/UtilityPills";
+import { RentInclusionLines } from "@/components/listings/detail/RentInclusionLines";
 import { ListingGallery } from "@/components/listings/ListingGallery";
 import { NearLandmark } from "@/components/listings/NearLandmark";
 import { Lister } from "@/constants/listerTheme";
@@ -175,6 +176,7 @@ export default function PosterListingDetailScreen() {
               Utilities
             </LText>
             <UtilityPills listing={listing} />
+            <RentInclusionLines listing={listing} />
           </Enter>
 
           <Enter delay={200}>

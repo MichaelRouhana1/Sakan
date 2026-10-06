@@ -268,6 +268,15 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     cookingGasIncluded: Boolean(
       row.cookingGasIncluded ?? row.cooking_gas_included,
     ),
+    waterBillIncluded: Boolean(
+      row.waterBillIncluded ?? row.water_bill_included,
+    ),
+    buildingFeesIncluded: Boolean(
+      row.buildingFeesIncluded ?? row.building_fees_included,
+    ),
+    parkingIncludedInRent: Boolean(
+      row.parkingIncludedInRent ?? row.parking_included_in_rent,
+    ),
     bedrooms: Number(row.bedrooms ?? 0),
     beds: Number(row.beds ?? 0),
     bathrooms: Number(row.bathrooms ?? 0),

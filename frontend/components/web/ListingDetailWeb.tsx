@@ -1,3 +1,4 @@
+import { DETAIL_SIDE_WIDTH, DETAIL_HERO_HEIGHT, DETAIL_GALLERY_GAP, DETAIL_COLUMN_GAP, DETAIL_THUMBS_WIDTH } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import { LText } from "@/components/lister/Typography";
 import { CoincidentListingsSection } from "@/components/listings/CoincidentListingsSection";
 import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBadge";
 import { ListingDetailAbout } from "@/components/listings/detail/ListingDetailAbout";
+import { RentInclusionLines } from "@/components/listings/detail/RentInclusionLines";
 import { ListingDetailAmenities } from "@/components/listings/detail/ListingDetailAmenities";
 import { ListingDetailHouseRules } from "@/components/listings/detail/ListingDetailHouseRules";
 import { ListingDetailMapSection } from "@/components/listings/detail/ListingDetailMapSection";
@@ -65,9 +67,9 @@ type Props = {
 };
 
 const IS_WEB = Platform.OS === "web";
-const SIDE_W = 380;
-const GALLERY_H = 400;
-const GALLERY_GAP = 8;
+const SIDE_W = DETAIL_SIDE_WIDTH;
+const GALLERY_H = DETAIL_HERO_HEIGHT;
+const GALLERY_GAP = DETAIL_GALLERY_GAP;
 const GALLERY_THUMB_COUNT = 3;
 const PHOTO_FRAME = IS_WEB
   ? ({
@@ -403,6 +405,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                           currentPhotos[activePhotoIndex]?.url ||
                           currentPhotos[0].url,
                       }}
+                      testID="detail-hero-image"
                       style={styles.galleryMainImg}
                       contentFit="cover"
                     />
@@ -420,6 +423,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                   )}
                 </View>
               </Pressable>
+              {currentPhotos[activePhotoIndex]?.caption?.trim() ? <View pointerEvents="none" style={{ position: "absolute", left: 14, right: 14, bottom: 48, alignItems: "flex-start" }}><LText testID="gallery-caption" style={{ color: "white", backgroundColor: "#121826BB", paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 }}>{currentPhotos[activePhotoIndex].caption?.trim()}</LText></View> : null}
               {currentPhotos.length > 1 ? (
                 <>
                   <Pressable
@@ -633,6 +637,9 @@ export function ListingDetailWeb({ listingId }: Props) {
                 ) : null}
               </View>
             </View>
+            <View style={styles.inclusion}>
+              <RentInclusionLines listing={listing} />
+            </View>
           </View>
 
           <View nativeID="listing-campus" style={[styles.anchor, styles.stackRoomy]}>
@@ -753,6 +760,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               contentFit="contain"
             />
           ) : null}
+          {currentPhotos[activePhotoIndex]?.caption?.trim() ? <LText testID="lightbox-caption" style={{ color: "white", paddingHorizontal: 20, paddingTop: 8, textAlign: "center" }}>{currentPhotos[activePhotoIndex].caption?.trim()}</LText> : null}
           <View style={styles.lightboxNav}>
             <Pressable
               disabled={activePhotoIndex === 0}
@@ -849,7 +857,7 @@ const styles = StyleSheet.create({
   columns: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 48,
+    gap: DETAIL_COLUMN_GAP,
     width: "100%",
   },
   mainCol: {
@@ -940,7 +948,7 @@ const styles = StyleSheet.create({
     fontFamily: Skoun.type.bodySemi,
   },
   galleryThumbs: {
-    width: 280,
+    width: DETAIL_THUMBS_WIDTH,
     flexShrink: 0,
     gap: GALLERY_GAP,
   },
@@ -1106,6 +1114,10 @@ const styles = StyleSheet.create({
   utilGrid: {
     flexDirection: "row",
     alignItems: "stretch",
+  },
+  inclusion: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
   utilCol: {
     flex: 1,

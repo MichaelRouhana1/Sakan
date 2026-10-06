@@ -1,3 +1,8 @@
+import { removePhotoUri } from "@/features/listings/photoUriOwnership";
+import { LText } from "@/components/lister/Typography";
+import { usePhotoCropQueue } from "@/features/listings/usePhotoCropQueue";
+import { PhotoCropModal } from "./photos/PhotoCropModal";
+import { PhotoGuidance } from "./photos/PhotoGuidance";
 import { View } from "react-native";
 import DraggableFlatList, {
   ScaleDecorator,
@@ -9,7 +14,6 @@ import {
   PhotoGridFooter,
   PhotoGridHeader,
   PhotoTile,
-  pickAndUploadPhotos,
   photoPickerStyles,
   uploadDraft,
   type DraftPhoto,
@@ -17,14 +21,24 @@ import {
 } from "./PhotoPickerGrid.shared";
 
 export type { DraftPhoto } from "./PhotoPickerGrid.shared";
-export { MAX_LISTING_PHOTOS, MIN_LISTING_PHOTOS } from "./PhotoPickerGrid.shared";
+export {
+  MAX_LISTING_PHOTOS,
+  MIN_LISTING_PHOTOS,
+} from "./PhotoPickerGrid.shared";
 
-export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridProps) {
+export function PhotoPickerGrid({
+  photos,
+  setPhotos,
+  style,
+}: PhotoPickerGridProps) {
+  const cropController = usePhotoCropQueue({ photos, setPhotos });
   const remaining = MAX_LISTING_PHOTOS - photos.length;
   const readyCount = photos.filter((p) => p.status === "ready").length;
   const uploading = photos.some((p) => p.status === "uploading");
 
   function removePhoto(localId: string) {
+    const photo = photos.find((p) => p.localId === localId);
+    if (photo) removePhotoUri(photo.uri);
     setPhotos((prev) => prev.filter((p) => p.localId !== localId));
   }
 
@@ -38,6 +52,13 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
     return (
       <ScaleDecorator activeScale={0.98}>
         <PhotoTile
+          onCaption={(caption) =>
+            setPhotos((prev) =>
+              prev.map((p) =>
+                p.localId === item.localId ? { ...p, caption } : p,
+              ),
+            )
+          }
           photo={item}
           index={index}
           isDragging={isActive}
@@ -53,13 +74,32 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
   return (
     <View style={[photoPickerStyles.root, style]}>
       <PhotoGridHeader photoCount={photos.length} uploading={uploading} />
+      <PhotoGuidance />
+      {!cropController.locked &&
+        cropController.state.notices.map((notice, i) => (
+          <LText key={i} accessibilityLiveRegion="polite" variant="caption">
+            {notice}
+          </LText>
+        ))}
+      <PhotoCropModal controller={cropController} photoCount={photos.length} />
 
       <DraggableFlatList
         data={photos}
         keyExtractor={(item) => item.localId}
         numColumns={2}
         scrollEnabled={false}
-        onDragEnd={({ data }) => setPhotos(data)}
+        onDragEnd={({ data }) =>
+          setPhotos((prev) => {
+            const byId = new Map(prev.map((p) => [p.localId, p]));
+            const ordered = data.flatMap((p) =>
+              byId.has(p.localId) ? [byId.get(p.localId)!] : [],
+            );
+            return [
+              ...ordered,
+              ...prev.filter((p) => !data.some((d) => d.localId === p.localId)),
+            ];
+          })
+        }
         renderItem={renderItem}
         columnWrapperStyle={photoPickerStyles.columnWrap}
         contentContainerStyle={photoPickerStyles.nativeGrid}
@@ -68,7 +108,8 @@ export function PhotoPickerGrid({ photos, setPhotos, style }: PhotoPickerGridPro
             <AddPhotoTile
               remaining={remaining}
               index={photos.length}
-              onPress={() => void pickAndUploadPhotos(remaining, setPhotos)}
+              disabled={cropController.locked}
+              onPress={() => void cropController.pick()}
             />
           ) : null
         }

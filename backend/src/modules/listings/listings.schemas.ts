@@ -133,6 +133,9 @@ export const createListingSchema = z.object({
   generatorIncluded: z.boolean().default(false),
   conciergeIncluded: z.boolean().default(false),
   cookingGasIncluded: z.boolean().default(false),
+  waterBillIncluded: z.boolean().default(false),
+  buildingFeesIncluded: z.boolean().default(false),
+  parkingIncludedInRent: z.boolean().default(false),
   amenities: z.array(amenitySlugSchema).max(24).default([]),
   bedrooms: z.coerce.number().int().min(0).max(12),
   beds: z.coerce.number().int().min(1).max(20),
@@ -246,11 +249,19 @@ export const createListingSchema = z.object({
       });
     }
   }
-}).transform((data) =>
-  data.electricity === "solar"
-    ? { ...data, generatorAmperes: null }
-    : data,
-);
+}).transform((data) => {
+  const withPower =
+    data.electricity === "solar"
+      ? { ...data, generatorAmperes: null }
+      : data;
+  const hasParking = withPower.amenities.includes("parking");
+  return {
+    ...withPower,
+    parkingIncludedInRent: hasParking
+      ? withPower.parkingIncludedInRent
+      : false,
+  };
+});
 
 export const listingSortSchema = z.enum(["newest", "price_asc"]).default("newest");
 

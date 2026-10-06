@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
@@ -28,6 +29,17 @@ import type { ElectricityStatus, WaterStatus } from "@/types/listing";
 
 const ELEC: ElectricityStatus[] = ["generator_24_7", "scheduled_cuts", "solar"];
 const WATER: WaterStatus[] = ["state_well_24_7", "tank_delivery"];
+
+function IncludedInRent({ children }: { children: ReactNode }) {
+  return (
+    <View style={styles.included}>
+      <LText variant="caption" tone="muted" style={styles.includedLabel}>
+        Included in rent
+      </LText>
+      {children}
+    </View>
+  );
+}
 
 export function CreateStepAmenities() {
   const { draft, patch, fieldInvalid, formChrome } = useCreateListingDraft();
@@ -216,13 +228,15 @@ export function CreateStepAmenities() {
           onPress={() => patch({ hasSolar: !draft.hasSolar })}
         />
         <View style={{ height: 8 }} />
-        <SelectableCard
-          selected={draft.generatorIncluded}
-          title="Generator fee included in rent"
-          body="Off = billed by meter / ishtirak separately."
-          icon="cash-outline"
-          onPress={() => patch({ generatorIncluded: !draft.generatorIncluded })}
-        />
+        <IncludedInRent>
+          <SelectableCard
+            selected={draft.generatorIncluded}
+            title="Generator fee included in rent"
+            body="Off = billed by meter / ishtirak separately."
+            icon="cash-outline"
+            onPress={() => patch({ generatorIncluded: !draft.generatorIncluded })}
+          />
+        </IncludedInRent>
       </Enter>
       {showUtilityDisclaimer ? (
         <View
@@ -263,14 +277,32 @@ export function CreateStepAmenities() {
             />
           ))}
         </WizardFieldGroup>
+        {draft.water ? (
+          <>
+            <View style={{ height: 8 }} />
+            <IncludedInRent>
+              <SelectableCard
+                selected={draft.waterBillIncluded}
+                title="Water bill included in rent"
+                body="Off = renter pays municipality / tanker / overage separately."
+                icon="cash-outline"
+                onPress={() =>
+                  patch({ waterBillIncluded: !draft.waterBillIncluded })
+                }
+              />
+            </IncludedInRent>
+          </>
+        ) : null}
       </Enter>
       <Enter delay={180}>
-        <SelectableCard
-          selected={draft.wifiIncluded}
-          title="High-speed Wi-Fi included"
-          icon="wifi-outline"
-          onPress={() => patch({ wifiIncluded: !draft.wifiIncluded })}
-        />
+        <IncludedInRent>
+          <SelectableCard
+            selected={draft.wifiIncluded}
+            title="High-speed Wi-Fi included"
+            icon="wifi-outline"
+            onPress={() => patch({ wifiIncluded: !draft.wifiIncluded })}
+          />
+        </IncludedInRent>
         <View style={{ height: 8 }} />
         <SelectableCard
           selected={draft.routerUps}
@@ -286,12 +318,26 @@ export function CreateStepAmenities() {
           onPress={() => patch({ conciergeIncluded: !draft.conciergeIncluded })}
         />
         <View style={{ height: 8 }} />
-        <SelectableCard
-          selected={draft.cookingGasIncluded}
-          title="Cooking gas included"
-          icon="flame-outline"
-          onPress={() => patch({ cookingGasIncluded: !draft.cookingGasIncluded })}
-        />
+        <IncludedInRent>
+          <SelectableCard
+            selected={draft.buildingFeesIncluded}
+            title="Building / common fees included"
+            body="Syndic, elevator fund, shared generator share beyond your unit meter — if billed with rent."
+            icon="cash-outline"
+            onPress={() =>
+              patch({ buildingFeesIncluded: !draft.buildingFeesIncluded })
+            }
+          />
+        </IncludedInRent>
+        <View style={{ height: 8 }} />
+        <IncludedInRent>
+          <SelectableCard
+            selected={draft.cookingGasIncluded}
+            title="Cooking gas included"
+            icon="flame-outline"
+            onPress={() => patch({ cookingGasIncluded: !draft.cookingGasIncluded })}
+          />
+        </IncludedInRent>
       </Enter>
       <Enter delay={220}>
         <LText variant="subtitle">Interior amenities</LText>
@@ -318,6 +364,21 @@ export function CreateStepAmenities() {
             );
           })}
         </View>
+        {draft.amenities.includes("parking") ? (
+          <View style={{ marginTop: 8 }}>
+            <IncludedInRent>
+              <SelectableCard
+                selected={draft.parkingIncludedInRent}
+                title="Parking included in rent"
+                body="Off = parking is extra."
+                icon="cash-outline"
+                onPress={() =>
+                  patch({ parkingIncludedInRent: !draft.parkingIncludedInRent })
+                }
+              />
+            </IncludedInRent>
+          </View>
+        ) : null}
       </Enter>
     </View>
   );
@@ -411,6 +472,18 @@ const styles = StyleSheet.create({
   },
   hoursValue: {
     color: Lister.color.primaryDeep,
+  },
+  included: {
+    gap: 8,
+    padding: 10,
+    borderRadius: Lister.radius.md,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    backgroundColor: Lister.color.surfaceMuted,
+  },
+  includedLabel: {
+    fontFamily: Lister.type.bodySemi,
+    letterSpacing: 0.2,
   },
   grid: {
     flexDirection: "row",

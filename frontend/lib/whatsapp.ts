@@ -20,6 +20,8 @@ export function buildWhatsAppListingUrl(params: {
   monthlyRentUsd?: number | null;
   availability?: ListingAvailabilityForContact | null;
   answers?: WhatsAppInquiryAnswers;
+  /** Plain billing lines from `formatWhatsAppInclusionLines`. */
+  inclusionLines?: string | null;
 }): string {
   const digits = params.phone.replace(/\D/g, "");
   const text = buildWhatsAppListingMessage(params);
@@ -32,6 +34,8 @@ export function buildWhatsAppListingMessage(params: {
   monthlyRentUsd?: number | null;
   availability?: ListingAvailabilityForContact | null;
   answers?: WhatsAppInquiryAnswers;
+  /** Plain billing lines from `formatWhatsAppInclusionLines`. */
+  inclusionLines?: string | null;
 }): string {
   const type = params.propertyType.trim() || "place";
   const area = params.area.trim() || "this area";
@@ -40,7 +44,8 @@ export function buildWhatsAppListingMessage(params: {
     params.availability === "pending"
       ? `hi — your ${type} in ${area} is under offer on ${APP_NAME.toLowerCase()}. still interested if it frees up${rent}.`
       : `hi — interested in your ${type} in ${area} on ${APP_NAME.toLowerCase()}${rent}.`;
-  return `${intro}
+  const inclusionBlock = params.inclusionLines?.trim() ?? "";
+  return `${intro}${inclusionBlock ? `\n${inclusionBlock}` : ""}
 move-in date:${answerSuffix(params.answers?.moveInDate)}
 who's moving in (count / students or work):${answerSuffix(params.answers?.household)}
 ok with listed rent + what's included?:${answerSuffix(params.answers?.rentAcceptance)}`;

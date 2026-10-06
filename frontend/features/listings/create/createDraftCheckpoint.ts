@@ -77,12 +77,16 @@ export function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
         : [emptyCutWindow()];
 
   return {
+    ...INITIAL_DRAFT,
     ...parsed,
     pin,
     photos,
     electricityCutWindows: windows,
     contactNumbers: numbersFromLegacy(parsed),
     cardBadges: Array.isArray(parsed.cardBadges) ? parsed.cardBadges : null,
+    waterBillIncluded: parsed.waterBillIncluded ?? false,
+    buildingFeesIncluded: parsed.buildingFeesIncluded ?? false,
+    parkingIncludedInRent: parsed.parkingIncludedInRent ?? false,
   };
 }
 

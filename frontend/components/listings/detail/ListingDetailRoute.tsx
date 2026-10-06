@@ -1,10 +1,11 @@
+import { DETAIL_MOBILE_BREAKPOINT } from "@/lib/listingPhotoFrames";
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { ListingDetailMobile } from "@/components/listings/detail/ListingDetailMobile";
 import { ListingDetailWeb } from "@/components/web/ListingDetailWeb";
 import { WebShell } from "@/components/web/WebShell";
 
-const MOBILE_MAX = 900;
+const MOBILE_MAX = DETAIL_MOBILE_BREAKPOINT;
 
 function readWebWidth(fallback: number) {
   if (Platform.OS === "web" && typeof window !== "undefined") {

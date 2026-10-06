@@ -1,3 +1,4 @@
+import { NATIVE_CARD_PHOTO_WIDTH, NATIVE_CARD_PHOTO_MIN_HEIGHT } from "@/lib/listingPhotoFrames";
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -85,7 +86,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
           urls={urls}
           onPressCard={onPress}
           alwaysShowArrows
-          minHeight={168}
+          minHeight={NATIVE_CARD_PHOTO_MIN_HEIGHT}
         />
         <ImageCornerBadge listing={listing} />
       </View>
@@ -189,7 +190,7 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
     flexDirection: "row",
     alignItems: "stretch",
-    minHeight: 168,
+    minHeight: NATIVE_CARD_PHOTO_MIN_HEIGHT,
   },
   detailsContent: {
     flex: 1,
@@ -199,11 +200,11 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.94 },
   mediaShell: {
     position: "relative",
-    width: 118,
+    width: NATIVE_CARD_PHOTO_WIDTH,
     alignSelf: "stretch",
     flexShrink: 0,
     overflow: "hidden",
-    minHeight: 168,
+    minHeight: NATIVE_CARD_PHOTO_MIN_HEIGHT,
     ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
   middle: {
