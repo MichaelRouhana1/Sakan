@@ -126,7 +126,7 @@ export class PhotoCropQueue {
       if (token === this.generation)
         this.update({
           phase: "cropping",
-          error: "Couldn't save this crop. Try again or discard this photo.",
+          error: "Couldn't save this crop. Try again or skip this photo.",
         });
       else this.deps.release(current);
     }

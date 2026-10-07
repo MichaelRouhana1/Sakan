@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -193,26 +194,22 @@ export function PhotoCropModal({
             <LText
               accessibilityLiveRegion="polite"
               accessibilityRole="header"
-              variant="title"
+              accessibilityLabel={`Crop ${state.position} of ${state.total}`}
+              variant="subtitle"
               style={{ color: ink }}
             >
-              Crop {state.position} of {state.total}
+              Crop {state.position}/{state.total}
             </LText>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Close crop batch"
+              accessibilityHint="Discards remaining uncropped photos. Saved crops stay."
               onPress={() => queue.finish()}
-              style={styles.button}
+              style={[styles.button, { minWidth: 44 }]}
             >
-              <LText style={{ color: ink }}>Finish batch</LText>
+              <Ionicons name="close" size={22} color={ink} />
             </Pressable>
           </View>
-          <LText
-            variant="caption"
-            style={{ color: ink, paddingHorizontal: 20, paddingBottom: 16 }}
-          >
-            Finish batch or closing this window discards remaining uncropped
-            photos. Saved crops stay.
-          </LText>
           <ScrollView
             contentContainerStyle={{
               paddingHorizontal: 20,
@@ -286,19 +283,16 @@ export function PhotoCropModal({
               </LText>
             )}
           </ScrollView>
-          <View
-            style={[
-              styles.actions,
-              { borderColor: dark ? "#455064" : "#E5E9F0" },
-            ]}
-          >
+          <View style={styles.actions}>
             <Pressable
               accessibilityRole="button"
+              accessibilityHint="Discards this photo and moves to the next, or closes if last."
+              accessibilityState={{ disabled: state.phase !== "cropping" }}
               disabled={state.phase !== "cropping"}
               onPress={() => queue.discard()}
               style={styles.button}
             >
-              <LText style={{ color: ink }}>Discard this photo</LText>
+              <LText style={{ color: ink }}>Skip</LText>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -315,7 +309,7 @@ export function PhotoCropModal({
               ]}
             >
               <LText style={{ color: "white" }}>
-                {state.phase === "saving" ? "Saving…" : "Save crop"}
+                {state.phase === "saving" ? "Saving…" : "Save"}
               </LText>
             </Pressable>
           </View>
@@ -339,8 +333,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    padding: 20,
-    paddingBottom: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
   },
   button: {
     minHeight: 44,
@@ -350,8 +344,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   actions: {
-    padding: 16,
-    borderTopWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 8,
