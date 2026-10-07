@@ -142,13 +142,16 @@ async function uploads(page: Page, failFirst = false) {
   });
   return received;
 }
-test("FIFO drop, live crop, discard one, finish keeps saved; captions persist and do not drag", async ({
+test("FIFO drop, live crop, Skip then X keeps saved; captions persist and do not drag", async ({
   page,
 }, info) => {
   await setup(page);
   const received = await uploads(page);
   await drop(page, ["one.svg", "two.svg", "three.svg"]);
-  await expect(dialog(page).getByText("Crop 1 of 3")).toBeVisible();
+  await expect(dialog(page).getByText("Crop 1/3")).toBeVisible();
+  await expect(
+    dialog(page).getByRole("heading", { name: "Crop 1 of 3", exact: true }),
+  ).toBeVisible();
   const before = await page.getByTestId("crop-preview-card").screenshot();
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await expect
@@ -157,13 +160,11 @@ test("FIFO drop, live crop, discard one, finish keeps saved; captions persist an
     )
     .toBe(false);
   await page.screenshot({ path: info.outputPath("crop-desktop.png") });
-  await page.getByRole("button", { name: "Save crop", exact: true }).click();
-  await expect(dialog(page).getByText("Crop 2 of 3")).toBeVisible();
-  await page
-    .getByRole("button", { name: "Discard this photo", exact: true })
-    .click();
-  await expect(dialog(page).getByText("Crop 3 of 3")).toBeVisible();
-  await page.getByRole("button", { name: "Finish batch", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog(page).getByText("Crop 2/3")).toBeVisible();
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await expect(dialog(page).getByText("Crop 3/3")).toBeVisible();
+  await page.getByRole("button", { name: "Close crop batch", exact: true }).click();
   await expect(dialog(page)).toHaveCount(0);
   await expect.poll(() => received.length).toBe(1);
   await expect(
@@ -192,13 +193,78 @@ test("FIFO drop, live crop, discard one, finish keeps saved; captions persist an
     page.getByLabel("Caption for photo 4", { exact: true }),
   ).toHaveValue("Sofa bed sleeps 2");
 });
+test("Save then Save uploads both crops and closes the batch", async ({ page }) => {
+  await setup(page);
+  const received = await uploads(page);
+  await drop(page, ["one.svg", "two.svg"]);
+  await expect(dialog(page).getByText("Crop 1/2")).toBeVisible();
+  await dialog(page).getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog(page).getByText("Crop 2/2")).toBeVisible();
+  await dialog(page).getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog(page)).toHaveCount(0);
+  await expect.poll(() => received.length).toBe(2);
+  await expect(page.locator("[data-photo-tile]")).toHaveCount(5);
+});
+
+for (const close of ["X", "Escape", "backdrop"] as const)
+  test(`${close} mid-batch keeps saved crops and discards current plus remainder`, async ({
+    page,
+  }) => {
+    await setup(page);
+    const received = await uploads(page);
+    await drop(page, ["one.svg", "two.svg", "three.svg"]);
+    await dialog(page).getByRole("button", { name: "Save", exact: true }).click();
+    await expect(dialog(page).getByText("Crop 2/3")).toBeVisible();
+    if (close === "Escape") await page.keyboard.press("Escape");
+    else if (close === "backdrop")
+      await page.getByTestId("crop-backdrop").click({ position: { x: 5, y: 5 } });
+    else
+      await dialog(page)
+        .getByRole("button", { name: "Close crop batch" })
+        .click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect.poll(() => received.length).toBe(1);
+    await expect(page.locator("[data-photo-tile]")).toHaveCount(4);
+    // Reopening proves the remaining files were discarded and intake unlocked.
+    await drop(page, ["fresh.svg"]);
+    await expect(dialog(page).getByText("Crop 1/1")).toBeVisible();
+    await expect(
+      dialog(page).getByRole("button", { name: "Skip", exact: true }),
+    ).toHaveCount(0);
+    await dialog(page)
+      .getByRole("button", { name: "Close crop batch" })
+      .click();
+    await expect(dialog(page)).toHaveCount(0);
+    expect(received.length).toBe(1);
+  });
+
+for (const action of ["Close crop batch", "Save"])
+  test(`single photo: ${action} closes with ${action === "Save" ? "one" : "no"} upload`, async ({
+    page,
+  }) => {
+    await setup(page);
+    const received = await uploads(page);
+    await drop(page, ["one.svg"]);
+    await expect(dialog(page).getByText("Crop 1/1")).toBeVisible();
+    await expect(dialog(page).getByText("Finish batch")).toHaveCount(0);
+    await expect(
+      dialog(page).getByRole("button", { name: "Skip", exact: true }),
+    ).toHaveCount(0);
+    await dialog(page).getByRole("button", { name: action, exact: true }).click();
+    await expect(dialog(page)).toHaveCount(0);
+    await expect.poll(() => received.length).toBe(action === "Save" ? 1 : 0);
+    await expect(page.locator("[data-photo-tile]")).toHaveCount(
+      action === "Save" ? 4 : 3,
+    );
+  });
+
 test("overflow, failed decoding and Escape discard remainder without upload", async ({
   page,
 }) => {
   await setup(page, 13);
   const received = await uploads(page);
   await drop(page, ["bad.svg", "good.svg", "overflow.svg"]);
-  await expect(dialog(page).getByText("Crop 2 of 2")).toBeVisible();
+  await expect(dialog(page).getByText("Crop 2/2")).toBeVisible();
   await expect(dialog(page).getByText(/only 2 slots remained/)).toBeVisible();
   await expect(dialog(page).getByText(/bad.svg.*Skipped/)).toBeVisible();
   await page.keyboard.press("Escape");
@@ -221,14 +287,18 @@ test("multi-select, focus containment and return, retry does not crop again", as
     { name: "one.svg", mimeType: "image/svg+xml", buffer: Buffer.from(svg) },
     { name: "two.svg", mimeType: "image/svg+xml", buffer: Buffer.from(svg) },
   ]);
-  await expect(dialog(page).getByText("Crop 1 of 2")).toBeVisible();
-  await page.getByRole("button", { name: "Save crop", exact: true }).focus();
+  await expect(dialog(page).getByText("Crop 1/2")).toBeVisible();
+  await page.getByRole("button", { name: "Save", exact: true }).focus();
   await page.keyboard.press("Tab");
   await expect(
-    page.getByRole("button", { name: "Finish batch", exact: true }),
+    page.getByRole("button", { name: "Close crop batch", exact: true }),
   ).toBeFocused();
-  await page.getByRole("button", { name: "Save crop", exact: true }).click();
-  await expect(dialog(page).getByText("Crop 2 of 2")).toBeVisible();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    page.getByRole("button", { name: "Save", exact: true }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog(page).getByText("Crop 2/2")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(add).toBeFocused();
   await expect(
@@ -252,6 +322,10 @@ test("mobile layout fits and preserves three-photo minimum", async ({
   ).toBeVisible();
   await drop(page, ["portrait.svg"]);
   await expect(dialog(page)).toBeVisible();
+  await expect(page.getByTestId("photo-cropper")).toBeVisible();
+  await expect(
+    dialog(page).getByRole("button", { name: "Save", exact: true }),
+  ).toBeEnabled();
   await expect
     .poll(() =>
       page.evaluate(
@@ -260,7 +334,7 @@ test("mobile layout fits and preserves three-photo minimum", async ({
     )
     .toBe(true);
   await page.screenshot({ path: info.outputPath("crop-mobile.png") });
-  await page.getByRole("button", { name: "Save crop", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(dialog(page)).toHaveCount(0);
   await expect(
     page.getByText("Add at least 3 photos to publish."),
@@ -327,7 +401,7 @@ for (const viewport of [
     const cardPreview = await page
       .getByTestId("crop-preview-card")
       .screenshot({ path: info.outputPath("preview-card.png") });
-    await page.getByRole("button", { name: "Save crop", exact: true }).click();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect.poll(() => received.length).toBe(1);
     await expect(page.getByText(/4 ready/)).toBeVisible();
     const image = "data:image/jpeg;base64," + received[0].toString("base64");
@@ -509,7 +583,7 @@ test("EXIF portrait is normalized before preview and export", async ({
   });
   expect(colors[0][0]).toBeGreaterThan(245);
   expect(colors[1][2]).toBeGreaterThan(245);
-  await page.getByRole("button", { name: "Save crop", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect.poll(() => received.length).toBe(1);
   const exported = await page.evaluate(
     async (uri) => {
