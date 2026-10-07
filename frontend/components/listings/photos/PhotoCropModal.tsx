@@ -283,17 +283,24 @@ export function PhotoCropModal({
               </LText>
             )}
           </ScrollView>
-          <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityHint="Discards this photo and moves to the next, or closes if last."
-              accessibilityState={{ disabled: state.phase !== "cropping" }}
-              disabled={state.phase !== "cropping"}
-              onPress={() => queue.discard()}
-              style={styles.button}
-            >
-              <LText style={{ color: ink }}>Skip</LText>
-            </Pressable>
+          <View
+            style={[
+              styles.actions,
+              { justifyContent: state.total > 1 ? "space-between" : "flex-end" },
+            ]}
+          >
+            {state.total > 1 && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityHint="Discards this photo and moves to the next."
+                accessibilityState={{ disabled: state.phase !== "cropping" }}
+                disabled={state.phase !== "cropping"}
+                onPress={() => queue.discard()}
+                style={styles.button}
+              >
+                <LText style={{ color: ink }}>Skip</LText>
+              </Pressable>
+            )}
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ disabled: state.phase !== "cropping" }}
@@ -347,7 +354,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     flexDirection: "row",
-    justifyContent: "space-between",
     gap: 8,
     flexWrap: "wrap",
   },

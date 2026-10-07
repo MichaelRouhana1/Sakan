@@ -228,12 +228,17 @@ for (const close of ["X", "Escape", "backdrop"] as const)
     // Reopening proves the remaining files were discarded and intake unlocked.
     await drop(page, ["fresh.svg"]);
     await expect(dialog(page).getByText("Crop 1/1")).toBeVisible();
-    await dialog(page).getByRole("button", { name: "Skip", exact: true }).click();
+    await expect(
+      dialog(page).getByRole("button", { name: "Skip", exact: true }),
+    ).toHaveCount(0);
+    await dialog(page)
+      .getByRole("button", { name: "Close crop batch" })
+      .click();
     await expect(dialog(page)).toHaveCount(0);
     expect(received.length).toBe(1);
   });
 
-for (const action of ["Skip", "Close crop batch", "Save"])
+for (const action of ["Close crop batch", "Save"])
   test(`single photo: ${action} closes with ${action === "Save" ? "one" : "no"} upload`, async ({
     page,
   }) => {
@@ -242,6 +247,9 @@ for (const action of ["Skip", "Close crop batch", "Save"])
     await drop(page, ["one.svg"]);
     await expect(dialog(page).getByText("Crop 1/1")).toBeVisible();
     await expect(dialog(page).getByText("Finish batch")).toHaveCount(0);
+    await expect(
+      dialog(page).getByRole("button", { name: "Skip", exact: true }),
+    ).toHaveCount(0);
     await dialog(page).getByRole("button", { name: action, exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await expect.poll(() => received.length).toBe(action === "Save" ? 1 : 0);
