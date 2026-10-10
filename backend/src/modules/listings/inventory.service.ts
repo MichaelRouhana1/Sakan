@@ -12,6 +12,8 @@ export const inventorySchema = z.object({
  availability: z.enum(['available','pending','rented']).optional(),
  bedsTotal: z.number().int().min(1).max(10000).optional(),
  bedsAvailable: z.number().int().min(0).max(10000).optional(),
+ bedAction: z.enum(['rent_one','free_one']).optional(),
+ genderRestriction: z.enum(['anyone','girls_only','boys_only']).optional(),
 }).strict().refine(v => Object.keys(v).length > 1, 'Choose an inventory change');
 export type InventoryInput = z.infer<typeof inventorySchema>;
 
@@ -41,8 +43,16 @@ export async function changeUnitInventory(tx: Tx, listingId: string, input: Inve
  let total = unit.beds_total as number | null;
  let available = unit.beds_available as number | null;
  let availability = input.availability ?? String(unit.availability);
- const bedChange = input.bedsTotal !== undefined || input.bedsAvailable !== undefined;
+ const bedChange = input.bedsTotal !== undefined || input.bedsAvailable !== undefined || input.bedAction !== undefined;
  if (unit.unit_type !== 'shared_bed' && bedChange) throw new ValidationError('Only shared-bed units have bed inventory');
+ if (input.genderRestriction !== undefined && unit.unit_type !== 'shared_bed') throw new ValidationError('Use the listing editor to change this unit’s gender preference');
+ if (input.bedAction) {
+  if (input.bedsTotal !== undefined || input.bedsAvailable !== undefined || input.availability !== undefined) throw new ValidationError('Choose a bed action or confirm counts, not both');
+  if (available === null || unit.inventory_needs_confirmation) throw new ValidationError('Confirm the number of available beds first');
+  if (input.bedAction === 'rent_one' && available === 0) throw new ConflictError('There are no available beds to rent');
+  if (input.bedAction === 'free_one' && available === total) throw new ConflictError('All beds are already available');
+  available += input.bedAction === 'rent_one' ? -1 : 1;
+ }
  if (unit.unit_type === 'shared_bed') {
   if (input.bedsTotal !== undefined && input.bedsAvailable === undefined) throw new ValidationError('Confirm available beds when changing the total');
   total = input.bedsTotal ?? total;
@@ -59,18 +69,32 @@ export async function changeUnitInventory(tx: Tx, listingId: string, input: Inve
   }
  }
  await tx.execute(sql`UPDATE listings SET hidden=${input.hidden ?? unit.hidden},
+  gender_restriction=${input.genderRestriction ?? unit.gender_restriction},
   availability=${availability}::listing_availability,beds_total=${total},beds_available=${available},updated_at=now()
   WHERE id=${listingId}::uuid`);
  await settlePlaceInventory(tx, String(unit.place_id));
  return readInventory(tx, listingId);
 }
 
-export async function readInventory(tx: Tx, listingId: string) {
- const [row] = await tx.execute(sql`SELECT id,place_id AS "placeId",unit_type AS "unitType",hidden,
-  availability,beds_total AS "bedsTotal",beds_available AS "bedsAvailable",
-  inventory_needs_confirmation AS "inventoryNeedsConfirmation",inventory_version AS "inventoryVersion",
-  unit_hidden_reason(listings) AS "hiddenReason" FROM listings WHERE id=${listingId}::uuid`);
+export async function readInventory(tx: Tx, listingId: string, ownerId?: string) {
+ const [row] = await tx.execute(sql`SELECT l.id,l.title,l.status,l.place_id AS "placeId",l.unit_type AS "unitType",l.hidden,
+  p.hidden AS "placeHidden",l.gender_restriction AS "genderRestriction",
+  l.availability,l.beds_total AS "bedsTotal",l.beds_available AS "bedsAvailable",
+  l.inventory_needs_confirmation AS "inventoryNeedsConfirmation",l.inventory_version AS "inventoryVersion",
+  unit_hidden_reason(l) AS "hiddenReason",
+  COALESCE((SELECT jsonb_agg(jsonb_build_object('id',s.id,'title',COALESCE(NULLIF(s.title,''),CASE s.unit_type WHEN 'whole_apartment' THEN 'Whole apartment' WHEN 'shared_bed' THEN 'Shared room' ELSE 'Room' END),
+   'inventoryNeedsConfirmation',s.inventory_needs_confirmation) ORDER BY s.id)
+   FROM listings s WHERE p.kind='apartment' AND s.place_id=l.place_id AND s.poster_id=l.poster_id AND s.id<>l.id
+    AND (unit_occupied(s) OR (l.unit_type='whole_apartment' AND s.inventory_needs_confirmation))
+    AND (s.unit_type='whole_apartment' OR l.unit_type='whole_apartment')), '[]'::jsonb) AS blockers
+  FROM listings l JOIN places p ON p.id=l.place_id AND p.owner_id=l.poster_id
+  WHERE l.id=${listingId}::uuid ${ownerId ? sql`AND l.poster_id=${ownerId}::uuid` : sql``}`);
+ if (!row) throw new NotFoundError('Listing not found');
  return row;
+}
+
+export async function getOwnerInventory(listingId: string, ownerId: string) {
+ return db.transaction(tx => readInventory(tx, listingId, ownerId));
 }
 
 export async function updateUnitInventory(listingId: string, input: InventoryInput, ownerId?: string, audit?: {actor: AuditActor; note: string}) {

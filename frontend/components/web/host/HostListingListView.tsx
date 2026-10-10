@@ -225,7 +225,7 @@ export function HostListingListView({
             >
               <HostStatusPill label={status.label} tone={status.tone} />
               <PromotionAction listingId={listing.id} />
-              {listing.status === "active" ? (
+              {listing.status !== "draft" ? (
                 <ListingAvailabilityControl
                   listingId={listing.id}
                   availability={listing.availability}
@@ -281,6 +281,8 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
   },
   dataRowCompact: {
+    flexDirection: "column",
+    alignItems: "stretch",
     paddingVertical: 14,
     gap: 12,
   },
@@ -297,7 +299,7 @@ const styles = StyleSheet.create({
   typeCol: { flex: 0.9, minWidth: 0 },
   locationCol: { flex: 1.1, minWidth: 0 },
   statusCol: { flex: 1, minWidth: 0, alignItems: "flex-start" },
-  statusColCompact: { flexShrink: 0, alignItems: "flex-end" },
+  statusColCompact: { flexShrink: 0, alignItems: "flex-start" },
   listingCell: {
     flexDirection: "row",
     alignItems: "center",

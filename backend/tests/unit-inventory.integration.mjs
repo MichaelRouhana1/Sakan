@@ -24,6 +24,10 @@ try {
  await check('targeted slice 2 migration runner applies once and is retry-safe',async()=>{
   const {applyInventory}=await import('../ops/places/apply-inventory.mjs');
   assert.equal((await applyInventory(client)).applied,true);assert.equal((await applyInventory(client)).applied,false);
+  // Exercise an existing 0034 installation as well as the fresh foundation.
+  await client.unsafe('DROP TRIGGER y_unit_gender_version ON listings; DROP FUNCTION bump_unit_gender_version()');
+  await client`DELETE FROM drizzle.__drizzle_migrations WHERE created_at=1791700006000`;
+  assert.deepEqual((await applyInventory(client)).migrations,['0035_inventory_gender_version']);
  });
  process.env.ADMIN_AUTH_REQUIRED='true';process.env.ADMIN_API_KEY='inventory-integration-admin-key';
  const inv=await import('../dist/modules/listings/inventory.service.js');
@@ -166,6 +170,54 @@ try {
   await update(room.id,{availability:'rented'});
   await assert.rejects(repo.deleteByOwner(room.id,owner.id),/Confirm vacancy/);
   assert.equal((await row(whole.id)).hidden_reason,'occupied_alternative');
+ });
+ await check('one-bed actions require confirmation, serialize retries, and enforce vacancy bounds',async()=>{
+  const shared=await unit('shared_dorm_bed');
+  await assert.rejects(update(shared.id,{bedAction:'rent_one'}),/Confirm/);
+  await update(shared.id,{bedsTotal:2,bedsAvailable:2});
+  await assert.rejects(update(shared.id,{bedAction:'free_one'}),/already available/);
+  await assert.rejects(update(shared.id,{bedAction:'rent_one',bedsAvailable:1}),/not both/);
+  const version=(await row(shared.id)).inventory_version;
+  const outcomes=await Promise.allSettled([1,2].map(()=>inv.updateUnitInventory(shared.id,{expectedVersion:version,bedAction:'rent_one'},owner.id)));
+  assert.equal(outcomes.filter(x=>x.status==='fulfilled').length,1);
+  assert.equal((await row(shared.id)).beds_available,1);
+  assert.equal((await row(shared.id)).gender_restriction,'anyone','renting never infers gender');
+  await update(shared.id,{bedAction:'rent_one'});assert.equal((await row(shared.id)).availability,'rented');
+  await assert.rejects(update(shared.id,{bedAction:'rent_one'}),/no available beds/);
+  await update(shared.id,{bedAction:'free_one'});assert.equal((await row(shared.id)).availability,'available');
+  assert.equal((await row(shared.id)).beds_available,1);
+ });
+ await check('gender changes are explicit, reversible, canonical and protected from stale edits',async()=>{
+  const shared=await unit('shared_dorm_bed');await update(shared.id,{bedsTotal:3,bedsAvailable:2});
+  const before=await inv.getOwnerInventory(shared.id,owner.id);
+  const selected=await inv.updateUnitInventory(shared.id,{expectedVersion:before.inventoryVersion,genderRestriction:'girls_only'},owner.id);
+  assert.equal(selected.inventoryVersion,before.inventoryVersion+1);
+  assert.equal((await row(shared.id)).gender_rule,'female_only');assert.equal(selected.bedsAvailable,2);
+  await assert.rejects(inv.updateUnitInventory(shared.id,{expectedVersion:before.inventoryVersion,genderRestriction:'boys_only'},owner.id),/Refresh/);
+  await update(shared.id,{genderRestriction:'anyone'});assert.equal((await row(shared.id)).gender_rule,'any');
+  const version=(await row(shared.id)).inventory_version;
+  await client`UPDATE listings SET gender_restriction='boys_only' WHERE id=${shared.id}`;
+  assert.equal((await row(shared.id)).inventory_version,version+1,'legacy editor changes invalidate suggestions too');
+  await assert.rejects(update(room.id,{genderRestriction:'girls_only'}),/listing editor/);
+  await assert.rejects(inv.getOwnerInventory(shared.id,other.id),/not found/);
+  await assert.rejects(update(shared.id,{genderRestriction:'girls_only'},other.id),/not found/);
+ });
+ await check('owner inventory names every blocker and frees archived units without republishing',async()=>{
+  const apartment=await unit(),a=await unit('private_room',apartment.place_id),b=await unit('shared_dorm_bed',apartment.place_id);
+  await client`UPDATE listings SET title='Room A' WHERE id=${a.id}`;
+  await update(a.id,{availability:'rented'});
+  let info=await inv.getOwnerInventory(apartment.id,owner.id);
+  assert.equal(info.blockers.length,2);assert.equal(info.blockers.find(x=>x.id===a.id).title,'Room A');
+  assert.equal(info.blockers.find(x=>x.id===b.id).inventoryNeedsConfirmation,true);
+  await repo.archiveById(a.id,owner.id);const before=await row(a.id);
+  await update(a.id,{availability:'available'});assert.equal((await row(a.id)).status,'archived');
+  assert.equal((await row(a.id)).expires_at.toISOString(),before.expires_at.toISOString());
+  await update(b.id,{bedsTotal:2,bedsAvailable:2});
+  info=await inv.getOwnerInventory(apartment.id,owner.id);assert.deepEqual(info.blockers,[]);assert.equal(info.hiddenReason,null);
+  await update(apartment.id,{availability:'rented'});
+  assert.equal((await inv.getOwnerInventory(b.id,owner.id)).blockers[0].id,apartment.id);
+  await assert.rejects(update(b.id,{bedAction:'rent_one'}),/occupied inventory/);
+  assert.equal((await row(b.id)).beds_available,2,'conflicting bed rental rolls back');
  });
  await check('two test listings are approved by exact ID/title/area/rent in deletion manifest',async()=>{
   const manifest=JSON.parse(await readFile(new URL('../src/db/seeds/legacy-housing-manifest.json',import.meta.url),'utf8'));

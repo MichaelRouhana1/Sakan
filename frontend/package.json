@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build": "expo export --platform all",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

@@ -68,14 +68,6 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
           <HostStatusPill label={status.label} tone={status.tone} />
         </View>
         <View style={styles.onImage}>
-          {listing.status === "active" ? (
-            <ListingAvailabilityControl
-              listingId={listing.id}
-              availability={listing.availability}
-              variant="dropdown"
-              surface="overlay"
-            />
-          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Listing analytics"
@@ -109,6 +101,7 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
           {subtitle}
         </Text>
       </Pressable>
+      {listing.status !== 'draft' ? <ListingAvailabilityControl listingId={listing.id}/> : null}
       <PromotionAction listingId={listing.id} />
     </View>
   );

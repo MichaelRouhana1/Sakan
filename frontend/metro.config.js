@@ -11,7 +11,10 @@ gracefulFs.gracefulify(fs);
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-config.maxWorkers = process.platform === "win32" ? 2 : Math.min(4, config.maxWorkers || 4);
+// Windows export workers can stall before their first transform. In-process
+// transforms complete reliably; keep the existing worker count for development.
+const windowsExport = process.platform === "win32" && process.argv.includes("export");
+config.maxWorkers = windowsExport ? 0 : process.platform === "win32" ? 2 : Math.min(4, config.maxWorkers || 4);
 
 if (process.platform === "win32") {
   // Metro's default FileStore lives in %TEMP%/metro-cache and opens

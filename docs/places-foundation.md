@@ -1,7 +1,9 @@
 # Places and units — foundation and implementation plan
 
-Slice 1 implemented and verified locally on 2026-10-10. Slice 2 is authorized;
-stop for review after inventory and money. The slice 1 evidence below is historical.
+Slice 1 implemented and verified locally on 2026-10-10. Slice 2 includes the host
+inventory flows listed below, as well as server inventory/money and admin Listings.
+Slice 2 is complete and verified locally on 2026-10-11, ready for review. Stop here;
+slice 3 is not authorized. Historical verification is labeled below.
 
 ## Approved decisions and remaining slices (2026-10-10)
 
@@ -35,7 +37,14 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
    separate apartments do not block one another. Archiving is not proof of vacancy.
 3. Shared beds require explicit total/available confirmation, integer bounds and
    optimistic version checks. Zero available means rented; positive vacancy may be
-   available or under offer. Reopening a unit never guesses vacancy.
+   available or under offer. Reopening a unit never guesses vacancy. The host
+   dashboard must offer “Mark 1 bed rented”, “Free a bed”, and a vacancy confirmation
+   flow for `inventory_needs_confirmation` units, on web and native.
+   After marking a shared bed rented, ask “Who moved in? Female / Male / Skip”.
+   When beds remain, suggest a gender preference but save it only after explicit
+   confirmation. Skip leaves it unchanged; hosts can undo or change the preference.
+   Show plain hidden reasons naming the blocking unit and a way to manage/free it,
+   including when the occupied unit is archived. Support explicit unit/place hiding.
 4. Publish creation, photos, free-slot accounting and a per-unit charge ledger must
    commit or roll back together. Serialize concurrent purchases for the owner;
    renewals are atomic and retry-safe for each listing/expiry cycle.
@@ -46,7 +55,9 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
    photo flags and inventory controls to authenticated server operations. Persist
    staff notes/audit history and surface failed actions instead of mock successes.
 7. Verify concurrency, occupancy, unknown/zero beds, transaction rollback, refunds,
-   owner isolation and admin integration in a disposable database; stop for review.
+   owner isolation and admin integration in a disposable database. Verify host flows
+   in the browser and production Expo exports for web, iOS and Android. Add no
+   frontend TypeScript errors relative to the committed baseline; commit and stop.
 
 ### Later slices (not authorized for implementation in this change)
 
@@ -58,7 +69,7 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
 
 ## Slice 2 implementation and review handoff
 
-Implemented locally; stop here for review. Migration `0034_unit_inventory_money.sql`
+Current local implementation: migration `0034_unit_inventory_money.sql`
 adds explicit unit/place hiding, photo review flags, a per-listing post-credit
 ledger, the shared SQL visibility/occupancy predicates, and inventory versioning.
 The application inventory service owns validation, locking, sibling checks and
@@ -88,6 +99,21 @@ promotion settlement. There are no place-level promotion limits.
   Its detail drawer includes unit hiding, availability and bed confirmation.
   Inventory conflicts return 409 and require a refresh. Type conversion remains
   disabled in the narrow admin editor; the later unit editor owns that workflow.
+- Host dashboard grid/list, detail and analytics controls now use the same
+  owner-only inventory service. One-bed actions are atomic and version checked.
+  Unknown vacancy opens an explicit count form with no guessed available count.
+  Renting the last bed hides it; freeing a bed restores vacancy without publishing
+  an archived listing or renewing its dates. Unit/place hiding keeps occupancy.
+- The post-rental gender prompt saves nothing on Female/Male selection or Skip.
+  If beds remain, a separate confirmation saves the selected preference. Undo and
+  Change gender preference are available. Gender and bed edits share a version
+  token, so a stale suggestion cannot overwrite a newer host or staff edit.
+  `0035_inventory_gender_version.sql` adds this protection to legacy gender edits
+  too, without modifying the already-recorded 0034 migration.
+- Owner inventory reads return the names/IDs of blocking units from the same owned
+  place. “Hidden because Room A is rented” leads to Room A's controls. Multiple
+  blockers and unknown shared-bed counts are shown; clearing one does not conceal
+  the others. Existing per-listing and market promotion limits are unchanged.
 
 Rollout after review, from `backend` (foundation must already be installed):
 
@@ -96,8 +122,9 @@ npm run db:inventory:apply
 ```
 
 This targeted runner checks preflight and foundation checksums, takes the existing
-migration lock, applies only 0034 transactionally and records its checksum. A retry
-does not replay it. Use the existing promotions worker during rollout to reconcile
+migration lock, applies only missing 0034/0035 migrations transactionally and records
+their checksums. A retry does not replay them; an existing 0034 install gets only
+0035. Use the existing promotions worker during rollout to reconcile
 pre-existing campaigns against the new visibility rules. Do not use `db:push` or
 replay historical migrations. Apply the schema before starting this application
 version. Only disposable test databases were migrated during this implementation;
@@ -376,7 +403,7 @@ verification; provider behavior was tested with deterministic mocks.
 
 No deployment, commit, or later slice was performed.
 
-## Slice 2 verification — 2026-10-10
+## Initial slice 2 server/admin verification — 2026-10-10 (historical)
 
 - Backend TypeScript build passes.
 - Inventory/money integration: 17 scenarios pass in a disposable database. Covers
@@ -411,6 +438,47 @@ installed (`npm ci` at the root); it uses local Microsoft Edge. Local ignored
 evidence is in `frontend/.expo/inventory-ui/` and
 `frontend/.expo/inventory-typecheck.json`.
 
-Slice 2 is ready for review. No application database migration/reset, deployment,
-commit, or implementation of slices 3–5 was performed.
+That initial pass did not finish slice 2: host bed controls, the gender prompt and
+host occupancy/hiding controls were missing, and exports were unverified. Its
+earlier “ready for review” wording overstated completion. No application database
+migration/reset or deployment was performed by that pass.
+
+## Slice 2 host follow-up — 2026-10-11
+
+- Host bed/vacancy, gender confirmation/undo/change, named blockers, archived-unit
+  vacancy and unit/place hiding flows are implemented. Admin Listings remains
+  connected, and the shared money/refund rules are retained.
+- Backend TypeScript and 20 inventory integration scenarios pass, including fresh
+  and existing-0034 upgrades, concurrent one-bed actions, stale gender changes,
+  owner isolation, named blockers and freeing archived occupants without publishing.
+- Foundation: 24 scenarios pass. Promotions: 17 scenarios pass, retaining per-listing
+  limits and three Featured campaigns per market with no per-place limits.
+- Host browser: ten flows pass using the real React Native Web component and API
+  adapter against a local test API. Covers counts, gender confirmation/undo/Skip,
+  last-bed rental/freeing, later gender changes, 409 feedback, unit/place hiding and
+  freeing a named archived blocker. The real compact host list fits a phone-width
+  viewport. Inventory clicks do not open the parent listing.
+  The existing admin browser check also passes. These are focused component checks,
+  not full authenticated Clerk/device end-to-end tests.
+- TypeScript comparison with the committed source using identical installed
+  dependencies and generated Expo declarations: 125 baseline diagnostics, 124 now,
+  zero added. The previous 209 count belongs to the earlier workspace/dependencies.
+- Windows production export now uses in-process Metro transforms (`maxWorkers: 0`)
+  to avoid worker startup stalls. Development keeps its existing worker count.
+  The missing, already-locked Motion dependencies were restored without changing
+  the lockfile. `npm run build` in `frontend` exports all three platforms.
+- Final production export passes for web, iOS and Android from the finished source.
+  Web includes 84 statically rendered routes; both native outputs are Hermes `.hbc`
+  bundles. Output metadata/files were checked, including the host inventory code
+  in the web bundle. This verifies Expo exports, not signed IPA/APK packaging or
+  runtime testing on physical devices.
+- `git diff --check` passes. Slice 2 is complete locally and stops for review.
+  No application database migration/reset, deployment or slice 3–5 work was run.
+
+Reproduce host checks with `node tests/host-inventory-ui.mjs` and the type baseline
+with `node tests/typecheck-baseline.mjs 58a4cdf` from `frontend`.
+Local evidence is under `frontend/.expo/host-inventory-ui/`,
+`frontend/.expo/slice2-typecheck.json`, `frontend/.expo/slice2-final-build.log`
+and `frontend/.expo/slice2-export-result.json`. Final exported files are in
+`frontend/.expo/slice2-final/`.
 

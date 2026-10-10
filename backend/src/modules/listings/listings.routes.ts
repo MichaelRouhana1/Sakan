@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { inventorySchema, updateUnitInventory, setPlaceHidden } from './inventory.service.js';
+import { inventorySchema, updateUnitInventory, setPlaceHidden, getOwnerInventory } from './inventory.service.js';
 import { Router } from "express";
 import { optionalAuth, requireAuth } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
@@ -20,6 +20,9 @@ import {
 
 export const listingsRouter = Router();
 listingsRouter.use(copySuggestRouter);
+listingsRouter.get('/:id/inventory',requireAuth,async(req,res,next)=>{
+ try {res.json({data:await getOwnerInventory(z.uuid().parse(req.params.id),req.user!.id)})} catch(e){next(e)}
+});
 listingsRouter.patch('/places/:placeId/visibility',requireAuth,validate(z.object({hidden:z.boolean()}).strict()),async(req,res,next)=>{
  try {res.json({data:await setPlaceHidden(z.uuid().parse(req.params.placeId),req.body.hidden,req.user!.id)})} catch(e){next(e)}
 });
