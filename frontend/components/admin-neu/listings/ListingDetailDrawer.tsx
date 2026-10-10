@@ -1,3 +1,4 @@
+import { ListingInventory } from './ListingInventory';
 import {
   Calendar,
   ExternalLink,
@@ -35,6 +36,7 @@ type Props = {
   onClose: () => void;
   onEdit: () => void;
   onAction: (kind: ListingActionKind) => void;
+  onInventorySaved: (listing: AdminListing) => void;
   onTogglePhotoFlag: (photoId: string, flagged: boolean) => void;
 };
 
@@ -44,6 +46,7 @@ export function ListingDetailDrawer({
   onClose,
   onEdit,
   onAction,
+  onInventorySaved,
   onTogglePhotoFlag,
 }: Props) {
   const open = listing != null;
@@ -108,6 +111,7 @@ export function ListingDetailDrawer({
             </H>
 
             <H className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 pb-6">
+              <ListingInventory key={listing.id+":"+listing.inventoryVersion} listing={listing} onSaved={onInventorySaved} />
               <ListingImageReview
                 listing={listing}
                 canModerate={listing.status !== "removed"}

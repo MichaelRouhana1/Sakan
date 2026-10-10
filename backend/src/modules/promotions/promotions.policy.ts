@@ -2,6 +2,7 @@ export const OPEN_STATUSES = ['active','queued','paused','action_needed'];
 export function eligibilityReasons(listing: Record<string, any> | undefined, now = new Date()) {
   if (!listing) return ['Listing no longer exists.'];
   const reasons: string[] = [];
+  if (listing.hidden_reason) reasons.push("Make this unit visible and confirm its inventory before promoting it.");
   if (listing.status !== 'active') reasons.push('Publish or renew this listing first.');
   if (listing.availability !== 'available') reasons.push('Only available listings can be promoted. Under offer and rented listings are excluded.');
   if (!listing.expires_at || new Date(listing.expires_at) <= now) reasons.push('Renew this expired listing first.');

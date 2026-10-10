@@ -478,7 +478,8 @@ export class AdminService {
     await writeAudit(actor, "listing.remove", "listing", id, {
       adminNote: note,
       reportsUpdated,
-      refund: false,
+      postCreditRefund: false,
+      unusedPromotionTimeRefunded: true,
     });
     return this.getListing(id);
   }

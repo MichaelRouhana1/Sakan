@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { listings, savedListings } from "../../db/schema/index.js";
 import {
@@ -22,7 +22,7 @@ export class SavedRepository {
       })
       .from(savedListings)
       .innerJoin(listings, eq(savedListings.listingId, listings.id))
-      .where(eq(savedListings.userId, userId))
+      .where(and(eq(savedListings.userId, userId),sql`unit_hidden_reason(listings) IS NULL`))
       .orderBy(desc(savedListings.createdAt));
 
     const listingRows = rows.map(({ savedId: _s, savedAt: _a, ...listing }) => ({

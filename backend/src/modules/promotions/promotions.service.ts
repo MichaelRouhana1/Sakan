@@ -8,7 +8,7 @@ import { eligibilityReasons, OPEN_STATUSES, remainingSeconds, unusedRefundUnits,
 type Row = Record<string, any>;
 export async function promotionLock(tx: Tx) { await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('promotions'))`); }
 async function ownedListing(tx: Tx, listingId: string, ownerId?: string) {
-  const rows = await tx.execute(sql`SELECT l.*,u.account_status,(SELECT count(*)::int FROM listing_photos p WHERE p.listing_id=l.id) AS photo_count,c.name AS campus_name,c.active AS campus_active FROM listings l JOIN users u ON u.id=l.poster_id LEFT JOIN universities c ON c.id=l.primary_campus_id WHERE l.id=${listingId}::uuid`);
+  const rows = await tx.execute(sql`SELECT l.*,unit_hidden_reason(l) AS hidden_reason,u.account_status,(SELECT count(*)::int FROM listing_photos p WHERE p.listing_id=l.id) AS photo_count,c.name AS campus_name,c.active AS campus_active FROM listings l JOIN users u ON u.id=l.poster_id LEFT JOIN universities c ON c.id=l.primary_campus_id WHERE l.id=${listingId}::uuid`);
   const row = rows[0] as Row | undefined;
   if (ownerId && (!row || row.poster_id !== ownerId)) throw new NotFoundError('Listing not found');
   return row;
@@ -62,6 +62,8 @@ async function stopCampaign(tx:Tx,c:Row,reason:string,at:Date,full=false) {
 }
 /** Caller takes promotionLock before locking listing/user, then mutates listing and calls this. */
 export async function stopListingPromotions(tx:Tx,listingId:string,reason:string,effectiveAt=new Date()) {
+  const [listing] = await tx.execute(sql`SELECT expires_at FROM listings WHERE id=${listingId}::uuid`);
+  if (listing?.expires_at && new Date(String(listing.expires_at)) < effectiveAt) effectiveAt = new Date(String(listing.expires_at));
   const rows=await tx.execute(sql`SELECT * FROM promotion_campaigns WHERE listing_id=${listingId}::uuid AND status IN ('active','queued','paused','action_needed') FOR UPDATE`);
   for (const c of rows as Row[]) await stopCampaign(tx,c,reason,effectiveAt);
 }
@@ -258,7 +260,7 @@ export async function readPromotion(ownerId:string,id:string) {
 }
 export async function getListingPromotions(ids:string[]) {
   if(!ids.length || process.env.PROMOTION_PLACEMENT_ENABLED!=='true') return [];
-  const rows=await db.execute(sql`SELECT c.* FROM promotion_campaigns c JOIN listings l ON l.id=c.listing_id JOIN users u ON u.id=c.owner_id WHERE c.listing_id IN (${sql.join(ids.map(id=>sql`${id}::uuid`),sql`,`)}) AND c.status='active' AND c.ends_at>now() AND l.status='active' AND l.availability='available' AND l.expires_at>now() AND u.account_status NOT IN ('restricted','banned')`);
+  const rows=await db.execute(sql`SELECT c.* FROM promotion_campaigns c JOIN listings l ON l.id=c.listing_id JOIN users u ON u.id=c.owner_id WHERE c.listing_id IN (${sql.join(ids.map(id=>sql`${id}::uuid`),sql`,`)}) AND c.status='active' AND c.ends_at>now() AND l.status='active' AND unit_hidden_reason(l) IS NULL AND l.availability='available' AND l.expires_at>now() AND u.account_status NOT IN ('restricted','banned')`);
   return rows.map(c=>({campaignId:String(c.id),listingId:String(c.listing_id),type:String(c.type) as 'featured'|'bump',marketKey:String(c.market_key),startedAt:iso(c.started_at),endsAt:iso(c.ends_at)!,lastBumpedAt:iso(c.last_bumped_at)}));
 }
 export async function promotionNotices(ownerId:string) {

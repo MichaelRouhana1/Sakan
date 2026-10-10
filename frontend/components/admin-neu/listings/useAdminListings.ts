@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  adminListingError,
   archiveAdminListing,
   bulkAdminListingAction,
   dismissAdminListingReports,
@@ -57,7 +58,9 @@ export function useAdminListings() {
   const [flash, setFlash] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
+  const requestId = useRef(0);
   const load = useCallback(async () => {
+    const request = ++requestId.current;
     setStatus("loading");
     setErrorMessage(null);
     try {
@@ -68,6 +71,7 @@ export function useAdminListings() {
         page,
         pageSize,
       });
+      if (request !== requestId.current) return;
       setItems(result.items);
       setTotal(result.total);
       setCounts(result.counts);
@@ -80,9 +84,10 @@ export function useAdminListings() {
         return next;
       });
     } catch (err) {
+      if (request !== requestId.current) return;
       setStatus("error");
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to load listings",
+        adminListingError(err),
       );
     }
   }, [query, queue, sort, page, pageSize]);
@@ -106,8 +111,8 @@ export function useAdminListings() {
       .then((row) => {
         if (!cancelled) setSelectedDetail(row);
       })
-      .catch(() => {
-        if (!cancelled) setSelectedDetail(null);
+      .catch((err) => {
+        if (!cancelled) { setSelectedDetail(null); setFlash(adminListingError(err)); }
       });
     return () => {
       cancelled = true;
@@ -129,8 +134,8 @@ export function useAdminListings() {
       .then((row) => {
         if (!cancelled) setEditingDetail(row);
       })
-      .catch(() => {
-        if (!cancelled) setEditingDetail(null);
+      .catch((err) => {
+        if (!cancelled) { setEditingDetail(null); setFlash(adminListingError(err)); }
       });
     return () => {
       cancelled = true;
@@ -241,7 +246,7 @@ export function useAdminListings() {
         setReloadToken((n) => n + 1);
       }
     } catch (err) {
-      setFlash(err instanceof Error ? err.message : "Action failed");
+      setFlash(adminListingError(err));
     } finally {
       setBusy(false);
     }
@@ -257,7 +262,7 @@ export function useAdminListings() {
       setEditingId(null);
       setReloadToken((n) => n + 1);
     } catch (err) {
-      setFlash(err instanceof Error ? err.message : "Save failed");
+      setFlash(adminListingError(err));
     } finally {
       setBusy(false);
     }
@@ -279,7 +284,7 @@ export function useAdminListings() {
       patchLocal(updated);
       setFlash(flagged ? "Photo flagged." : "Photo flag cleared.");
     } catch (err) {
-      setFlash(err instanceof Error ? err.message : "Photo update failed");
+      setFlash(adminListingError(err));
     } finally {
       setBusy(false);
     }
@@ -324,6 +329,7 @@ export function useAdminListings() {
     openEdit,
     closeEdit: () => setEditingId(null),
     confirmEdit,
+    inventorySaved: (updated: AdminListing) => { patchLocal(updated); retry(); },
     togglePhotoFlag,
     busy,
     flash,

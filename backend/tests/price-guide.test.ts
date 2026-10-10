@@ -41,12 +41,15 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
       await tx.unsafe(`CREATE TEMP TABLE listings (
         id uuid, status text, monthly_rent_usd integer, expires_at timestamptz,
         area text, space_type text, property_type text, bedrooms integer, price_basis text,
-        availability text NOT NULL DEFAULT 'available'
+        availability text NOT NULL DEFAULT 'available', hidden_reason text
       ) ON COMMIT DROP`);
+      // This aggregate fixture models the visibility contract. The real shared
+      // occupancy function is exercised against all migrations in inventory integration.
+      await tx.unsafe("CREATE FUNCTION pg_temp.unit_hidden_reason(pg_temp.listings) RETURNS text LANGUAGE sql AS 'SELECT $1.hidden_reason'");
       const dialect = new PgDialect();
       async function aggregate(query: PriceGuideInput = input) {
         const compiled = dialect.sqlToQuery(priceGuideAggregateQuery(query));
-        const [row] = await tx.unsafe<PriceGuideAggregate[]>(compiled.sql, compiled.params);
+        const [row] = await tx.unsafe<PriceGuideAggregate[]>(compiled.sql.replace("unit_hidden_reason(listings)", "pg_temp.unit_hidden_reason(listings)"), compiled.params);
         return row;
       }
       async function seed(n: number) {
@@ -80,7 +83,7 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
       await t.test("one disqualified comp drops ten below the gate, with no widening", async () => {
         for (const change of [
           "status = 'draft'", "status = 'archived'", "status = 'removed'",
-          "availability = 'rented'",
+          "availability = 'rented'", "hidden_reason = 'unit_hidden'", "hidden_reason = 'occupied_alternative'",
           "monthly_rent_usd = 0", "monthly_rent_usd = -1",
           "expires_at = now() - interval '1 second'", "expires_at = now()",
           "area = 'Verdun'", "space_type = 'private_room'", "space_type = 'shared_room'",

@@ -13,12 +13,12 @@ const COPY: Record<
   },
   remove: {
     title: "Take down this listing",
-    body: "Hard removal for rule breaks. One-way — cannot restore. No credit refund. Open reports close.",
+    body: "Hard removal for rule breaks. One-way — cannot restore. Post credits are not refunded; unused promotion time is returned. Open reports close.",
     confirm: "Take down",
   },
   restore: {
     title: "Restore this listing",
-    body: "Puts an archived post back on browse until expiry. Removed listings cannot be restored.",
+    body: "Restores an archived post with its saved availability, hiding and original expiry. Removed listings cannot be restored.",
     confirm: "Restore",
   },
   dismiss_reports: {

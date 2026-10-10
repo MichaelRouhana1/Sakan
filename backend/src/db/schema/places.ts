@@ -9,6 +9,7 @@ import type { RouteLngLat } from "./listing-campus-routes.js";
 export const places = pgTable("places", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  hidden: boolean("hidden").notNull().default(false),
   kind: placeKindEnum("kind").notNull().default("apartment"),
   city: varchar("city", { length: 128 }),
   area: varchar('area', { length: 128 }).notNull(),

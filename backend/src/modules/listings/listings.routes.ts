@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { inventorySchema, updateUnitInventory, setPlaceHidden } from './inventory.service.js';
 import { Router } from "express";
 import { optionalAuth, requireAuth } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
@@ -18,6 +20,12 @@ import {
 
 export const listingsRouter = Router();
 listingsRouter.use(copySuggestRouter);
+listingsRouter.patch('/places/:placeId/visibility',requireAuth,validate(z.object({hidden:z.boolean()}).strict()),async(req,res,next)=>{
+ try {res.json({data:await setPlaceHidden(z.uuid().parse(req.params.placeId),req.body.hidden,req.user!.id)})} catch(e){next(e)}
+});
+listingsRouter.patch('/:id/inventory',requireAuth,validate(inventorySchema),async(req,res,next)=>{
+ try {res.json({data:await updateUnitInventory(z.uuid().parse(req.params.id),req.body,req.user!.id)})} catch(e){next(e)}
+});
 
 // First-time hosts still have renter role until creating their first listing.
 // Authentication is required; reading guidance must not promote or charge them.

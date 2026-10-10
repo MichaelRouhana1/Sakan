@@ -83,6 +83,7 @@ function ClerkOAuthSection({
   onOAuthComplete: (provider: AuthProvider) => Promise<void>;
 }) {
   const clerk = useClerk();
+  const { logout } = useAuthSession();
   const { startOAuthFlow: startGoogleOAuth } = useOAuth({
     strategy: "oauth_google",
   });
@@ -147,7 +148,9 @@ function ClerkOAuthSection({
           await onOAuthComplete(provider);
           return;
         } catch {
-          // fall through
+          await logout();
+          setError("Signed out of the stuck session. Sign in again.");
+          return;
         }
       }
       setError(

@@ -193,6 +193,15 @@ try{
   assert.equal((await seedHousing(client,seedEnv)).removedLegacyListings,1);
   assert.ok((await client`select id from listings where id=${extra.id}`)[0]);
  });
+ await check('owner-confirmed test rows require matching title, area and rent before deletion',async()=>{
+  const manifest=JSON.parse(await readFile(new URL('../src/db/seeds/legacy-housing-manifest.json',import.meta.url),'utf8'));
+  for(const item of manifest.listings.filter(x=>x.fingerprint_kind==='owner_confirmed_test')){
+   await client`insert into listings(id,poster_id,title,listing_type,monthly_rent_usd,electricity,water,area) values(${item.id},${owner.id},${item.title},'studio',${item.monthly_rent_usd+1},'solar','state_well_24_7',${item.area})`;
+   await assert.rejects(seedHousing(client,seedEnv),/fingerprint changed/);
+   await client`update listings set monthly_rent_usd=${item.monthly_rent_usd} where id=${item.id}`;
+   assert.equal((await seedHousing(client,seedEnv)).removedLegacyListings,1);
+  }
+ });
  console.log('Foundation scenarios passed: '+passed);
 }catch(error){console.error(error);process.exitCode=1;}
 finally{

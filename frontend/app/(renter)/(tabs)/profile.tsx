@@ -21,7 +21,7 @@ import type { User } from "@/types/user";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { isSignedIn, user, logout, refreshUser } = useAuthSession();
+  const { isSignedIn, hasClerkSession, user, logout, refreshUser } = useAuthSession();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [campusOpen, setCampusOpen] = useState(false);
   const [campusSaving, setCampusSaving] = useState(false);
@@ -181,8 +181,8 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
-          {/* Logout Option (when signed in) */}
-          {isSignedIn ? (
+          {/* Logout when the app account loaded, or Clerk still has a stuck session. */}
+          {isSignedIn || hasClerkSession ? (
             <Pressable
               style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
               onPress={handleLogout}

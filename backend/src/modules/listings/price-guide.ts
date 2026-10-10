@@ -51,6 +51,7 @@ export function priceGuideAggregateQuery(input: PriceGuideInput) {
     FROM ${listings}
     WHERE ${listings.status} = 'active'
       AND ${listings.availability} <> 'rented'
+      AND unit_hidden_reason(listings) IS NULL
       AND ${listings.monthlyRentUsd} > 0
       AND (${listings.expiresAt} IS NULL OR ${listings.expiresAt} > now())
       AND ${listings.area} = ${input.area}

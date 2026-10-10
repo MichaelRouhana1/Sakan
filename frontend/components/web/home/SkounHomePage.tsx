@@ -216,7 +216,7 @@ function HomeNav({
   solid: boolean;
   onRequestAuth: () => void;
 }) {
-  const { isSignedIn, user, logout } = useAuthSession();
+  const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
@@ -405,7 +405,7 @@ function HomeNav({
                     <Text style={styles.homeMenuText}>Download App</Text>
                   </Pressable>
 
-                  {isSignedIn ? (
+                  {isSignedIn || hasClerkSession ? (
                     <>
                       <View style={styles.homeMenuDivider} />
                       <Pressable

@@ -1,4 +1,7 @@
-import { promotionLock, stopListingPromotions, recheckListingPromotions } from '../promotions/promotions.service.js';
+import { ValidationError } from '../../lib/errors.js';
+import { chargeUnit } from './listing-charges.service.js';
+import { lockInventory, changeUnitInventory, settlePlaceInventory } from './inventory.service.js';
+import { promotionLock, stopListingPromotions } from '../promotions/promotions.service.js';
 import {
   and,
   asc,
@@ -56,6 +59,14 @@ export type ListingWithPhotos = Record<string, unknown> & {
 /** Explicit listing columns — never select raw geography/location. */
 export const listingPublicColumns = {
   id: listings.id,
+  placeId: listings.placeId,
+  unitType: listings.unitType,
+  hidden: listings.hidden,
+  hiddenReason: sql<string | null>`unit_hidden_reason(listings)`,
+  bedsTotal: listings.bedsTotal,
+  bedsAvailable: listings.bedsAvailable,
+  inventoryNeedsConfirmation: listings.inventoryNeedsConfirmation,
+  inventoryVersion: listings.inventoryVersion,
   posterId: listings.posterId,
   status: listings.status,
   availability: listings.availability,
@@ -369,7 +380,7 @@ export class ListingsRepository {
       .where(
         and(
           eq(listings.status, "active"),
-          ne(listings.availability, "rented"),
+          ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
       sql`${listings.expiresAt} > now()`,
           ne(listings.id, listingId),
           isNotNull(listings.location),
@@ -404,7 +415,7 @@ export class ListingsRepository {
   ) {
     const conditions = [
       eq(listings.status, "active"),
-      ne(listings.availability, "rented"),
+      ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
       sql`${listings.expiresAt} > now()`,
       ...propertyDrizzleConditions(property),
       ...textSearchDrizzleConditions(q),
@@ -490,7 +501,7 @@ export class ListingsRepository {
           LIMIT 1
         ) d
         WHERE l.status = 'active'
-          AND l.availability <> 'rented' AND l.expires_at > now()
+          AND l.availability <> 'rented' AND unit_hidden_reason(l) IS NULL AND l.expires_at > now()
           AND l.location IS NOT NULL
           ${areaFilter}
           ${propertyFilter}
@@ -587,7 +598,7 @@ export class ListingsRepository {
     const meters = radiusKm * 1000;
     const conditions = [
       eq(listings.status, "active"),
-      ne(listings.availability, "rented"),
+      ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
       sql`${listings.expiresAt} > now()`,
       isNotNull(listings.location),
       sql`ST_DWithin(
@@ -747,7 +758,9 @@ export class ListingsRepository {
     const contactNumbers = resolveContactNumbers(input);
     const phones = deriveContactPhones(contactNumbers);
 
-    const [row] = await db
+    const id = await db.transaction(async tx => {
+    await promotionLock(tx);
+    const [row] = await tx
       .insert(listings)
       .values({
         posterId,
@@ -818,7 +831,7 @@ export class ListingsRepository {
       return null;
     }
 
-    await db.insert(listingPhotos).values(
+    await tx.insert(listingPhotos).values(
       input.photoUrls.map((url, index) => ({
         listingId: row.id,
         url,
@@ -827,7 +840,10 @@ export class ListingsRepository {
       })),
     );
 
-    return this.findById(row.id);
+    if (publishNow) await chargeUnit(tx,posterId,row.id,'publish','publish:'+row.id);
+    return row.id;
+    });
+    return id ? this.findById(id) : null;
   }
 
   async incrementViewCount(id: string) {
@@ -915,7 +931,7 @@ export class ListingsRepository {
       })
       .from(listings)
       .where(
-        and(eq(listings.status, "active"), ne(listings.availability, "rented")),
+        and(eq(listings.status, "active"), ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`),
       )
       .groupBy(listings.area)
       .orderBy(desc(sql`count(*)`), asc(listings.area))
@@ -946,7 +962,7 @@ export class ListingsRepository {
       LEFT JOIN institutions i ON i.id = u.institution_id
       LEFT JOIN listings l
         ON l.status = 'active'
-        AND l.availability <> 'rented' AND l.expires_at > now()
+        AND l.availability <> 'rented' AND unit_hidden_reason(l) IS NULL AND l.expires_at > now()
         AND l.location IS NOT NULL
         AND u.location IS NOT NULL
         AND ST_DWithin(l.location, u.location, ${campusHousingRadiusMeters})
@@ -1010,6 +1026,9 @@ export class ListingsRepository {
     const now = options.audit.now;
     return db.transaction(async (tx) => {
       await promotionLock(tx);
+      const original = await lockInventory(tx,id);
+      if (original.unit_type === 'shared_bed' && (write.beds !== original.beds || write.listingType !== original.listing_type)) throw new ValidationError('Change shared-bed inventory using the inventory controls');
+      if (original.availability === 'rented' && write.listingType !== original.listing_type) throw new ValidationError('Confirm vacancy before changing the unit type');
       await tx
         .update(listings)
         .set({
@@ -1100,7 +1119,8 @@ export class ListingsRepository {
         tx,
       );
 
-      await recheckListingPromotions(tx, id);
+      const current = await lockInventory(tx,id);
+      await settlePlaceInventory(tx,String(current.place_id));
       return id;
     });
   }
@@ -1118,6 +1138,8 @@ export class ListingsRepository {
       await promotionLock(tx);
       const [row] = await tx.select({id:listings.id}).from(listings).where(and(eq(listings.id,id),eq(listings.posterId,posterId),eq(listings.status,'active'))).for('update');
       if(!row) return null;
+      const occupied = await tx.execute(sql`SELECT id FROM listings WHERE id=${id}::uuid AND (unit_occupied(listings) OR inventory_needs_confirmation)`);
+      if (occupied.length) throw new ValidationError('Confirm vacancy before deleting this unit, or archive it to keep its inventory');
       await stopListingPromotions(tx,id,'listing_deleted');
       await tx.delete(listings).where(eq(listings.id,id));
       return row;
@@ -1134,13 +1156,13 @@ export class ListingsRepository {
   async adminSetStatus(id: string, next: 'archived'|'removed'|'active') {
     return db.transaction(async tx => {
       await promotionLock(tx);
-      const [existing] = await tx.select({id:listings.id,status:listings.status}).from(listings).where(eq(listings.id,id)).for('update');
+      const existing = await lockInventory(tx,id);
       if(!existing) return null;
       if(next==='archived' && existing.status!=='active') return null;
       if(next==='removed' && existing.status==='removed') return existing;
       if(next==='removed' && existing.status==='draft') return null;
       if(next==='active' && existing.status!=='archived') return null;
-      const [row]=await tx.update(listings).set({status:next,updatedAt:new Date(),...(next==='active'?{availability:'available' as const}:{})}).where(eq(listings.id,id)).returning({id:listings.id,status:listings.status});
+      const [row]=await tx.update(listings).set({status:next,updatedAt:new Date()}).where(eq(listings.id,id)).returning({id:listings.id,status:listings.status});
       if(next!=='active') await stopListingPromotions(tx,id,`listing_${next}`);
       return row ?? null;
     });
@@ -1148,9 +1170,8 @@ export class ListingsRepository {
   async setAvailability(id:string,posterId:string,availability:'available'|'pending'|'rented') {
     return db.transaction(async tx => {
       await promotionLock(tx);
-      const [row]=await tx.update(listings).set({availability,updatedAt:new Date()}).where(and(eq(listings.id,id),eq(listings.posterId,posterId),eq(listings.status,'active'))).returning({id:listings.id,status:listings.status,availability:listings.availability});
-      if(row && availability!=='available') await stopListingPromotions(tx,id,availability==='pending'?'under_offer':'listing_rented');
-      return row ?? null;
+      const unit = await lockInventory(tx,id,posterId);
+      return changeUnitInventory(tx,id,{expectedVersion:Number(unit.inventory_version),availability},posterId);
     });
   }
   async adminRemoveActiveByPoster(posterId:string) {

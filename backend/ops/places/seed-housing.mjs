@@ -27,10 +27,13 @@ export async function seedHousing(client,raw=process.env){
   await tx`select pg_advisory_xact_lock(183710,2)`;
   await tx.unsafe('CREATE TABLE IF NOT EXISTS skoun_ops.housing_seed_manifest(entity text NOT NULL,id uuid NOT NULL,PRIMARY KEY(entity,id))');
   const result={removedLegacyListings:0,places:0,units:0,unitPhotos:0,placePhotos:0,promotions:0,preservedNonManifestListings:0};
-  const existing=await tx`select id,poster_id,title,created_at,place_id from listings where id=any(${manifest.listings.map(x=>x.id)}::uuid[]) for update`;
+  const existing=await tx`select id,poster_id,title,created_at,place_id,area,monthly_rent_usd from listings where id=any(${manifest.listings.map(x=>x.id)}::uuid[]) for update`;
   for(const row of existing){
    const expected=manifest.listings.find(x=>x.id===row.id);
-   if(row.poster_id!==expected.poster_id || row.title!==expected.title || row.created_at.toISOString()!==expected.created_at)
+   const matches=expected.fingerprint_kind==='owner_confirmed_test'
+    ? row.title===expected.title && row.area===expected.area && row.monthly_rent_usd===expected.monthly_rent_usd
+    : row.poster_id===expected.poster_id && row.title===expected.title && row.created_at.toISOString()===expected.created_at;
+   if(!matches)
     throw new Error('Legacy manifest fingerprint changed; refusing to delete '+row.id);
   }
   if(existing.length){

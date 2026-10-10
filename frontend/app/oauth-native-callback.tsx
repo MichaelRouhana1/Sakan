@@ -6,6 +6,7 @@ import { ActivityIndicator, Platform, View } from "react-native";
 import {
   completeOAuthRedirectIfPresent,
   consumeOAuthReturnTo,
+  didOAuthNavigateAway,
 } from "@/lib/clerkAuth";
 import { useClerkEnabled } from "@/lib/clerkEnabled";
 
@@ -34,9 +35,13 @@ function OAuthNativeCallbackWeb() {
       } catch (err) {
         console.error("OAuth callback error:", err);
       } finally {
-        if (cancelled) return;
-        const next = consumeOAuthReturnTo();
-        window.location.replace(next);
+        if (
+          !cancelled &&
+          !didOAuthNavigateAway() &&
+          window.location.pathname.includes("oauth-native-callback")
+        ) {
+          window.location.replace(consumeOAuthReturnTo());
+        }
         setBusy(false);
       }
     })();

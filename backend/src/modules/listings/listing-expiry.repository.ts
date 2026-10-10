@@ -1,5 +1,7 @@
+import { chargeUnit } from './listing-charges.service.js';
+import { lockInventory, changeUnitInventory, settlePlaceInventory } from './inventory.service.js';
 import { promotionLock, stopListingPromotions } from '../promotions/promotions.service.js';
-import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   listingLifecycleEvents,
@@ -8,7 +10,6 @@ import {
 } from "../../db/schema/index.js";
 import {
   ConflictError,
-  InsufficientCreditsError,
   NotFoundError,
 } from "../../lib/errors.js";
 import type { ListingExpiryDecisionInput } from "./listing-expiry.schemas.js";
@@ -50,6 +51,7 @@ export class ListingExpiryRepository {
     const cycleExpiresAt = new Date(input.cycleExpiresAt);
     return db.transaction(async (tx) => {
       await promotionLock(tx);
+      const inventory = await lockInventory(tx,listingId,ownerId);
       const [listing] = await tx
         .select({
           id: listings.id,
@@ -93,6 +95,7 @@ export class ListingExpiryRepository {
         .onConflictDoNothing();
 
       if (input.decision === "rented" || input.decision === "archive") {
+        if (input.decision === 'rented') await changeUnitInventory(tx,listingId,{expectedVersion:Number(inventory.inventory_version),availability:'rented'},ownerId);
         await stopListingPromotions(tx,listingId,input.decision);
         await tx
           .update(listings)
@@ -115,6 +118,7 @@ export class ListingExpiryRepository {
   ) {
     return db.transaction(async (tx) => {
       await promotionLock(tx);
+      const inventory = await lockInventory(tx,listingId,ownerId);
       const [listing] = await tx
         .select({
           id: listings.id,
@@ -172,15 +176,8 @@ export class ListingExpiryRepository {
         .returning({ id: listingLifecycleEvents.id });
       if (!claimed) return { id: listingId, alreadyRenewed: true };
 
-      const [debited] = await tx
-        .update(users)
-        .set({
-          postCredits: sql`${users.postCredits} - 1`,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(users.id, ownerId), gt(users.postCredits, 0)))
-        .returning({ postCredits: users.postCredits });
-      if (!debited) throw new InsufficientCreditsError("One post credit is required to renew");
+      if (inventory.inventory_needs_confirmation || (inventory.unit_type === 'shared_bed' && Number(inventory.beds_available) === 0)) throw new ConflictError('Confirm available beds before renewing');
+      await chargeUnit(tx,ownerId,listingId,'renew','renew:'+listingId+':'+expectedCycleExpiresAt.toISOString());
 
       const now = new Date();
       const base = expectedCycleExpiresAt > now ? expectedCycleExpiresAt : now;
@@ -191,19 +188,19 @@ export class ListingExpiryRepository {
           status: "active",
           expiresAt: nextExpiry,
           updatedAt: now,
-          availability: sql`CASE WHEN ${listings.status} = 'archived' THEN 'available'::listing_availability ELSE ${listings.availability} END`,
         })
         .where(
           and(
             eq(listings.id, listingId),
             eq(listings.posterId, ownerId),
-            eq(listings.expiresAt, expectedCycleExpiresAt),
+            sql`date_trunc('milliseconds', ${listings.expiresAt}) = ${expectedCycleExpiresAt.toISOString()}::timestamptz`,
             inArray(listings.status, ["active", "archived"]),
           ),
         )
         .returning({ id: listings.id, expiresAt: listings.expiresAt });
       if (!updated) throw new ConflictError("Listing changed while it was being renewed");
 
+      await settlePlaceInventory(tx,String(inventory.place_id));
       return { ...updated, alreadyRenewed: false };
     });
   }

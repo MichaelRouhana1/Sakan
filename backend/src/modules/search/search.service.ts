@@ -179,7 +179,7 @@ async function matchListings(q: string): Promise<ListingSuggestion[]> {
     .where(
       and(
         eq(listings.status, "active"),
-        ne(listings.availability, "rented"),
+        ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
         sql`${listings.expiresAt} > now()`,
         matchCond,
       ),

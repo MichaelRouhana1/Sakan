@@ -146,6 +146,7 @@ export function ListingEditDialog({
               </H>
               <H
                 as="select"
+                disabled
                 value={draft.listingType}
                 onChange={(event: { target: { value: string } }) =>
                   onDraft({ ...draft, listingType: event.target.value })

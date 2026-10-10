@@ -10,11 +10,11 @@ export async function recordActivity(listingId: string, kind: 'view' | 'contact_
   const eventId = input.eventId ?? randomUUID();
   return db.transaction(async tx => {
     // Serialize per listing: durable tap-window check and aggregate update share one transaction.
-    const rows = await tx.execute(sql`SELECT id,poster_id,status,availability,expires_at,view_count,contact_tap_count FROM listings WHERE id=${listingId}::uuid FOR UPDATE`);
+    const rows = await tx.execute(sql`SELECT id,unit_hidden_reason(listings) AS hidden_reason,poster_id,status,availability,expires_at,view_count,contact_tap_count FROM listings WHERE id=${listingId}::uuid FOR UPDATE`);
     const listing = rows[0] as Row | undefined;
     if (!listing) throw new NotFoundError('Listing not found');
     const unchanged = { id: listingId, viewCount: Number(listing.view_count), leadCount: Number(listing.contact_tap_count), counted: false };
-    if (listing.poster_id === actor.userId || listing.status !== 'active' || listing.availability === 'rented' || !listing.expires_at || new Date(listing.expires_at).getTime() <= Date.now()) return unchanged;
+    if (listing.hidden_reason || listing.poster_id === actor.userId || listing.status !== 'active' || listing.availability === 'rented' || !listing.expires_at || new Date(listing.expires_at).getTime() <= Date.now()) return unchanged;
     let boostId: string | null = null;
     const placement = verifyPlacement(input.placementToken, listingId, input.sessionId);
     if (placement) {

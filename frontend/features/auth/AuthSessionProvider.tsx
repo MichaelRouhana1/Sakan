@@ -15,6 +15,9 @@ import "@/features/listings/create/draftAccountSync";
 import { setAuthTokenGetter } from "@/lib/api";
 import {
   completeOAuthRedirectIfPresent,
+  isOAuthCallbackLocation,
+  clerkTokenFailure,
+  getFreshClerkToken,
   waitForClerkToken,
 } from "@/lib/clerkAuth";
 import { useClerkEnabled } from "@/lib/clerkEnabled";
@@ -39,6 +42,8 @@ type AuthSessionContextValue = {
   session: Session | null;
   user: User | null;
   isSignedIn: boolean;
+  /** Clerk still has a session, even if the app account failed to load. */
+  hasClerkSession: boolean;
   isLoading: boolean;
   syncWithBackend: () => Promise<User | null>;
   refreshUser: () => Promise<User | null>;
@@ -47,10 +52,24 @@ type AuthSessionContextValue = {
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
+function clearClerkBrowserCache(): void {
+  if (typeof window === "undefined") return;
+  try {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith("__clerk") || key.startsWith("clerk-")) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore storage failures
+  }
+}
+
 const disabledValue: AuthSessionContextValue = {
   session: null,
   user: null,
   isSignedIn: false,
+  hasClerkSession: false,
   isLoading: false,
   syncWithBackend: async () => null,
   refreshUser: async () => null,
@@ -70,13 +89,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
   setActiveDraftUserId(session?.userId ?? null);
 
   useEffect(() => {
-    setAuthTokenGetter(async () => {
-      try {
-        return (await clerk.session?.getToken({ skipCache: false })) ?? null;
-      } catch {
-        return null;
-      }
-    });
+    setAuthTokenGetter(() => getFreshClerkToken(clerk.session));
 
     return () => setAuthTokenGetter(null);
   }, [clerk, clerk.session?.id]);
@@ -92,7 +105,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
 
     const token = await waitForClerkToken(clerk);
     if (!token) {
-      throw new Error("Clerk session token was not ready.");
+      throw new Error(clerkTokenFailure());
     }
 
     const me = await fetchMe();
@@ -130,6 +143,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
       // ignore Clerk sign-out failures
     }
     await clearSession();
+    clearClerkBrowserCache();
     setSessionState(null);
     setUser(null);
     queryClient.clear();
@@ -142,10 +156,15 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       setIsLoading(true);
       try {
-        await completeOAuthRedirectIfPresent(clerk);
-        const signedIn = Boolean(isClerkSignedIn || clerk.session?.id);
+        const onOAuthCallback = isOAuthCallbackLocation();
+        const oauthCompleted = await completeOAuthRedirectIfPresent(clerk);
+        const signedIn = Boolean(
+          oauthCompleted || isClerkSignedIn || clerk.session?.id,
+        );
         if (signedIn) {
           await syncWithBackend();
+        } else if (onOAuthCallback) {
+          // Callback is still finishing the Clerk handshake — don't wipe state.
         } else {
           await clearSession();
           if (!cancelled) {
@@ -155,7 +174,12 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error("Failed to sync Clerk session with backend:", err);
-        if (!cancelled && !isClerkSignedIn && !clerk.session?.id) {
+        if (
+          !cancelled &&
+          !isClerkSignedIn &&
+          !clerk.session?.id &&
+          !isOAuthCallbackLocation()
+        ) {
           setSessionState(null);
           setUser(null);
         }
@@ -174,6 +198,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
       session,
       user,
       isSignedIn: Boolean((isClerkSignedIn || clerk.session?.id) && user),
+      hasClerkSession: Boolean(isClerkSignedIn || clerk.session?.id),
       isLoading: !isClerkLoaded || isLoading,
       syncWithBackend,
       refreshUser,
@@ -183,6 +208,7 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
       session,
       user,
       isClerkSignedIn,
+      clerk.session?.id,
       isClerkLoaded,
       isLoading,
       syncWithBackend,

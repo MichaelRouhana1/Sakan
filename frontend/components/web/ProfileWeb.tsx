@@ -91,7 +91,7 @@ function coverOf(listing: Listing): string | null {
 }
 
 export function ProfileWeb() {
-  const { isSignedIn, isLoading: authLoading, user, logout, refreshUser } =
+  const { isSignedIn, hasClerkSession, isLoading: authLoading, user, logout, refreshUser } =
     useAuthSession();
   const { user: clerkUser } = useUser();
   const saved = useSavedListings();
@@ -424,7 +424,7 @@ export function ProfileWeb() {
         </View>
       </View>
 
-      {isSignedIn ? (
+      {isSignedIn || hasClerkSession ? (
         <Pressable
           onPress={() => void logout()}
           accessibilityRole="button"

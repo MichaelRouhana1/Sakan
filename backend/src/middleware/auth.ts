@@ -93,7 +93,12 @@ async function resolveAuthUser(req: Request): Promise<AuthUser | null> {
     const sub = clerkUserIdFromVerifyResult(verified);
     if (!sub) return null;
     clerkUserId = sub;
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "Token verification failed";
+    console.error("Clerk token rejected:", detail);
+    if (env.NODE_ENV !== "production") {
+      throw new UnauthorizedError(detail);
+    }
     return null;
   }
 

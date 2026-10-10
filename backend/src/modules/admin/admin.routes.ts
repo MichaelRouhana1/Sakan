@@ -1,3 +1,4 @@
+import { adminListingsRouter } from './admin-listings.routes.js';
 import { Router } from "express";
 import { requireAdmin } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
@@ -13,6 +14,7 @@ import {
 export const adminRouter = Router();
 
 adminRouter.use(requireAdmin);
+adminRouter.use('/inventory/listings',adminListingsRouter);
 
 adminRouter.get("/overview", (req, res, next) =>
   adminController.overview(req, res, next),

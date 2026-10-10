@@ -1,13 +1,11 @@
 import {
   ForbiddenError,
-  InsufficientCreditsError,
   NotFoundError,
   StructuralFieldsLockedError,
   ValidationError,
 } from "../../lib/errors.js";
 import type { AuthUser } from "../../middleware/auth.js";
 import { COINCIDENT_METERS } from "../../constants/mapCoincident.js";
-import { FREE_SLOT_REPLACEMENTS_PER_MONTH } from "../../constants/listings.js";
 import { priceGuideFromAggregate, type PriceGuideInput } from "./price-guide.js";
 import {
   universitiesRepository,
@@ -71,9 +69,6 @@ export type HostAnalyticsOverview = {
   listings: HostAnalyticsListing[];
 };
 
-function monthKey(d = new Date()) {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
 
 /** Same ceil-day formula as frontend `daysUntil`. */
 function daysUntilExpiry(expiresAt: Date | string | null): number | null {
@@ -120,7 +115,7 @@ export class ListingsService {
       throw new NotFoundError("Listing not found");
     }
     const status = String((listing as { status?: string }).status ?? "");
-    if (status === "archived" || status === "removed") {
+    if (status === "archived" || status === "removed" || listing.hiddenReason) {
       throw new NotFoundError("Listing not found");
     }
     return listing;
@@ -306,28 +301,12 @@ export class ListingsService {
     });
   }
 
-  /** First listing promotes renter → poster (host) in DB. */
-  private async ensurePoster(userId: string) {
-    const user = await usersRepository.findById(userId);
-    if (!user) {
-      throw new NotFoundError("User not found");
-    }
-    if (user.role === "poster") {
-      return user;
-    }
-    const updated = await usersRepository.updateRole(userId, "poster");
-    if (!updated) {
-      throw new NotFoundError("User not found");
-    }
-    return updated;
-  }
-
   /**
    * Publish rules: 1 live listing free; 2nd+ costs a post credit.
    * Free-slot replacements capped per calendar month.
    */
   async create(posterId: string, input: CreateListingInput) {
-    await this.ensurePoster(posterId);
+
     if (!input.locationWkt) {
       throw new ValidationError("locationWkt is required");
     }
@@ -338,19 +317,7 @@ export class ListingsService {
       throw new ValidationError("Maximum 15 photos allowed");
     }
 
-    const publishNow = input.publishNow !== false;
-    const activeBefore = publishNow
-      ? await listingsRepository.countActiveByPoster(posterId)
-      : 0;
-    if (publishNow) {
-      await this.assertCanPublish(posterId, activeBefore);
-    }
-
-    const created = await listingsRepository.create(posterId, input);
-    if (publishNow) {
-      await this.consumePublishSlot(posterId, activeBefore);
-    }
-    return created;
+    return listingsRepository.create(posterId, input);
   }
 
   /**
@@ -467,54 +434,6 @@ export class ListingsService {
     return listingsRepository.findById(listingId);
   }
 
-  private async assertCanPublish(posterId: string, activeBefore: number) {
-    const user = await usersRepository.findById(posterId);
-    if (!user) throw new NotFoundError("User not found");
-    if (user.accountStatus === "restricted" || user.accountStatus === "banned") {
-      throw new ForbiddenError("This account cannot publish listings");
-    }
-
-    if (activeBefore === 0) {
-      const key = monthKey();
-      const used =
-        user.freeSlotPublishesMonthKey === key
-          ? user.freeSlotPublishesMonth
-          : 0;
-      if (used >= FREE_SLOT_REPLACEMENTS_PER_MONTH && user.postCredits < 1) {
-        throw new InsufficientCreditsError(
-          "Free listing replacements used this month — buy a post credit",
-        );
-      }
-      return;
-    }
-
-    if (user.postCredits < 1) {
-      throw new InsufficientCreditsError(
-        "A post credit is required for an additional live listing",
-      );
-    }
-  }
-
-  private async consumePublishSlot(posterId: string, activeBefore: number) {
-    const user = await usersRepository.findById(posterId);
-    if (!user) return;
-
-    if (activeBefore === 0) {
-      const key = monthKey();
-      const used =
-        user.freeSlotPublishesMonthKey === key
-          ? user.freeSlotPublishesMonth
-          : 0;
-      if (used >= FREE_SLOT_REPLACEMENTS_PER_MONTH) {
-        await usersRepository.debitPostCredit(posterId);
-      } else {
-        await usersRepository.bumpFreeSlotPublish(posterId, key);
-      }
-      return;
-    }
-
-    await usersRepository.debitPostCredit(posterId);
-  }
 }
 
 export const listingsService = new ListingsService();

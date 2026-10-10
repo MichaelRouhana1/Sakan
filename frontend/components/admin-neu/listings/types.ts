@@ -30,7 +30,7 @@ export type ListingPhoto = {
   id: string;
   url: string;
   caption: string;
-  /** Soft staff flag — mock only; not a hard delete. */
+  /** Soft staff review flag; not a hard delete. */
   flagged?: boolean;
 };
 
@@ -42,13 +42,22 @@ export type ListingReport = {
 
 export type ModerationHistoryEntry = {
   id: string;
-  kind: ListingActionKind | "edit" | "flag_photo" | "clear_photo_flag";
+  kind: ListingActionKind | "edit" | "flag_photo" | "clear_photo_flag" | "inventory";
   note: string;
   at: string;
   actor: string;
 };
 
 export type AdminListing = {
+  placeId?: string;
+  unitType?: string;
+  hidden?: boolean;
+  hiddenReason?: string | null;
+  availability?: "available" | "pending" | "rented";
+  bedsTotal?: number | null;
+  bedsAvailable?: number | null;
+  inventoryNeedsConfirmation?: boolean;
+  inventoryVersion?: number;
   id: string;
   title: string;
   description: string;
@@ -58,8 +67,8 @@ export type AdminListing = {
   monthlyRentUsd: number;
   status: ListingStatus;
   /**
-   * Past expiresAt while status stays active is intentional in mock
-   * (cron would archive in prod). Shown as Past due badge + link to /admin/expired.
+   * Past-due active rows may await the lifecycle job.
+   * Shown as Past due badge + link to /admin/expired.
    */
   expiresAt: string | null;
   publishedAt: string | null;
@@ -84,7 +93,7 @@ export type AdminListing = {
   moderationHistory: ModerationHistoryEntry[];
 };
 
-/** Staff edit patch — subset of listing fields, mirrors future admin PATCH. */
+/** Staff edit patch — subset of fields accepted by the authenticated admin edit endpoint. */
 export type ListingEditPatch = {
   title: string;
   description: string;
@@ -236,6 +245,7 @@ export function waterLabel(value: WaterStatus): string {
 export function historyKindLabel(
   kind: ModerationHistoryEntry["kind"],
 ): string {
+  if (kind === "inventory") return "Inventory changed";
   if (kind === "edit") return "Edited";
   if (kind === "flag_photo") return "Photo flagged";
   if (kind === "clear_photo_flag") return "Photo flag cleared";

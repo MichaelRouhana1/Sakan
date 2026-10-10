@@ -51,7 +51,7 @@ export function WebTopNav({ showSearch = false }: Props) {
   }>();
   const onBrowse = pathname.includes("/search");
   const universities = useUniversities();
-  const { isSignedIn, user, logout } = useAuthSession();
+  const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
   const displayName = user
     ? [user.firstName, user.lastName].filter(Boolean).join(" ") ||
       user.email ||
@@ -413,7 +413,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                   </Pressable>
 
                   {/* LOGOUT (WHEN SIGNED IN) */}
-                  {isSignedIn ? (
+                  {isSignedIn || hasClerkSession ? (
                     <>
                       <View style={styles.menuDivider} />
                       <Pressable

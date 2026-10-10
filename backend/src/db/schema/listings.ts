@@ -52,6 +52,7 @@ export const listings = pgTable("listings", {
   bedsAvailable: integer("beds_available"),
   inventoryNeedsConfirmation: boolean("inventory_needs_confirmation").notNull().default(false),
   genderRule: unitGenderRuleEnum("gender_rule").notNull().default(sql`NULL`),
+  hidden: boolean("hidden").notNull().default(false),
   inventoryVersion: integer("inventory_version").notNull().default(0),
   posterId: uuid("poster_id")
     .notNull()
@@ -186,6 +187,7 @@ export const listings = pgTable("listings", {
 ]);
 
 export const listingPhotos = pgTable("listing_photos", {
+  flagged: boolean("flagged").notNull().default(false),
   id: uuid("id").defaultRandom().primaryKey(),
   listingId: uuid("listing_id")
     .notNull()

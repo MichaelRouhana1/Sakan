@@ -188,6 +188,7 @@ export function ListingsPage() {
       ) : null}
 
       <ListingDetailDrawer
+        onInventorySaved={state.inventorySaved}
         listing={state.selected}
         busy={state.busy}
         onClose={() => state.setSelectedId(null)}

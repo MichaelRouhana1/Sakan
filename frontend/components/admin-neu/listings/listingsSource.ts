@@ -1,101 +1,29 @@
-/**
- * API-shaped listings source.
- * Today: in-memory mock store + delay.
- * Later: swap bodies to api.get/post `/api/admin/listings*` — keep these signatures.
- */
-import {
-  applyStatusAction,
-  bulkInStore,
-  dismissReportsInStore,
-  getFromStore,
-  listFromStore,
-  setPhotoFlagInStore,
-  updateInStore,
-} from "./mockStore";
-import type {
-  AdminListing,
-  ListingActionKind,
-  ListingEditPatch,
-  ListListingsParams,
-  ListListingsResult,
-} from "./types";
-
-const MOCK_DELAY_MS = 150;
-
-async function delay(ms = MOCK_DELAY_MS): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+import { isAxiosError } from 'axios';
+import { api } from '@/lib/api';
+import type { AdminListing, ListingActionKind, ListingEditPatch, ListListingsParams, ListListingsResult } from './types';
+const base='/api/admin/inventory/listings';
+export async function listAdminListings(params:ListListingsParams={}):Promise<ListListingsResult>{
+ const {data}=await api.get<{data:ListListingsResult}>(base,{params});return data.data;
+}
+export async function getAdminListing(id:string):Promise<AdminListing>{
+ const {data}=await api.get<{data:AdminListing}>(base+'/'+encodeURIComponent(id));return data.data;
+}
+async function action(id:string,body:unknown):Promise<AdminListing>{
+ const {data}=await api.post<{data:AdminListing}>(base+'/'+encodeURIComponent(id)+'/actions',body);return data.data;
+}
+export const archiveAdminListing=(id:string,adminNote:string)=>action(id,{kind:'archive',adminNote});
+export const removeAdminListing=(id:string,adminNote:string)=>action(id,{kind:'remove',adminNote});
+export const restoreAdminListing=(id:string,adminNote:string)=>action(id,{kind:'restore',adminNote});
+export const dismissAdminListingReports=(id:string,adminNote:string)=>action(id,{kind:'dismiss_reports',adminNote});
+export const updateAdminListing=(id:string,patch:ListingEditPatch,adminNote='Updated listing details')=>action(id,{kind:'edit',patch,adminNote});
+export const setAdminListingPhotoFlag=(id:string,photoId:string,flagged:boolean,adminNote:string)=>action(id,{kind:'photo',photoId,flagged,adminNote});
+export type InventoryPatch={expectedVersion:number;hidden?:boolean;availability?:'available'|'pending'|'rented';bedsTotal?:number;bedsAvailable?:number};
+export const updateAdminInventory=(id:string,inventory:InventoryPatch,adminNote:string)=>action(id,{kind:'inventory',inventory,adminNote});
+export async function bulkAdminListingAction(ids:string[],kind:Extract<ListingActionKind,'archive'|'remove'|'dismiss_reports'>,adminNote:string):Promise<AdminListing[]>{
+ const {data}=await api.post<{data:AdminListing[]}>(base+'/bulk',{ids,kind,adminNote});return data.data;
 }
 
-export async function listAdminListings(
-  params: ListListingsParams = {},
-): Promise<ListListingsResult> {
-  await delay();
-  return listFromStore(params);
-}
-
-export async function getAdminListing(id: string): Promise<AdminListing> {
-  await delay();
-  return getFromStore(id);
-}
-
-export async function archiveAdminListing(
-  id: string,
-  adminNote: string,
-): Promise<AdminListing> {
-  await delay();
-  return structuredClone(applyStatusAction(id, "archive", adminNote));
-}
-
-export async function removeAdminListing(
-  id: string,
-  adminNote: string,
-): Promise<AdminListing> {
-  await delay();
-  return structuredClone(applyStatusAction(id, "remove", adminNote));
-}
-
-export async function restoreAdminListing(
-  id: string,
-  adminNote: string,
-): Promise<AdminListing> {
-  await delay();
-  return structuredClone(applyStatusAction(id, "restore", adminNote));
-}
-
-export async function dismissAdminListingReports(
-  id: string,
-  adminNote: string,
-): Promise<AdminListing> {
-  await delay();
-  return structuredClone(dismissReportsInStore(id, adminNote));
-}
-
-export async function updateAdminListing(
-  id: string,
-  patch: ListingEditPatch,
-  adminNote = "Updated listing details",
-): Promise<AdminListing> {
-  await delay();
-  return structuredClone(updateInStore(id, patch, adminNote));
-}
-
-export async function setAdminListingPhotoFlag(
-  listingId: string,
-  photoId: string,
-  flagged: boolean,
-  adminNote: string,
-): Promise<AdminListing> {
-  await delay();
-  return structuredClone(
-    setPhotoFlagInStore(listingId, photoId, flagged, adminNote),
-  );
-}
-
-export async function bulkAdminListingAction(
-  ids: string[],
-  kind: Extract<ListingActionKind, "archive" | "remove" | "dismiss_reports">,
-  adminNote: string,
-): Promise<AdminListing[]> {
-  await delay();
-  return bulkInStore(ids, kind, adminNote).map((row) => structuredClone(row));
+export function adminListingError(error: unknown): string {
+ if (isAxiosError(error)) return error.response?.data?.error?.message ?? error.message;
+ return error instanceof Error ? error.message : 'Request failed';
 }

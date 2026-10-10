@@ -20,7 +20,7 @@ export function WebProfileMenu({
   showLoginButton = true,
 }: Props) {
   const router = useRouter();
-  const { isSignedIn, user, logout } = useAuthSession();
+  const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const anchorRef = useRef<View>(null);
@@ -193,7 +193,7 @@ export function WebProfileMenu({
                 <Text style={styles.menuText}>Download App</Text>
               </Pressable>
 
-              {isSignedIn ? (
+              {isSignedIn || hasClerkSession ? (
                 <>
                   <View style={styles.menuDivider} />
                   <Pressable

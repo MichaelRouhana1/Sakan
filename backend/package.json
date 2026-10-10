@@ -27,7 +27,9 @@
     "db:places:apply": "node ops/places/run.mjs --apply",
     "db:reset:dev": "node ops/places/reset-dev.mjs",
     "db:seed:housing": "node ops/places/run-seed.mjs",
-    "test:places": "npm run build && node tests/places-foundation.integration.mjs"
+    "test:places": "npm run build && node tests/places-foundation.integration.mjs",
+    "test:inventory": "npm run build && node tests/unit-inventory.integration.mjs",
+    "db:inventory:apply": "node ops/places/apply-inventory.mjs"
   },
   "engines": {
     "node": ">=20"

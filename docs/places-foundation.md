@@ -1,6 +1,113 @@
-# Places and units — slice 1 foundation
+# Places and units — foundation and implementation plan
 
-Implemented and verified locally on 2026-10-10. Stop here for review before slice 2.
+Slice 1 implemented and verified locally on 2026-10-10. Slice 2 is authorized;
+stop for review after inventory and money. The slice 1 evidence below is historical.
+
+## Approved decisions and remaining slices (2026-10-10)
+
+These decisions supersede the earlier grouping and promotion-limit proposals.
+
+- Search always returns one card per unit and paginates units. No representative
+  unit per place, `ROW_NUMBER`/`DISTINCT ON` place grouping, or “+N more units here”.
+  Featured remains a separate labeled group above results; its units are excluded
+  from the normal list. Search/matcher changes remain in slice 3.
+- Promotions retain existing per-listing limits and the three-campaign Featured
+  capacity per area/campus. There is no per-place Bump or Featured limit.
+- A place has exactly one owner. Never merge places across owners or because pins
+  match. Different landlords in one building have separate places.
+- Every electricity field can differ by unit: status, generator/amperage, cut
+  windows, solar and generator included. The resolver from slice 1 already supports
+  these fields. Future host editing uses “Same as building” and “Different for this
+  apartment”; never show “override” or “inherit” to hosts.
+- Keep “Other units in this place” on detail, map pins by place, campus routes on
+  places, the server matcher/scoring migration, and all slice 1 guarantees.
+- The Achrafieh $520 and Hamra $650 rows listed below are owner-confirmed test data
+  and belong in the fingerprinted deletion manifest. Adding them does not run a reset.
+
+### Slice 2 — inventory and money (current implementation scope)
+
+1. Introduce shared server inventory rules and transaction boundaries used by host,
+   admin and lifecycle writes. Explicit unit/place hiding is separate from lifecycle
+   status. Hiding never erases availability, dates, credits or bed counts.
+2. An apartment may advertise a whole-apartment offer and rooms/beds together.
+   Renting the whole apartment hides its room/bed offers; an occupied room or bed
+   hides the whole-apartment offer. Conflicting occupancy is rejected. A building's
+   separate apartments do not block one another. Archiving is not proof of vacancy.
+3. Shared beds require explicit total/available confirmation, integer bounds and
+   optimistic version checks. Zero available means rented; positive vacancy may be
+   available or under offer. Reopening a unit never guesses vacancy.
+4. Publish creation, photos, free-slot accounting and a per-unit charge ledger must
+   commit or roll back together. Serialize concurrent purchases for the owner;
+   renewals are atomic and retry-safe for each listing/expiry cycle.
+5. Stop affected promotions and refund unused service in the same transaction when
+   units become hidden, occupied or otherwise ineligible, including affected siblings.
+   Keep cumulative refund protection, per-listing limits and market capacity.
+6. Connect admin Listings pagination, counts, details, edits, moderation, reports,
+   photo flags and inventory controls to authenticated server operations. Persist
+   staff notes/audit history and surface failed actions instead of mock successes.
+7. Verify concurrency, occupancy, unknown/zero beds, transaction rollback, refunds,
+   owner isolation and admin integration in a disposable database; stop for review.
+
+### Later slices (not authorized for implementation in this change)
+
+- Slice 3: per-unit search/pagination with a separate deduplicated Featured group,
+  server matcher/scoring, place map pins and place-based detail siblings.
+- Slice 4: multi-unit wizard/Add a unit, shared editing, electricity wording above,
+  two galleries and draft migration.
+- Slice 5: removal of transitional legacy columns and old route cache.
+
+## Slice 2 implementation and review handoff
+
+Implemented locally; stop here for review. Migration `0034_unit_inventory_money.sql`
+adds explicit unit/place hiding, photo review flags, a per-listing post-credit
+ledger, the shared SQL visibility/occupancy predicates, and inventory versioning.
+The application inventory service owns validation, locking, sibling checks and
+promotion settlement. There are no place-level promotion limits.
+
+- Availability is not reset by archive, restore, hiding or renewal. Unknown beds
+  block inventory actions until confirmed; confirmed zero vacancy is rented.
+  Unknown bed inventory also blocks renting an alternative whole-apartment offer.
+- Host inventory writes use `PATCH /api/listings/:id/inventory` with
+  `expectedVersion`. Place hiding uses `PATCH /api/listings/places/:placeId/visibility`.
+  Both are owner-authorized. Existing availability and lifecycle writes use the
+  same inventory rules. Occupied/unconfirmed units must be archived or confirmed
+  vacant before physical deletion, so deletion cannot silently free an apartment.
+- Public browse, search, nearby, saved-list reads, price guides, activity and paid
+  placement honor inventory hiding. Existing per-unit result shapes are preserved;
+  search regrouping/pagination work has not been implemented in this slice.
+- Publishing creates the unit, photos, free-slot accounting and charge ledger in
+  one transaction. Hidden active units still count toward the host's live slots.
+  Renewal charges are unique per unit/expiry cycle, including concurrent retries.
+  No security-deposit collection or booking payments were introduced.
+- Inventory changes stop ineligible sibling promotions and return unused service
+  atomically. Restoration never automatically restarts a stopped paid campaign.
+  Late changes to expired listings refund from the actual expiry cutoff.
+- Admin Listings uses `/api/admin/inventory/listings` behind the existing
+  `requireAdmin` middleware. Pagination, queue counts, details, edits, reports,
+  review flags, staff notes and bulk actions are persisted. Bulk writes are atomic.
+  Its detail drawer includes unit hiding, availability and bed confirmation.
+  Inventory conflicts return 409 and require a refresh. Type conversion remains
+  disabled in the narrow admin editor; the later unit editor owns that workflow.
+
+Rollout after review, from `backend` (foundation must already be installed):
+
+```sh
+npm run db:inventory:apply
+```
+
+This targeted runner checks preflight and foundation checksums, takes the existing
+migration lock, applies only 0034 transactionally and records its checksum. A retry
+does not replay it. Use the existing promotions worker during rollout to reconcile
+pre-existing campaigns against the new visibility rules. Do not use `db:push` or
+replay historical migrations. Apply the schema before starting this application
+version. Only disposable test databases were migrated during this implementation;
+the application database was not migrated, reset or seeded.
+
+Verification is recorded at the end of this document. The existing auth/profile
+workspace edits are outside this slice and were left intact.
+
+## Slice 1 implementation record (historical)
+
 No changes were made to public listing/search DTOs, grouping, the matcher, maps,
 wizard screens, draft formats, or the host/admin UI. The existing listing IDs
 remain the keys for credits, promotions, saved listings, reports, events,
@@ -106,9 +213,11 @@ The old destructive listing runner and remote-image fixture file are removed.
 `npm --prefix backend run db:seed:housing` runs the replacement.
 The old `db:seed:listings` command is a safe alias to it.
 
-Deletion is restricted to the 26 exact IDs in
+Deletion is restricted to the 28 exact IDs in
 `backend/src/db/seeds/legacy-housing-manifest.json`, with owner, title and creation
-date fingerprints. A changed fingerprint or attached promotion history blocks
+date fingerprints for the 26 demos. The two owner-confirmed test rows use their
+exact ID, title, area and rent from the approval; their original rows are absent
+from the current local database, so no owner/date fingerprint was invented. A changed fingerprint or attached promotion history blocks
 deletion. Sharing a demo owner/phone/title is never sufficient for deletion.
 The seed does not delete upload directories or unrelated files.
 New fixture IDs and photo IDs are deterministic and registered in a database
@@ -240,16 +349,17 @@ Tests/builds:
 - Price-guide fixture now includes availability; all 6 price-guide tests pass,
   including rented exclusion and pending eligibility.
 
-## Two non-demo listings awaiting the owner's decision
+## Two owner-confirmed test listings approved for the deletion manifest
 
-Preserved, with their listing IDs and all existing data:
+Approved on 2026-10-10 for the guarded housing reset, with exact fingerprints:
 - `fe681bc2-5698-4e87-8036-3d58173577a8` — “1-bedroom apartment in Achrafieh · Campus: Tripoli Campus”,
   Achrafieh, $520/month, active.
 - `b5756273-2e8f-4eb1-b0fb-bb068e4bd438` — “1-bedroom apartment in Hamra · Campus: Dekwaneh Campus”,
   Hamra, $650/month, active.
 
-Their stored campus labels are reported verbatim. Neither is part of a deletion
-manifest, regardless of whether the owner later chooses to keep them.
+Their stored campus labels are reported verbatim. Both are test data and are now
+included in the deletion manifest; all existing environment and fingerprint guards
+continue to apply. No deletion is implied outside the guarded seed operation.
 
 ## Rollback and deferred work
 
@@ -259,13 +369,48 @@ foundation after restoring the old route code. It refuses shared places,
 overrides, confirmed inventory, shared galleries or later migrations rather than
 discarding those changes. Its rollback/reapply path is covered by integration tests.
 
-Deferred exactly to the approved later slices: inventory/occupancy/hiding rules,
-per-unit charges, place promotion limits and refunds, admin Listings connection;
-SQL search grouping, server matcher, place map pins; multi-unit wizard/Add a unit,
-shared editing UI, two galleries and draft migration; removal of legacy columns
-and the old route cache. Browser/native interactive UI tests were not added or
+The approved slice plan above replaces the original deferred-work list. Per-place
+promotion limits and SQL place grouping have been dropped. Browser/native interactive UI tests were not added or
 run because this slice changes no screens. Live Mapbox was not called during
 verification; provider behavior was tested with deterministic mocks.
 
 No deployment, commit, or later slice was performed.
+
+## Slice 2 verification — 2026-10-10
+
+- Backend TypeScript build passes.
+- Inventory/money integration: 17 scenarios pass in a disposable database. Covers
+  targeted migration/retry, available alternatives, concurrent charges/renewals,
+  rollback, owner isolation, partial/unknown/zero beds, stale versions, visibility,
+  sibling promotion refunds, market capacity without place limits, retained
+  occupancy, rent-only edits preserving place membership, admin pagination/actions,
+  atomic bulk failure, exact test-data manifest entries and HTTP auth/validation.
+- Foundation regression: 24 scenarios pass, including both approved test rows'
+  fingerprint rejection/deletion and the existing preservation/seed guards.
+- Promotion integration: 17 scenarios pass, including capacity, wallet concurrency,
+  refund deduplication and expiry cutoff behavior.
+- Backend regression: 37 tests pass. Price-guide temporary fixtures now include
+  hidden inventory exclusion; actual occupancy predicates are tested above.
+- Frontend matcher/photo/inquiry/lifecycle regression: 32 tests pass.
+- Admin inventory browser: three flows pass against a local test API using the
+  actual form and adapter: hide unconfirmed beds without guessing counts, confirm
+  vacancy, and show a 409 conflict without reporting success. Styled preview was
+  inspected with no horizontal overflow. This is a focused form test, not an
+  end-to-end test of Clerk or the full Expo application.
+- Frontend TypeScript baseline comparison: 209 diagnostics before and after the
+  admin changes, zero added diagnostics and none in the changed admin files.
+- Full Expo web export was attempted twice, but Metro stalled before compilation;
+  both attempts were stopped. No successful full-app web/native export is claimed
+  for this slice.
+- `git diff --check` passes. Existing unrelated auth/profile edits remain intact.
+
+Reproduce from `backend`: `npm run test:inventory`, `npm run test:places`,
+`npm run test:promotions`. The focused browser check runs from `frontend` with
+`node tests/inventory-ui.mjs` after the root's locked Playwright dependency is
+installed (`npm ci` at the root); it uses local Microsoft Edge. Local ignored
+evidence is in `frontend/.expo/inventory-ui/` and
+`frontend/.expo/inventory-typecheck.json`.
+
+Slice 2 is ready for review. No application database migration/reset, deployment,
+commit, or implementation of slices 3–5 was performed.
 
