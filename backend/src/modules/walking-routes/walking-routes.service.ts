@@ -4,6 +4,7 @@ import { universitiesRepository } from "../universities/universities.repository.
 import { fetchMapboxWalkingRoute } from "./mapbox.client.js";
 import {
   walkingRoutesRepository,
+  type WalkingRoutesRepository,
   type CachedWalkingRoute,
 } from "./walking-routes.repository.js";
 import type {
@@ -126,7 +127,8 @@ export class WalkingRoutesService {
       };
     }
 
-    const key = coalesceKey(listing.id, campus.id);
+    const key = coalesceKey(listing.placeId, campus.id) +
+      `|${listingPin.lng},${listingPin.lat}|${campusPin.lng},${campusPin.lat}`;
     if (isNegative(key)) {
       return straightFallback(campusPin, listingPin);
     }
@@ -134,14 +136,15 @@ export class WalkingRoutesService {
     const pending = inflight.get(key);
     if (pending) return pending;
 
-    const promise = this.fetchPersist(
+    const promise = walkingRoutesRepository.withPlaceLock(listing.placeId, campus.id, repository => this.fetchPersist(
       listing.id,
       campus.id,
       campusSlug,
       campusPin,
       listingPin,
       key,
-    ).finally(() => {
+      repository,
+    )).finally(() => {
       inflight.delete(key);
     });
     inflight.set(key, promise);
@@ -163,7 +166,14 @@ export class WalkingRoutesService {
     campusPin: Pin,
     listingPin: Pin,
     key: string,
+    repository: WalkingRoutesRepository,
   ): Promise<WalkingRouteResult> {
+    // Another process may have filled this place's cache while we waited.
+    const cached = await repository.findWalking(listingId, campusId);
+    if (cached && pinsMatch(cached, listingPin, campusPin)) {
+      return { coords: cached.coords, distanceM: cached.distanceM,
+        durationS: cached.durationS, status: "ok" };
+    }
     const fallback = straightFallback(campusPin, listingPin);
     const token = loadEnv().MAPBOX_ACCESS_TOKEN;
     if (!token) {
@@ -188,7 +198,7 @@ export class WalkingRoutesService {
     };
 
     try {
-      await walkingRoutesRepository.upsertWalking({
+      await repository.upsertWalking({
         listingId,
         campusId,
         listingLng: listingPin.lng,

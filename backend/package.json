@@ -14,12 +14,17 @@
     "db:studio": "drizzle-kit studio",
     "db:seed:universities": "tsx src/db/seeds/run-universities.ts",
     "db:seed:academic": "tsx src/db/seeds/run-academic.ts",
-    "db:seed:listings": "tsx src/db/seeds/run-listings.ts",
+    "db:seed:listings": "npm run db:seed:housing",
     "db:seed:benefits": "tsx src/db/seeds/run-student-benefits.ts",
     "job:archive-expired": "tsx src/jobs/archive-expired-listings.ts",
     "job:listing-lifecycle": "tsx src/jobs/process-listing-lifecycle.ts",
     "test:lifecycle": "npm run build && node --test tests/listing-lifecycle.test.mjs && node --import tsx --test tests/listing-update-audit.test.ts",
-    "test:listing-audit": "node --import tsx --test tests/listing-update-audit.test.ts"
+    "test:listing-audit": "node --import tsx --test tests/listing-update-audit.test.ts",
+    "db:places:dry-run": "node ops/places/run.mjs",
+    "db:places:apply": "node ops/places/run.mjs --apply",
+    "db:reset:dev": "node ops/places/reset-dev.mjs",
+    "db:seed:housing": "node ops/places/run-seed.mjs",
+    "test:places": "npm run build && node tests/places-foundation.integration.mjs"
   },
   "engines": {
     "node": ">=20"

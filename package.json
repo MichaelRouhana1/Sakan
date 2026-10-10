@@ -12,7 +12,9 @@
     "db:studio": "npm --prefix backend run db:studio",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
-    "install:all": "npm --prefix frontend install && npm --prefix backend install"
+    "install:all": "npm --prefix frontend install && npm --prefix backend install",
+    "db:reset:dev": "npm --prefix backend run db:reset:dev --",
+    "db:places:dry-run": "npm --prefix backend run db:places:dry-run"
   },
   "engines": {
     "node": ">=20"

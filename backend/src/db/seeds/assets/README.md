@@ -1,0 +1,1 @@
+These five 800 × 500 PNGs are bundled, original geometric placeholders for the housing seed. They are illustrations, not photographs of real properties. Captions identify them as demo illustrations. The seed copies only these named assets into `uploads/housing-demo-v1`; it never downloads images or deletes existing upload files.

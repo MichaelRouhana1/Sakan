@@ -2,6 +2,7 @@ export * from "./enums.js";
 export * from "./institutions.js";
 export * from "./users.js";
 export * from "./listings.js";
+export * from "./places.js";
 export * from "./universities.js";
 export * from "./listing-campus-routes.js";
 export * from "./credit-transactions.js";

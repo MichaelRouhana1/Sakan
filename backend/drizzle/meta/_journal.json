@@ -218,6 +218,27 @@
       "when": 1791700001000,
       "tag": "0030_promotions",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791700002000,
+      "tag": "0031_places_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791700003000,
+      "tag": "0032_places_backfill_resolver",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791700004000,
+      "tag": "0033_place_route_bridge",
+      "breakpoints": true
     }
   ]
 }

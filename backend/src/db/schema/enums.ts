@@ -1,5 +1,10 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
+export const placeKindEnum = pgEnum("place_kind", ["apartment", "building"]);
+export const unitTypeEnum = pgEnum("unit_type", ["whole_apartment", "private_room", "shared_bed"]);
+export const bathroomPrivacyEnum = pgEnum("bathroom_privacy", ["private", "shared"]);
+export const unitGenderRuleEnum = pgEnum("unit_gender_rule", ["any", "female_only", "male_only"]);
+
 export const userRoleEnum = pgEnum("user_role", ["renter", "poster"]);
 
 export const userAccountStatusEnum = pgEnum("user_account_status", [

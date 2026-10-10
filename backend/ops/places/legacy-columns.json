@@ -1,0 +1,342 @@
+[
+  {
+    "column_name": "id",
+    "udt_name": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "poster_id",
+    "udt_name": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "status",
+    "udt_name": "listing_status",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "listing_type",
+    "udt_name": "listing_type",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "target_audience",
+    "udt_name": "target_audience",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "monthly_rent_usd",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "electricity",
+    "udt_name": "electricity_status",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "water",
+    "udt_name": "water_status",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "wifi_included",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "router_ups",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "elevator_24_7",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "area",
+    "udt_name": "varchar",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "landmark",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "location",
+    "udt_name": "geography",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "view_count",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "published_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "expires_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "boosted_until",
+    "udt_name": "timestamptz",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "created_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "updated_at",
+    "udt_name": "timestamptz",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "gender_restriction",
+    "udt_name": "gender_restriction",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "looking_for_roommate",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "space_type",
+    "udt_name": "space_type",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "property_type",
+    "udt_name": "property_type",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "price_basis",
+    "udt_name": "price_basis",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "security_deposit_usd",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "lease_term",
+    "udt_name": "lease_term",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "available_from",
+    "udt_name": "date",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "payment_modality",
+    "udt_name": "payment_modality",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "has_elevator",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "has_solar",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "generator_amperes",
+    "udt_name": "int4",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "generator_included",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "concierge_included",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "cooking_gas_included",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "bedrooms",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "beds",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "bathrooms",
+    "udt_name": "float4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "max_occupancy",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "furnishing_type",
+    "udt_name": "furnishing_type",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "floor_number",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "area_sqm",
+    "udt_name": "int4",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "amenities",
+    "udt_name": "jsonb",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "smoking_policy",
+    "udt_name": "smoking_policy",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "pets_policy",
+    "udt_name": "pets_policy",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "guests_policy",
+    "udt_name": "guests_policy",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "quiet_hours",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "title",
+    "udt_name": "varchar",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "description",
+    "udt_name": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "highlight_tags",
+    "udt_name": "jsonb",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "listing_poster_role",
+    "udt_name": "listing_poster_role",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "contact_name",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "contact_phone",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "whatsapp_number",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "address_line",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "building_name",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "primary_campus_id",
+    "udt_name": "uuid",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "electricity_cuts_start",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "electricity_cuts_end",
+    "udt_name": "varchar",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "electricity_hours_on",
+    "udt_name": "int4",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "electricity_cut_windows",
+    "udt_name": "jsonb",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "contact_numbers",
+    "udt_name": "jsonb",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "card_badges",
+    "udt_name": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "contact_tap_count",
+    "udt_name": "int4",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "availability",
+    "udt_name": "listing_availability",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "water_bill_included",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "building_fees_included",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "parking_included_in_rent",
+    "udt_name": "bool",
+    "is_nullable": "NO"
+  }
+]

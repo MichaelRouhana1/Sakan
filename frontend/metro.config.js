@@ -63,6 +63,16 @@ const thinkingOrbsWeb = path.resolve(
 const originalResolveRequest = config.resolver.resolveRequest;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // SSR selects tslib's Node ESM wrapper, whose default import of its
+  // __esModule-marked CommonJS file is undefined under Metro interop.
+  // Use tslib's equivalent, self-contained ESM entry for web and SSR.
+  if (moduleName === "tslib" && platform === "web") {
+    return {
+      filePath: require.resolve("tslib/tslib.es6.mjs"),
+      type: "sourceFile",
+    };
+  }
+
   // When anything imports "react-native-svg" by name, send it straight to
   // the pre-compiled CommonJS bundle so Metro never enters the src/ tree.
   if (moduleName === "react-native-svg") {

@@ -40,7 +40,8 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
     await client.begin(async (tx) => {
       await tx.unsafe(`CREATE TEMP TABLE listings (
         id uuid, status text, monthly_rent_usd integer, expires_at timestamptz,
-        area text, space_type text, property_type text, bedrooms integer, price_basis text
+        area text, space_type text, property_type text, bedrooms integer, price_basis text,
+        availability text NOT NULL DEFAULT 'available'
       ) ON COMMIT DROP`);
       const dialect = new PgDialect();
       async function aggregate(query: PriceGuideInput = input) {
@@ -51,6 +52,7 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
       async function seed(n: number) {
         await tx.unsafe("TRUNCATE pg_temp.listings");
         await tx.unsafe(`INSERT INTO pg_temp.listings
+          (id, status, monthly_rent_usd, expires_at, area, space_type, property_type, bedrooms, price_basis)
           SELECT ('00000000-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid,
             'active', 100*i, now() + interval '1 day', 'Hamra', 'entire_place',
             'apartment', 1, 'per_unit_month' FROM generate_series(1, $1::int) AS i`, [n]);
@@ -78,6 +80,7 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
       await t.test("one disqualified comp drops ten below the gate, with no widening", async () => {
         for (const change of [
           "status = 'draft'", "status = 'archived'", "status = 'removed'",
+          "availability = 'rented'",
           "monthly_rent_usd = 0", "monthly_rent_usd = -1",
           "expires_at = now() - interval '1 second'", "expires_at = now()",
           "area = 'Verdun'", "space_type = 'private_room'", "space_type = 'shared_room'",
@@ -90,6 +93,8 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
           assert.equal(priceGuideFromAggregate(await aggregate()), null, change);
         }
         await seed(10);
+        await tx.unsafe("UPDATE pg_temp.listings SET availability = 'pending'");
+        assert.equal((await aggregate()).n, 10, "under-offer listings remain eligible");
         assert.equal(priceGuideFromAggregate(await aggregate({ ...input,
           excludeListingId: "00000000-0000-4000-8000-000000000001",
         })), null);

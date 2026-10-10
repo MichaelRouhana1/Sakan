@@ -1,5 +1,8 @@
 import {
   boolean,
+  check,
+  foreignKey,
+  index,
   date,
   integer,
   jsonb,
@@ -33,9 +36,23 @@ import {
 } from "./enums.js";
 import { universities } from "./universities.js";
 import { users } from "./users.js";
+import { places, type PlaceOverrides } from "./places.js";
+import { unitTypeEnum, bathroomPrivacyEnum, unitGenderRuleEnum } from "./enums.js";
 
 export const listings = pgTable("listings", {
   id: uuid("id").defaultRandom().primaryKey(),
+  // A BEFORE INSERT bridge supplies these for the unchanged legacy API.
+  placeId: uuid("place_id").notNull().default(sql`NULL`),
+  unitType: unitTypeEnum("unit_type").notNull().default(sql`NULL`),
+  bathroomPrivacy: bathroomPrivacyEnum("bathroom_privacy"),
+  unitAmenities: jsonb("unit_amenities").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  placeOverrides: jsonb("place_overrides").$type<PlaceOverrides>().notNull().default(sql`'{}'::jsonb`),
+  amenityOverrides: jsonb("amenity_overrides").$type<Record<string, boolean>>().notNull().default(sql`'{}'::jsonb`),
+  bedsTotal: integer("beds_total"),
+  bedsAvailable: integer("beds_available"),
+  inventoryNeedsConfirmation: boolean("inventory_needs_confirmation").notNull().default(false),
+  genderRule: unitGenderRuleEnum("gender_rule").notNull().default(sql`NULL`),
+  inventoryVersion: integer("inventory_version").notNull().default(0),
   posterId: uuid("poster_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -162,7 +179,11 @@ export const listings = pgTable("listings", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, t => [
+  foreignKey({ name: "listings_place_owner_fk", columns: [t.placeId, t.posterId], foreignColumns: [places.id, places.ownerId] }),
+  index("listings_place_idx").on(t.placeId),
+  check("listing_unit_beds_check", sql`(${t.unitType} <> 'shared_bed' AND ${t.bedsTotal} IS NULL AND ${t.bedsAvailable} IS NULL AND NOT ${t.inventoryNeedsConfirmation}) OR (${t.unitType} = 'shared_bed' AND ${t.bedsTotal} IS NOT NULL AND ${t.bedsTotal} > 0 AND ((${t.bedsAvailable} IS NULL AND ${t.inventoryNeedsConfirmation}) OR (${t.bedsAvailable} IS NOT NULL AND ${t.bedsAvailable} BETWEEN 0 AND ${t.bedsTotal} AND NOT ${t.inventoryNeedsConfirmation})))`),
+]);
 
 export const listingPhotos = pgTable("listing_photos", {
   id: uuid("id").defaultRandom().primaryKey(),
