@@ -24,6 +24,10 @@ export const creditTransactions = pgTable("credit_transactions", {
   bundleType: creditBundleTypeEnum("bundle_type").notNull(),
   postCreditsDelta: integer("post_credits_delta").notNull().default(0),
   boostCreditsDelta: integer("boost_credits_delta").notNull().default(0),
+  catalogPackId: text("catalog_pack_id"),
+  catalogVersion: text("catalog_version"),
+  /** Version 0 is an outstanding legacy seven-day boost entitlement. */
+  boostCreditUnitsVersion: integer("boost_credit_units_version").notNull().default(0),
   amountUsdCents: integer("amount_usd_cents").notNull(),
   channel: paymentChannelEnum("channel").notNull(),
   providerExternalId: varchar("provider_external_id", { length: 32 }).unique(),

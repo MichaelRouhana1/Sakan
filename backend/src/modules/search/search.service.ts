@@ -180,6 +180,7 @@ async function matchListings(q: string): Promise<ListingSuggestion[]> {
       and(
         eq(listings.status, "active"),
         ne(listings.availability, "rented"),
+        sql`${listings.expiresAt} > now()`,
         matchCond,
       ),
     )

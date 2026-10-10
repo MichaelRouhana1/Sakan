@@ -1,3 +1,4 @@
+import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -108,6 +109,7 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
           {subtitle}
         </Text>
       </Pressable>
+      <PromotionAction listingId={listing.id} />
     </View>
   );
 }

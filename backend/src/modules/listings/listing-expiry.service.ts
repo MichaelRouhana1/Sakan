@@ -1,3 +1,4 @@
+import { recentListingActivity } from '../listing-activity/listing-activity.service.js';
 import { ForbiddenError, NotFoundError } from "../../lib/errors.js";
 import { usersRepository } from "../users/users.repository.js";
 import { listingsRepository } from "./listings.repository.js";
@@ -111,7 +112,10 @@ export class ListingExpiryService {
       },
     ];
 
+    const activity = await recentListingActivity(listingId);
+    const promotionEligible = listing.status === 'active' && listing.availability === 'available' && cycleExpiresAt > new Date() && cycleExpiresAt.getTime()-Date.now() <= 5*86400_000 && activity.historyComplete && activity.views >= Number(process.env.PROMOTION_NUDGE_MIN_VIEWS || 10) && activity.whatsappTaps <= Number(process.env.PROMOTION_NUDGE_MAX_TAPS || 1) && checklist.find(item=>item.id==='photos')?.complete && checklist.find(item=>item.id==='utilities')?.complete;
     return {
+      promotionRecommendation: {...activity,eligible:!!promotionEligible,reason:promotionEligible?'Your listing has views but few WhatsApp taps. A short Bump can refresh its position.':'A promotion is not recommended from the current activity.',productId:promotionEligible?'bump_3':null},
       listing,
       cycleExpiresAt: cycleExpiresAt.toISOString(),
       ...latestState(events),

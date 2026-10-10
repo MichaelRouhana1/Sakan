@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { CreditBundleType, CreditTransaction, PaymentChannel } from "@/types/credits";
+import type { CreditTransaction, PaymentChannel } from "@/types/credits";
 
 type CreatePurchaseBody = {
-  bundleType: CreditBundleType;
+  packId: string;
+  catalogVersion: string;
   channel?: PaymentChannel;
   returnTo?: string;
 };

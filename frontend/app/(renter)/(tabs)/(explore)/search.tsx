@@ -1,3 +1,5 @@
+import { composePlacements } from "@/features/promotions/composePlacements";
+import { recordFeaturedImpression, rememberPlacement } from "@/features/promotions/activity";
 import { useBrowseController } from "@/features/matcher/useBrowseController";
 import { rankListings, explainWidening } from "@/features/matcher/scoring";
 import { MatcherSheet } from "@/components/matcher/MatcherSheet";
@@ -374,7 +376,7 @@ export default function RenterSearchScreen() {
         return da - db;
       });
     }
-    return result;
+    return composePlacements(result, deferredSort);
   }, [listings, deferredSort]);
 
   const browseRows: MixedListingRow[] = useMemo(
@@ -619,7 +621,7 @@ export default function RenterSearchScreen() {
           <View style={styles.mapScreen}>
             {mapModalShown ? (
             <ListingBrowseMap
-              listings={processedListings}
+              listings={processedListings.map(l => ({ ...l, promotion: undefined }))}
               campuses={campuses}
               universityMode={isUniversityMode}
               focusCampusSlug={resolveFocusCampusSlug(
@@ -635,7 +637,7 @@ export default function RenterSearchScreen() {
               loading={listingsQuery.isLoading}
               fillContainer
               onCarouselOpenChange={onCarouselOpenChange}
-              onOpenListing={(listing) => setMapListingId(listing.id)}
+              onOpenListing={(listing) => { rememberPlacement({ ...listing, promotion: undefined }); setMapListingId(listing.id); }}
             />
             ) : null}
             {!carouselOpen ? (
@@ -780,6 +782,10 @@ export default function RenterSearchScreen() {
         <FlatList
           ref={carouselScroll.listRef}
           data={browseRows}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 1 }}
+          onViewableItemsChanged={({ viewableItems }) => {
+            for (const row of viewableItems) if (row.isViewable && row.item.kind !== 'separator') void recordFeaturedImpression(row.item.listing, 'expo_viewport');
+          }}
           keyExtractor={(item) =>
             item.kind === "separator"
               ? campusFarSeparatorKey(item.km)

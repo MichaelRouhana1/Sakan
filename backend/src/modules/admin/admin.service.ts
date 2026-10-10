@@ -78,7 +78,7 @@ function toEnriched(row: {
     channel: tx.channel,
     amountUsdCents: tx.amountUsdCents,
     postCreditsDelta: tx.postCreditsDelta,
-    boostCreditsDelta: tx.boostCreditsDelta,
+    boostCreditsDelta: tx.boostCreditsDelta / (tx.boostCreditUnitsVersion === 1 ? 100 : 1),
     adminNote: tx.adminNote,
     createdAt: tx.createdAt,
     reviewedAt: tx.reviewedAt,
@@ -122,7 +122,7 @@ export class AdminService {
           firstName: users.firstName,
           lastName: users.lastName,
           postCredits: users.postCredits,
-          boostCredits: users.boostCredits,
+          boostCredits: sql<number>`CASE WHEN ${users.boostCreditUnitsVersion}=1 THEN ${users.boostCredits}/100.0 ELSE ${users.boostCredits} END`.mapWith(Number),
           role: users.role,
           accountStatus: users.accountStatus,
         },
@@ -172,7 +172,7 @@ export class AdminService {
       db
         .select({
           postCredits: sql<number>`coalesce(sum(${creditTransactions.postCreditsDelta}), 0)::int`,
-          boostCredits: sql<number>`coalesce(sum(${creditTransactions.boostCreditsDelta}), 0)::int`,
+          boostCredits: sql<number>`coalesce(sum(CASE WHEN ${creditTransactions.boostCreditUnitsVersion}=1 THEN ${creditTransactions.boostCreditsDelta}/100.0 ELSE ${creditTransactions.boostCreditsDelta} END), 0)`.mapWith(Number),
         })
         .from(creditTransactions)
         .where(
@@ -375,7 +375,7 @@ export class AdminService {
         role: poster.role,
         accountStatus: poster.accountStatus,
         postCredits: poster.postCredits,
-        boostCredits: poster.boostCredits,
+        boostCredits: poster.boostCredits / (poster.boostCreditUnitsVersion === 1 ? 100 : 1),
       },
       openReports,
     };
@@ -518,7 +518,7 @@ export class AdminService {
         role: users.role,
         accountStatus: users.accountStatus,
         postCredits: users.postCredits,
-        boostCredits: users.boostCredits,
+        boostCredits: sql<number>`CASE WHEN ${users.boostCreditUnitsVersion}=1 THEN ${users.boostCredits}/100.0 ELSE ${users.boostCredits} END`.mapWith(Number),
         createdAt: users.createdAt,
       })
       .from(users)
@@ -608,7 +608,7 @@ export class AdminService {
           role: users.role,
           accountStatus: users.accountStatus,
           postCredits: users.postCredits,
-          boostCredits: users.boostCredits,
+          boostCredits: sql<number>`CASE WHEN ${users.boostCreditUnitsVersion}=1 THEN ${users.boostCredits}/100.0 ELSE ${users.boostCredits} END`.mapWith(Number),
         });
       return { updated, removedIds };
     });

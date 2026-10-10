@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Listing } from "@/types/listing";
 import { listingKeys } from "./keys";
+import { activityBody } from '@/features/promotions/activity';
 
 type ViewResponse = {
   data: { id: string; viewCount: number; counted: boolean };
@@ -27,6 +28,7 @@ export function useRecordListingView(listingId: string, enabled = true) {
       try {
         const { data } = await api.post<ViewResponse>(
           `/api/listings/${listingId}/view`,
+          await activityBody(listingId),
         );
         if (cancelled || !data.data.counted) return;
 

@@ -327,6 +327,7 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     reviewCount,
     publishedAt: (row.publishedAt ?? row.published_at ?? null) as string | null,
     expiresAt: (row.expiresAt ?? row.expires_at ?? null) as string | null,
+    promotion: row.promotion as Listing['promotion'],
     boostedUntil: (row.boostedUntil ??
       row.boosted_until ??
       null) as string | null,

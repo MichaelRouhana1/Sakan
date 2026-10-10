@@ -10,6 +10,7 @@ export type ExpiryDecision =
   | "archive";
 
 export type ExpiryDecisionView = {
+  promotionRecommendation?: { eligible: boolean };
   listing: Listing;
   cycleExpiresAt: string;
   outcome: ExpiryOutcome | null;

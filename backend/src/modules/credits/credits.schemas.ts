@@ -3,19 +3,19 @@ import { z } from "zod";
 export const creditReturnToSchema = z
   .string()
   .regex(
-    /^\/hosting\/listing\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/outcome$/i,
+    /^\/hosting\/listing\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/(outcome|promote)$/i,
     "Invalid return path",
   );
 
 export const createPurchaseSchema = z.object({
-  bundleType: z.enum(["starter", "bundle_5", "boost_pack", "custom"]),
-  channel: z.enum(["whish", "omt"]).optional().default("whish"),
-  /** Required when bundleType is custom */
-  postCreditsDelta: z.number().int().nonnegative().optional(),
-  boostCreditsDelta: z.number().int().nonnegative().optional(),
-  amountUsdCents: z.number().int().positive().optional(),
+  packId: z.string().regex(/^[a-z0-9_]+$/).max(80).optional(),
+  catalogVersion: z.string().min(1).max(80).optional(),
+  // Older post clients may keep their identifiers; amounts are still server-owned.
+  bundleType: z.enum(["starter", "bundle_5"]).optional(),
+  channel: z.literal("whish").optional().default("whish"),
   returnTo: creditReturnToSchema.optional(),
-});
+}).strict().refine((input) => Boolean(input.packId) !== Boolean(input.bundleType), "Choose one catalog pack")
+  .refine((input) => !input.packId || Boolean(input.catalogVersion), "Catalog version is required");
 
 export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
 
@@ -26,22 +26,3 @@ export const mockCompleteSchema = z.object({
 });
 
 export type MockCompleteInput = z.infer<typeof mockCompleteSchema>;
-
-/** Default bundle catalog — amounts applied in Service. */
-export const BUNDLE_CATALOG = {
-  starter: {
-    postCreditsDelta: 1,
-    boostCreditsDelta: 0,
-    amountUsdCents: 1000,
-  },
-  bundle_5: {
-    postCreditsDelta: 5,
-    boostCreditsDelta: 0,
-    amountUsdCents: 1500,
-  },
-  boost_pack: {
-    postCreditsDelta: 0,
-    boostCreditsDelta: 3,
-    amountUsdCents: 1000,
-  },
-} as const;

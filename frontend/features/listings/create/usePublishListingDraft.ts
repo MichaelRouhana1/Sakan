@@ -52,8 +52,8 @@ export function usePublishListingDraft() {
         await reset();
         setTimeout(() => {
           router.replace({
-            pathname: "/(poster)/listing/[id]",
-            params: { id: listing.id },
+            pathname: "/hosting/listing/[id]/promote",
+            params: { id: listing.id, published: "1" },
           });
         }, 400);
       },

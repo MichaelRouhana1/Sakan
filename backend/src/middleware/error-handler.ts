@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
+import { ZodError } from "zod";
 import { AppError } from "../lib/errors.js";
 
 export function errorHandler(
@@ -8,6 +9,10 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  if (err instanceof ZodError) {
+    res.status(400).json({ error: { message: err.issues.map(issue => issue.message).join('; '), code: 'VALIDATION_ERROR' } });
+    return;
+  }
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       error: {

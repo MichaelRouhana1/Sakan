@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
   adminAuditEvents,
@@ -6,6 +6,7 @@ import {
   users,
 } from "../../db/schema/index.js";
 import type { AdminActor } from "../../middleware/auth.js";
+import { ensurePromotionWallet, legacyCreditUnits } from './promotion-wallet.js';
 
 export type InsertCreditTransaction = {
   userId: string;
@@ -17,6 +18,9 @@ export type InsertCreditTransaction = {
   channel: "whish" | "omt";
   providerExternalId?: string | null;
   checkoutUrl?: string | null;
+  catalogPackId?: string;
+  catalogVersion?: string;
+  boostCreditUnitsVersion?: number;
 };
 
 export type AdminReview = AdminActor & {
@@ -112,13 +116,15 @@ export class CreditsRepository {
         return null;
       }
 
+      const wallet = await ensurePromotionWallet(tx, user.id);
+      const grantedUnits = pending.boostCreditUnitsVersion >= 1 ? pending.boostCreditsDelta : legacyCreditUnits(pending.boostCreditsDelta, wallet.legacyCreditUnitRate);
       const now = new Date();
 
       await tx
         .update(users)
         .set({
           postCredits: user.postCredits + pending.postCreditsDelta,
-          boostCredits: user.boostCredits + pending.boostCreditsDelta,
+          boostCredits: wallet.boostCreditUnits + grantedUnits,
           updatedAt: now,
         })
         .where(eq(users.id, user.id));
@@ -144,6 +150,8 @@ export class CreditsRepository {
         .returning();
 
       if (!updated) return null;
+
+      if (grantedUnits) await tx.execute(sql`INSERT INTO promotion_wallet_ledger(user_id,operation_key,delta_units,reason) VALUES (${user.id}::uuid,${`credit:${pending.id}`},${grantedUnits},'whish_top_up') ON CONFLICT DO NOTHING`);
 
       await tx.insert(adminAuditEvents).values({
         actorKind: review.kind,

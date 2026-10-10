@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { promotionSession } from '@/features/promotions/activity';
 import type { ListingSort } from "@/components/listings/ListingSortControl";
 import { api } from "@/lib/api";
 import type { CampusMeta, Listing } from "@/types/listing";
@@ -29,8 +30,10 @@ export function useListings(
   return useQuery({
     queryKey: listingKeys.list(filters),
     enabled: options?.enabled ?? true,
+    refetchInterval: 60_000,
     queryFn: async (): Promise<ListingsQueryData> => {
       const params: Record<string, string> = {};
+      params.promotionSession=(await promotionSession()).id;
       if (filters.areas && filters.areas.length > 0) {
         params.areas = filters.areas.join(",");
       }

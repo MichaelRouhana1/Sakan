@@ -1,7 +1,7 @@
-import { removePhotoUri } from "@/features/listings/photoUriOwnership";
 import { usePhotoCropQueue } from "@/features/listings/usePhotoCropQueue";
 import { PhotoCropModal } from "./photos/PhotoCropModal";
 import { PhotoGuidance } from "./photos/PhotoGuidance";
+import { SwipeToast, type SwipeToastReason } from "@/components/ui/SwipeToast.web";
 import { createElement, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -16,12 +16,19 @@ import {
   PhotoGridHeader,
   PhotoTile,
   photoPickerStyles,
+  commitDeletedPhoto,
+  holdDeletedPhoto,
   reorderPhotos,
   TileEnter,
+  undoDeletedPhoto,
   uploadDraft,
   type DraftPhoto,
   type PhotoPickerGridProps,
 } from "./PhotoPickerGrid.shared";
+
+const PHOTO_TOAST_STACK = 66;
+
+type DeletedToast = { localId: string; index: number };
 
 export type { DraftPhoto } from "./PhotoPickerGrid.shared";
 export {
@@ -77,6 +84,16 @@ export function PhotoPickerGrid({
   const [ghost, setGhost] = useState<DragGhostModel | null>(null);
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [fileDropActive, setFileDropActive] = useState(false);
+  const [deleteToasts, setDeleteToasts] = useState<DeletedToast[]>([]);
+  const deleteToastsRef = useRef(deleteToasts);
+  deleteToastsRef.current = deleteToasts;
+
+  useEffect(() => {
+    return () => {
+      for (const toast of deleteToastsRef.current)
+        commitDeletedPhoto(toast.localId);
+    };
+  }, []);
   const dragIdRef = useRef<string | null>(null);
   const lastOverRef = useRef<string | null>(null);
   const previousCursorRef = useRef<string | null>(null);
@@ -183,9 +200,29 @@ export function PhotoPickerGrid({
   }, []);
 
   function removePhoto(localId: string) {
-    const photo = photos.find((p) => p.localId === localId);
-    if (photo) removePhotoUri(photo.uri);
+    const index = photos.findIndex((p) => p.localId === localId);
+    if (index < 0 || !holdDeletedPhoto(photos[index])) return;
+    setDeleteToasts((prev) => [
+      ...prev.filter((toast) => toast.localId !== localId),
+      { localId, index },
+    ]);
     setPhotos((prev) => prev.filter((p) => p.localId !== localId));
+  }
+
+  function restorePhoto(localId: string, index: number) {
+    const photo = undoDeletedPhoto(localId);
+    if (!photo) return;
+    setPhotos((prev) => {
+      if (prev.some((p) => p.localId === photo.localId)) return prev;
+      const next = [...prev];
+      next.splice(Math.max(0, Math.min(index, next.length)), 0, photo);
+      return next;
+    });
+  }
+
+  function finishDelete(localId: string, reason: SwipeToastReason) {
+    if (reason !== "action") commitDeletedPhoto(localId);
+    setDeleteToasts((prev) => prev.filter((toast) => toast.localId !== localId));
   }
 
   function webReorderProps(photo: DraftPhoto) {
@@ -287,6 +324,18 @@ export function PhotoPickerGrid({
       {ghost ? (
         <PhotoPickerGridDragGhost ghost={ghost} pointer={pointer} />
       ) : null}
+      {deleteToasts.map((toast, index) => (
+        <SwipeToast
+          key={toast.localId}
+          title="Image Deleted"
+          actionLabel="Undo"
+          placement="above-footer"
+          stack={(deleteToasts.length - 1 - index) * PHOTO_TOAST_STACK}
+          layer={index}
+          onAction={() => restorePhoto(toast.localId, toast.index)}
+          onClose={(reason) => finishDelete(toast.localId, reason)}
+        />
+      ))}
     </View>
   );
 }

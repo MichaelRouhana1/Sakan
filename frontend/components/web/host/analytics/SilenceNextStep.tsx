@@ -1,10 +1,10 @@
+import { usePromotionOptions } from "@/features/promotions/usePromotions";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Share, StyleSheet, Text } from "react-native";
 import { HostAnalyticsGlassPane } from "@/components/web/host/analytics/HostAnalyticsStatCard";
 import {
-  hostBoostPurchasePath,
   type HostEditSection,
 } from "@/constants/hostRoutes";
 import { Skoun } from "@/constants/theme";
@@ -73,6 +73,7 @@ function isBoosted(until: string | null): boolean {
 
 export function SilenceNextStep({ live, viewCount, leadCount, place }: Props) {
   const router = useRouter();
+  const promotion = usePromotionOptions(place?.id ?? "", !!place && live && viewCount > 0 && leadCount === 0);
   const [dismissed, setDismissed] = useState<SilenceAction | null>(null);
   useEffect(() => {
     if (!place) return;
@@ -99,8 +100,8 @@ export function SilenceNextStep({ live, viewCount, leadCount, place }: Props) {
     rentUsd: Number.isFinite(place.monthlyRentUsd) ? place.monthlyRentUsd : null,
     compHighUsd: comps.guide?.highUsd ?? null,
     compsReady: !needsComps || comps.ready,
-    boosted: isBoosted(place.boostedUntil),
-    boostSpendAvailable: true,
+    boosted: !!promotion.data?.currentCampaign || isBoosted(place.boostedUntil),
+    boostSpendAvailable: !!promotion.data?.eligible,
   });
 
   if (!action || dismissed === action) return null;
@@ -113,14 +114,7 @@ export function SilenceNextStep({ live, viewCount, leadCount, place }: Props) {
   }
 
   function openBoost() {
-    if (Platform.OS === "web") {
-      router.push(hostBoostPurchasePath() as never);
-      return;
-    }
-    router.push({
-      pathname: "/(poster)/(tabs)/credits",
-      params: { pack: "boost_pack" },
-    } as never);
+    router.push({ pathname: '/hosting/listing/[id]/promote', params: { id: place!.id, product: 'bump_3' } } as never);
   }
 
   async function shareListing() {
@@ -173,6 +167,7 @@ export function SilenceNextStep({ live, viewCount, leadCount, place }: Props) {
       >
         <Text style={styles.buttonText}>{cta}</Text>
       </Pressable>
+      {action === 'boost' && <Pressable accessibilityRole="button" onPress={() => openEdit('photos')} style={styles.button}><Text style={styles.buttonText}>Review listing photos</Text></Pressable>}
     </HostAnalyticsGlassPane>
   );
 }

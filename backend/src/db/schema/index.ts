@@ -13,3 +13,6 @@ export * from "./academic.js";
 export * from "./student-benefits.js";
 export * from "./listing-lifecycle.js";
 export * from "./listing-wizard-drafts.js";
+export * from "./promotions.js";
+
+export * from "./listing-activity.js";

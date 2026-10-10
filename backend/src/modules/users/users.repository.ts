@@ -1,3 +1,4 @@
+import { promotionLock, stopListingPromotions } from '../promotions/promotions.service.js';
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { userPushTokens, users } from "../../db/schema/index.js";
@@ -174,12 +175,15 @@ export class UsersRepository {
     id: string,
     accountStatus: "active" | "restricted" | "banned",
   ) {
-    const [row] = await db
-      .update(users)
-      .set({ accountStatus, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return row ?? null;
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const [row] = await tx.update(users).set({ accountStatus, updatedAt: new Date() }).where(eq(users.id, id)).returning();
+      if (accountStatus !== 'active') {
+        const owned = await tx.execute(sql`SELECT id FROM listings WHERE poster_id=${id}::uuid`);
+        for (const listing of owned) await stopListingPromotions(tx, String(listing.id), 'account_restricted');
+      }
+      return row ?? null;
+    });
   }
 
   async updateNotificationPreferences(

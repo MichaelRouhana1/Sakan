@@ -4,8 +4,13 @@ import { validate } from "../../middleware/validate.js";
 import { creditsController } from "./credits.controller.js";
 import { createPurchaseSchema, mockCompleteSchema } from "./credits.schemas.js";
 import { isWhishMockMode } from "./whish.service.js";
+import { getCreditCatalog } from '../../config/promotion-catalog.js';
+import { db } from '../../db/index.js';
+import { ensurePromotionWallet } from './promotion-wallet.js';
 
 export const creditsRouter = Router();
+creditsRouter.get('/catalog', (_req,res)=>res.json({data:getCreditCatalog()}));
+creditsRouter.get('/balance',requireAuth,async(req,res,next)=>{try{res.json({data:await db.transaction(tx=>ensurePromotionWallet(tx,req.user!.id))});}catch(error){next(error);}});
 
 creditsRouter.post(
   "/purchase",

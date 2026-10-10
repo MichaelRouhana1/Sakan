@@ -6,7 +6,7 @@ import axios from "axios";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useCreatePurchase } from "@/features/credits/useCreatePurchase";
 import { api } from "@/lib/api";
-import type { CreditBundleType, CreditTransaction } from "@/types/credits";
+import type { CreditTransaction } from "@/types/credits";
 
 const POLL_MS = 2000;
 const MAX_POLLS = 30;
@@ -31,7 +31,7 @@ export function useWhishCheckout(initialReferenceId?: string, returnTo?: string)
   const { refreshUser, isSignedIn, isLoading: isAuthLoading } = useAuthSession();
   const [tx, setTx] = useState<CreditTransaction | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pendingBundle, setPendingBundle] = useState<CreditBundleType | null>(
+  const [pendingBundle, setPendingBundle] = useState<string | null>(
     null,
   );
   const polls = useRef(0);
@@ -101,13 +101,14 @@ export function useWhishCheckout(initialReferenceId?: string, returnTo?: string)
     }, [confirm, isSignedIn]),
   );
 
-  async function buy(bundleType: CreditBundleType) {
+  async function buy(packId: string, catalogVersion: string) {
     setError(null);
-    setPendingBundle(bundleType);
+    setPendingBundle(packId);
     polls.current = 0;
     try {
       const created = await purchase.mutateAsync({
-        bundleType,
+        packId,
+        catalogVersion,
         channel: "whish",
         returnTo,
       });

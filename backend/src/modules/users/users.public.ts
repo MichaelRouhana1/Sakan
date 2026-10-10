@@ -10,5 +10,7 @@ export function toPublicUser<
     phoneVerifiedAt: _phoneVerifiedAt,
     ...rest
   } = user;
+  const wallet = user as T & {boostCredits?:number;boostCreditUnitsVersion?:number};
+  if(typeof wallet.boostCredits === "number" && wallet.boostCreditUnitsVersion === 1) Object.assign(rest,{boostCredits:wallet.boostCredits/100});
   return rest;
 }

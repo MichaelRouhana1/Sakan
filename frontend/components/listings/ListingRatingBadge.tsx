@@ -177,6 +177,7 @@ export function listingImageCornerBadge(
   reviewCount?: number;
   label?: string;
 } | null {
+  if (listing.promotion?.type === 'featured' && Date.parse(listing.promotion.endsAt) > Date.now()) return { kind: 'feature', label: 'Featured' };
   const count = listing.reviewCount ?? 0;
   const rating = listing.rating;
 
@@ -185,7 +186,7 @@ export function listingImageCornerBadge(
   }
 
   if (listing.boostedUntil && new Date(listing.boostedUntil) > new Date()) {
-    return { kind: "feature", label: "Top Featured" };
+    return { kind: "feature", label: "Featured" };
   }
 
   if (listing.publishedAt) {

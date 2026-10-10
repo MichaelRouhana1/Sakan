@@ -2,6 +2,9 @@ import { PHOTO_CAPTION_LIMIT, normalizePhotoCaption } from "@/lib/photoCaption";
 import {
   beginPhotoUpload,
   endPhotoUpload,
+  holdPhotoUri,
+  releasePhotoHold,
+  removePhotoUri,
 } from "@/features/listings/photoUriOwnership";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -48,6 +51,72 @@ export type PhotoPickerGridProps = {
   setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>;
   style?: ViewStyle;
 };
+
+type PendingDelete = { photo: DraftPhoto; uris: string[] };
+const pendingDeletes = new Map<string, PendingDelete>();
+
+export function holdDeletedPhoto(photo: DraftPhoto) {
+  if (pendingDeletes.has(photo.localId)) return false;
+  const snapshot = { ...photo };
+  pendingDeletes.set(photo.localId, { photo: snapshot, uris: [snapshot.uri] });
+  holdPhotoUri(snapshot.uri);
+  return true;
+}
+
+export function patchDeletedPhoto(
+  localId: string,
+  patch: Partial<DraftPhoto>,
+) {
+  const entry = pendingDeletes.get(localId);
+  if (!entry) return false;
+  if (
+    patch.uri &&
+    patch.uri !== entry.photo.uri &&
+    !entry.uris.includes(patch.uri)
+  ) {
+    entry.uris.push(patch.uri);
+    holdPhotoUri(patch.uri);
+  }
+  entry.photo = { ...entry.photo, ...patch };
+  return true;
+}
+
+export function undoDeletedPhoto(localId: string) {
+  const entry = pendingDeletes.get(localId);
+  if (!entry) return null;
+  pendingDeletes.delete(localId);
+  for (const uri of entry.uris) {
+    releasePhotoHold(uri);
+    if (uri !== entry.photo.uri) removePhotoUri(uri);
+  }
+  return entry.photo;
+}
+
+export function commitDeletedPhoto(localId: string) {
+  const entry = pendingDeletes.get(localId);
+  if (!entry) return;
+  pendingDeletes.delete(localId);
+  for (const uri of entry.uris) {
+    releasePhotoHold(uri);
+    removePhotoUri(uri);
+  }
+}
+
+function settleDraftPhoto(
+  localId: string,
+  setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>,
+  patch: Partial<DraftPhoto>,
+  orphanUri?: string,
+) {
+  setPhotos((prev) => {
+    if (!prev.some((p) => p.localId === localId)) {
+      if (!patchDeletedPhoto(localId, patch) && orphanUri)
+        removePhotoUri(orphanUri);
+      return prev;
+    }
+    return prev.map((p) => (p.localId === localId ? { ...p, ...patch } : p));
+  });
+}
 
 export function TileEnter({
   index,
@@ -96,26 +165,31 @@ export async function uploadDraft(
   uri: string,
   setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>,
 ) {
-  setPhotos((prev) =>
-    prev.map((p) =>
+  setPhotos((prev) => {
+    if (!prev.some((p) => p.localId === localId)) {
+      patchDeletedPhoto(localId, { status: "uploading", error: undefined });
+      return prev;
+    }
+    return prev.map((p) =>
       p.localId === localId
         ? { ...p, status: "uploading", error: undefined }
         : p,
-    ),
-  );
+    );
+  });
   beginPhotoUpload(uri);
   let succeeded = false;
+  let compressedUri: string | undefined;
   try {
     const compressed = await compressListingPhoto(uri);
+    compressedUri = compressed.uri;
     const [url] = await uploadListingPhotos([
       { uri: compressed.uri, mimeType: compressed.mimeType },
     ]);
-    setPhotos((prev) =>
-      prev.map((p) =>
-        p.localId === localId
-          ? { ...p, uri: compressed.uri, url, status: "ready" }
-          : p,
-      ),
+    settleDraftPhoto(
+      localId,
+      setPhotos,
+      { uri: compressed.uri, url, status: "ready", error: undefined },
+      compressed.uri,
     );
     succeeded = true;
   } catch (err) {
@@ -124,16 +198,11 @@ export async function uploadDraft(
       typeof err.response?.data?.error?.message === "string"
         ? err.response.data.error.message
         : "Upload failed — tap to retry";
-    setPhotos((prev) =>
-      prev.map((p) =>
-        p.localId === localId
-          ? {
-              ...p,
-              status: "error",
-              error: message,
-            }
-          : p,
-      ),
+    settleDraftPhoto(
+      localId,
+      setPhotos,
+      { status: "error", error: message },
+      compressedUri && compressedUri !== uri ? compressedUri : undefined,
     );
   } finally {
     endPhotoUpload(uri, succeeded);

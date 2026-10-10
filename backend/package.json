@@ -2,7 +2,7 @@
   "name": "@skoun/backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Sakan Lebanon API — Express + Drizzle + PostgreSQL/PostGIS",
+  "description": "Sakan Lebanon API â€” Express + Drizzle + PostgreSQL/PostGIS",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -20,6 +20,9 @@
     "job:listing-lifecycle": "tsx src/jobs/process-listing-lifecycle.ts",
     "test:lifecycle": "npm run build && node --test tests/listing-lifecycle.test.mjs && node --import tsx --test tests/listing-update-audit.test.ts",
     "test:listing-audit": "node --import tsx --test tests/listing-update-audit.test.ts",
+    "job:promotions": "tsx src/jobs/process-promotions.ts",
+    "job:promotion-cutover": "tsx src/jobs/cutover-legacy-promotions.ts",
+    "test:promotions": "npm run build && node tests/promotions.integration.mjs",
     "db:places:dry-run": "node ops/places/run.mjs",
     "db:places:apply": "node ops/places/run.mjs --apply",
     "db:reset:dev": "node ops/places/reset-dev.mjs",

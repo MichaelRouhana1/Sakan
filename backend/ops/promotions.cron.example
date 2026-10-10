@@ -1,0 +1,3 @@
+# Deployment template: set the working directory and inject the same environment as the API.
+# Run as the application service user, every five minutes. Do not run this as a Codex automation.
+*/5 * * * * cd /srv/skoun/backend && npm run job:promotions >> /var/log/skoun-promotions.log 2>&1

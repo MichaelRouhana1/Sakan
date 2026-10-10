@@ -1,3 +1,4 @@
+import { promotionLock, stopListingPromotions } from '../promotions/promotions.service.js';
 import {
   and,
   eq,
@@ -121,6 +122,7 @@ export class ExpiryNotificationsRepository {
 
   async ensureExpired(candidate: ExpiryCandidate) {
     return db.transaction(async (tx) => {
+      await promotionLock(tx);
       const [final] = await tx
         .select({ id: listingLifecycleEvents.id })
         .from(listingLifecycleEvents)
@@ -140,6 +142,9 @@ export class ExpiryNotificationsRepository {
         )
         .limit(1);
       if (final) return false;
+      const current=await tx.select({expiresAt:listings.expiresAt,status:listings.status}).from(listings).where(eq(listings.id,candidate.listingId)).for("update").limit(1);
+      if(!current[0] || current[0].status!=="active" || current[0].expiresAt?.getTime()!==candidate.cycleExpiresAt.getTime()) return false;
+      await stopListingPromotions(tx,candidate.listingId,"listing_expired",candidate.cycleExpiresAt);
 
       await tx
         .update(listings)

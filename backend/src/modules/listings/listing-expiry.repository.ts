@@ -1,3 +1,4 @@
+import { promotionLock, stopListingPromotions } from '../promotions/promotions.service.js';
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import {
@@ -48,6 +49,7 @@ export class ListingExpiryRepository {
   ) {
     const cycleExpiresAt = new Date(input.cycleExpiresAt);
     return db.transaction(async (tx) => {
+      await promotionLock(tx);
       const [listing] = await tx
         .select({
           id: listings.id,
@@ -91,6 +93,7 @@ export class ListingExpiryRepository {
         .onConflictDoNothing();
 
       if (input.decision === "rented" || input.decision === "archive") {
+        await stopListingPromotions(tx,listingId,input.decision);
         await tx
           .update(listings)
           .set({ status: "archived", updatedAt: new Date() })
@@ -111,6 +114,7 @@ export class ListingExpiryRepository {
     expectedCycleExpiresAt: Date,
   ) {
     return db.transaction(async (tx) => {
+      await promotionLock(tx);
       const [listing] = await tx
         .select({
           id: listings.id,

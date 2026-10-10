@@ -11,7 +11,8 @@ import {
 } from "../../lib/reference-id.js";
 import type { AdminActor } from "../../middleware/auth.js";
 import { usersRepository } from "../users/users.repository.js";
-import { BUNDLE_CATALOG, type CreatePurchaseInput } from "./credits.schemas.js";
+import { type CreatePurchaseInput } from "./credits.schemas.js";
+import { getCreditCatalog } from "../../config/promotion-catalog.js";
 import { creditsRepository } from "./credits.repository.js";
 import {
   creditsReturnUrl,
@@ -33,13 +34,6 @@ const PROVIDER_ACTOR: AdminActor = {
 
 function providerNote(): string {
   return isWhishMockMode() ? "Whish mock" : "Whish webhook";
-}
-
-function bundleInvoice(bundleType: CreatePurchaseInput["bundleType"]) {
-  if (bundleType === "custom") return "Skoun custom credits";
-  if (bundleType === "starter") return "Skoun $10 Starter";
-  if (bundleType === "bundle_5") return "Skoun $15 for 5 credits";
-  return "Skoun Boost Pack";
 }
 
 function amountsMatch(receivedDollars: number | undefined, expectedCents: number) {
@@ -70,36 +64,23 @@ export class CreditsService {
       throw new ForbiddenError("This account cannot purchase credits");
     }
 
-    let postCreditsDelta = 0;
-    let boostCreditsDelta = 0;
-    let amountUsdCents = 0;
-
-    if (input.bundleType === "custom") {
-      if (
-        input.postCreditsDelta == null ||
-        input.boostCreditsDelta == null ||
-        input.amountUsdCents == null
-      ) {
-        throw new ValidationError(
-          "custom bundle requires postCreditsDelta, boostCreditsDelta, amountUsdCents",
-        );
-      }
-      postCreditsDelta = input.postCreditsDelta;
-      boostCreditsDelta = input.boostCreditsDelta;
-      amountUsdCents = input.amountUsdCents;
-    } else {
-      const catalog = BUNDLE_CATALOG[input.bundleType];
-      postCreditsDelta = catalog.postCreditsDelta;
-      boostCreditsDelta = catalog.boostCreditsDelta;
-      amountUsdCents = catalog.amountUsdCents;
-    }
+    const catalog = getCreditCatalog();
+    if (input.packId && input.catalogVersion !== catalog.version) throw new ValidationError('Prices changed. Review the current catalog.');
+    const pack = catalog.packs.find(item => item.id === (input.packId ?? input.bundleType));
+    if (!pack || !pack.enabled || pack.amountUsdCents == null) throw new ValidationError('This pack is not available for purchase.');
+    const postCreditsDelta = pack.postCredits;
+    const boostCreditsDelta = pack.creditUnits;
+    const amountUsdCents = pack.amountUsdCents;
 
     const referenceId = generateReferenceId();
     const providerExternalId = generateProviderExternalId();
     const pending = await creditsRepository.createPending({
       userId,
       referenceId,
-      bundleType: input.bundleType,
+      bundleType: pack.kind === 'promotion' ? 'boost_pack' : pack.id as 'starter' | 'bundle_5',
+      catalogPackId: pack.id,
+      catalogVersion: catalog.version,
+      boostCreditUnitsVersion: 1,
       postCreditsDelta,
       boostCreditsDelta,
       amountUsdCents,
@@ -115,7 +96,7 @@ export class CreditsService {
     try {
       const checkout = await gateway.createCheckout({
         amountUsdCents,
-        invoice: bundleInvoice(input.bundleType),
+        invoice: `Skoun ${pack.title}`,
         externalId: Number(providerExternalId),
         referenceId,
         successCallbackUrl: whishCallbackUrl("success"),

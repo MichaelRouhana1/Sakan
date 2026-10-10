@@ -15,6 +15,8 @@ import { institutionsRouter } from "./modules/universities/institutions.routes.j
 import { universitiesRouter } from "./modules/universities/universities.routes.js";
 import { usersRouter } from "./modules/users/users.routes.js";
 import { authDevRouter } from "./modules/auth/auth.dev.routes.js";
+import { promotionsRouter } from "./modules/promotions/promotions.routes.js";
+import { listingActivityRouter } from "./modules/listing-activity/listing-activity.routes.js";
 
 export function createApp() {
   const app = express();
@@ -50,6 +52,8 @@ export function createApp() {
   app.use("/api/campus", campusRouter);
   app.use("/api/benefits", benefitsRouter);
   app.use("/api/credits", creditsRouter);
+  app.use("/api/promotions", promotionsRouter);
+  app.use("/api/listing-activity", listingActivityRouter);
   app.use("/api/admin", adminRouter);
 
   app.use(errorHandler);

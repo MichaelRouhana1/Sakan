@@ -29,11 +29,8 @@ import {
   snapshotFromRow,
   snapshotFromWrite,
 } from "./listing-update-snapshot.js";
-import {
-  contactTapActorKey,
-  contactTapWindow,
-  planContactTap,
-} from "./contact-tap.js";
+import { recordActivity } from '../listing-activity/listing-activity.service.js';
+import type { ActivityInput } from '../listing-activity/activity-policy.js';
 import type {
   CreateListingInput,
   ListingPropertyFilters,
@@ -150,87 +147,12 @@ export class ListingsService {
     return { areas, universities };
   }
 
-  async recordView(
-    id: string,
-    viewer?: { id: string; role: "renter" | "poster" },
-  ) {
-    const listing = await listingsRepository.findById(id);
-    if (!listing) {
-      throw new NotFoundError("Listing not found");
-    }
-
-    const posterId = String(
-      (listing as { posterId?: string }).posterId ?? "",
-    );
-    if (viewer?.id && posterId && viewer.id === posterId) {
-      return {
-        id,
-        viewCount: Number((listing as { viewCount?: number }).viewCount ?? 0),
-        counted: false as const,
-      };
-    }
-
-    const updated = await listingsRepository.incrementViewCount(id);
-    if (!updated) {
-      throw new NotFoundError("Listing not found");
-    }
-    return {
-      id: updated.id,
-      viewCount: updated.viewCount,
-      counted: true as const,
-    };
+  async recordView(id: string, viewer?: { id: string; role: "renter" | "poster" }, input: ActivityInput = {platform:'unknown'}, ip?: string) {
+    return recordActivity(id,'view',input,{userId:viewer?.id,ip});
   }
 
-  /**
-   * One WhatsApp / contact CTA tap. Guests and signed-in users both count.
-   * Share opens are not taps. The total stays on this listing id.
-   */
-  async recordContactTap(
-    id: string,
-    actor: { userId?: string | null; ip?: string | null },
-  ) {
-    const listing = await listingsRepository.findContactTap(id);
-    const key = contactTapActorKey(id, actor);
-    const withinDedupeWindow =
-      listing?.status === "active" ? !contactTapWindow.claim(key) : false;
-    const plan = planContactTap({
-      found: listing != null,
-      status: listing?.status ?? "",
-      leadCount: listing?.contactTapCount ?? 0,
-      withinDedupeWindow,
-    });
-
-    if (plan.type === "not_found") {
-      throw new NotFoundError("Listing not found");
-    }
-    if (plan.type === "unchanged") {
-      return { id, leadCount: plan.leadCount, counted: false as const };
-    }
-
-    let updated: { id: string; contactTapCount: number } | null;
-    try {
-      updated = await listingsRepository.incrementContactTapCount(id);
-    } catch (err) {
-      contactTapWindow.release(key);
-      throw err;
-    }
-    if (!updated) {
-      contactTapWindow.release(key);
-      const again = await listingsRepository.findContactTap(id);
-      if (!again) {
-        throw new NotFoundError("Listing not found");
-      }
-      return {
-        id,
-        leadCount: again.contactTapCount,
-        counted: false as const,
-      };
-    }
-    return {
-      id: updated.id,
-      leadCount: updated.contactTapCount,
-      counted: true as const,
-    };
+  async recordContactTap(id: string, actor: { userId?: string | null; ip?: string | null }, input: ActivityInput = {platform:'unknown'}) {
+    return recordActivity(id,'contact_tap',input,actor);
   }
 
   async list(params: {

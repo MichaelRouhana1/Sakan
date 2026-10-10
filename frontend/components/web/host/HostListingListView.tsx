@@ -1,3 +1,4 @@
+import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import {
@@ -223,6 +224,7 @@ export function HostListingListView({
               ]}
             >
               <HostStatusPill label={status.label} tone={status.tone} />
+              <PromotionAction listingId={listing.id} />
               {listing.status === "active" ? (
                 <ListingAvailabilityControl
                   listingId={listing.id}

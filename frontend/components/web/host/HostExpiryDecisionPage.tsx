@@ -1,3 +1,4 @@
+import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { Image } from "expo-image";
@@ -204,6 +205,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
           </View>
         )}
 
+        {data.promotionRecommendation?.eligible && <PromotionAction listingId={listingId} label="Views but few WhatsApp taps? Consider a short Bump" />}
         <View style={styles.preferences}><HostNotificationPreferences compact={compact} /></View>
       </View>
     </ScrollView>

@@ -1,3 +1,5 @@
+import { activityInputSchema } from '../listing-activity/activity-policy.js';
+import { enrichPlacements } from '../listing-activity/placement.service.js';
 import type { NextFunction, Request, Response } from "express";
 import { ValidationError } from "../../lib/errors.js";
 import { listingsService } from "./listings.service.js";
@@ -93,7 +95,8 @@ export class ListingsController {
         genderRestrictions: parsed.data.genderRestrictions,
       });
       // Stable envelope: campuses is always an array (empty in Cities mode).
-      res.json({ data: result.data, campuses: result.campuses });
+      const data = await enrichPlacements(result.data, parsed.data, queryString(req.query.promotionSession));
+      res.json({ data, campuses: result.campuses });
     } catch (err) {
       next(err);
     }
@@ -198,6 +201,8 @@ export class ListingsController {
       const data = await listingsService.recordView(
         req.params.id as string,
         req.user,
+        activityInputSchema.parse(req.body ?? {}),
+        clientIp(req),
       );
       res.json({ data });
     } catch (err) {
@@ -213,6 +218,7 @@ export class ListingsController {
           userId: req.user?.id,
           ip: clientIp(req),
         },
+        activityInputSchema.parse(req.body ?? {}),
       );
       res.json({ data });
     } catch (err) {

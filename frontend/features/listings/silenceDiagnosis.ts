@@ -87,9 +87,9 @@ export const SILENCE_COPY: Record<
     cta: "review rent",
   },
   boost: {
-    title: "boost to top for 7 days",
-    body: "a boost pin lasts 7 days. this opens the boost pack. it does not pin the listing by itself.",
-    cta: "see boost pack",
+    title: "try a short Bump",
+    body: "a daily lift in normal results can give this listing more visibility. review photos and price too; placement cannot promise renters.",
+    cta: "see Bump options",
   },
   wait_peak: {
     title: "wait for peak hours",

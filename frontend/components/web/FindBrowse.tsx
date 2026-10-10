@@ -1,3 +1,4 @@
+import { composePlacements } from "@/features/promotions/composePlacements";
 import { useBrowseController } from "@/features/matcher/useBrowseController";
 import { rankListings, explainWidening } from "@/features/matcher/scoring";
 import { MatcherSheet } from "@/components/matcher/MatcherSheet";
@@ -196,7 +197,7 @@ export function FindBrowse() {
   );
   const ranked = useMemo(() => deferredPrefs ? rankListings(rawListings, deferredPrefs) : { listings: rawListings, matches: {} }, [rawListings, deferredPrefs]);
   const matching = deferredSort === "match" && !!deferredPrefs;
-  const listings = useMemo(() => matching ? ranked.listings : sortListingsClient(deferredPrefs ? rawListings.filter(l => !!ranked.matches[l.id]) : rawListings, deferredSort), [ranked, rawListings, matching, deferredSort, deferredPrefs]);
+  const listings = useMemo(() => composePlacements(matching ? ranked.listings : sortListingsClient(deferredPrefs ? rawListings.filter(l => !!ranked.matches[l.id]) : rawListings, deferredSort), deferredSort), [ranked, rawListings, matching, deferredSort, deferredPrefs]);
   const listingsForDisplay = loading ? [] : listings;
   const widening = useMemo(() => explainWidening(ranked.listings, deferredPrefs ?? {version:1}), [ranked.listings, deferredPrefs]);
   const openMatcher = () => { setFiltersOpen(false); browse.setOpen(true); };
@@ -584,7 +585,7 @@ export function FindBrowse() {
           ]}
         >
           <FindMapPane
-            listings={listingsForDisplay}
+            listings={listingsForDisplay.map(l => ({ ...l, promotion: undefined }))}
             campuses={campuses}
             universityMode={effectiveMode === "university"}
             loading={loading}

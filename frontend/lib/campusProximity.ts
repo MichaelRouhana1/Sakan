@@ -61,6 +61,7 @@ export function withCampusDistanceSeparator(
   let lastEmittedBand = -1;
 
   for (const listing of listings) {
+    if (listing.promotion?.type === "featured") { rows.push({ kind: "listing", listing }); continue; }
     const meters = listing.distanceMeters ?? Number.POSITIVE_INFINITY;
     const band = distanceBandIndex(meters);
     if (band > lastEmittedBand) {

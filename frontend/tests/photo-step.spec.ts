@@ -632,3 +632,48 @@ test("captions follow reorder and deletion; full gallery drop gives a notice", a
   ).toHaveValue("First photo");
   await expect(page.locator("[data-photo-tile]")).toHaveCount(14);
 });
+
+test("deleting a photo shows an undo toast and swipe commits it", async ({
+  page,
+}) => {
+  await setup(page, 3);
+  await page
+    .getByLabel("Caption for photo 1", { exact: true })
+    .fill("Cover shot");
+  await page
+    .getByRole("button", { name: "Remove photo", exact: true })
+    .first()
+    .click();
+  const toast = page.locator(".swipe-toast__card").filter({
+    hasText: "Image Deleted",
+  });
+  await expect(toast).toBeVisible();
+  await expect(page.locator("[data-photo-tile]")).toHaveCount(2);
+  await expect(
+    page.getByLabel("Caption for photo 1", { exact: true }),
+  ).toHaveValue("");
+
+  await toast.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".swipe-toast__card")).toHaveCount(0);
+  await expect(page.locator("[data-photo-tile]")).toHaveCount(3);
+  await expect(
+    page.getByLabel("Caption for photo 1", { exact: true }),
+  ).toHaveValue("Cover shot");
+
+  await page
+    .getByRole("button", { name: "Remove photo", exact: true })
+    .first()
+    .click();
+  await expect(toast).toBeVisible();
+  const box = await toast.boundingBox();
+  if (!box) throw new Error("delete toast has no box");
+  await page.mouse.move(box.x + 36, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 36, box.y + box.height / 2 + 90, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator(".swipe-toast__card")).toHaveCount(0);
+  await expect(page.locator("[data-photo-tile]")).toHaveCount(2);
+  await expect(
+    page.getByLabel("Caption for photo 1", { exact: true }),
+  ).toHaveValue("");
+});

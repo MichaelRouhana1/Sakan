@@ -24,6 +24,9 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").notNull(),
   postCredits: integer("post_credits").notNull().default(0),
   boostCredits: integer("boost_credits").notNull().default(0),
+  /** Version 1 stores hundredths of a promotion credit in boostCredits. */
+  boostCreditUnitsVersion: integer("boost_credit_units_version").notNull().default(0),
+  legacyBoostCreditUnitRate: integer("legacy_boost_credit_unit_rate"),
   freeCreditClaimed: boolean("free_credit_claimed").notNull().default(false),
   /** YYYY-MM key for free-slot publish count. */
   freeSlotPublishesMonthKey: varchar("free_slot_publishes_month_key", {

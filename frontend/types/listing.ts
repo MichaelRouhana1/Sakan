@@ -184,6 +184,7 @@ export type Listing = {
   publishedAt: string | null;
   expiresAt: string | null;
   boostedUntil: string | null;
+  promotion?: {campaignId:string;type:'featured'|'bump';position:number;marketKey:string;endsAt:string;lastBumpedAt:string|null;token:string;sessionId:string};
   createdAt: string;
   updatedAt: string;
   distanceMeters?: number;

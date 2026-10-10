@@ -1,3 +1,4 @@
+import { PromotionAction } from "./PromotionAction";
 import axios from "axios";
 import { Link, useRouter } from "expo-router";
 import type { ReactNode } from "react";
@@ -255,6 +256,7 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
 
         {!data ? (
           <View style={styles.fallbackHeader}>
+            <PromotionAction listingId={listingId} label="Manage promotions & results" />
             <Text accessibilityRole="header" style={styles.title}>
               {title}
             </Text>

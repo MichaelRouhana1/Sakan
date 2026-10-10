@@ -9,7 +9,7 @@ export function useCredits(enabled = true) {
   return useQuery({
     queryKey: ["credits", "me"],
     queryFn: async () => {
-      const { data } = await api.get<MeResponse>("/api/users/me");
+      const { data } = await api.get<MeResponse>("/api/credits/balance");
       return {
         postCredits: data.data.postCredits,
         boostCredits: data.data.boostCredits,

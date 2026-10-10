@@ -1,0 +1,79 @@
+{
+  "version": "promotions-v1-tbd",
+  "salesEnabled": false,
+  "capacity": 3,
+  "undoMinutes": 15,
+  "products": [
+    {
+      "id": "featured_3",
+      "type": "featured",
+      "durationDays": 3,
+      "creditUnits": 600,
+      "pausable": false,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "featured_7",
+      "type": "featured",
+      "durationDays": 7,
+      "creditUnits": 1200,
+      "pausable": false,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "featured_14",
+      "type": "featured",
+      "durationDays": 14,
+      "creditUnits": 2100,
+      "pausable": true,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "featured_30",
+      "type": "featured",
+      "durationDays": 30,
+      "creditUnits": 3600,
+      "pausable": true,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "bump_3",
+      "type": "bump",
+      "durationDays": 3,
+      "creditUnits": 100,
+      "pausable": false,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "bump_7",
+      "type": "bump",
+      "durationDays": 7,
+      "creditUnits": 200,
+      "pausable": false,
+      "priceStatus": "tbd"
+    }
+  ],
+  "packs": [
+    {
+      "id": "promotion_12",
+      "title": "Promotion credits",
+      "creditUnits": 1200,
+      "amountUsdCents": null,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "promotion_60",
+      "title": "Host pack",
+      "creditUnits": 6000,
+      "amountUsdCents": null,
+      "priceStatus": "tbd"
+    },
+    {
+      "id": "promotion_150",
+      "title": "Dorm & broker pack",
+      "creditUnits": 15000,
+      "amountUsdCents": null,
+      "priceStatus": "tbd"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { promotionLock, stopListingPromotions, recheckListingPromotions } from '../promotions/promotions.service.js';
 import {
   and,
   asc,
@@ -369,6 +370,7 @@ export class ListingsRepository {
         and(
           eq(listings.status, "active"),
           ne(listings.availability, "rented"),
+      sql`${listings.expiresAt} > now()`,
           ne(listings.id, listingId),
           isNotNull(listings.location),
           sql`ST_DWithin(
@@ -403,6 +405,7 @@ export class ListingsRepository {
     const conditions = [
       eq(listings.status, "active"),
       ne(listings.availability, "rented"),
+      sql`${listings.expiresAt} > now()`,
       ...propertyDrizzleConditions(property),
       ...textSearchDrizzleConditions(q),
     ];
@@ -410,7 +413,9 @@ export class ListingsRepository {
       conditions.push(inArray(listings.area, areas));
     }
 
-    const boostFirst = sql`${listings.boostedUntil} DESC NULLS LAST`;
+    const boostFirst = sort === 'newest' && process.env.PROMOTION_PLACEMENT_ENABLED !== 'true'
+      ? sql`CASE WHEN ${listings.availability}='available' AND ${listings.boostedUntil}>now() THEN ${listings.boostedUntil} END DESC NULLS LAST`
+      : sql`CASE WHEN false THEN 1 END`;
     const secondary =
       sort === "price_asc"
         ? asc(listings.monthlyRentUsd)
@@ -485,7 +490,7 @@ export class ListingsRepository {
           LIMIT 1
         ) d
         WHERE l.status = 'active'
-          AND l.availability <> 'rented'
+          AND l.availability <> 'rented' AND l.expires_at > now()
           AND l.location IS NOT NULL
           ${areaFilter}
           ${propertyFilter}
@@ -564,7 +569,7 @@ export class ListingsRepository {
         ST_Y(l.location::geometry) AS lat
       FROM listings l
       INNER JOIN nearest n ON n.listing_id = l.id
-      ORDER BY l.boosted_until DESC NULLS LAST, n.distance_meters ASC
+      ORDER BY n.distance_meters ASC, l.id ASC
     `);
 
     return this.mapHubRows(result);
@@ -583,6 +588,7 @@ export class ListingsRepository {
     const conditions = [
       eq(listings.status, "active"),
       ne(listings.availability, "rented"),
+      sql`${listings.expiresAt} > now()`,
       isNotNull(listings.location),
       sql`ST_DWithin(
         ${listings.location},
@@ -609,7 +615,7 @@ export class ListingsRepository {
       .from(listings)
       .where(and(...conditions))
       .orderBy(
-        sql`${listings.boostedUntil} DESC NULLS LAST`,
+        sql`CASE WHEN ${process.env.PROMOTION_PLACEMENT_ENABLED !== "true"} AND ${listings.availability}='available' AND ${listings.boostedUntil}>now() THEN ${listings.boostedUntil} END DESC NULLS LAST`,
         asc(distanceSql),
       );
 
@@ -940,7 +946,7 @@ export class ListingsRepository {
       LEFT JOIN institutions i ON i.id = u.institution_id
       LEFT JOIN listings l
         ON l.status = 'active'
-        AND l.availability <> 'rented'
+        AND l.availability <> 'rented' AND l.expires_at > now()
         AND l.location IS NOT NULL
         AND u.location IS NOT NULL
         AND ST_DWithin(l.location, u.location, ${campusHousingRadiusMeters})
@@ -1003,6 +1009,7 @@ export class ListingsRepository {
     const write = listingWriteFromInput(input);
     const now = options.audit.now;
     return db.transaction(async (tx) => {
+      await promotionLock(tx);
       await tx
         .update(listings)
         .set({
@@ -1093,114 +1100,66 @@ export class ListingsRepository {
         tx,
       );
 
+      await recheckListingPromotions(tx, id);
       return id;
     });
   }
 
   async archiveById(id: string, posterId: string) {
-    const [row] = await db
-      .update(listings)
-      .set({ status: "archived", updatedAt: new Date() })
-      .where(
-        and(
-          eq(listings.id, id),
-          eq(listings.posterId, posterId),
-          eq(listings.status, "active"),
-        ),
-      )
-      .returning({ id: listings.id });
-    return row ?? null;
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const [row] = await tx.update(listings).set({status:'archived',updatedAt:new Date()}).where(and(eq(listings.id,id),eq(listings.posterId,posterId),eq(listings.status,'active'))).returning({id:listings.id});
+      if(row) await stopListingPromotions(tx,id,'listing_archived');
+      return row ?? null;
+    });
   }
-
-  /** Owner delete. Photos and saved rows cascade. */
   async deleteByOwner(id: string, posterId: string) {
-    const [row] = await db
-      .delete(listings)
-      .where(
-        and(
-          eq(listings.id, id),
-          eq(listings.posterId, posterId),
-          eq(listings.status, "active"),
-        ),
-      )
-      .returning({ id: listings.id });
-    return row ?? null;
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const [row] = await tx.select({id:listings.id}).from(listings).where(and(eq(listings.id,id),eq(listings.posterId,posterId),eq(listings.status,'active'))).for('update');
+      if(!row) return null;
+      await stopListingPromotions(tx,id,'listing_deleted');
+      await tx.delete(listings).where(eq(listings.id,id));
+      return row;
+    });
   }
-
   async archiveExpired() {
-    return db
-      .update(listings)
-      .set({ status: "archived", updatedAt: new Date() })
-      .where(
-        and(
-          eq(listings.status, "active"),
-          sql`${listings.expiresAt} < now()`,
-        ),
-      )
-      .returning({ id: listings.id });
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const rows = await tx.update(listings).set({status:'archived',updatedAt:new Date()}).where(and(eq(listings.status,'active'),sql`${listings.expiresAt} <= now()`)).returning({id:listings.id,expiresAt:listings.expiresAt});
+      for(const row of rows) await stopListingPromotions(tx,row.id,'listing_expired',row.expiresAt ?? new Date());
+      return rows;
+    });
   }
-
-  async adminSetStatus(
-    id: string,
-    next: "archived" | "removed" | "active",
-  ) {
-    const [existing] = await db
-      .select({ id: listings.id, status: listings.status })
-      .from(listings)
-      .where(eq(listings.id, id))
-      .limit(1);
-    if (!existing) return null;
-
-    if (next === "archived" && existing.status !== "active") return null;
-    if (next === "removed" && existing.status === "removed") return existing;
-    if (next === "removed" && existing.status === "draft") return null;
-    if (next === "active" && existing.status !== "archived") return null;
-
-    const [row] = await db
-      .update(listings)
-      .set({
-        status: next,
-        updatedAt: new Date(),
-        ...(next === "active" ? { availability: "available" as const } : {}),
-      })
-      .where(eq(listings.id, id))
-      .returning({ id: listings.id, status: listings.status });
-    return row ?? null;
+  async adminSetStatus(id: string, next: 'archived'|'removed'|'active') {
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const [existing] = await tx.select({id:listings.id,status:listings.status}).from(listings).where(eq(listings.id,id)).for('update');
+      if(!existing) return null;
+      if(next==='archived' && existing.status!=='active') return null;
+      if(next==='removed' && existing.status==='removed') return existing;
+      if(next==='removed' && existing.status==='draft') return null;
+      if(next==='active' && existing.status!=='archived') return null;
+      const [row]=await tx.update(listings).set({status:next,updatedAt:new Date(),...(next==='active'?{availability:'available' as const}:{})}).where(eq(listings.id,id)).returning({id:listings.id,status:listings.status});
+      if(next!=='active') await stopListingPromotions(tx,id,`listing_${next}`);
+      return row ?? null;
+    });
   }
-
-  /** Owner sets offer state. Lifecycle status stays active. */
-  async setAvailability(
-    id: string,
-    posterId: string,
-    availability: "available" | "pending" | "rented",
-  ) {
-    const [row] = await db
-      .update(listings)
-      .set({ availability, updatedAt: new Date() })
-      .where(
-        and(
-          eq(listings.id, id),
-          eq(listings.posterId, posterId),
-          eq(listings.status, "active"),
-        ),
-      )
-      .returning({
-        id: listings.id,
-        status: listings.status,
-        availability: listings.availability,
-      });
-    return row ?? null;
+  async setAvailability(id:string,posterId:string,availability:'available'|'pending'|'rented') {
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const [row]=await tx.update(listings).set({availability,updatedAt:new Date()}).where(and(eq(listings.id,id),eq(listings.posterId,posterId),eq(listings.status,'active'))).returning({id:listings.id,status:listings.status,availability:listings.availability});
+      if(row && availability!=='available') await stopListingPromotions(tx,id,availability==='pending'?'under_offer':'listing_rented');
+      return row ?? null;
+    });
   }
-
-  async adminRemoveActiveByPoster(posterId: string) {
-    return db
-      .update(listings)
-      .set({ status: "removed", updatedAt: new Date() })
-      .where(
-        and(eq(listings.posterId, posterId), eq(listings.status, "active")),
-      )
-      .returning({ id: listings.id });
+  async adminRemoveActiveByPoster(posterId:string) {
+    return db.transaction(async tx => {
+      await promotionLock(tx);
+      const rows=await tx.update(listings).set({status:'removed',updatedAt:new Date()}).where(and(eq(listings.posterId,posterId),eq(listings.status,'active'))).returning({id:listings.id});
+      for(const row of rows) await stopListingPromotions(tx,row.id,'account_removed');
+      return rows;
+    });
   }
 }
-
 export const listingsRepository = new ListingsRepository();

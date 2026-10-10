@@ -1,10 +1,11 @@
+import { recordFeaturedImpression, rememberPlacement } from "@/features/promotions/activity";
 import { BestMatchBadge } from "@/components/matcher/BestMatchBadge";
 import { BestMatchBeam } from "@/components/matcher/BestMatchBeam";
 import type { MatchPresentation } from "@/features/matcher/types";
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
@@ -312,6 +313,19 @@ export function ListingResultCard({
   match,
 }: Props) {
   const router = useRouter();
+  const impressionRef = useRef<View>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !interactive || listing.promotion?.type !== 'featured' || typeof IntersectionObserver === 'undefined') return;
+    const node = impressionRef.current as unknown as Element | null;
+    if (!node) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (timer) clearTimeout(timer);
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.5) timer = setTimeout(() => { if (document.visibilityState === 'visible') void recordFeaturedImpression(listing, 'web_viewable'); }, 1000);
+    }, { threshold: [0, 0.5] });
+    observer.observe(node);
+    return () => { observer.disconnect(); if (timer) clearTimeout(timer); };
+  }, [listing.id, listing.promotion?.token, interactive]);
   const isList = variant === "list";
   const coarsePointer = useCoarsePointer();
   const [listHovered, setListHovered] = useState(false);
@@ -349,6 +363,7 @@ export function ListingResultCard({
   const urls = photoUrls(listing);
   const onOpen = () => {
     if (!interactive) return;
+    rememberPlacement(listing);
     router.push(`/(renter)/listing/${listing.id}`);
   };
   const onToggleSave = () => {
@@ -465,6 +480,7 @@ export function ListingResultCard({
     );
     return frameMatch(
       <View
+        ref={impressionRef}
         onLayout={onCardLayout}
         style={[
           styles.card,
@@ -522,7 +538,7 @@ export function ListingResultCard({
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
   return frameMatch(
-    <View onLayout={onCardLayout} style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
+    <View ref={impressionRef} onLayout={onCardLayout} style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
       <View testID="listing-grid-media" style={[touchPanX, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
