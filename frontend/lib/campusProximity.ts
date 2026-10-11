@@ -1,7 +1,7 @@
 import type { Listing } from "@/types/listing";
 
 /**
- * Campus-hub list tiers (UI only — browse query is still unbounded).
+ * Campus-hub list tiers (UI only — the server paginates units).
  * First value is “near campus”; later values are commute bands.
  */
 export const CAMPUS_DISTANCE_TIERS_KM = [2, 5, 10] as const;
@@ -80,7 +80,7 @@ export function withCampusDistanceSeparator(
 }
 
 function placeWord(count: number): string {
-  return count === 1 ? "place" : "places";
+  return count === 1 ? "unit" : "units";
 }
 
 function optionWord(count: number): string {
@@ -98,13 +98,13 @@ export function campusResultsHeading(opts: {
   const farCount = opts.listings.length - nearCount;
 
   if (nearCount === 0 && farCount > 0) {
-    return `No places found immediately near campus. Showing ${farCount} ${optionWord(farCount)} further away.`;
+    return `On this page: showing ${farCount} ${optionWord(farCount)} further away.`;
   }
   if (nearCount > 0 && farCount > 0) {
-    return `Showing ${nearCount} ${placeWord(nearCount)} near campus, and ${farCount} other ${optionWord(farCount)} further away.`;
+    return `On this page: ${nearCount} ${placeWord(nearCount)} near campus, and ${farCount} other ${optionWord(farCount)} further away.`;
   }
   if (nearCount > 0) {
-    return `Showing ${nearCount} ${placeWord(nearCount)} near campus.`;
+    return `On this page: ${nearCount} ${placeWord(nearCount)} near campus.`;
   }
-  return `No places found immediately near campus.`;
+  return `No units on this page immediately near campus.`;
 }

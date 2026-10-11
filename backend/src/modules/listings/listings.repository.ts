@@ -17,10 +17,6 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import {
-  COINCIDENT_METERS,
-  NEARBY_LISTINGS_LIMIT,
-} from "../../constants/mapCoincident.js";
 import { campusHousingRadiusMeters } from "../campus/campus.repository.js";
 import { db } from "../../db/index.js";
 import { listingPhotos, listings } from "../../db/schema/index.js";
@@ -350,57 +346,17 @@ export class ListingsRepository {
     return withPhotos ?? null;
   }
 
-  /**
-   * Active listings within `meters` of the origin listing's pin (same-building UX).
-   * Returns [] when the origin has no location. Does not include the origin row.
-   */
-  async findNearbyActive(
-    listingId: string,
-    meters: number = COINCIDENT_METERS,
-    limit: number = NEARBY_LISTINGS_LIMIT,
-  ) {
-    const [origin] = await db
-      .select({
-        id: listings.id,
-        lng: sql<number | null>`ST_X(${listings.location}::geometry)`.as("lng"),
-        lat: sql<number | null>`ST_Y(${listings.location}::geometry)`.as("lat"),
-      })
-      .from(listings)
-      .where(eq(listings.id, listingId))
-      .limit(1);
-
+  /** Public siblings are explicit place members, never proximity matches. */
+  async findNearbyActive(listingId: string) {
+    const [origin] = await db.select({ placeId: listings.placeId }).from(listings)
+      .where(eq(listings.id, listingId)).limit(1);
     if (!origin) return null;
-    if (parseCoord(origin.lng) == null || parseCoord(origin.lat) == null) {
-      return [];
-    }
-
-    const rows = await db
-      .select(listingPublicColumns)
-      .from(listings)
-      .where(
-        and(
-          eq(listings.status, "active"),
-          ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
-      sql`${listings.expiresAt} > now()`,
-          ne(listings.id, listingId),
-          isNotNull(listings.location),
-          sql`ST_DWithin(
-            ${listings.location},
-            (SELECT location FROM listings WHERE id = ${listingId}),
-            ${meters}
-          )`,
-        ),
-      )
-      .orderBy(asc(listings.monthlyRentUsd), desc(listings.createdAt))
-      .limit(limit);
-
-    const normalized = rows.map((row) => ({
-      ...row,
-      lng: parseCoord(row.lng),
-      lat: parseCoord(row.lat),
-    }));
-
-    return this.withPhotos(normalized);
+    const rows = await db.select(listingPublicColumns).from(listings).where(and(
+      eq(listings.placeId, origin.placeId), ne(listings.id, listingId),
+      eq(listings.status, "active"), ne(listings.availability, "rented"),
+      sql`unit_hidden_reason(listings) IS NULL`, sql`${listings.expiresAt} > now()`,
+    )).orderBy(asc(listings.monthlyRentUsd), asc(listings.id));
+    return this.withPhotos(rows.map(row => ({ ...row, lng: parseCoord(row.lng), lat: parseCoord(row.lat) })));
   }
 
   async listActiveByArea(area?: string, sort: ListingSort = "newest") {
@@ -510,6 +466,9 @@ export class ListingsRepository {
       )
       SELECT
         l.id,
+        l.place_id,
+        l.beds_available,
+        l.inventory_needs_confirmation,
         l.poster_id,
         l.status,
         l.availability,
@@ -647,6 +606,9 @@ export class ListingsRepository {
 
     const mapped = rows.map((row) => ({
       id: String(row.id),
+      placeId: String(row.place_id),
+      bedsAvailable: row.beds_available == null ? null : Number(row.beds_available),
+      inventoryNeedsConfirmation: Boolean(row.inventory_needs_confirmation),
       posterId: String(row.poster_id),
       status: row.status as "active",
       availability: (row.availability as string) ?? "available",

@@ -10,6 +10,7 @@ export function toListFilters(
   sort: ListingSort,
 ): ListingListFilters {
   const property: ListingListFilters = {
+    sort,
     electricity:
       browse.electricity.length > 0 ? browse.electricity : undefined,
     water: browse.water.length > 0 ? browse.water : undefined,

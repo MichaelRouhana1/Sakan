@@ -40,7 +40,8 @@ import {
 import { SEGMENTED_PILL_SLIDE_MS } from "@/components/listings/SegmentedPillTrack";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { Skoun } from "@/constants/theme";
-import { useListings } from "@/features/listings/useListings";
+import { useSearchListings } from "@/features/listings/useSearchListings";
+import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { toListFilters } from "@/lib/browseFilters";
@@ -102,12 +103,14 @@ export default function RenterHomeScreen() {
     [mode, browseFilters, sort],
   );
 
-  const listingsQuery = useListings(filters);
+  const listingsQuery = useSearchListings(filters, viewMode === "map");
   const universities = useUniversities();
   const hubDistanceMode =
     mode === "university" && universitySlugs.length > 0;
 
-  const listingRows = listingsQuery.data?.listings ?? [];
+  const featured = listingsQuery.data?.featured ?? [];
+  const organic = listingsQuery.data?.listings ?? [];
+  const listingRows = [...featured, ...organic];
   const campuses = listingsQuery.data?.campuses ?? [];
 
   const badgeCount = browseFilterBadgeCount(browseFilters, mode);
@@ -310,6 +313,8 @@ export default function RenterHomeScreen() {
             }
             renderItem={({ item, index }) => (
               <View style={styles.cardWrap}>
+                {item.id === featured[0]?.id ? <LText variant="subtitle">Featured</LText> : null}
+                {featured.length > 0 && item.id === organic[0]?.id ? <LText variant="subtitle">All results</LText> : null}
                 <ListingCard
                   listing={item}
                   index={index}
@@ -361,7 +366,7 @@ export default function RenterHomeScreen() {
                 />
               )
             }
-            ListFooterComponent={<View style={{ height: 28 }} />}
+            ListFooterComponent={listingsQuery.data ? <SearchPagination {...listingsQuery.data.pagination} loading={listingsQuery.isFetching} onPage={listingsQuery.setPage} /> : null}
           />
         </View>
 
@@ -380,10 +385,10 @@ export default function RenterHomeScreen() {
           >
             {bodyMode === "map" ? browseChrome : null}
             <ListingBrowseMap
-              listings={listingRows}
+              listings={listingsQuery.mapListings}
               campuses={campuses}
               universityMode={hubDistanceMode}
-              loading={listingsQuery.isLoading}
+              loading={listingsQuery.mapLoading}
               expanded={mapExpanded}
               onExpandedChange={setMapExpanded}
             />

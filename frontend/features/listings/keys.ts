@@ -18,6 +18,10 @@ export type ListingListFilters = {
   lng?: number;
   radiusKm?: number;
   sort?: ListingSort;
+  matcher?: import("@/features/matcher/types").MatcherPreferences;
+  page?: number;
+  pageSize?: number;
+  view?: "list" | "map";
   electricity?: ElectricityStatus[];
   water?: WaterStatus[];
   /** When true, require wifi_included. */

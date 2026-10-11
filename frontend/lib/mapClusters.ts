@@ -1,6 +1,6 @@
 /**
  * Zoom-based map clustering (Amber-style) via Supercluster.
- * Operates on MapPinGroups (after coincident 10m collapse), not raw listings.
+ * Operates on MapPinGroups (one per place), not raw listings.
  */
 import Supercluster from "supercluster";
 import type { MapPinGroup } from "@/lib/mapPinGroups";
@@ -13,7 +13,7 @@ export const CLUSTER_MAX_ZOOM = 16;
 export type PinClusterProps = {
   groupId: string;
   price: number;
-  /** Coincident listings already folded into this pin group. */
+  /** Matching units belonging to this place. */
   memberCount: number;
 };
 

@@ -66,3 +66,5 @@ export const DIMENSIONS: Dimension[] = [
   "power",
   "wifi",
 ];
+
+export type MatchWidening = { strictCount: number; alternativeCount: number; labels: string[]; shortfall: boolean };

@@ -94,9 +94,7 @@ export function parseBrowseState(params: BrowseParams): BrowseState {
     raw &&
     ["newest", "rent_asc", "rent_desc", "distance", "match"].includes(raw)
       ? (raw as BrowseSort)
-      : f.campusId || f.universitySlugs.length
-        ? "distance"
-        : "newest";
+      : "newest";
   return {
     filters: f,
     prefs,

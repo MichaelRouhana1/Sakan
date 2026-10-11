@@ -16,11 +16,12 @@ const config=ts.readConfigFile(configPath,ts.sys.readFile);
 const parsed=ts.parseJsonConfigFileContent(config.config,ts.sys,root);
 function diagnostics(baseline){
  const host=ts.createCompilerHost(parsed.options);const read=host.readFile.bind(host);
- if(baseline)host.readFile=f=>before.get(path.normalize(f))??read(f);
+ if(baseline){host.readFile=f=>before.get(path.normalize(f))??read(f);const exists=host.fileExists.bind(host);host.fileExists=f=>before.has(path.normalize(f))||exists(f);}
  const roots=parsed.fileNames.filter(f=>{
   const relative=path.relative(repo,f).replaceAll('\\','/');
   return !baseline||tracked.has(relative)||relative.startsWith('frontend/.expo/')||relative==='frontend/expo-env.d.ts';
  });
+ if(baseline)for(const f of before.keys())if(!roots.includes(f))roots.push(f);
  const program=ts.createProgram(roots,{...parsed.options,noEmit:true},host);
  return ts.getPreEmitDiagnostics(program).map(d=>`${d.file?path.relative(root,d.file.fileName).replaceAll('\\','/'):'config'} TS${d.code}: ${ts.flattenDiagnosticMessageText(d.messageText,' ')}`).sort();
 }
@@ -28,5 +29,5 @@ const baseline=diagnostics(true),current=diagnostics(false);
 const remaining=[...baseline];const added=[];
 for(const message of current){const i=remaining.indexOf(message);if(i<0)added.push(message);else remaining.splice(i,1);}
 const result={ref,baseline:baseline.length,current:current.length,added,removed:remaining};
-await mkdir(path.join(root,'.expo'),{recursive:true});await writeFile(path.join(root,'.expo','slice2-typecheck.json'),JSON.stringify(result,null,2));
+await mkdir(path.join(root,'.expo'),{recursive:true});await writeFile(path.join(root,'.expo','slice3-typecheck.json'),JSON.stringify(result,null,2));
 console.log(JSON.stringify(result,null,2));if(added.length)process.exitCode=1;

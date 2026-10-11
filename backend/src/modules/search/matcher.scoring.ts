@@ -1,4 +1,4 @@
-import type { Listing } from "@/types/listing";
+export type MatchListing = { id: string; status: string; availability?: string; hidden?: boolean; hiddenReason?: string | null; inventoryNeedsConfirmation?: boolean; bedsAvailable?: number | null; expiresAt?: string | Date | null; publishedAt?: string | Date | null; createdAt: string | Date; matchFacts?: MatchFacts };
 import {
   DIMENSIONS,
   type Dimension,
@@ -6,7 +6,7 @@ import {
   type MatchFacts,
   type MatcherPreferences,
   type MatchPresentation,
-} from "./types";
+} from "./matcher.types.js";
 
 export const MATCH_RULES = {
   weights: {
@@ -169,8 +169,8 @@ const unknownFacts: MatchFacts = {
   lng: null,
   priceBasis: null,
 };
-export function rankListings(
-  listings: Listing[],
+export function rankListings<T extends MatchListing>(
+  listings: T[],
   prefs: MatcherPreferences,
   now = Date.now(),
 ) {
@@ -179,8 +179,8 @@ export function rankListings(
   const eligible = listings
     .filter((l) => {
       if (
-        l.status !== "active" ||
-        (l.expiresAt && Date.parse(l.expiresAt) <= now)
+        l.status !== "active" || l.availability === "rented" || l.hidden || !!l.hiddenReason || l.inventoryNeedsConfirmation || l.bedsAvailable === 0 ||
+        (l.expiresAt && new Date(l.expiresAt).getTime() <= now)
       )
         return false;
       const facts = l.matchFacts ?? unknownFacts;
@@ -220,14 +220,14 @@ export function rankListings(
     });
   return { listings: eligible, matches };
 }
-function timestamp(l: Listing) {
-  const n = Date.parse(l.publishedAt ?? l.createdAt);
+function timestamp(l: MatchListing) {
+  const n = new Date(l.publishedAt ?? l.createdAt).getTime();
   return Number.isFinite(n) ? n : 0;
 }
 
 /** Only broadens the alternative-count explanation. Never mutates scores or eligibility. */
 export function explainWidening(
-  listings: Listing[],
+  listings: MatchListing[],
   prefs: MatcherPreferences,
 ) {
   let budget = 0;

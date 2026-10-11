@@ -68,7 +68,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   const toggleSaved = useToggleSaved();
   const reported = useIsReported(listingId ?? "");
   const coincident = useNearbyListings(listingId ?? "", {
-    enabled: Boolean(listing && listing.lng != null && listing.lat != null),
+    enabled: Boolean(listing?.placeId),
   });
   const [reportOpen, setReportOpen] = useState(false);
   const [galleryMode, setGalleryMode] = useState<GalleryMode>("photos");
@@ -115,7 +115,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     if (hasRooms) next.push({ id: "rooms", label: "Room types" });
     if (hasRules) next.push({ id: "rules", label: "House rules" });
     if (hasPin) next.push({ id: "map", label: "Map" });
-    if (nearby.length > 0) next.push({ id: "nearby", label: "Nearby" });
+    if (nearby.length > 0) next.push({ id: "nearby", label: "Other units" });
     return next;
   }, [listing, description, hasRooms, hasRules, hasPin, nearby.length]);
 

@@ -13,7 +13,6 @@ import { MatchSummaryBar } from "@/components/matcher/MatchResults";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { useListings } from "@/features/listings/useListings";
 import { toListFilters } from "@/lib/browseFilters";
-import { rankListings, explainWidening } from "@/features/matcher/scoring";
 
 export const api = axios.create();
 export const API_BASE_URL = window.location.origin;
@@ -54,16 +53,13 @@ function App() {
   const c = useBrowseController();
   const { filters, sort, prefs } = c.deferred;
   const query = useListings(
-    toListFilters(
+    { ...toListFilters(
       c.deferred.mode,
       filters,
-      sort === "rent_asc" ? "price_asc" : "newest",
-    ),
+      sort === "rent_asc" ? "price_asc" : sort === "rent_desc" ? "price_desc" : sort,
+    ), matcher: prefs ?? undefined },
   );
-  const ranked = rankListings(
-    query.data?.listings ?? [],
-    prefs ?? { version: 1 },
-  );
+  const ranked = { listings: query.data?.listings ?? [], matches: query.data?.matches ?? {} };
   const matching = sort === "match" && !!prefs;
   return (
     <View
@@ -114,7 +110,7 @@ function App() {
         <MatchSummaryBar
           prefs={prefs}
           count={ranked.listings.length}
-          widening={explainWidening(ranked.listings, prefs)}
+          widening={query.data?.widening ?? {strictCount:0,alternativeCount:0,labels:[],shortfall:true}}
           matching={matching}
           loading={query.isLoading || query.isError}
           onEdit={() => c.setOpen(true)}

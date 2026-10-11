@@ -4,18 +4,26 @@ import type { ListingSort } from "@/components/listings/ListingSortControl";
 import { api } from "@/lib/api";
 import type { CampusMeta, Listing } from "@/types/listing";
 import { listingKeys, type ListingListFilters } from "./keys";
-import { normalizeListingsEnvelope } from "./normalizeListing";
+import { normalizeListingsPayload, normalizeListingsEnvelope } from "./normalizeListing";
 
 type ListingsApiResponse = {
   data: unknown;
   campuses?: unknown;
   /** Legacy singular — dual-read in normalize. */
   campus?: unknown;
+  featured?: unknown;
+  matches?: ListingsQueryData["matches"];
+  widening?: ListingsQueryData["widening"];
+  pagination?: ListingsQueryData["pagination"];
 };
 
 export type ListingsQueryData = {
   listings: Listing[];
   campuses: CampusMeta[];
+  featured: Listing[];
+  matches: Record<string, import("@/features/matcher/types").MatchPresentation>;
+  widening: import("@/features/matcher/types").MatchWidening;
+  pagination: { page: number; pageSize: number; total: number; totalMatching: number; hasNext: boolean };
 };
 
 /**
@@ -53,14 +61,11 @@ export function useListings(
       } else if (filters.radiusKm != null && (filters.campusId || filters.universitySlugs?.length)) {
         params.radiusKm = String(filters.radiusKm);
       }
-      // Cities mode only — ignored by API when universitySlugs / campusId present.
-      if (
-        !(filters.universitySlugs && filters.universitySlugs.length > 0) &&
-        !filters.campusId &&
-        filters.sort
-      ) {
-        params.sort = filters.sort;
-      }
+      if (filters.sort) params.sort = filters.sort;
+      if (filters.matcher) params.matcher = JSON.stringify(filters.matcher);
+      params.page = String(filters.page ?? 1);
+      params.pageSize = String(filters.pageSize ?? 24);
+      if (filters.view) params.view = filters.view;
       if (filters.electricity && filters.electricity.length > 0) {
         params.electricity = filters.electricity.join(",");
       }
@@ -88,7 +93,12 @@ export function useListings(
       const { data } = await api.get<ListingsApiResponse>("/api/listings", {
         params,
       });
-      return normalizeListingsEnvelope(data);
+      const normalized = normalizeListingsEnvelope(data);
+      const featured = normalizeListingsPayload(data.featured);
+      return { ...normalized, featured, matches: data.matches ?? {},
+        widening: data.widening ?? { strictCount: 0, alternativeCount: 0, labels: [], shortfall: true },
+        pagination: data.pagination ?? { page: 1, pageSize: 24, total: normalized.listings.length, totalMatching: normalized.listings.length + featured.length, hasNext: false },
+      };
     },
   });
 }

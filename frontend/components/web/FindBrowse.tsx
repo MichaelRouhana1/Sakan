@@ -1,6 +1,4 @@
-import { composePlacements } from "@/features/promotions/composePlacements";
 import { useBrowseController } from "@/features/matcher/useBrowseController";
-import { rankListings, explainWidening } from "@/features/matcher/scoring";
 import { MatcherSheet } from "@/components/matcher/MatcherSheet";
 import { FindMyPlaceFab } from "@/components/web/FindMyPlaceFab";
 import { MatchSummaryBar } from "@/components/matcher/MatchResults";
@@ -51,7 +49,8 @@ import {
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { Skoun } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
-import { useListings } from "@/features/listings/useListings";
+import { useSearchListings } from "@/features/listings/useSearchListings";
+import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   campusFilterLabel,
@@ -72,26 +71,7 @@ import type { CampusMeta, Listing } from "@/types/listing";
 type ResultsLayout = "grid" | "list";
 
 function apiSortFromBrowse(sort: BrowseSortKey): ListingSort {
-  return sort === "rent_asc" ? "price_asc" : "newest";
-}
-
-function sortListingsClient(
-  listings: Listing[],
-  sort: BrowseSortKey,
-): Listing[] {
-  if (sort === "rent_desc") {
-    return [...listings].sort(
-      (a, b) => b.monthlyRentUsd - a.monthlyRentUsd,
-    );
-  }
-  if (sort === "distance") {
-    return [...listings].sort((a, b) => {
-      const da = a.distanceMeters ?? Number.POSITIVE_INFINITY;
-      const db = b.distanceMeters ?? Number.POSITIVE_INFINITY;
-      return da - db;
-    });
-  }
-  return listings;
+  return sort === "rent_asc" ? "price_asc" : sort === "rent_desc" ? "price_desc" : sort;
 }
 
 function cityLabelFromFilters(filters: BrowseFiltersValue): string {
@@ -159,19 +139,19 @@ export function FindBrowse() {
 
   const listFilters = useMemo(
     () =>
-      toListFilters(
+      ({ ...toListFilters(
         effectiveMode,
         deferredFilters,
         apiSortFromBrowse(deferredSort),
-      ),
-    [effectiveMode, deferredFilters, deferredSort],
+      ), matcher: deferredPrefs ?? undefined }),
+    [effectiveMode, deferredFilters, deferredSort, deferredPrefs],
   );
 
   const universities = useUniversities();
   const institutions = useInstitutions();
 
-  const { data, isLoading, isError, refetch, isFetching } =
-    useListings(listFilters);
+  const search = useSearchListings(listFilters, mapOpen || isDesktop);
+  const { data, isLoading, isError, refetch, isFetching } = search;
   // First load only. A focus refetch has data already, so the results stay up.
   const loading = useDevSearchLoadingDelay(isLoading);
 
@@ -195,11 +175,12 @@ export function FindBrowse() {
       ),
     [data?.campuses, selectedInst],
   );
-  const ranked = useMemo(() => deferredPrefs ? rankListings(rawListings, deferredPrefs) : { listings: rawListings, matches: {} }, [rawListings, deferredPrefs]);
+  const ranked = { listings: rawListings, matches: data?.matches ?? {} };
   const matching = deferredSort === "match" && !!deferredPrefs;
-  const listings = useMemo(() => composePlacements(matching ? ranked.listings : sortListingsClient(deferredPrefs ? rawListings.filter(l => !!ranked.matches[l.id]) : rawListings, deferredSort), deferredSort), [ranked, rawListings, matching, deferredSort, deferredPrefs]);
+  const listings = rawListings;
+  const featured = data?.featured ?? [];
   const listingsForDisplay = loading ? [] : listings;
-  const widening = useMemo(() => explainWidening(ranked.listings, deferredPrefs ?? {version:1}), [ranked.listings, deferredPrefs]);
+  const widening = data?.widening ?? { strictCount: 0, alternativeCount: 0, labels: [], shortfall: true };
   const openMatcher = () => { setFiltersOpen(false); browse.setOpen(true); };
   useEffect(() => {
     if (!browse.applyRevision) return;
@@ -380,8 +361,7 @@ export function FindBrowse() {
             {!showDistanceSplit ? (
               <Text style={styles.h1Count}>
                 {" "}
-                | Showing {listings.length} place
-                {listings.length === 1 ? "" : "s"}
+                | {data?.pagination.totalMatching ?? 0} matching units
               </Text>
             ) : null}
           </Text>
@@ -389,7 +369,7 @@ export function FindBrowse() {
             <View style={styles.matchActions}>
               <MatchSummaryBar
                 prefs={deferredPrefs}
-                count={ranked.listings.length}
+                count={data?.pagination.totalMatching ?? 0}
                 widening={widening}
                 onEdit={openMatcher}
                 onStop={browse.stop}
@@ -483,6 +463,12 @@ export function FindBrowse() {
   );
 
   const results = (
+    <View style={{ gap: 20 }}>
+    {!loading && !isError && featured.length > 0 ? <>
+      <LText variant="subtitle">Featured</LText>
+      <FindResultsGrid listings={featured} matches={matching ? ranked.matches : undefined} variant={cardVariant} columns={isMap || cardVariant === "list" ? 1 : isDesktop ? 3 : bp === "tablet" ? 2 : 1} onHoverListing={isMap ? onHoverListing : undefined} />
+      <LText variant="subtitle">All results</LText>
+    </> : null}
     <FindResultsGrid
       listings={listingsForDisplay}
       matches={matching ? ranked.matches : undefined}
@@ -505,6 +491,14 @@ export function FindBrowse() {
       showDistanceSplit={showDistanceSplit}
       universityLabel={universityLabel}
     />
+    {data && !isError ? <SearchPagination {...data.pagination} loading={isFetching} onPage={(page) => {
+      search.setPage(page);
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        document.getElementById("skoun-web-shell")?.scrollTo({ top: 0, behavior: "instant" });
+      }
+    }} /> : null}
+    </View>
   );
 
   return (
@@ -545,7 +539,7 @@ export function FindBrowse() {
             <View style={styles.resultsCol}>{results}</View>
             {isDesktop ? (
               <FindBrowseSidebar
-                listings={listingsForDisplay}
+                listings={search.mapListings}
                 onExploreMap={() => setMapOpen(true)}
               />
             ) : null}
@@ -585,10 +579,10 @@ export function FindBrowse() {
           ]}
         >
           <FindMapPane
-            listings={listingsForDisplay.map(l => ({ ...l, promotion: undefined }))}
+            listings={search.mapListings.map(l => ({ ...l, promotion: undefined }))}
             campuses={campuses}
             universityMode={effectiveMode === "university"}
-            loading={loading}
+            loading={search.mapLoading}
             visible={isMap}
             fullHeight
             hoveredListingId={hoveredListingId}

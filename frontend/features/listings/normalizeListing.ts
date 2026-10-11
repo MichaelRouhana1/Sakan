@@ -219,6 +219,7 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
   return {
     matchFacts: extractMatchFacts(row),
     id: String(row.id),
+    placeId: typeof (row.placeId ?? row.place_id) === "string" ? String(row.placeId ?? row.place_id) : undefined,
     posterId: String(row.posterId ?? row.poster_id),
     status: (row.status as Listing["status"]) ?? "active",
     availability:

@@ -1,7 +1,5 @@
-import { composePlacements } from "@/features/promotions/composePlacements";
 import { recordFeaturedImpression, rememberPlacement } from "@/features/promotions/activity";
 import { useBrowseController } from "@/features/matcher/useBrowseController";
-import { rankListings, explainWidening } from "@/features/matcher/scoring";
 import { MatcherSheet } from "@/components/matcher/MatcherSheet";
 import { MatchSummaryBar } from "@/components/matcher/MatchResults";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -41,7 +39,8 @@ import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { Skoun } from "@/constants/theme";
-import { useListings } from "@/features/listings/useListings";
+import { useSearchListings } from "@/features/listings/useSearchListings";
+import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import {
@@ -327,20 +326,21 @@ export default function RenterSearchScreen() {
   const { filters: deferredFilters, mode: deferredMode, sort: deferredSort, prefs: deferredPrefs } = browse.deferred;
 
   const apiSort = useMemo(() => {
-    return deferredSort === "rent_asc" ? "price_asc" : "newest";
+    return deferredSort === "rent_asc" ? "price_asc" : deferredSort === "rent_desc" ? "price_desc" : deferredSort;
   }, [deferredSort]);
 
   const listFilters = useMemo(
-    () => toListFilters(deferredMode, deferredFilters, apiSort),
-    [deferredMode, deferredFilters, apiSort]
+    () => ({ ...toListFilters(deferredMode, deferredFilters, apiSort), matcher: deferredPrefs ?? undefined }),
+    [deferredMode, deferredFilters, apiSort, deferredPrefs]
   );
 
-  const listingsQuery = useListings(listFilters);
+  const listingsQuery = useSearchListings(listFilters, viewMode === "map");
   const rawListings = listingsQuery.data?.listings ?? [];
-  const ranked = useMemo(() => deferredPrefs ? rankListings(rawListings, deferredPrefs) : {listings:rawListings,matches:{}}, [rawListings,deferredPrefs]);
+  const featured = listingsQuery.data?.featured ?? [];
+  const ranked = { matches: listingsQuery.data?.matches ?? {} };
   const matching = deferredSort === "match" && !!deferredPrefs;
-  const listings = matching ? ranked.listings : deferredPrefs ? rawListings.filter(l => !!ranked.matches[l.id]) : rawListings;
-  const widening = useMemo(() => explainWidening(listings, deferredPrefs ?? {version:1}), [listings,deferredPrefs]);
+  const listings = rawListings;
+  const widening = listingsQuery.data?.widening ?? { strictCount: 0, alternativeCount: 0, labels: [], shortfall: true };
   const openMatcher = () => { closeSheets(); setViewMode("list"); browse.setOpen(true); };
   useEffect(() => {
     if (!browse.open) return;
@@ -364,20 +364,7 @@ export default function RenterSearchScreen() {
       Boolean(deferredFilters.campusId) ||
       Boolean(deferredFilters.institutionSlug));
 
-  // Client side sorting for desc/distance
-  const processedListings = useMemo(() => {
-    let result = [...listings];
-    if (deferredSort === "rent_desc") {
-      result.sort((a, b) => b.monthlyRentUsd - a.monthlyRentUsd);
-    } else if (deferredSort === "distance") {
-      result.sort((a, b) => {
-        const da = a.distanceMeters ?? Number.POSITIVE_INFINITY;
-        const db = b.distanceMeters ?? Number.POSITIVE_INFINITY;
-        return da - db;
-      });
-    }
-    return composePlacements(result, deferredSort);
-  }, [listings, deferredSort]);
+  const processedListings = useMemo(() => [...featured, ...listings], [featured, listings]);
 
   const browseRows: MixedListingRow[] = useMemo(
     () =>
@@ -621,7 +608,7 @@ export default function RenterSearchScreen() {
           <View style={styles.mapScreen}>
             {mapModalShown ? (
             <ListingBrowseMap
-              listings={processedListings.map(l => ({ ...l, promotion: undefined }))}
+              listings={listingsQuery.mapListings.map(l => ({ ...l, promotion: undefined }))}
               campuses={campuses}
               universityMode={isUniversityMode}
               focusCampusSlug={resolveFocusCampusSlug(
@@ -634,7 +621,7 @@ export default function RenterSearchScreen() {
                   : focusPoint
               }
               onSelectCampus={switchMapCampus}
-              loading={listingsQuery.isLoading}
+              loading={listingsQuery.mapLoading}
               fillContainer
               onCarouselOpenChange={onCarouselOpenChange}
               onOpenListing={(listing) => { rememberPlacement({ ...listing, promotion: undefined }); setMapListingId(listing.id); }}
@@ -792,7 +779,7 @@ export default function RenterSearchScreen() {
               : item.listing.id
           }
           ListHeaderComponent={
-            <>{deferredPrefs ? <MatchSummaryBar prefs={deferredPrefs} count={listings.length} widening={widening} onEdit={openMatcher} onStop={browse.stop} onClear={clearAllFilters} onMatch={()=>setSort("match")} matching={matching} loading={listingsQuery.isLoading || listingsQuery.isError} focusRevision={browse.applyRevision} /> : null}
+            <>{deferredPrefs ? <MatchSummaryBar prefs={deferredPrefs} count={listingsQuery.data?.pagination.totalMatching ?? 0} widening={widening} onEdit={openMatcher} onStop={browse.stop} onClear={clearAllFilters} onMatch={()=>setSort("match")} matching={matching} loading={listingsQuery.isLoading || listingsQuery.isError} focusRevision={browse.applyRevision} /> : null}
             {resultsTitle && !matching ? (
               <View style={styles.resultsHeadingBlock}>
                 <LText variant="subtitle" style={styles.resultsTitle}>
@@ -806,11 +793,14 @@ export default function RenterSearchScreen() {
               </View>
             ) : null}</>
           }
+          ListFooterComponent={listingsQuery.data ? <SearchPagination {...listingsQuery.data.pagination} loading={listingsQuery.isFetching} onPage={(page) => { listingsQuery.setPage(page); carouselScroll.listRef.current?.scrollToOffset({offset:0,animated:false}); }} /> : null}
           renderItem={({ item }) =>
             item.kind === "separator" ? (
               <CampusFarSeparator label={item.label} />
             ) : (
               <View style={styles.cardContainer}>
+                {item.listing.id === featured[0]?.id ? <LText variant="subtitle">Featured</LText> : null}
+                {featured.length > 0 && item.listing.id === listings[0]?.id ? <LText variant="subtitle">All results</LText> : null}
                 <ListingResultCard listing={item.listing} variant="grid" match={matching ? ranked.matches[item.listing.id] : undefined} />
               </View>
             )

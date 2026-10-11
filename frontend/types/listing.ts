@@ -99,6 +99,7 @@ export type StandardUnitSpecs = {
 };
 
 export type Listing = {
+  placeId?: string;
   matchFacts?: MatchFacts;
   id: string;
   posterId: string;

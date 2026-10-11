@@ -5,7 +5,6 @@ import {
   ValidationError,
 } from "../../lib/errors.js";
 import type { AuthUser } from "../../middleware/auth.js";
-import { COINCIDENT_METERS } from "../../constants/mapCoincident.js";
 import { priceGuideFromAggregate, type PriceGuideInput } from "./price-guide.js";
 import {
   universitiesRepository,
@@ -121,11 +120,10 @@ export class ListingsService {
     return listing;
   }
 
-  /** Coincident / same-building siblings for listing detail. */
+  /** Other public units belonging to this place. */
   async listNearby(id: string) {
     const rows = await listingsRepository.findNearbyActive(
       id,
-      COINCIDENT_METERS,
     );
     if (rows === null) {
       throw new NotFoundError("Listing not found");

@@ -7,8 +7,7 @@ import { normalizeListing } from "./normalizeListing";
 type NearbyResponse = { data: unknown };
 
 /**
- * Active listings within ~10m of this listing (same pin / building).
- * Skip when the origin has no coordinates.
+ * Public units with the same place ID. Coordinates are not membership evidence.
  */
 export function useNearbyListings(
   listingId: string,

@@ -29,7 +29,8 @@
     "db:seed:housing": "node ops/places/run-seed.mjs",
     "test:places": "npm run build && node tests/places-foundation.integration.mjs",
     "test:inventory": "npm run build && node tests/unit-inventory.integration.mjs",
-    "db:inventory:apply": "node ops/places/apply-inventory.mjs"
+    "db:inventory:apply": "node ops/places/apply-inventory.mjs",
+    "test:search": "npm run build && node tests/unit-search.integration.mjs"
   },
   "engines": {
     "node": ">=20"

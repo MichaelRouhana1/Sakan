@@ -16,7 +16,7 @@ type Props = {
 };
 
 /**
- * Sibling units at the same map pin (~10m). Hidden by the parent when empty.
+ * Other units with the same place ID. Hidden by the parent when empty.
  */
 export function CoincidentListingsSection({ listings }: Props) {
   if (listings.length === 0) return null;
@@ -24,12 +24,12 @@ export function CoincidentListingsSection({ listings }: Props) {
   return (
     <View
       accessibilityRole="summary"
-      accessibilityLabel={`${listings.length} more listings at this location`}
+      accessibilityLabel={`${listings.length} other units in this place`}
     >
       <View style={styles.header}>
-        <LText variant="subtitle">More at this location</LText>
+        <LText variant="subtitle">Other units in this place</LText>
         <LText variant="caption" tone="muted">
-          Other active listings within ~10m (same building)
+          Available units in this apartment or building
         </LText>
       </View>
 

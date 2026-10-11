@@ -49,7 +49,7 @@ import {
 } from "@/lib/mapClusters";
 import { formatDistanceShort } from "@/lib/formatDistance";
 import {
-  groupListingsByProximity,
+  groupListingsByPlace,
   type MapPinGroup,
 } from "@/lib/mapPinGroups";
 import {
@@ -418,7 +418,7 @@ export function ListingBrowseMap({
   const mappable = useMemo(() => listings.filter(hasCoords), [listings]);
 
   const groups = useMemo(
-    () => groupListingsByProximity(mappable),
+    () => groupListingsByPlace(mappable),
     [mappable],
   );
 

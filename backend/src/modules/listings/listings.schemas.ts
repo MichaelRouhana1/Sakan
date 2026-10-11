@@ -1,3 +1,4 @@
+import { matcherQuerySchema } from "../search/matcher.schema.js";
 import { z } from "zod";
 import {
   LEBANON_AREA_SET,
@@ -263,7 +264,7 @@ export const createListingSchema = z.object({
   };
 });
 
-export const listingSortSchema = z.enum(["newest", "price_asc"]).default("newest");
+export const listingSortSchema = z.enum(["newest", "price_asc", "price_desc", "distance", "match"]).default("newest");
 
 export type ListingSort = z.infer<typeof listingSortSchema>;
 
@@ -398,8 +399,12 @@ export const listListingsQuerySchema = z
     lng: z.string().optional(),
     /** Radius in km around campus or pin. Default 2 when geo active. */
     radiusKm: z.string().optional(),
-    /** Cities mode only — ignored when any universitySlugs are set. */
+    /** Global unit order, applied before pagination in every location mode. */
     sort: listingSortSchema,
+    matcher: matcherQuerySchema,
+    page: z.coerce.number().int().min(1).max(100000).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(24),
+    view: z.enum(["list", "map"]).default("list"),
     status: z.enum(["draft", "active", "archived", "removed"]).optional(),
     /** Comma-separated electricity enums. */
     electricity: z.string().optional(),
@@ -605,6 +610,7 @@ export const listListingsQuerySchema = z
       lng,
       radiusKm,
       sort: raw.sort,
+      matcher: raw.matcher, page: raw.page, pageSize: raw.pageSize, view: raw.view,
       status: raw.status,
       electricity,
       water,

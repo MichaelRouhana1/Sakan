@@ -29,7 +29,7 @@ import {
 import { saveMatcherPreferences } from "./storage";
 import type { MatcherPreferences } from "./types";
 
-/** One source of truth for both Explore renderers; matcher data never reaches API params. */
+/** One source of truth for both Explore renderers; preferences are sent to the server for global scoring. */
 export function useBrowseController() {
   const params = useLocalSearchParams() as BrowseParams;
   const universities = useUniversities();

@@ -15,7 +15,7 @@ import {
   DIMENSIONS,
   type MatcherPreferences,
 } from "@/features/matcher/types";
-import type { explainWidening } from "@/features/matcher/scoring";
+import type { MatchWidening } from "@/features/matcher/types";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import { PrefsPopover } from "@/components/matcher/PrefsPopover";
 
@@ -31,7 +31,7 @@ export function MatchSummaryBar({
 }: {
   prefs: MatcherPreferences;
   count: number;
-  widening: ReturnType<typeof explainWidening>;
+  widening: MatchWidening;
   onEdit: () => void;
   onStop: () => void;
   onClear: () => void;
@@ -77,7 +77,7 @@ export function MatchSummaryBar({
           } Edit your requirements or clear filters to explore more.`
         : `${widening.strictCount} ${
             widening.strictCount === 1 ? "listing fits" : "listings fit"
-          } every preference. All ${count} eligible listings stay visible.`
+          } every preference. ${count} matching units across all pages.`
       : null;
   return (
     <View

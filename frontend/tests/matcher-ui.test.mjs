@@ -1,3 +1,4 @@
+import { searchResponse } from "./search-response.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { build } from "../../backend/node_modules/esbuild/lib/main.js";
@@ -137,7 +138,7 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const base = `http://127.0.0.1:${server.address().port}`;
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, channel: "msedge" });
   const errors = [];
   async function pageFor(width = 1024, options = {}) {
     const page = await browser.newPage({
@@ -181,15 +182,7 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
       );
       requests.push(params);
       if (options.listings) return options.listings(r, params);
-      await r.fulfill({
-        json: {
-          data: rows.filter(
-            (l) =>
-              !params.maxRentUsd ||
-              l.monthlyRentUsd <= Number(params.maxRentUsd),
-          ),
-        },
-      });
+      await r.fulfill({ json: searchResponse(rows, params) });
     });
     await page.goto(`${base}${options.path ?? ""}`);
     await expect(page.getByTestId("result-best")).toBeVisible();
@@ -489,7 +482,7 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
         ])
           assert.equal(
             requests.at(-1)[key],
-            key === "sort" ? "newest" : undefined,
+            key === "sort" ? "match" : undefined,
             key,
           );
         const unknown = page.getByTestId("result-unknown");

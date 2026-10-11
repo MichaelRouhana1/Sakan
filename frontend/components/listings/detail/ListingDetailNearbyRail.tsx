@@ -20,7 +20,7 @@ export function ListingDetailNearbyRail({ listings }: Props) {
   return (
     <View style={styles.wrap}>
       <LText variant="title" style={styles.heading}>
-        Nearby listings
+        Other units in this place
       </LText>
       <ScrollView
         horizontal

@@ -10,7 +10,7 @@ const frontend = path.resolve(
 );
 const bundle = await build({
   stdin: {
-    contents: `export * from './features/matcher/scoring'; export * from './features/matcher/preferences'; export * from './features/matcher/browseState'; export * from './features/listings/normalizeListing'; export * from './lib/browseFilters';`,
+    contents: `export * from '../backend/src/modules/search/matcher.scoring'; export * from './features/matcher/preferences'; export * from './features/matcher/browseState'; export * from './features/listings/normalizeListing'; export * from './lib/browseFilters';`,
     resolveDir: frontend,
     loader: "ts",
   },
@@ -267,7 +267,7 @@ test("URL round-trip retains matcher sort, requirements, and legacy links", () =
   const decoded = m.parseBrowseState(encoded);
   assert.deepEqual(JSON.parse(JSON.stringify(decoded.prefs)), all);
   assert.equal(decoded.sort, "match");
-  assert.equal(m.parseBrowseState({ campusId: "campus" }).sort, "distance");
+  assert.equal(m.parseBrowseState({ campusId: "campus" }).sort, "newest");
   assert.equal(
     m.parseBrowseState({ sort: "match", match: "bad json" }).sort,
     "newest",

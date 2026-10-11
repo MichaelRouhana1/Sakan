@@ -1,9 +1,9 @@
 # Places and units — foundation and implementation plan
 
-Slice 1 implemented and verified locally on 2026-10-10. Slice 2 includes the host
-inventory flows listed below, as well as server inventory/money and admin Listings.
-Slice 2 is complete and verified locally on 2026-10-11, ready for review. Stop here;
-slice 3 is not authorized. Historical verification is labeled below.
+Slice 1 is implemented and committed. Slice 2 is implemented, committed and
+approved. Slice 3 (search) is implemented locally on 2026-10-11; its implementation
+and verification record is below. Slices 4 and 5 remain deferred and untouched.
+Earlier verification records are historical.
 
 ## Approved decisions and remaining slices (2026-10-10)
 
@@ -12,7 +12,7 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
 - Search always returns one card per unit and paginates units. No representative
   unit per place, `ROW_NUMBER`/`DISTINCT ON` place grouping, or “+N more units here”.
   Featured remains a separate labeled group above results; its units are excluded
-  from the normal list. Search/matcher changes remain in slice 3.
+  from the normal list. These search/matcher changes are implemented in slice 3.
 - Promotions retain existing per-listing limits and the three-campaign Featured
   capacity per area/campus. There is no per-place Bump or Featured limit.
 - A place has exactly one owner. Never merge places across owners or because pins
@@ -26,7 +26,7 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
 - The Achrafieh $520 and Hamra $650 rows listed below are owner-confirmed test data
   and belong in the fingerprinted deletion manifest. Adding them does not run a reset.
 
-### Slice 2 — inventory and money (current implementation scope)
+### Slice 2 — inventory and money (completed and approved)
 
 1. Introduce shared server inventory rules and transaction boundaries used by host,
    admin and lifecycle writes. Explicit unit/place hiding is separate from lifecycle
@@ -61,11 +61,116 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
 
 ### Later slices (not authorized for implementation in this change)
 
-- Slice 3: per-unit search/pagination with a separate deduplicated Featured group,
-  server matcher/scoring, place map pins and place-based detail siblings.
 - Slice 4: multi-unit wizard/Add a unit, shared editing, electricity wording above,
   two galleries and draft migration.
 - Slice 5: removal of transitional legacy columns and old route cache.
+
+## Slice 3 — search implementation and review handoff (2026-10-11)
+
+Scope is search only. There is no result grouping and no per-place promotion
+limit. Every rentable unit keeps its own card, listing ID and detail URL.
+The multi-unit wizard, shared editing, galleries, draft migration, removal of
+legacy fields and removal of the old route cache remain in slices 4 and 5.
+
+- `GET /api/listings` now returns `data` (one normal unit page), `featured`
+  (a separate labeled group), `campuses`, `matches`, `widening` and `pagination`.
+  `page` starts at 1; `pageSize` defaults to 24 and is capped at 100. Pagination
+  counts normal units after Featured exclusion; `totalMatching` includes both
+  groups. Out-of-range pages clamp to the last page. Filters/sorts reset the
+  client's page. Tie-breaks use publication/creation time, then listing ID.
+- Sorts are `newest` (default), `price_asc`, `price_desc`, `distance`, and `match`.
+  Every sort applies to the complete eligible population before pagination,
+  including campus and point searches. Bump changes newest only, including the
+  transitional legacy boost fallback while promotion placement is disabled.
+  Campus/pin distance comes from PostGIS; a selected area center or preferred
+  matcher location can supply distance without imposing a radius requirement.
+  With no distance reference, distance order falls back to recency/ID.
+- The six-dimension matcher, weights, hard requirements, best-match ties and
+  widening explanations execute on the server. `matcher` is validated JSON
+  containing version-1 preferences. Campus identity is resolved on the server;
+  client-supplied campus coordinates cannot change eligibility. Area centers
+  come from the server's known areas. A required unknown fact still excludes a
+  unit; soft preferences do not silently narrow manual filters. Match explanations
+  and counts reflect all eligible units, not just the loaded page.
+- Featured selection/rotation uses the existing selected area/campus market and
+  promotion session after renter eligibility. Featured IDs are removed from all
+  normal pages. Its section stays above results in every sort. Per-listing limits
+  and the cap of three Featured campaigns per area/campus are unchanged; multiple
+  units from one place remain independently promotable.
+- Web and Expo render the API's order and match metadata directly. The old client
+  scorer and promotion reordering helper are removed. Both current search screens
+  have pagination; the still-exposed older browse screen also consumes the new
+  paginated contract. No route was removed.
+- Maps request `view=map` using the same filters and matcher requirements. This
+  returns the complete matching population separately from the normal page, so
+  pins include matching units on other pages and Featured units exactly once.
+  Pins use `placeId`, show the matching unit count and minimum rent, and preserve
+  separate places/owners at coincident coordinates. Supercluster remains in use.
+  The web sidebar preview uses the same place membership and full-set counts;
+  empty results no longer show sample housing pins. Map interactions strip paid
+  placement attribution, retaining the existing analytics behavior.
+- The existing `/:id/nearby` compatibility URL now returns public siblings with
+  the same `place_id`, never a distance-based approximation. Web and Expo label it
+  “Other units in this place”; fetching does not depend on the origin's coordinates.
+- Search, matcher, maps, Featured, detail siblings and suggestions retain the
+  slice-2 visibility predicate: hidden units/places, rented units, unconfirmed
+  inventory, zero available beds, expired and non-active units are excluded.
+  Owner identity and money/inventory writes are unchanged.
+
+Rollout: deploy the API and clients together because Featured and pagination
+are now explicit envelope fields. This slice requires the installed slice-2
+schema (through 0035) and adds no migration. No application database migration,
+reset, seed, deployment or change to promotion pricing was performed.
+
+Implementation boundary: eligibility is selected by the existing SQL inventory
+queries, then the complete candidate population is scored/ordered in server
+memory before taking the page. The map response intentionally includes every
+matching unit. This is not database-level seek pagination or a load-tested search
+index; there is no `DISTINCT ON`/representative-unit grouping.
+
+Verification:
+- Backend TypeScript build and nine disposable-database search scenarios pass:
+  unit pagination, all global sorts in area/campus/point modes, global matcher
+  scores/requirements, canonical campus coordinates, membership, full map sets,
+  Featured deduplication/rotation, sibling campaigns, Bump/legacy behavior,
+  hidden inventory and HTTP validation/envelopes.
+- Foundation regression: all 24 scenarios pass, including resolver and route-cache
+  preservation. Inventory: all 20 scenarios pass. Promotions: all 17 scenarios pass,
+  including market capacity, per-listing limits, refunds and concurrency.
+- Matcher/facts/preferences regression: 11 tests pass against the moved server
+  scorer. Four place-pin tests pass, covering counts beyond one page, coincident
+  owners, stable identities, duplicate inputs and cluster expansion.
+- The actual exported web search passes five-sort API-order preservation,
+  separate Featured rendering, next/previous unit pages, page reset after sort
+  changes, phone-width layout and API-error retry. Responses deliberately use an
+  order that an old client sorter would change. This is a real-screen test against
+  controlled API responses; the database contract is tested separately above.
+  The exported matcher guide/handoff, URL reload and normal-filter test also
+  passes; its stale reopened-guide assertion now expects the existing summary
+  action instead of a new-question Continue button.
+- The broader existing matcher browser suite passes eight flows and fails three
+  pre-existing checks: short-screen answer-tray visibility, mobile campus-input
+  focus, and a stale expected heading after storage failure. All three reproduce
+  using the committed 0ce23cb harness/scorer with the unchanged matcher UI.
+  Those unrelated matcher UI issues were not expanded into this search slice.
+  Existing app-shell hydration warnings also remain; the dedicated search test
+  reports them separately from unexpected runtime errors.
+- Frontend TypeScript compared with 0ce23cb using the same dependencies: 124
+  baseline diagnostics, 124 current, zero added. The comparison now also handles
+  moved/deleted modules correctly, without counting missing baseline files as
+  regressions or improvements.
+- Final production export passes for web, iOS and Android: 84 static HTML routes
+  including search, plus both Hermes `.hbc` bundles verified on disk. No
+  physical-device runtime testing or signed IPA/APK packaging is claimed.
+- `git diff --check` passes. Slice 3 stops at this commit for review.
+
+Reproduce: `npm run test:search`, `npm run test:inventory`, and
+`npm run test:promotions` from `backend`; `node --test tests/matcher.test.mjs
+tests/place-pins.test.mjs`, `node tests/typecheck-baseline.mjs 0ce23cb`,
+`npm run build -- --output-dir .expo/slice3-export`, and
+`node tests/unit-search-ui.mjs` from `frontend`.
+Evidence: `frontend/.expo/slice3-typecheck.json`, `slice3-build.log`,
+`slice3-ui/`, `slice3-export-result.json`, and `slice3-matcher-baseline.log` (local ignored artifacts).
 
 ## Slice 2 implementation and review handoff
 

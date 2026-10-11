@@ -1,6 +1,6 @@
 import { SegmentedPillTrack } from "@/components/listings/SegmentedPillTrack";
 
-export type ListingSort = "newest" | "price_asc";
+export type ListingSort = "newest" | "price_asc" | "price_desc" | "distance" | "match";
 
 type Props = {
   value: ListingSort;

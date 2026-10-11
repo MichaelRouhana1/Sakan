@@ -1,5 +1,5 @@
 import { activityInputSchema } from '../listing-activity/activity-policy.js';
-import { enrichPlacements } from '../listing-activity/placement.service.js';
+import { searchUnits } from '../search/unit-search.service.js';
 import type { NextFunction, Request, Response } from "express";
 import { ValidationError } from "../../lib/errors.js";
 import { listingsService } from "./listings.service.js";
@@ -62,6 +62,10 @@ export class ListingsController {
         lng: queryString(req.query.lng),
         radiusKm: queryString(req.query.radiusKm),
         sort: queryString(req.query.sort),
+        matcher: queryString(req.query.matcher),
+        page: queryString(req.query.page),
+        pageSize: queryString(req.query.pageSize),
+        view: queryString(req.query.view),
         electricity: queryString(req.query.electricity),
         water: queryString(req.query.water),
         listingTypes: queryString(req.query.listingTypes),
@@ -76,27 +80,7 @@ export class ListingsController {
           parsed.error.issues.map((i) => i.message).join("; "),
         );
       }
-      const result = await listingsService.list({
-        areas: parsed.data.areas,
-        universitySlugs: parsed.data.universitySlugs,
-        campusId: parsed.data.campusId,
-        q: parsed.data.q,
-        lat: parsed.data.lat,
-        lng: parsed.data.lng,
-        radiusKm: parsed.data.radiusKm,
-        sort: parsed.data.sort,
-        electricity: parsed.data.electricity,
-        water: parsed.data.water,
-        listingTypes: parsed.data.listingTypes,
-        wifiIncluded: parsed.data.wifiIncluded,
-        minRentUsd: parsed.data.minRentUsd,
-        maxRentUsd: parsed.data.maxRentUsd,
-        studentsOnly: parsed.data.studentsOnly,
-        genderRestrictions: parsed.data.genderRestrictions,
-      });
-      // Stable envelope: campuses is always an array (empty in Cities mode).
-      const data = await enrichPlacements(result.data, parsed.data, queryString(req.query.promotionSession));
-      res.json({ data, campuses: result.campuses });
+      res.json(await searchUnits(parsed.data, queryString(req.query.promotionSession)));
     } catch (err) {
       next(err);
     }

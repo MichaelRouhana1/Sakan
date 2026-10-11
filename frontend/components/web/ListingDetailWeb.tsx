@@ -129,7 +129,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   const toggleSaved = useToggleSaved();
   const reported = useIsReported(listingId);
   const nearby = useNearbyListings(listingId, {
-    enabled: Boolean(listing && listing.lng != null && listing.lat != null),
+    enabled: Boolean(listing?.placeId),
   });
 
   const [reportOpen, setReportOpen] = useState(false);

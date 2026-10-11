@@ -1,3 +1,4 @@
+import { searchResponse } from "./search-response.mjs";
 // First run: npx expo export --platform web --output-dir .expo/matcher-export (from frontend).
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -55,7 +56,7 @@ test(
     });
     server.listen(0, "127.0.0.1");
     await once(server, "listening");
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: true, channel: "msedge" });
     const base = `http://127.0.0.1:${server.address().port}`;
     const errors = [];
     const prefs = {
@@ -102,7 +103,7 @@ test(
       await page.route("**/api/**", (r) => {
         const pathname = new URL(r.request().url()).pathname;
         return r.fulfill({
-          json: { data: pathname === "/api/listings" ? fixtures : [] },
+          json: pathname === "/api/listings" ? searchResponse(fixtures, Object.fromEntries(new URL(r.request().url()).searchParams)) : { data: [] },
         });
       });
       await page.goto(`${base}/search`);
@@ -187,7 +188,7 @@ test(
         })
         .click();
       await expect(
-        page.getByRole("button", { name: "Continue", exact: true }),
+        page.getByRole("button", { name: "Find my best matches", exact: true }),
       ).toBeInViewport();
       await page.screenshot({
         path: path.join(frontend, ".expo/matcher-tests/explore-guide-375.png"),

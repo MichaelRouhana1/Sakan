@@ -23,6 +23,7 @@ import {
   type Marker,
 } from "@/lib/skounMapbox.web";
 import type { Listing } from "@/types/listing";
+import { groupListingsByPlace } from "@/lib/mapPinGroups";
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 const SKOUN_BLUE = "#2F6FED";
@@ -71,29 +72,17 @@ type Props = {
 
 type PreviewPin = { lat: number; lng: number; label: string };
 
-const SAMPLE_PINS: PreviewPin[] = [
-  { lat: 33.9002, lng: 35.4824, label: "$450" },
-  { lat: 33.8954, lng: 35.4781, label: "$380" },
-  { lat: 33.8991, lng: 35.5062, label: "$620" },
-  { lat: 33.8884, lng: 35.519, label: "$510" },
-];
-
 function shortPrice(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
 }
 
 function pinsFromListings(listings: Listing[]): PreviewPin[] {
-  return listings
-    .filter(
-      (item): item is Listing & { lat: number; lng: number } =>
-        item.lat != null && item.lng != null,
-    )
-    .slice(0, 8)
-    .map((item) => ({
-      lat: item.lat,
-      lng: item.lng,
-      label: shortPrice(item.monthlyRentUsd),
-    }));
+  return groupListingsByPlace(listings.filter(
+    (item): item is Listing & { lat: number; lng: number } => item.lat != null && item.lng != null,
+  )).slice(0, 8).map(group => ({
+    lat: group.lat, lng: group.lng,
+    label: `${shortPrice(group.displayPriceUsd)} · ${group.count}`,
+  }));
 }
 
 /** Live Standard-style preview — same chrome as browse map, no nav. */
@@ -106,7 +95,7 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
 
   const pins = useMemo(() => {
     const live = pinsFromListings(listings);
-    return live.length > 0 ? live : SAMPLE_PINS;
+    return live;
   }, [listings]);
 
   useEffect(() => {

@@ -19,7 +19,7 @@ type Props = {
 };
 
 /**
- * Multi-listing picker when several homes share one map pin (same building).
+ * Multi-listing picker when several homes share one map pin (same place).
  */
 export function ListingMapPicker({
   listings,
@@ -33,13 +33,13 @@ export function ListingMapPicker({
     <View
       style={styles.shell}
       accessibilityRole="menu"
-      accessibilityLabel={`${count} listings at this location`}
+      accessibilityLabel={`${count} matching units in this place`}
     >
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <LText variant="subtitle">{count} places here</LText>
+          <LText variant="subtitle">{count} matching units here</LText>
           <LText variant="caption" tone="muted">
-            Same pin — pick one to preview
+            Choose a unit in this place to preview
           </LText>
         </View>
         {onDismiss ? (
