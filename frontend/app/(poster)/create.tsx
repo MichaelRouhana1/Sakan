@@ -16,9 +16,10 @@ import { CreateListingProvider } from "@/features/listings/create/CreateListingP
 import type { DraftSlot } from "@/features/listings/create/draft";
 
 export default function CreateListingScreen() {
-  const { new: newParam, working: workingParam } = useLocalSearchParams<{
+  const { new: newParam, working: workingParam, placeId } = useLocalSearchParams<{
     new?: string;
     working?: string;
+    placeId?: string;
   }>();
   const startFresh = newParam === "1";
   const draftSlot: DraftSlot =
@@ -48,7 +49,7 @@ export default function CreateListingScreen() {
   }
 
   return (
-    <CreateListingProvider startFresh={startFresh} draftSlot={draftSlot}>
+    <CreateListingProvider startFresh={startFresh} draftSlot={draftSlot} placeId={placeId}>
       <CreateWizardShell />
     </CreateListingProvider>
   );

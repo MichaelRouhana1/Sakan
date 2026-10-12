@@ -17,6 +17,9 @@ import { listingKeys } from "./keys";
 import { normalizeListing } from "./normalizeListing";
 
 export type CreateListingBody = {
+  bathroomPrivacy?: 'private'|'shared';
+  differentFields?: string[];
+  expectedPlaceUpdatedAt?: string;
   spaceType: SpaceType;
   propertyType: PropertyType;
   priceBasis: PriceBasis;

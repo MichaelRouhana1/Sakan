@@ -1,3 +1,4 @@
+import { SharedPhotoGallery } from './SharedPhotoGallery';
 import { mobileHeroHeight } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
@@ -214,6 +215,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             </View>
           ) : null}
 
+          <View style={styles.sectionPad}><SharedPhotoGallery listing={listing}/></View>
           {description ? (
             <View
               collapsable={false}

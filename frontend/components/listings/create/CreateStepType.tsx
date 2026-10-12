@@ -1,3 +1,5 @@
+import { StepperControl } from './StepperControl';
+import { resizeUnits } from '@/features/listings/create/unitDrafts';
 import { View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
@@ -18,7 +20,7 @@ import { useCreateListingDraft } from "@/features/listings/create/CreateListingP
 import type { PriceBasis, PropertyType, SpaceType } from "@/types/listing";
 
 export function CreateStepType() {
-  const { draft, patch } = useCreateListingDraft();
+  const { draft, patch, formChrome } = useCreateListingDraft();
   const spaceInvalid = useWizardFieldInvalid("spaceType");
   const propertyInvalid = useWizardFieldInvalid("propertyType");
 
@@ -51,6 +53,8 @@ export function CreateStepType() {
           ))}
         </WizardFieldGroup>
       </LockedCluster>
+      {formChrome === 'wizard' && draft.spaceType ? <StepperControl label="How many are you listing?"
+        value={draft.unitCount ?? 1} min={1} max={20} onChange={n=>patch(resizeUnits(draft,n))} /> : null}
       <LockedCluster fields={["propertyType"]}>
         <Enter delay={240}>
           <WizardFieldLabel required>Property type</WizardFieldLabel>

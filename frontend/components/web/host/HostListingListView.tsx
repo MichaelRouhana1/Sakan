@@ -194,6 +194,7 @@ export function HostListingListView({
                 <Text style={styles.rowTitle} numberOfLines={2}>
                   {title}
                 </Text>
+                <Text style={styles.rowMeta}>{listing.viewCount ?? 0} views · {listing.contactTapCount ?? 0} contact taps</Text>
                 {compact ? (
                   <Text style={styles.rowMeta} numberOfLines={1}>
                     {listing.area}

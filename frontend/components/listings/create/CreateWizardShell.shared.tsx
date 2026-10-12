@@ -1,3 +1,5 @@
+import { UnitCards } from './UnitCards';
+import { countUnits, placeKind, wizardStepOrder } from '@/features/listings/create/unitDrafts';
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -89,7 +91,9 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
   const scrollContentRef = useWizardScrollContentRef();
   const handleScroll = useWizardScrollHandler();
   const meta = WIZARD_STEPS[draft.step];
-  const Step = STEPS[draft.step];
+  const multi = countUnits(draft)>1 || Boolean(draft.existingPlaceId);
+  const Step = multi && draft.step===5 ? UnitCards : STEPS[draft.step];
+  const sharedTitle = placeKind(draft)==='building'?'Building details':'Apartment details';
   const last = draft.step === WIZARD_STEPS.length - 1;
   const lottieAsset = useWizardLottieAsset(meta.id);
   const lottieFrame = wizardLottieFrame(lottieAsset, width, split);
@@ -119,7 +123,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
       }
     >
       {!review ? <>
-        <WizardHeadline title={meta.title} subtitle={meta.subtitle} />
+        <WizardHeadline title={multi && [1,3,4].includes(draft.step) ? sharedTitle : multi && draft.step===5 ? 'Your units' : meta.title} subtitle={multi && [1,3,4].includes(draft.step) ? `Shared by every unit · ${meta.title}` : multi && draft.step===5 ? 'Give each rentable unit its own photos, details and price.' : meta.subtitle} />
         <View style={{ height: split ? 32 : 20 }} />
       </> : null}
       <Step />
@@ -173,7 +177,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
           <Ionicons name="close" size={22} color={Lister.color.ink} />
         </Pressable>
       )}
-      <CreateProgress step={draft.step} />
+      <CreateProgress steps={wizardStepOrder(draft)} step={draft.step} />
     </View>
   ) : (
     <View
@@ -204,7 +208,7 @@ function ShellFrame({ splitAt, styles, footerInsetBottom }: Props) {
     >
       {!split ? (
         <View style={sharedStyles.progressSlot}>
-          <CreateProgress step={draft.step} variant="footer" />
+          <CreateProgress steps={wizardStepOrder(draft)} step={draft.step} variant="footer" />
         </View>
       ) : null}
       <CreateFooter

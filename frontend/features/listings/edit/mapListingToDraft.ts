@@ -57,6 +57,9 @@ export function mapListingToDraft(listing: Listing): CreateListingDraft {
   return {
     ...INITIAL_DRAFT,
     step: 0,
+    bathroomPrivacy:listing.bathroomPrivacy ?? undefined,
+    bedsAvailable:listing.bedsAvailable ?? null,
+    placeKind:listing.placeKind,
     spaceType: listing.spaceType ?? null,
     propertyType: listing.propertyType ?? null,
     priceBasis: listing.priceBasis ?? "per_unit_month",

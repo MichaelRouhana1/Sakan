@@ -1,3 +1,7 @@
+import { placePhotos } from '../../db/schema/places.js';
+import { ConflictError } from '../../lib/errors.js';
+import { sharedFields, sharedSqlValues } from './place-fields.js';
+import type { PromotionWalletTransaction } from '../credits/promotion-wallet.js';
 import { ValidationError } from '../../lib/errors.js';
 import { chargeUnit } from './listing-charges.service.js';
 import { lockInventory, changeUnitInventory, settlePlaceInventory } from './inventory.service.js';
@@ -55,8 +59,11 @@ export type ListingWithPhotos = Record<string, unknown> & {
 /** Explicit listing columns — never select raw geography/location. */
 export const listingPublicColumns = {
   id: listings.id,
+  contactTapCount: listings.contactTapCount,
   placeId: listings.placeId,
   unitType: listings.unitType,
+  bathroomPrivacy: listings.bathroomPrivacy,
+  placeKind: sql<string>`(SELECT kind FROM places WHERE id=listings.place_id)`,
   hidden: listings.hidden,
   hiddenReason: sql<string | null>`unit_hidden_reason(listings)`,
   bedsTotal: listings.bedsTotal,
@@ -343,7 +350,10 @@ export class ListingsRepository {
       lat: parseCoord(row.lat),
     };
     const [withPhotos] = await this.withPhotos([normalized]);
-    return withPhotos ?? null;
+    if (!withPhotos) return null;
+    const sharedPhotos = await db.select({id:placePhotos.id,url:placePhotos.url,caption:placePhotos.caption,sortOrder:placePhotos.sortOrder})
+      .from(placePhotos).where(eq(placePhotos.placeId,row.placeId)).orderBy(asc(placePhotos.sortOrder));
+    return {...withPhotos,sharedPhotos};
   }
 
   /** Public siblings are explicit place members, never proximity matches. */
@@ -707,6 +717,15 @@ export class ListingsRepository {
   }
 
   async create(posterId: string, input: CreateListingInput) {
+    const id = await db.transaction(async tx => {
+      await promotionLock(tx);
+      return this.insertUnit(tx, posterId, input);
+    });
+    return id ? this.findById(id) : null;
+  }
+
+  async insertUnit(tx: PromotionWalletTransaction, posterId: string, input: CreateListingInput,
+    membership: Partial<typeof listings.$inferInsert> = {}) {
     const publishNow = input.publishNow !== false;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -720,11 +739,10 @@ export class ListingsRepository {
     const contactNumbers = resolveContactNumbers(input);
     const phones = deriveContactPhones(contactNumbers);
 
-    const id = await db.transaction(async tx => {
-    await promotionLock(tx);
     const [row] = await tx
       .insert(listings)
       .values({
+        ...membership,
         posterId,
         listingType,
         spaceType: input.spaceType,
@@ -804,8 +822,6 @@ export class ListingsRepository {
 
     if (publishNow) await chargeUnit(tx,posterId,row.id,'publish','publish:'+row.id);
     return row.id;
-    });
-    return id ? this.findById(id) : null;
   }
 
   async incrementViewCount(id: string) {
@@ -989,11 +1005,16 @@ export class ListingsRepository {
     return db.transaction(async (tx) => {
       await promotionLock(tx);
       const original = await lockInventory(tx,id);
+      if(input.expectedPlaceUpdatedAt){
+        const [place]=await tx.execute(sql`SELECT updated_at FROM places WHERE id=${String(original.place_id)}::uuid FOR UPDATE`);
+        if(!place || new Date(String(place.updated_at)).toISOString()!==input.expectedPlaceUpdatedAt)throw new ConflictError('Shared details changed. Refresh before saving.');
+      }
       if (original.unit_type === 'shared_bed' && (write.beds !== original.beds || write.listingType !== original.listing_type)) throw new ValidationError('Change shared-bed inventory using the inventory controls');
       if (original.availability === 'rented' && write.listingType !== original.listing_type) throw new ValidationError('Confirm vacancy before changing the unit type');
       await tx
         .update(listings)
         .set({
+          ...(input.bathroomPrivacy ? {bathroomPrivacy:input.bathroomPrivacy}:{}),
           listingType: write.listingType,
           spaceType: write.spaceType,
           propertyType: write.propertyType,
@@ -1056,6 +1077,16 @@ export class ListingsRepository {
         })
         .where(eq(listings.id, id));
 
+      if(input.differentFields){
+        const values=sharedSqlValues(input);
+        const overrides=Object.fromEntries(Object.entries(sharedFields).filter(([key])=>input.differentFields!.includes(key)).map(([,col])=>[col,values[col]]));
+        const [place]=await tx.execute(sql`SELECT amenities FROM places WHERE id=${String(original.place_id)}::uuid`);
+        const custom=input.differentFields.includes('amenities');
+        // A second, metadata-only write restores place sources after the legacy bridge.
+        await tx.update(listings).set({placeOverrides:overrides,unitAmenities:custom?input.amenities:[],
+          amenityOverrides:custom?Object.fromEntries((place!.amenities as string[]).filter(a=>!input.amenities.includes(a)).map(a=>[a,false])):{},
+        }).where(eq(listings.id,id));
+      }
       await tx.delete(listingPhotos).where(eq(listingPhotos.listingId, id));
       if (write.photos.length > 0) {
         await tx.insert(listingPhotos).values(

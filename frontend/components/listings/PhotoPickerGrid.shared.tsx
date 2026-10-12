@@ -47,6 +47,7 @@ export type DraftPhoto = {
 };
 
 export type PhotoPickerGridProps = {
+  shared?: boolean;
   photos: DraftPhoto[];
   setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>;
   style?: ViewStyle;
@@ -225,6 +226,7 @@ export function reorderPhotos(
 }
 
 type PhotoTileProps = {
+  shared?: boolean;
   photo: DraftPhoto;
   index: number;
   isDragging?: boolean;
@@ -239,6 +241,7 @@ type PhotoTileProps = {
 };
 
 export function PhotoTile({
+  shared = false,
   photo,
   index,
   isDragging,
@@ -284,7 +287,7 @@ export function PhotoTile({
           accessibilityLabel={
             photo.status === "error"
               ? "Retry photo upload"
-              : index === 0
+              : index === 0 && !shared
                 ? "Cover photo, drag to reorder"
                 : `Photo ${index + 1}, drag to reorder`
           }
@@ -363,7 +366,7 @@ export function PhotoTile({
           </Pressable>
         ) : null}
 
-        {!isDragging && index === 0 ? (
+        {!shared && !isDragging && index === 0 ? (
           <View style={photoPickerStyles.coverBadge}>
             <LText variant="caption" style={photoPickerStyles.coverBadgeText}>
               Cover
@@ -458,9 +461,11 @@ export function AddPhotoTile({
 }
 
 export function PhotoGridHeader({
+  shared = false,
   photoCount,
   uploading,
 }: {
+  shared?: boolean;
   photoCount: number;
   uploading: boolean;
 }) {
@@ -474,10 +479,10 @@ export function PhotoGridHeader({
             tabIndex={-1}
             variant="subtitle"
           >
-            Photos of the place
+            {shared ? 'Shared photos · optional' : 'Unit photos'}
           </LText>
           <LText variant="body" tone="muted">
-            {Platform.OS === "web"
+            {shared ? 'Shared spaces and building photos. Add up to 15; these never become a unit cover.' : Platform.OS === "web"
               ? "Drop images here or click to add. Drag photos to reorder. First is the search cover."
               : "Drag to reorder. First photo is the cover renters see in search."}
           </LText>
@@ -503,7 +508,8 @@ export function PhotoGridHeader({
   );
 }
 
-export function PhotoGridFooter({ readyCount }: { readyCount: number }) {
+export function PhotoGridFooter({ readyCount, shared = false }: { readyCount: number; shared?: boolean }) {
+  if(shared)return <LText variant="caption" tone="muted">{readyCount} shared photos ready · 0–15 allowed.</LText>;
   if (readyCount < MIN_LISTING_PHOTOS) {
     return (
       <LText variant="caption" tone="muted">

@@ -42,6 +42,9 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
   const first = cutWindows[0];
 
   return {
+    bathroomPrivacy:draft.bathroomPrivacy,
+    differentFields:draft.differentFields,
+    expectedPlaceUpdatedAt:draft.expectedPlaceUpdatedAt,
     spaceType: draft.spaceType!,
     propertyType: draft.propertyType!,
     priceBasis: draft.priceBasis,

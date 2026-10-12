@@ -1,3 +1,6 @@
+import { ownerPlace } from './unit-publish.service.js';
+import { sharedFields, locationFields } from './place-fields.js';
+import { ConflictError } from '../../lib/errors.js';
 import {
   ForbiddenError,
   NotFoundError,
@@ -337,11 +340,25 @@ export class ListingsService {
       throw new NotFoundError("Listing not found");
     }
 
+    if(input.differentFields){
+      const place=await ownerPlace(owner.id,String(listing.placeId));
+      if(!input.expectedPlaceUpdatedAt || new Date(place.updatedAt).toISOString()!==input.expectedPlaceUpdatedAt)throw new ConflictError('Shared details changed. Refresh before saving.');
+      for(const key of [...Object.keys(sharedFields),'amenities']) {
+        if(!input.differentFields.includes(key))(input as Record<string,unknown>)[key]=(place as Record<string,unknown>)[key];
+      }
+    }
     const now = new Date();
     const before = snapshotFromRow(listing);
     const write = listingWriteFromInput(input);
     const after = snapshotFromWrite(write);
+    // Older clients omit this field; their saves preserve the stored bathroom choice.
+    after.bathroomPrivacy = input.bathroomPrivacy ?? before.bathroomPrivacy;
     const diff = diffListingUpdate(before, after);
+    if(input.differentFields){
+      const changedLocation=Object.keys(locationFields).some(key=>JSON.stringify(before[key]??null)!==JSON.stringify(after[key]??null));
+      const a=readSnapshotLocation(before),b=readSnapshotLocation(after);
+      if(changedLocation || a?.lat!==b?.lat || a?.lng!==b?.lng)throw new ValidationError('Edit the shared location from the apartment or building on your dashboard');
+    }
     const locked = lockedHardKeys(diff, publishedAt, now);
     if (locked.length > 0) {
       throw new StructuralFieldsLockedError(locked);

@@ -1,3 +1,4 @@
+import { SharedPhotoGallery } from '@/components/listings/detail/SharedPhotoGallery';
 import { DETAIL_SIDE_WIDTH, DETAIL_HERO_HEIGHT, DETAIL_GALLERY_GAP, DETAIL_COLUMN_GAP, DETAIL_THUMBS_WIDTH } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
@@ -509,6 +510,7 @@ export function ListingDetailWeb({ listingId }: Props) {
             ) : null}
           </View>
 
+          <SharedPhotoGallery listing={listing}/>
           <View style={styles.headerRow}>
             <View style={styles.headerCopy}>
               <View style={styles.titleRow}>

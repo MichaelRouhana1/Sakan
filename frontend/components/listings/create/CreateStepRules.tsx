@@ -1,3 +1,5 @@
+import { SharedDetailsChoice } from '../edit/SharedDetailsChoice';
+import { SHARED_GROUPS } from '@/features/listings/create/unitDrafts';
 import { View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
@@ -13,11 +15,11 @@ import type {
   TargetAudience,
 } from "@/types/listing";
 
-export function CreateStepRules() {
+export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
   const { draft, patch } = useCreateListingDraft();
   return (
     <View style={{ gap: 16 }}>
-      <LockedCluster fields={["genderRestriction"]}>
+      {!sharedOnly && (draft.unitCount ?? 1) === 1 ? <LockedCluster fields={["genderRestriction"]}>
       <Enter>
         <LText variant="subtitle">Gender</LText>
         <View style={{ height: 8 }} />
@@ -43,7 +45,9 @@ export function CreateStepRules() {
           onPress={() => patch({ genderRestriction: "boys_only" })}
         />
       </Enter>
-      </LockedCluster>
+      </LockedCluster> : null}
+      <SharedDetailsChoice fields={SHARED_GROUPS.rules}/>
+      {!draft.sharedValues || SHARED_GROUPS.rules.some(k=>draft.differentFields?.includes(k)) ? <>
       <LockedCluster fields={["targetAudience"]}>
       <Enter delay={80}>
         <LText variant="subtitle">Tenant mix</LText>
@@ -107,6 +111,7 @@ export function CreateStepRules() {
           onPress={() => patch({ quietHours: !draft.quietHours })}
         />
       </Enter>
+      </> : null}
     </View>
   );
 }

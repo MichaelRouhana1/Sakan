@@ -19,6 +19,15 @@ export function createListingReducer(
         buildingFeesIncluded: action.draft.buildingFeesIncluded ?? false,
         parkingIncludedInRent: action.draft.parkingIncludedInRent ?? false,
       };
+    case "patchUnit": {
+      if (action.index === 0) return createListingReducer(state, {type:'patch',patch:action.patch});
+      return {...state, additionalUnits:(state.additionalUnits ?? []).map((unit,i)=>i===action.index-1?{...unit,data:{...unit.data,...action.patch}}:unit)};
+    }
+    case "gallery": {
+      const previous = action.index === 'shared' ? state.sharedPhotos ?? [] : action.index === 0 ? state.photos : state.additionalUnits?.[action.index-1]?.data.photos ?? [];
+      const photos = typeof action.updater === 'function' ? action.updater(previous) : action.updater;
+      return action.index === 'shared' ? {...state,sharedPhotos:photos} : createListingReducer(state,{type:'patchUnit',index:action.index,patch:{photos}});
+    }
     case "reset":
       return { ...INITIAL_DRAFT };
     case "setStep":

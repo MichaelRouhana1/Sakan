@@ -1,3 +1,7 @@
+import { eventId } from '@/features/promotions/activity';
+import { adjacentStep } from './unitDrafts';
+import { api } from '@/lib/api';
+import { placeToDraft } from './placeToDraft';
 import {
   createContext,
   useCallback,
@@ -12,7 +16,7 @@ import {
   type SetStateAction,
 } from "react";
 import { router } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, View, Text, Pressable } from "react-native";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { flushDraftAccountSync } from "./draftAccountSync";
 import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
@@ -41,10 +45,13 @@ export type ListingFormApi = {
   committedStep: number;
   patch: (patch: Partial<CreateListingDraft>) => void;
   setPhotos: Dispatch<SetStateAction<DraftPhoto[]>>;
+  patchUnit?: (index: number, patch: Partial<CreateListingDraft>) => void;
+  setGallery?: (index: number | 'shared', updater: SetStateAction<DraftPhoto[]>) => void;
   setStep: (step: number) => void;
   goNext: () => boolean;
   goBack: () => void;
   saveAndExit: () => Promise<void>;
+  persistDraft?: () => Promise<void>;
   reset: () => Promise<void>;
   showValidation: boolean;
   fieldErrors: string[];
@@ -65,15 +72,19 @@ export function CreateListingProvider({
   children,
   startFresh = false,
   draftSlot = "main",
+  placeId,
 }: {
   children: ReactNode;
   startFresh?: boolean;
   draftSlot?: DraftSlot;
+  placeId?: string;
 }) {
   const [draft, dispatch] = useReducer(createListingReducer, INITIAL_DRAFT);
   const [hydrated, setHydrated] = useState(false);
+  const [loadError,setLoadError]=useState<string|null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const committedStepRef = useRef(-1);
+  const hydratedOwnerRef = useRef<string|null|undefined>(undefined);
   const draftRef = useRef(draft);
   const draftSlotRef = useRef(draftSlot);
   const releasedRef = useRef(false);
@@ -91,6 +102,10 @@ export function CreateListingProvider({
   useEffect(() => {
     let cancelled = false;
     const slot = draftSlot;
+    hydratedOwnerRef.current=undefined;
+    releasedRef.current = false;
+    setHydrated(false);
+    setLoadError(null);
     setActiveDraftUserId(userId);
 
     async function hydrate() {
@@ -101,19 +116,26 @@ export function CreateListingProvider({
           const checkpoint = await readWorkingCheckpoint();
           if (cancelled) return;
           if (checkpoint) {
+            if(placeId && checkpoint.draft.existingPlaceId!==placeId)throw new Error('Both draft slots have saved work. Finish or discard a saved draft from the dashboard before adding this unit.');
             committedStepRef.current = checkpoint.committedStep;
             const resumeStep = resumeStepFromCheckpoint(checkpoint);
             dispatch({
               type: "hydrate",
               draft: { ...checkpoint.draft, step: resumeStep },
             });
+            hydratedOwnerRef.current=userId;
             setHydrated(true);
             return;
           }
         }
         committedStepRef.current = -1;
-        dispatch({ type: "reset" });
-        setHydrated(true);
+        if (placeId) {
+          const {data} = await api.get(`/api/listings/places/${placeId}`);
+          if(cancelled)return;
+          dispatch({type:'hydrate',draft:{...INITIAL_DRAFT,...placeToDraft(data.data),existingPlaceId:placeId}});
+        } else dispatch({ type: "reset" });
+        hydratedOwnerRef.current=userId;
+            setHydrated(true);
         return;
       }
 
@@ -131,17 +153,20 @@ export function CreateListingProvider({
           type: "hydrate",
           draft: { ...checkpoint.draft, step: resumeStep },
         });
-      } else if (slot === "main") {
-        setCheckpointCache(null);
+      } else {
+        committedStepRef.current = -1;
+        dispatch({ type: "reset" });
+        if (slot === "main") setCheckpointCache(null);
       }
-      setHydrated(true);
+      hydratedOwnerRef.current=userId;
+            setHydrated(true);
     }
 
-    void hydrate();
+    void hydrate().catch(e=>{if(!cancelled)setLoadError(e instanceof Error?e.message:"Could not load your draft.");});
     return () => {
       cancelled = true;
     };
-  }, [startFresh, draftSlot, userId]);
+  }, [startFresh, draftSlot, userId, placeId]);
 
   const fieldErrors = stepFieldErrors(draft, draft.step);
 
@@ -162,6 +187,9 @@ export function CreateListingProvider({
     dispatch({ type: "updatePhotos", updater });
   }, []);
 
+  const patchUnit = useCallback((index:number, patch:Partial<CreateListingDraft>)=>dispatch({type:'patchUnit',index,patch}),[]);
+  const setGallery = useCallback((index:number|'shared',updater:SetStateAction<DraftPhoto[]>)=>dispatch({type:'gallery',index,updater}),[]);
+
   const setStep = useCallback((step: number) => {
     dispatch({
       type: "setStep",
@@ -175,15 +203,26 @@ export function CreateListingProvider({
       committedStep: number,
       savedStep?: number,
     ) => {
-      if (releasedRef.current) return;
+      if (releasedRef.current || hydratedOwnerRef.current!==userId) return;
       committedStepRef.current = committedStep;
       const slot = draftSlotRef.current;
       const write =
         slot === "working" ? writeWorkingCheckpoint : writeCheckpoint;
       await write(nextDraft, committedStep, savedStep);
     },
-    [],
+    [userId],
   );
+
+  const persistDraft = useCallback(async()=>{
+    await persistCheckpoint(draftRef.current,committedStepRef.current,draftRef.current.step);
+    await flushDraftAccountSync();
+  },[persistCheckpoint]);
+  useEffect(()=>{
+    if(!hydrated || releasedRef.current)return;
+    if(!draft.publishRequestId){patch({publishRequestId:eventId()});return;}
+    const timer=setTimeout(()=>{void persistCheckpoint(draft,committedStepRef.current,draft.step);},700);
+    return ()=>clearTimeout(timer);
+  },[draft,hydrated,patch,persistCheckpoint]);
 
   const goNext = useCallback(() => {
     const errors = stepFieldErrors(draft, draft.step);
@@ -193,7 +232,7 @@ export function CreateListingProvider({
     }
     setShowValidation(false);
     const committedStep = draft.step;
-    const nextStep = Math.min(WIZARD_STEPS.length - 1, draft.step + 1);
+    const nextStep = adjacentStep(draft, 1);
     const nextDraft = { ...draft, step: nextStep };
     void persistCheckpoint(nextDraft, committedStep);
     dispatch({ type: "setStep", step: nextStep });
@@ -201,7 +240,7 @@ export function CreateListingProvider({
   }, [draft, persistCheckpoint]);
 
   const goBack = useCallback(() => {
-    dispatch({ type: "prevStep" });
+    dispatch({ type: "setStep", step:adjacentStep(draftRef.current,-1) });
   }, []);
 
   const saveAndExit = useCallback(async () => {
@@ -237,10 +276,13 @@ export function CreateListingProvider({
       committedStep: committedStepRef.current,
       patch,
       setPhotos,
+      patchUnit,
+      setGallery,
       setStep,
       goNext,
       goBack,
       saveAndExit,
+      persistDraft,
       reset,
       showValidation,
       fieldErrors,
@@ -254,10 +296,13 @@ export function CreateListingProvider({
       draft,
       patch,
       setPhotos,
+      patchUnit,
+      setGallery,
       setStep,
       goNext,
       goBack,
       saveAndExit,
+      persistDraft,
       reset,
       showValidation,
       fieldErrors,
@@ -268,7 +313,7 @@ export function CreateListingProvider({
 
   return (
     <CreateListingContext.Provider value={value}>
-      {hydrated ? children : null}
+      {loadError ? <View style={{padding:32,gap:20}}><Text accessibilityRole="alert">{loadError}</Text><Pressable accessibilityRole="button" onPress={()=>router.replace(HOST_LISTINGS_PATH as never)}><Text>Return to dashboard</Text></Pressable></View> : hydrated ? children : null}
     </CreateListingContext.Provider>
   );
 }

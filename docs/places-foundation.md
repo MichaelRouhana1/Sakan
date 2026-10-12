@@ -1,9 +1,9 @@
 # Places and units — foundation and implementation plan
 
-Slice 1 is implemented and committed. Slice 2 is implemented, committed and
-approved. Slice 3 (search) is implemented locally on 2026-10-11; its implementation
-and verification record is below. Slices 4 and 5 remain deferred and untouched.
-Earlier verification records are historical.
+Slices 1–3 are implemented and committed. Slices 2 and 3 are approved; slice 3
+is on `main` at `6fdd3f7`. Slice 4 (wizard and dashboard) is implemented on
+2026-10-12; its implementation and verification record is below. Slice 5 remains
+deferred and untouched. Earlier verification records are historical.
 
 ## Approved decisions and remaining slices (2026-10-10)
 
@@ -19,7 +19,7 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
   match. Different landlords in one building have separate places.
 - Every electricity field can differ by unit: status, generator/amperage, cut
   windows, solar and generator included. The resolver from slice 1 already supports
-  these fields. Future host editing uses “Same as building” and “Different for this
+  these fields. Slice 4 host editing uses “Same as building” and “Different for this
   apartment”; never show “override” or “inherit” to hosts.
 - Keep “Other units in this place” on detail, map pins by place, campus routes on
   places, the server matcher/scoring migration, and all slice 1 guarantees.
@@ -59,11 +59,120 @@ These decisions supersede the earlier grouping and promotion-limit proposals.
    in the browser and production Expo exports for web, iOS and Android. Add no
    frontend TypeScript errors relative to the committed baseline; commit and stop.
 
-### Later slices (not authorized for implementation in this change)
+### Slice 4 — wizard and dashboard (implemented)
 
-- Slice 4: multi-unit wizard/Add a unit, shared editing, electricity wording above,
-  two galleries and draft migration.
+The host chooses whole apartment, private room or bed in a shared room, then the
+number of units. Single-unit creation keeps the existing flow and silently creates
+its place. Multiple units collect shared apartment/building details once, followed
+by individual unit cards. The dashboard groups actual place membership, provides
+Add a unit and shared editing, and retains each unit's own statistics and controls.
+The implementation and rollout notes follow below.
+
+### Remaining slice (not authorized for implementation in this change)
+
 - Slice 5: removal of transitional legacy columns and old route cache.
+
+## Slice 4 — wizard and dashboard handoff (2026-10-12)
+
+- The first choice is Whole apartment / Private room / Bed in a shared room,
+  followed by “How many are you listing?” (1–20 per publish). One unit retains the
+  existing step order. Several whole apartments use Building details; several
+  rooms/beds use Apartment details. Location, utilities, shared rules and shared
+  photos are entered once. Repeating cards hold each unit's photos, size, rent,
+  bathroom privacy, description and furnishing. Shared rooms additionally require
+  explicit positive available/total beds and a gender rule.
+- Dashboard grid and list group by `placeId`, never coordinates or building name.
+  Each unit retains its views/contact taps, edit, promotion and inventory controls.
+  Add a unit loads an owned apartment/building, reuses its shared values and skips
+  shared questions. The server checks ownership, enforces the stored place kind,
+  and uses canonical shared values even if a client submits different ones.
+- Shared editing is available from the dashboard. Unit utilities and rules use
+  “Same as building” / “Different for this apartment”; all electricity fields can
+  differ, including generator, amperage, solar and cut windows. Returning to the
+  shared choice restores the actual place source. Shared changes preserve custom
+  unit choices. Location belongs to the shared editor; the existing structural
+  edit window still applies. Owner-only editing can load hidden units.
+- Shared saves and unit source changes check the place version. Conflicts remain
+  visible; Reload saved shared details replaces both form values and the version
+  together. Background refetches cannot silently advance an unsaved form's version.
+  Bathroom privacy changes are included in the existing unit-edit audit.
+- Shared photos allow 0–15; each unit requires 3–15 completed uploads. Both use the
+  existing crop queue, captions, ordering and upload controls. Unit photos supply
+  the card cover. Detail screens show shared photos separately on web and native.
+  Closing another unit card leaves pending uploads mounted, and gallery callbacks
+  update only their own unit/shared gallery.
+- Review shows every unit's post-credit cost and the server total, including the
+  existing free-slot allowance. One authenticated publish request creates/reuses
+  the place, creates every selected unit and its photos, records each unit's
+  charge and settles inventory in a single transaction. Any failure rolls back
+  the whole batch, wallet and free-slot usage. A changed quote requires renewed
+  review. Durable owner/request receipts make concurrent retries create and charge
+  only once; reusing a completed request for different content is rejected.
+  Reopening a saved draft looks up its owner-only receipt and recovers a completed
+  publish even if its charges emptied the wallet and the original response was lost.
+- Draft schema version 2 is additive. Existing saved steps and committed progress,
+  photo IDs/URLs/order/captions and both draft slots survive migration. Ready
+  uploads resume from durable URLs. Shrinking a batch keeps inactive cards so
+  increasing it again restores their uploads. Autosave persists all galleries and
+  the publish retry ID; publishing persists the draft before sending. Add a unit
+  parks existing work and reports full slots instead of overwriting another place's
+  draft. Account switches clear an empty account while retaining the original
+  owner's draft. Interrupted uploads still use the existing retry behavior.
+
+Rollout, after slice-2 migrations through 0035 are installed, from `backend`:
+
+```sh
+npm run db:wizard:apply
+```
+
+This targeted runner checks foundation/0034/0035 checksums and applies only
+`0036_unit_publish_batches.sql`, transactionally and safely on retry. Deploy the
+API before the new clients; batch publishing requires the receipt table. The
+additive migration retains legacy listing fields and the old route cache. An
+application rollback can leave the receipt table in place. No application database
+migration, reset, seed or deployment was performed during this slice.
+
+Verification:
+- Backend build passes. Eleven disposable-database wizard scenarios cover targeted
+  migration/retry, atomic multi-unit free/paid charges, last-unit rollback,
+  concurrent publish replay, changed quotes, owner isolation, canonical Add a unit,
+  all electricity sources and resets, bathroom audits, shared galleries/stale
+  saves, positive shared-bed counts, independent building occupancy and structural
+  location restrictions. The test database is removed afterward.
+- Foundation 24, inventory 20, search 9 and promotions 17 regression scenarios pass;
+  together with the wizard this is 81 integration scenarios. Ten edit-audit tests
+  pass. Search remains per unit and promotion limits are unchanged.
+- Six new draft/navigation/gallery tests and 25 existing photo/crop/matcher tests
+  pass. The focused browser harness passes six checks for real place grouping,
+  per-unit statistics, Add a unit targeting, shared conflict/reload, electricity
+  choices, phone-width layout and switching accounts without copying drafts.
+- The actual exported web wizard passes six flows: initial choice/count and
+  building branch; repeated cards plus shared cropping/upload and save/reopen;
+  per-unit credit review with failed-publish retry using the same ID; legacy draft
+  progress and phone layout; Add a unit using stored shared details; and recovery
+  of a completed publish from a reopened draft with zero credits. APIs are
+  controlled fixtures; transactional persistence is verified separately above.
+  Existing app-shell hydration warnings are recorded separately. This is not a
+  full Clerk-authenticated or physical-device end-to-end test.
+- Frontend TypeScript compared with approved `6fdd3f7` using identical dependencies:
+  124 baseline diagnostics, 123 current, zero added. Removing the unused former
+  flat-list adapter also removed its existing type error.
+- Final production exports pass for web, iOS and Android, with 84 static HTML
+  routes and both native Hermes bundles. No signed IPA/APK packaging or physical
+  device runtime test is claimed. `git diff --check` passes.
+
+Reproduce from `backend`: `npm run test:wizard`, `npm run test:places`,
+`npm run test:inventory`, `npm run test:search`, `npm run test:promotions`,
+`npm run test:listing-audit`. From `frontend`: `node --test
+ tests/unit-wizard.test.mjs tests/photo-persistence.test.mjs
+ tests/photo-crop-queue.test.mjs tests/matcher.test.mjs`,
+`node tests/host-places-ui.mjs`, `node tests/typecheck-baseline.mjs 6fdd3f7`,
+`npm run build -- --output-dir .expo/slice4-export`, then
+`node tests/unit-wizard-ui.mjs`. Browser checks use local Microsoft Edge.
+Local ignored evidence: `frontend/.expo/host-places-ui/`, `slice4-ui/`,
+`slice4-typecheck.json`, `slice4-build.log`, `slice4-export-result.json`.
+
+Slice 4 stops after its commit and push. Slice 5 has not started.
 
 ## Slice 3 — search implementation and review handoff (2026-10-11)
 

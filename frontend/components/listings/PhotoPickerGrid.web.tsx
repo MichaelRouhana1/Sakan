@@ -71,6 +71,7 @@ type PointerDownEvent = {
 };
 
 export function PhotoPickerGrid({
+  shared = false,
   photos,
   setPhotos,
   style,
@@ -254,7 +255,7 @@ export function PhotoPickerGrid({
 
   return (
     <View style={[photoPickerStyles.root, style]}>
-      <PhotoGridHeader photoCount={photos.length} uploading={uploading} />
+      <PhotoGridHeader shared={shared} photoCount={photos.length} uploading={uploading} />
       <PhotoGuidance />
       {!cropController.locked &&
         cropController.state.notices.map((notice, i) => (
@@ -275,7 +276,7 @@ export function PhotoPickerGrid({
           {photos.map((photo, index) => (
             <View key={photo.localId} style={photoPickerStyles.cell}>
               <TileEnter index={index}>
-                <PhotoTile
+                <PhotoTile shared={shared}
                   onCaption={(caption) =>
                     setPhotos((prev) =>
                       prev.map((p) =>
@@ -319,7 +320,7 @@ export function PhotoPickerGrid({
         ) : null,
       )}
 
-      <PhotoGridFooter readyCount={readyCount} />
+      <PhotoGridFooter shared={shared} readyCount={readyCount} />
 
       {ghost ? (
         <PhotoPickerGridDragGhost ghost={ghost} pointer={pointer} />

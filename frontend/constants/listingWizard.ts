@@ -6,7 +6,7 @@ type Ion = ComponentProps<typeof Ionicons>["name"];
 export const SPACE_TYPE_OPTIONS = [
   {
     value: "entire_place" as const,
-    title: "Entire place",
+    title: "Whole apartment",
     body: "Full apartment or studio rented as one unit.",
     icon: "home-outline" as Ion,
   },
@@ -18,7 +18,7 @@ export const SPACE_TYPE_OPTIONS = [
   },
   {
     value: "shared_room" as const,
-    title: "Shared room",
+    title: "Bed in a shared room",
     body: "Shared bedroom or dormitory with roommates.",
     icon: "people-outline" as Ion,
   },
@@ -91,7 +91,7 @@ export const PHOTO_CAPTION_PRESETS = [
 ];
 
 export const WIZARD_STEPS = [
-  { id: "type", title: "What kind of place is this?", subtitle: "Rental model, building type, and how you price it." },
+  { id: "type", title: "What are you listing?", subtitle: "Start with the space a renter can call their own." },
   { id: "location", title: "Where is it?", subtitle: "Pin the building so students can walk the commute." },
   { id: "specs", title: "Layout and size", subtitle: "Beds, baths, floor, and how many people can live here." },
   { id: "utilities", title: "Power, water, amenities", subtitle: "Lebanon essentials first — then the comforts." },

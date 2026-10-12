@@ -1,3 +1,4 @@
+import { countUnits, unitDrafts, wizardStepOrder } from './unitDrafts';
 import {
   windowComplete,
   type CutWindow,
@@ -26,7 +27,10 @@ const FIELD_MESSAGES: Record<string, string> = {
   electricity: "Select electricity status",
   generatorAmperes: "Select generator / ishtirak amps",
   water: "Select water status",
-  photos: "Add at least 3 photos",
+  photos: "Finish uploading 3–15 unit photos",
+  bathroomPrivacy: "Choose a private or shared bathroom",
+  bedsAvailable: "Confirm available beds between 1 and the total",
+  sharedPhotos: "Finish uploading the shared photos (maximum 15)",
   monthlyRentUsd: "Enter a valid monthly rent",
   securityDepositUsd: "Enter a valid security deposit",
   availableFrom: "Pick an available-from date",
@@ -63,12 +67,29 @@ export function countReadyPhotos(draft: CreateListingDraft): number {
 export function stepFieldErrors(
   draft: CreateListingDraft,
   step: number,
+  unitOnly = false,
 ): string[] {
+  if (!unitOnly) {
+    if (!wizardStepOrder(draft).includes(step)) return [];
+    if (step === 5) {
+      const shared = draft.sharedPhotos ?? [];
+      const errors = shared.length>15 || shared.some(p=>!isPhotoReady(p)) ? ['sharedPhotos'] : [];
+      if (countUnits(draft)>1 || draft.existingPlaceId) {
+        unitDrafts(draft).forEach((unit,i)=>[2,5,6,7].forEach(s=>{
+          errors.push(...stepFieldErrors(unit,s,true).map(field=>`Unit ${i+1}: ${fieldErrorMessage(field)}`));
+        }));
+        return errors;
+      }
+      if(errors.length)return errors;
+    }
+  }
   switch (step) {
     case 0: {
       const errors: string[] = [];
       if (!draft.spaceType) errors.push("spaceType");
       if (!draft.propertyType) errors.push("propertyType");
+      if (!Number.isInteger(countUnits(draft)) || countUnits(draft)<1 || countUnits(draft)>20) errors.push('unitCount');
+      if (draft.existingPlaceId && draft.placeKind==='building' && draft.spaceType!=='entire_place') errors.push('A building contains whole apartments');
       return errors;
     }
     case 1: {
@@ -81,6 +102,8 @@ export function stepFieldErrors(
     case 2: {
       const errors: string[] = [];
       if (!draft.furnishingType) errors.push("furnishingType");
+      if (!draft.sharedValues && !draft.bathroomPrivacy) errors.push('bathroomPrivacy');
+      if (!draft.sharedValues && draft.spaceType==='shared_room' && (!Number.isInteger(draft.bedsAvailable) || Number(draft.bedsAvailable)<1 || Number(draft.bedsAvailable)>draft.beds)) errors.push('bedsAvailable');
       if (draft.beds < 1) errors.push("beds");
       if (draft.maxOccupancy < 1) errors.push("maxOccupancy");
       return errors;
@@ -121,7 +144,7 @@ export function stepFieldErrors(
       return [];
     case 5: {
       const ready = countReadyPhotos(draft);
-      if (ready < 3 || draft.photos.some((p) => p.status === "uploading")) {
+      if (ready < 3 || draft.photos.length>15 || draft.photos.some((p) => !isPhotoReady(p))) {
         return ["photos"];
       }
       return [];

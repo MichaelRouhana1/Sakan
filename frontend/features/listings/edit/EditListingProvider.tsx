@@ -1,3 +1,7 @@
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { normalizeListing } from '@/features/listings/normalizeListing';
+import { placeToDraft } from '@/features/listings/create/placeToDraft';
 import {
   createContext,
   useCallback,
@@ -72,7 +76,10 @@ export function EditListingProvider({
   children: ReactNode;
 }) {
   const { session, isLoading: sessionLoading } = useAuthSession();
-  const listingQuery = useListing(listingId);
+  const ownerQuery=useQuery({queryKey:['listings','owner-edit',listingId],enabled:Boolean(session?.userId),queryFn:async()=>{
+    const {data}=await api.get(`/api/listings/${listingId}/owner-edit`);return data;
+  }});
+  const listingQuery={...ownerQuery,data:ownerQuery.data?normalizeListing(ownerQuery.data.data):undefined};
   const [draft, dispatch] = useReducer(createListingReducer, INITIAL_DRAFT);
   const [showValidation, setShowValidation] = useState(false);
   const [baseline, setBaseline] = useState<CreateListingDraft | null>(null);
@@ -90,11 +97,12 @@ export function EditListingProvider({
     if (listing.posterId !== session.userId) return;
     if (listing.status !== "active") return;
     if (hydratedId.current === listing.id) return;
-    const next = mapListingToDraft(listing);
+    const next = {...mapListingToDraft(listing),sharedValues:placeToDraft(ownerQuery.data.place),
+      differentFields:ownerQuery.data.differentFields as string[],expectedPlaceUpdatedAt:ownerQuery.data.place.updatedAt};
     setBaseline(next);
     dispatch({ type: "hydrate", draft: next });
     hydratedId.current = listing.id;
-  }, [listing, session]);
+  }, [listing, session, ownerQuery.data]);
 
   const fieldErrors = useMemo(() => {
     if (!showValidation) return [];
@@ -111,6 +119,8 @@ export function EditListingProvider({
   );
 
   const patch = useCallback((next: Partial<CreateListingDraft>) => {
+    const locationKeys = new Set(['area','pin','landmark','addressLine','buildingName','primaryCampusId']);
+    next=Object.fromEntries(Object.entries(next).filter(([key])=>!locationKeys.has(key))) as Partial<CreateListingDraft>;
     if (!lockedRef.current) {
       dispatch({ type: "patch", patch: next });
       return;
@@ -128,7 +138,10 @@ export function EditListingProvider({
     dispatch({ type: "updatePhotos", updater });
   }, []);
 
-  const lockedFields = structuralLocked ? HARD_KEYS : EMPTY_LOCKED;
+  const lockedFields = useMemo(()=>new Set([
+    ...(structuralLocked ? HARD_KEYS : EMPTY_LOCKED),
+    'area','pin','landmark','addressLine','buildingName','primaryCampusId',
+  ]),[structuralLocked]);
 
   const formValue = useMemo(
     () => ({

@@ -56,6 +56,19 @@ export const EMPTY_PIN: ListingPin = {
 };
 
 export type CreateListingDraft = {
+  schemaVersion?: 2;
+  legacyProgress?: boolean;
+  unitCount?: number;
+  additionalUnits?: { id: string; data: Partial<CreateListingDraft> }[];
+  sharedPhotos?: DraftPhoto[];
+  existingPlaceId?: string;
+  placeKind?: 'apartment' | 'building';
+  publishRequestId?: string;
+  bathroomPrivacy?: 'private' | 'shared';
+  bedsAvailable?: number | null;
+  differentFields?: string[];
+  sharedValues?: Partial<CreateListingDraft>;
+  expectedPlaceUpdatedAt?: string;
   step: number;
   spaceType: SpaceType | null;
   propertyType: PropertyType | null;
@@ -121,6 +134,10 @@ export type CreateListingDraft = {
 };
 
 export const INITIAL_DRAFT: CreateListingDraft = {
+  schemaVersion: 2,
+  unitCount: 1,
+  additionalUnits: [],
+  sharedPhotos: [],
   step: 0,
   spaceType: null,
   propertyType: null,
@@ -186,6 +203,8 @@ export const INITIAL_DRAFT: CreateListingDraft = {
 export type CreateListingAction =
   | { type: "hydrate"; draft: CreateListingDraft }
   | { type: "reset" }
+  | { type: "patchUnit"; index: number; patch: Partial<CreateListingDraft> }
+  | { type: "gallery"; index: number | 'shared'; updater: DraftPhoto[] | ((prev: DraftPhoto[]) => DraftPhoto[]) }
   | { type: "setStep"; step: number }
   | { type: "prevStep" }
   | { type: "patch"; patch: Partial<CreateListingDraft> }

@@ -1,3 +1,5 @@
+import { BuildingAccessFields } from './CreateStepSpecs';
+import { SharedDetailsChoice, utilityKeys } from '../edit/SharedDetailsChoice';
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -86,8 +88,11 @@ export function CreateStepAmenities() {
     });
   }
 
+  if (draft.sharedValues && !utilityKeys.some(k=>draft.differentFields?.includes(k))) return <SharedDetailsChoice/>;
   return (
     <View style={{ gap: 16 }}>
+      <SharedDetailsChoice/>
+      {(draft.unitCount ?? 1)>1 || formChrome==='edit' ? <BuildingAccessFields/> : null}
       <Enter>
         <WizardFieldLabel required>Electricity</WizardFieldLabel>
         <View style={{ height: 8 }} />

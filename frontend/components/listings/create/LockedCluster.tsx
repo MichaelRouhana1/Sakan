@@ -12,8 +12,10 @@ type Props = {
 
 /** Read-only wrap for structural fields after the 24h window. Wizard never locks. */
 export function LockedCluster({ fields, children }: Props) {
-  const { isLocked } = useCreateListingDraft();
+  const { isLocked, draft } = useCreateListingDraft();
   const locked = fields.some((field) => isLocked(field));
+  const sharedLocation = draft.sharedValues && fields.some(field =>
+    ['area', 'buildingName', 'lat', 'lng', 'primaryCampusId'].includes(field));
   if (!locked) return <>{children}</>;
 
   return (
@@ -28,7 +30,7 @@ export function LockedCluster({ fields, children }: Props) {
       <View style={styles.lockRow}>
         <Ionicons name="lock-closed" size={14} color={Lister.color.inkMuted} />
         <LText variant="caption" tone="muted">
-          Locked after the first day
+          {sharedLocation ? 'Edit the shared location from your dashboard' : 'Locked after the first day'}
         </LText>
       </View>
       <View style={styles.dim}>{children}</View>

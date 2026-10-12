@@ -18,7 +18,7 @@ import {
   type DraftSlot,
 } from "./draft";
 
-function persistable(draft: CreateListingDraft): CreateListingDraft {
+function persistableSingle(draft: CreateListingDraft): CreateListingDraft {
   return {
     ...draft,
     photos: draft.photos.map((p) => {
@@ -40,7 +40,16 @@ function persistable(draft: CreateListingDraft): CreateListingDraft {
   };
 }
 
-export function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
+function persistable(draft: CreateListingDraft): CreateListingDraft {
+  const clean = persistableSingle(draft);
+  return {...clean, schemaVersion:2,
+    sharedPhotos:persistableSingle({...draft,photos:draft.sharedPhotos ?? []}).photos,
+    additionalUnits:(draft.additionalUnits ?? []).map(unit=>({...unit,data:{...unit.data,
+      photos:persistableSingle({...draft,photos:unit.data.photos ?? []}).photos}})),
+  };
+}
+
+function hydrateSingle(parsed: CreateListingDraft): CreateListingDraft {
   const photos = (parsed.photos ?? []).map((p) => {
     if (p.status === "ready" && (p.url || p.uri)) {
       const src = p.url || p.uri;
@@ -90,6 +99,15 @@ export function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
   };
 }
 
+/** Additive migration: original fields, step indexes and unit photo IDs stay intact. */
+export function hydrateDraft(parsed: CreateListingDraft): CreateListingDraft {
+  return {...hydrateSingle(parsed),legacyProgress:parsed.legacyProgress ?? parsed.schemaVersion !== 2,schemaVersion:2,unitCount:parsed.unitCount ?? 1,
+    sharedPhotos:hydrateSingle({...parsed,photos:parsed.sharedPhotos ?? []}).photos,
+    additionalUnits:(parsed.additionalUnits ?? []).map(unit=>({...unit,data:{...unit.data,
+      photos:hydrateSingle({...parsed,photos:unit.data.photos ?? []}).photos}})),
+  };
+}
+
 export function resumeStepFromCheckpoint(checkpoint: DraftCheckpoint): number {
   const committed = effectiveCommittedStep(
     checkpoint.draft,
@@ -110,6 +128,7 @@ export function resumeStepFromCheckpoint(checkpoint: DraftCheckpoint): number {
   }
   preferred = Math.min(WIZARD_STEPS.length - 1, Math.max(0, preferred));
 
+  if(checkpoint.draft.legacyProgress)return preferred;
   const invalid = firstInvalidStepIndex(checkpoint.draft, preferred);
   if (invalid != null && invalid < preferred) return invalid;
   return preferred;
@@ -271,7 +290,7 @@ export async function storeDraftSlot(
 function parseCheckpointJson(raw: string): DraftCheckpoint {
   const parsed = JSON.parse(raw) as DraftCheckpoint;
   return {
-    committedStep: effectiveCommittedStep(
+    committedStep: hydrateDraft(parsed.draft).legacyProgress ? parsed.committedStep ?? -1 : effectiveCommittedStep(
       hydrateDraft(parsed.draft),
       parsed.committedStep ?? -1,
     ),

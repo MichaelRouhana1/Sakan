@@ -13,6 +13,7 @@ import type { UpdateListingInput } from "./listings.schemas.js";
 type PhotoRow = { url: string; caption?: string | null };
 
 export type ListingUpdateRow = {
+  bathroomPrivacy?: unknown;
   spaceType: unknown;
   propertyType: unknown;
   listingType: unknown;
@@ -110,6 +111,7 @@ export function listingWriteFromInput(input: UpdateListingInput) {
 
   return {
     listingType,
+    bathroomPrivacy: input.bathroomPrivacy,
     spaceType: input.spaceType,
     propertyType: input.propertyType,
     priceBasis: input.priceBasis,
@@ -195,6 +197,7 @@ export function snapshotFromRow(row: ListingUpdateRow): ListingUpdateSnapshot {
   }));
   return {
     spaceType: row.spaceType,
+    bathroomPrivacy: row.bathroomPrivacy ?? null,
     propertyType: row.propertyType,
     listingType: row.listingType,
     targetAudience: row.targetAudience,

@@ -32,6 +32,7 @@ export const HARD_LISTING_KEYS = [
 ] as const;
 
 export const SOFT_LISTING_KEYS = [
+  "bathroomPrivacy",
   "monthlyRentUsd",
   "securityDepositUsd",
   "leaseTerm",

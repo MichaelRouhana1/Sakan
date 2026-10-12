@@ -1,3 +1,10 @@
+import { editPlace, editPlaceSchema } from './place-edit.service.js';
+import { listingsRepository } from './listings.repository.js';
+import { db } from '../../db/index.js';
+import { sql } from 'drizzle-orm';
+import { NotFoundError } from '../../lib/errors.js';
+import { sharedFields } from './place-fields.js';
+import { ownerPlace, publishedBatch, publishQuote, publishUnits, publishUnitsSchema } from './unit-publish.service.js';
 import { z } from 'zod';
 import { inventorySchema, updateUnitInventory, setPlaceHidden, getOwnerInventory } from './inventory.service.js';
 import { Router } from "express";
@@ -20,6 +27,31 @@ import {
 
 export const listingsRouter = Router();
 listingsRouter.use(copySuggestRouter);
+listingsRouter.patch('/places/:placeId',requireAuth,validate(editPlaceSchema),async(req,res,next)=>{
+ try{res.json({data:await editPlace(req.user!.id,z.uuid().parse(req.params.placeId),req.body)})}catch(e){next(e)}
+});
+listingsRouter.get('/:id/owner-edit',requireAuth,async(req,res,next)=>{
+ try{
+  const id=z.uuid().parse(req.params.id);
+  const [row]=await db.execute(sql`SELECT place_id,place_overrides,unit_amenities,amenity_overrides FROM listings WHERE id=${id}::uuid AND poster_id=${req.user!.id}::uuid`);
+  if(!row)throw new NotFoundError('Unit not found');
+  const differentFields=Object.entries(sharedFields).filter(([,col])=>Object.hasOwn(row.place_overrides as object,col)).map(([key])=>key);
+  if((row.unit_amenities as unknown[]).length || Object.keys(row.amenity_overrides as object).length)differentFields.push('amenities');
+  res.json({data:await listingsRepository.findById(id),place:await ownerPlace(req.user!.id,String(row.place_id)),differentFields});
+ }catch(e){next(e)}
+});
+listingsRouter.get('/places/:placeId',requireAuth,async(req,res,next)=>{
+ try{res.json({data:await ownerPlace(req.user!.id,z.uuid().parse(req.params.placeId))})}catch(e){next(e)}
+});
+listingsRouter.get('/publish-quote',requireAuth,async(req,res,next)=>{
+ try{res.json({data:await publishQuote(req.user!.id,z.coerce.number().int().min(1).max(20).parse(req.query.count))})}catch(e){next(e)}
+});
+listingsRouter.post('/publish-units',requireAuth,validate(publishUnitsSchema),async(req,res,next)=>{
+ try{res.status(201).json({data:await publishUnits(req.user!.id,req.body)})}catch(e){next(e)}
+});
+listingsRouter.get('/publish-units/:requestId',requireAuth,async(req,res,next)=>{
+ try{res.json({data:await publishedBatch(req.user!.id,z.uuid().parse(req.params.requestId))})}catch(e){next(e)}
+});
 listingsRouter.get('/:id/inventory',requireAuth,async(req,res,next)=>{
  try {res.json({data:await getOwnerInventory(z.uuid().parse(req.params.id),req.user!.id)})} catch(e){next(e)}
 });

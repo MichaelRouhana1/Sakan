@@ -100,6 +100,11 @@ export type StandardUnitSpecs = {
 
 export type Listing = {
   placeId?: string;
+  placeKind?: 'apartment' | 'building';
+  bathroomPrivacy?: 'private' | 'shared' | null;
+  bedsAvailable?: number | null;
+  contactTapCount?: number;
+  sharedPhotos?: ListingPhoto[];
   matchFacts?: MatchFacts;
   id: string;
   posterId: string;

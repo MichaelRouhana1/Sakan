@@ -1,3 +1,4 @@
+import { HostPlaceGroups } from './HostPlaceGroups';
 import { router, useLocalSearchParams } from "expo-router";
 import { useIsFocused } from "expo-router/react-navigation";
 import { useMemo, useState } from "react";
@@ -16,11 +17,6 @@ import {
   type DraftModalTarget,
 } from "@/components/web/host/HostDraftModal";
 import { HostDraftGridCard } from "@/components/web/host/HostDraftGridCard";
-import { HostListingGridCard } from "@/components/web/host/HostListingGridCard";
-import {
-  HostListingListView,
-  type HostListRow,
-} from "@/components/web/host/HostListingListView";
 import {
   HostListingsToolbar,
   type HostListingsLayout,
@@ -129,25 +125,6 @@ export function HostListingsPage() {
     return rows;
   }, [checkpoint, workingCheckpoint, data, showMainDraft, showWorkingDraft]);
 
-  const listRows = useMemo((): HostListRow[] => {
-    return items.flatMap((item) => {
-      if (item.kind === "draft") {
-        return [
-          {
-            kind: "local-draft" as const,
-            key: item.key,
-            slot: item.slot,
-            checkpoint: item.checkpoint,
-          },
-        ];
-      }
-      if (item.kind === "listing") {
-        return [{ kind: "listing" as const, listing: item.listing }];
-      }
-      return [];
-    });
-  }, [items]);
-
   function openLocalDraftModal(slot: DraftSlot, cp: DraftCheckpoint) {
     setDraftModal({ kind: "local", checkpoint: cp, slot });
   }
@@ -247,54 +224,12 @@ export function HostListingsPage() {
                   </Pressable>
                 </View>
               ) : null}
-              {layout === "list" ? (
-                <HostListingListView
-                  rows={listRows}
-                  compact={compact}
-                  onDraftPress={(row) => {
-                    if (row.kind === "local-draft") {
-                      openLocalDraftModal(row.slot, row.checkpoint);
-                    } else {
-                      openServerDraftModal(row.listing);
-                    }
-                  }}
-                  onListingPress={handleListingPress}
-                  onEditListing={(listing) => openListingEdit(router, listing.id)}
-                />
-              ) : (
-                <View style={[styles.grid, compact && styles.gridCompact]}>
-                  {items.map((item) =>
-                    item.kind === "draft" ? (
-                      <View
-                        key={item.key}
-                        style={[styles.cell, compact && styles.cellCompact]}
-                      >
-                        <HostDraftGridCard
-                          checkpoint={item.checkpoint}
-                          onPress={() =>
-                            openLocalDraftModal(item.slot, item.checkpoint)
-                          }
-                        />
-                      </View>
-                    ) : item.kind === "listing" ? (
-                      <View
-                        key={item.key}
-                        style={[styles.cell, compact && styles.cellCompact]}
-                      >
-                        <HostListingGridCard
-                          listing={item.listing}
-                          onPress={() => handleListingPress(item.listing)}
-                          onEdit={
-                            item.listing.status === "active"
-                              ? () => openListingEdit(router, item.listing.id)
-                              : undefined
-                          }
-                        />
-                      </View>
-                    ) : null,
-                  )}
-                </View>
-              )}
+              <View style={[styles.grid, compact && styles.gridCompact]}>
+                {items.filter((item): item is Extract<GridItem,{kind:'draft'}>=>item.kind==='draft').map(item=><View key={item.key} style={[styles.cell,compact&&styles.cellCompact]}>
+                  <HostDraftGridCard checkpoint={item.checkpoint} onPress={()=>openLocalDraftModal(item.slot,item.checkpoint)}/>
+                </View>)}
+              </View>
+              <HostPlaceGroups listings={items.flatMap(item=>item.kind==='listing'?[item.listing]:[])} layout={layout} compact={compact} onPress={handleListingPress}/>
             </>
           )}
 

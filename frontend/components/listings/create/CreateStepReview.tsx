@@ -1,3 +1,6 @@
+import { countUnits, unitDrafts } from '@/features/listings/create/unitDrafts';
+import { usePublishQuote } from '@/features/listings/create/usePublishListingDraft';
+import { UnitScope } from './UnitCards';
 import { router } from "expo-router";
 import { useEffect, useMemo } from "react";
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
@@ -11,7 +14,7 @@ import { previewListingFromDraft } from "@/features/listings/create/previewListi
 import { usePublishListingDraft } from "@/features/listings/create/usePublishListingDraft";
 import { draftCardBadgeKeys, sameBadgeKeys, wizardCardBadgeKeys } from "@/lib/listingCardBadges";
 
-export function CreateStepReview() {
+function SingleUnitReview() {
   const { draft, patch, formChrome } = useCreateListingDraft();
 
   const listing = useMemo(() => {
@@ -34,6 +37,28 @@ export function CreateStepReview() {
       <CardBadgeEditor listing={listing} onChange={(cardBadges) => patch({ cardBadges })} />
     </View>
   );
+}
+
+export function CreateStepReview() {
+  const {draft,formChrome}=useCreateListingDraft();
+  if(formChrome==='edit')return <SingleUnitReview/>;
+  return <PublishReview/>;
+}
+function PublishReview(){
+ const {draft}=useCreateListingDraft();
+ const quote=usePublishQuote(countUnits(draft));
+ return <View style={{gap:24}}>
+  <LText variant="subtitle">Review your {countUnits(draft)===1?'unit':'units'}</LText>
+  {unitDrafts(draft).map((unit,i)=><View key={i} style={{gap:12}}>
+   <LText variant="subtitle">Unit {i+1} · {unit.title}</LText>
+   <LText>{unit.areaSqm?`${unit.areaSqm} m² · `:''}${unit.monthlyRentUsd}/month · {unit.bathroomPrivacy ?? 'Choose'} bathroom{unit.spaceType==='shared_room'?` · ${unit.bedsAvailable ?? '?'} of ${unit.beds} beds available`:''}</LText>
+   <LText>{quote.data ? `${quote.data.units[i].credits} post credit${quote.data.units[i].credits===1?'':'s'}`:'Checking cost…'}</LText>
+   <UnitScope index={i}><SingleUnitReview/></UnitScope>
+  </View>)}
+  {quote.isError?<LButton label="Retry credit total" onPress={()=>void quote.refetch()}/>:null}
+  <LText variant="subtitle">{quote.data?`Total: ${quote.data.total} post credits`:'Checking total…'}</LText>
+  <LText tone="muted">All units publish together. Your cover is the first photo in each unit’s gallery.</LText>
+ </View>;
 }
 
 export function CreateStepReviewFooter() {
@@ -85,7 +110,7 @@ export function CreateStepReviewFooter() {
           </View>
         ) : (
           <LButton
-            label="Publish listing"
+            label="Publish units"
             onPress={publish}
             loading={createPending}
             disabled={!canPublish || createPending}

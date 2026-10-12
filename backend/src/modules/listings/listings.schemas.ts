@@ -1,3 +1,4 @@
+import { sharedFields } from './place-fields.js';
 import { matcherQuerySchema } from "../search/matcher.schema.js";
 import { z } from "zod";
 import {
@@ -62,7 +63,10 @@ const highlightTagSchema = z.string().min(1).max(48);
 
 const GENERATOR_AMP_VALUES = [5, 10, 15, 20] as const;
 
-export const createListingSchema = z.object({
+export const createListingFields = z.object({
+  differentFields:z.array(z.string().refine(v=>v==='amenities'||v in sharedFields)).optional(),
+  bathroomPrivacy:z.enum(['private','shared']).optional(),
+  expectedPlaceUpdatedAt:z.string().datetime().optional(),
   spaceType: z.enum(["entire_place", "private_room", "shared_room"]),
   propertyType: z.enum(["apartment", "studio", "dormitory", "house"]),
   priceBasis: z
@@ -190,7 +194,9 @@ export const createListingSchema = z.object({
   photoUrls: z.array(photoUrlSchema).min(3).max(15),
   photoCaptions: z.array(z.string().max(48)).max(15).optional(),
   publishNow: z.boolean().default(true),
-}).superRefine((data, ctx) => {
+});
+
+export const createListingSchema = createListingFields.superRefine((data, ctx) => {
   if (
     data.electricity === "generator_24_7" ||
     data.electricity === "scheduled_cuts"
@@ -262,6 +268,18 @@ export const createListingSchema = z.object({
       ? withPower.parkingIncludedInRent
       : false,
   };
+});
+
+/** Shared editing validates only shared fields, never a representative unit's photos/copy. */
+export const sharedDetailsSchema = createListingFields.pick({
+  area:true,landmark:true,addressLine:true,buildingName:true,primaryCampusId:true,locationWkt:true,
+  electricity:true,electricityCutsStart:true,electricityCutsEnd:true,electricityHoursOn:true,electricityCutWindows:true,
+  water:true,wifiIncluded:true,routerUps:true,elevator24_7:true,hasElevator:true,hasSolar:true,generatorAmperes:true,generatorIncluded:true,
+  conciergeIncluded:true,cookingGasIncluded:true,waterBillIncluded:true,buildingFeesIncluded:true,parkingIncludedInRent:true,
+  amenities:true,smokingPolicy:true,petsPolicy:true,guestsPolicy:true,quietHours:true,targetAudience:true,
+}).superRefine((data,ctx)=>{
+  if(data.electricity!=='solar' && data.generatorAmperes==null)ctx.addIssue({code:'custom',path:['generatorAmperes'],message:'Select generator amps'});
+  if(data.electricity==='scheduled_cuts' && resolveCutWindows(data).length===0)ctx.addIssue({code:'custom',path:['electricityCutWindows'],message:'Add a cut period'});
 });
 
 export const listingSortSchema = z.enum(["newest", "price_asc", "price_desc", "distance", "match"]).default("newest");

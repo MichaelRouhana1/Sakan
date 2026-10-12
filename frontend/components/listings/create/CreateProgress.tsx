@@ -5,20 +5,22 @@ import { WIZARD_STEPS } from "@/constants/listingWizard";
 
 type Props = {
   step: number;
+  steps?: readonly number[];
   /** Footer strip: ticks only, no step count. */
   variant?: "header" | "footer";
 };
 
-export function CreateProgress({ step, variant = "header" }: Props) {
-  const total = WIZARD_STEPS.length;
+export function CreateProgress({ step: actualStep, steps = WIZARD_STEPS.map((_,i)=>i), variant = "header" }: Props) {
+  const step = steps.indexOf(actualStep);
+  const total = steps.length;
   const footer = variant === "footer";
 
   return (
     <View style={[styles.wrap, footer && styles.wrapFooter]}>
       <View style={styles.track}>
-        {WIZARD_STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <View
-            key={s.id}
+            key={s}
             style={[
               styles.tick,
               footer && styles.tickFooter,

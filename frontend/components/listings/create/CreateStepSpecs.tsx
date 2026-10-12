@@ -23,14 +23,53 @@ function floorLabel(n: number) {
   return `${n}th`;
 }
 
-export function CreateStepSpecs() {
-  const { draft, patch } = useCreateListingDraft();
+export function BuildingAccessFields(){
+  const {draft,patch}=useCreateListingDraft();
+  return (
+      <Enter delay={180}>
+        <SelectableCard
+          selected={draft.hasElevator}
+          title="Elevator in building"
+          body="Yes — there is a lift."
+          icon="swap-vertical-outline"
+          onPress={() => patch({ hasElevator: !draft.hasElevator })}
+        />
+        <View style={{ height: 8 }} />
+        <SelectableCard
+          selected={draft.elevator24_7}
+          title="Elevator works during cuts"
+          body="24/7 elevator on generator or solar."
+          icon="flash-outline"
+          onPress={() => patch({ elevator24_7: !draft.elevator24_7 })}
+        />
+      </Enter>
+  );
+}
+
+export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boolean} = {}) {
+  const { draft, patch, formChrome } = useCreateListingDraft();
   const furnishingInvalid = useWizardFieldInvalid("furnishingType");
   const bedsInvalid = useWizardFieldInvalid("beds");
   const occupancyInvalid = useWizardFieldInvalid("maxOccupancy");
 
   return (
     <View style={{ gap: 8 }}>
+      <WizardFieldLabel required>Bathroom</WizardFieldLabel>
+      <SegmentedPills options={[{value:'private',label:'Private bathroom'},{value:'shared',label:'Shared bathroom'}]}
+        value={draft.bathroomPrivacy ?? null} error={useWizardFieldInvalid('bathroomPrivacy')}
+        onChange={v=>patch({bathroomPrivacy:v as 'private'|'shared'})} />
+      {draft.spaceType==='shared_room' && formChrome!=='edit' ? <>
+        <WizardFieldLabel required>Available beds in this room</WizardFieldLabel>
+        <TextInput accessibilityLabel="Available beds in this room" keyboardType="number-pad"
+          value={draft.bedsAvailable == null ? '' : String(draft.bedsAvailable)}
+          onChangeText={v=>patch({bedsAvailable:v===''?null:Number(v)})} style={wizardInputStyle()} />
+        <LText variant="caption">Confirm the total below and the beds you can rent now.</LText>
+      </> : null}
+      {(draft.spaceType==='shared_room' || !showSharedDetails) && formChrome!=='edit' ? <>
+        <WizardFieldLabel>Gender rule</WizardFieldLabel>
+        <SegmentedPills options={[{value:'anyone',label:'All / mixed'},{value:'girls_only',label:'Female only'},{value:'boys_only',label:'Male only'}]}
+          value={draft.genderRestriction} onChange={v=>patch({genderRestriction:v as typeof draft.genderRestriction})} />
+      </> : null}
       <LockedCluster
         fields={[
           "bedrooms",
@@ -113,23 +152,7 @@ export function CreateStepSpecs() {
         />
       </Enter>
       </LockedCluster>
-      <Enter delay={180}>
-        <SelectableCard
-          selected={draft.hasElevator}
-          title="Elevator in building"
-          body="Yes — there is a lift."
-          icon="swap-vertical-outline"
-          onPress={() => patch({ hasElevator: !draft.hasElevator })}
-        />
-        <View style={{ height: 8 }} />
-        <SelectableCard
-          selected={draft.elevator24_7}
-          title="Elevator works during cuts"
-          body="24/7 elevator on generator or solar."
-          icon="flash-outline"
-          onPress={() => patch({ elevator24_7: !draft.elevator24_7 })}
-        />
-      </Enter>
+      {showSharedDetails && formChrome !== 'edit' ? <BuildingAccessFields/> : null}
     </View>
   );
 }
