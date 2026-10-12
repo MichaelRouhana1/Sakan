@@ -34,7 +34,7 @@ import type { User } from "@/types/user";
 type ClerkClientLike = {
   signOut?: () => Promise<unknown>;
   session?: {
-    getToken: () => Promise<string | null>;
+    getToken: (options?: { skipCache?: boolean }) => Promise<string | null>;
   } | null;
 };
 
@@ -89,10 +89,10 @@ function ClerkAuthSessionProvider({ children }: { children: React.ReactNode }) {
   setActiveDraftUserId(session?.userId ?? null);
 
   useEffect(() => {
-    setAuthTokenGetter(() => getFreshClerkToken(clerk.session));
+    setAuthTokenGetter((forceRefresh) => getFreshClerkToken(clerkRef.current?.session, forceRefresh));
 
     return () => setAuthTokenGetter(null);
-  }, [clerk, clerk.session?.id]);
+  }, []);
 
   const syncWithBackend = useCallback(async () => {
     const hasClerkSession = Boolean(clerk.session?.id || isClerkSignedIn);

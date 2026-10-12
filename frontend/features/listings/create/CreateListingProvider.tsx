@@ -88,7 +88,8 @@ export function CreateListingProvider({
   const draftRef = useRef(draft);
   const draftSlotRef = useRef(draftSlot);
   const releasedRef = useRef(false);
-  const { session } = useAuthSession();
+  const { session, isLoading: authLoading } = useAuthSession();
+  const initializedScope = useRef<string | undefined>(undefined);
   const userId = session?.userId ?? null;
 
   useEffect(() => {
@@ -100,6 +101,9 @@ export function CreateListingProvider({
   }, [draft]);
 
   useEffect(() => {
+    if (authLoading) return;
+    const scope = JSON.stringify([userId, draftSlot, placeId]);
+    if (initializedScope.current === scope) return;
     let cancelled = false;
     const slot = draftSlot;
     hydratedOwnerRef.current=undefined;
@@ -123,6 +127,7 @@ export function CreateListingProvider({
               type: "hydrate",
               draft: { ...checkpoint.draft, step: resumeStep },
             });
+            initializedScope.current=scope;
             hydratedOwnerRef.current=userId;
             setHydrated(true);
             return;
@@ -134,6 +139,7 @@ export function CreateListingProvider({
           if(cancelled)return;
           dispatch({type:'hydrate',draft:{...INITIAL_DRAFT,...placeToDraft(data.data),existingPlaceId:placeId}});
         } else dispatch({ type: "reset" });
+        initializedScope.current=scope;
         hydratedOwnerRef.current=userId;
             setHydrated(true);
         return;
@@ -158,6 +164,7 @@ export function CreateListingProvider({
         dispatch({ type: "reset" });
         if (slot === "main") setCheckpointCache(null);
       }
+      initializedScope.current=scope;
       hydratedOwnerRef.current=userId;
             setHydrated(true);
     }
@@ -166,7 +173,7 @@ export function CreateListingProvider({
     return () => {
       cancelled = true;
     };
-  }, [startFresh, draftSlot, userId, placeId]);
+  }, [startFresh, draftSlot, userId, placeId, authLoading]);
 
   const fieldErrors = stepFieldErrors(draft, draft.step);
 
@@ -217,6 +224,15 @@ export function CreateListingProvider({
     await persistCheckpoint(draftRef.current,committedStepRef.current,draftRef.current.step);
     await flushDraftAccountSync();
   },[persistCheckpoint]);
+  useEffect(() => {
+    if (!hydrated || !startFresh) return;
+    let cancelled = false;
+    // Consume the fresh-start URL only after the working checkpoint is durable.
+    void persistCheckpoint(draftRef.current, committedStepRef.current, draftRef.current.step).then(() => {
+      if (!cancelled) router.setParams({ new: undefined, working: '1' });
+    });
+    return () => { cancelled = true; };
+  }, [hydrated, startFresh, persistCheckpoint]);
   useEffect(()=>{
     if(!hydrated || releasedRef.current)return;
     if(!draft.publishRequestId){patch({publishRequestId:eventId()});return;}

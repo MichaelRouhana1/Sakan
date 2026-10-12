@@ -174,6 +174,28 @@ Local ignored evidence: `frontend/.expo/host-places-ui/`, `slice4-ui/`,
 
 Slice 4 stops after its commit and push. Slice 5 has not started.
 
+### Slice 4 draft and upload recovery follow-up (2026-10-12)
+
+- Draft hydration waits for account loading and does not restart the same loaded
+  draft after a transient account refresh. The fresh-start URL is consumed after
+  saving a local working checkpoint, so reloading resumes that draft. Corrected
+  an out-of-scope variable introduced while developing this fix that temporarily
+  prevented saved drafts from opening.
+- Requests use the current Clerk session and retry a 401 once with an uncached
+  token. A retry retains the upload body and refuses to replay a previous account's
+  request under another account. Persistent authentication failures show a sign-in
+  message beside Retry. Failed local photo selections are retained in the open
+  page; browser reload cannot recover an upload that never acquired a durable URL.
+- 25 focused auth, wizard, photo persistence and crop queue tests pass. The real
+  draft provider in the browser harness preserves step 3/details through account
+  loading and reopens saved details after reload. TypeScript comparison against
+  `bd45157`: 123 baseline and current diagnostics, zero added. These checks do not
+  verify uploads against the user's live Clerk session or establish why it ended.
+- Reproduce focused tests from `frontend` with `node --test
+  tests/auth-request-recovery.test.mjs tests/unit-wizard.test.mjs
+  tests/photo-persistence.test.mjs tests/photo-crop-queue.test.mjs`.
+  No slice 5 work, database change or deployment is included.
+
 ## Slice 3 — search implementation and review handoff (2026-10-11)
 
 Scope is search only. There is no result grouping and no per-place promotion

@@ -195,7 +195,9 @@ export async function uploadDraft(
     succeeded = true;
   } catch (err) {
     const message =
-      isAxiosError(err) &&
+      isAxiosError(err) && err.response?.status === 401
+        ? 'Sign in again, then retry. Your selected photo is still here.'
+        : isAxiosError(err) &&
       typeof err.response?.data?.error?.message === "string"
         ? err.response.data.error.message
         : "Upload failed — tap to retry";
@@ -326,6 +328,9 @@ export function PhotoTile({
           {photo.status === "error" ? (
             <View style={photoPickerStyles.statusOverlay}>
               <Ionicons name="refresh" size={22} color={Lister.color.surface} />
+              <LText variant="caption" style={photoPickerStyles.errorText}>
+                {photo.error || 'Upload failed'}
+              </LText>
               <LText variant="caption" style={photoPickerStyles.errorText}>
                 Retry
               </LText>

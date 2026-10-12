@@ -130,12 +130,13 @@ async function readSessionToken(
 
 export async function getFreshClerkToken(
   session: ClerkSessionLike | null | undefined,
+  forceRefresh = false,
 ): Promise<string | null> {
   if (!session?.getToken) {
     lastClerkTokenFailure = "Clerk session is missing.";
     return null;
   }
-  const cached = await readSessionToken(session, false);
+  const cached = await readSessionToken(session, forceRefresh);
   if (cached.token && isFreshClerkToken(cached.token)) return cached.token;
   const fresh = await readSessionToken(session, true);
   if (fresh.token && isFreshClerkToken(fresh.token)) return fresh.token;
