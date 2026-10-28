@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import postgres from 'postgres';
+import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
 const url=new URL(process.env.DATABASE_URL);
 if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname))throw new Error('Loopback database required');
 const name='studently_wizard_test_'+randomUUID().replaceAll('-','');
@@ -22,6 +23,7 @@ try{
   const {applyWizard}=await import('../ops/places/apply-wizard.mjs');
   assert.deepEqual((await applyWizard(client)).migrations,['0036_unit_publish_batches']);assert.equal((await applyWizard(client)).applied,false);
  });
+ await exposeCurrentRuntimeView(client);
  const {publishUnits,publishUnitsSchema,ownerPlace,publishQuote,publishedBatch}=await import('../dist/modules/listings/unit-publish.service.js');
  const {editPlace,editPlaceSchema}=await import('../dist/modules/listings/place-edit.service.js');
  const {listingsRepository:repo}=await import('../dist/modules/listings/listings.repository.js');

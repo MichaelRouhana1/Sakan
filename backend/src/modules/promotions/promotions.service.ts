@@ -8,7 +8,7 @@ import { eligibilityReasons, OPEN_STATUSES, remainingSeconds, unusedRefundUnits,
 type Row = Record<string, any>;
 export async function promotionLock(tx: Tx) { await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('promotions'))`); }
 async function ownedListing(tx: Tx, listingId: string, ownerId?: string) {
-  const rows = await tx.execute(sql`SELECT l.*,unit_hidden_reason(l) AS hidden_reason,u.account_status,(SELECT count(*)::int FROM listing_photos p WHERE p.listing_id=l.id) AS photo_count,c.name AS campus_name,c.active AS campus_active FROM listings l JOIN users u ON u.id=l.poster_id LEFT JOIN universities c ON c.id=l.primary_campus_id WHERE l.id=${listingId}::uuid`);
+  const rows = await tx.execute(sql`SELECT r.*,unit_hidden_reason(l) AS hidden_reason,u.account_status,(SELECT count(*)::int FROM listing_photos p WHERE p.listing_id=l.id) AS photo_count,c.name AS campus_name,c.active AS campus_active FROM listings l JOIN listing_resolved r ON r.id=l.id JOIN users u ON u.id=l.poster_id LEFT JOIN universities c ON c.id=r.primary_campus_id WHERE l.id=${listingId}::uuid`);
   const row = rows[0] as Row | undefined;
   if (ownerId && (!row || row.poster_id !== ownerId)) throw new NotFoundError('Listing not found');
   return row;

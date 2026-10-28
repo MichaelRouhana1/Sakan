@@ -1,6 +1,7 @@
-import { placePhotos } from '../../db/schema/places.js';
+import { placePhotos, places } from '../../db/schema/places.js';
+import { listingResolved } from '../../db/schema/listing-resolved.js';
 import { ConflictError } from '../../lib/errors.js';
-import { sharedFields, sharedSqlValues } from './place-fields.js';
+import { normalizedShared, sharedFields, sharedSqlValues } from './place-fields.js';
 import type { PromotionWalletTransaction } from '../credits/promotion-wallet.js';
 import { ValidationError } from '../../lib/errors.js';
 import { chargeUnit } from './listing-charges.service.js';
@@ -24,11 +25,7 @@ import {
 import { campusHousingRadiusMeters } from "../campus/campus.repository.js";
 import { db } from "../../db/index.js";
 import { listingPhotos, listings } from "../../db/schema/index.js";
-import { deriveListingType } from "./deriveListingType.js";
-import {
-  hoursWithPowerFromWindows,
-  resolveCutWindows,
-} from "../../lib/electricityCuts.js";
+import { deriveGenderRule, deriveUnitType } from "./deriveListingType.js";
 import {
   deriveContactPhones,
   resolveContactNumbers,
@@ -58,84 +55,84 @@ export type ListingWithPhotos = Record<string, unknown> & {
 
 /** Explicit listing columns — never select raw geography/location. */
 export const listingPublicColumns = {
-  id: listings.id,
-  contactTapCount: listings.contactTapCount,
-  placeId: listings.placeId,
-  unitType: listings.unitType,
-  bathroomPrivacy: listings.bathroomPrivacy,
-  placeKind: sql<string>`(SELECT kind FROM places WHERE id=listings.place_id)`,
-  hidden: listings.hidden,
-  hiddenReason: sql<string | null>`unit_hidden_reason(listings)`,
-  bedsTotal: listings.bedsTotal,
-  bedsAvailable: listings.bedsAvailable,
-  inventoryNeedsConfirmation: listings.inventoryNeedsConfirmation,
-  inventoryVersion: listings.inventoryVersion,
-  posterId: listings.posterId,
-  status: listings.status,
-  availability: listings.availability,
-  listingType: listings.listingType,
-  spaceType: listings.spaceType,
-  propertyType: listings.propertyType,
-  priceBasis: listings.priceBasis,
-  targetAudience: listings.targetAudience,
-  genderRestriction: listings.genderRestriction,
-  monthlyRentUsd: listings.monthlyRentUsd,
-  securityDepositUsd: listings.securityDepositUsd,
-  leaseTerm: listings.leaseTerm,
-  availableFrom: listings.availableFrom,
-  paymentModality: listings.paymentModality,
-  electricity: listings.electricity,
-  electricityCutsStart: listings.electricityCutsStart,
-  electricityCutsEnd: listings.electricityCutsEnd,
-  electricityHoursOn: listings.electricityHoursOn,
-  electricityCutWindows: listings.electricityCutWindows,
-  water: listings.water,
-  wifiIncluded: listings.wifiIncluded,
-  routerUps: listings.routerUps,
-  elevator24_7: listings.elevator24_7,
-  hasElevator: listings.hasElevator,
-  hasSolar: listings.hasSolar,
-  generatorAmperes: listings.generatorAmperes,
-  generatorIncluded: listings.generatorIncluded,
-  conciergeIncluded: listings.conciergeIncluded,
-  cookingGasIncluded: listings.cookingGasIncluded,
-  waterBillIncluded: listings.waterBillIncluded,
-  buildingFeesIncluded: listings.buildingFeesIncluded,
-  parkingIncludedInRent: listings.parkingIncludedInRent,
-  amenities: listings.amenities,
-  bedrooms: listings.bedrooms,
-  beds: listings.beds,
-  bathrooms: listings.bathrooms,
-  maxOccupancy: listings.maxOccupancy,
-  furnishingType: listings.furnishingType,
-  floorNumber: listings.floorNumber,
-  areaSqm: listings.areaSqm,
-  smokingPolicy: listings.smokingPolicy,
-  petsPolicy: listings.petsPolicy,
-  guestsPolicy: listings.guestsPolicy,
-  quietHours: listings.quietHours,
-  title: listings.title,
-  description: listings.description,
-  highlightTags: listings.highlightTags,
-  cardBadges: listings.cardBadges,
-  listingPosterRole: listings.listingPosterRole,
-  contactName: listings.contactName,
-  contactPhone: listings.contactPhone,
-  whatsappNumber: listings.whatsappNumber,
-  contactNumbers: listings.contactNumbers,
-  area: listings.area,
-  landmark: listings.landmark,
-  addressLine: listings.addressLine,
-  buildingName: listings.buildingName,
-  primaryCampusId: listings.primaryCampusId,
-  viewCount: listings.viewCount,
-  publishedAt: listings.publishedAt,
-  expiresAt: listings.expiresAt,
-  boostedUntil: listings.boostedUntil,
-  createdAt: listings.createdAt,
-  updatedAt: listings.updatedAt,
-  lng: sql<number | null>`ST_X(${listings.location}::geometry)`.as("lng"),
-  lat: sql<number | null>`ST_Y(${listings.location}::geometry)`.as("lat"),
+  id: listingResolved.id,
+  contactTapCount: listingResolved.contactTapCount,
+  placeId: listingResolved.placeId,
+  unitType: listingResolved.unitType,
+  bathroomPrivacy: listingResolved.bathroomPrivacy,
+  placeKind: listingResolved.placeKind,
+  hidden: listingResolved.hidden,
+  hiddenReason: listingResolved.hiddenReason,
+  bedsTotal: listingResolved.bedsTotal,
+  bedsAvailable: listingResolved.bedsAvailable,
+  inventoryNeedsConfirmation: listingResolved.inventoryNeedsConfirmation,
+  inventoryVersion: listingResolved.inventoryVersion,
+  posterId: listingResolved.posterId,
+  status: listingResolved.status,
+  availability: listingResolved.availability,
+  listingType: listingResolved.listingType,
+  spaceType: listingResolved.spaceType,
+  propertyType: listingResolved.propertyType,
+  priceBasis: listingResolved.priceBasis,
+  targetAudience: listingResolved.targetAudience,
+  genderRestriction: listingResolved.genderRestriction,
+  monthlyRentUsd: listingResolved.monthlyRentUsd,
+  securityDepositUsd: listingResolved.securityDepositUsd,
+  leaseTerm: listingResolved.leaseTerm,
+  availableFrom: listingResolved.availableFrom,
+  paymentModality: listingResolved.paymentModality,
+  electricity: listingResolved.electricity,
+  electricityCutsStart: listingResolved.electricityCutsStart,
+  electricityCutsEnd: listingResolved.electricityCutsEnd,
+  electricityHoursOn: listingResolved.electricityHoursOn,
+  electricityCutWindows: listingResolved.electricityCutWindows,
+  water: listingResolved.water,
+  wifiIncluded: listingResolved.wifiIncluded,
+  routerUps: listingResolved.routerUps,
+  elevator24_7: listingResolved.elevator24_7,
+  hasElevator: listingResolved.hasElevator,
+  hasSolar: listingResolved.hasSolar,
+  generatorAmperes: listingResolved.generatorAmperes,
+  generatorIncluded: listingResolved.generatorIncluded,
+  conciergeIncluded: listingResolved.conciergeIncluded,
+  cookingGasIncluded: listingResolved.cookingGasIncluded,
+  waterBillIncluded: listingResolved.waterBillIncluded,
+  buildingFeesIncluded: listingResolved.buildingFeesIncluded,
+  parkingIncludedInRent: listingResolved.parkingIncludedInRent,
+  amenities: listingResolved.amenities,
+  bedrooms: listingResolved.bedrooms,
+  beds: listingResolved.beds,
+  bathrooms: listingResolved.bathrooms,
+  maxOccupancy: listingResolved.maxOccupancy,
+  furnishingType: listingResolved.furnishingType,
+  floorNumber: listingResolved.floorNumber,
+  areaSqm: listingResolved.areaSqm,
+  smokingPolicy: listingResolved.smokingPolicy,
+  petsPolicy: listingResolved.petsPolicy,
+  guestsPolicy: listingResolved.guestsPolicy,
+  quietHours: listingResolved.quietHours,
+  title: listingResolved.title,
+  description: listingResolved.description,
+  highlightTags: listingResolved.highlightTags,
+  cardBadges: listingResolved.cardBadges,
+  listingPosterRole: listingResolved.listingPosterRole,
+  contactName: listingResolved.contactName,
+  contactPhone: listingResolved.contactPhone,
+  whatsappNumber: listingResolved.whatsappNumber,
+  contactNumbers: listingResolved.contactNumbers,
+  area: listingResolved.area,
+  landmark: listingResolved.landmark,
+  addressLine: listingResolved.addressLine,
+  buildingName: listingResolved.buildingName,
+  primaryCampusId: listingResolved.primaryCampusId,
+  viewCount: listingResolved.viewCount,
+  publishedAt: listingResolved.publishedAt,
+  expiresAt: listingResolved.expiresAt,
+  boostedUntil: listingResolved.boostedUntil,
+  createdAt: listingResolved.createdAt,
+  updatedAt: listingResolved.updatedAt,
+  lng: sql<number | null>`ST_X(${listingResolved.location}::geometry)`.as("lng"),
+  lat: sql<number | null>`ST_Y(${listingResolved.location}::geometry)`.as("lat"),
 };
 
 function parseCoord(value: unknown): number | null {
@@ -180,12 +177,12 @@ function textSearchDrizzleConditions(q: string | undefined): SQL[] {
   return searchTokens(q).map((token) => {
     const like = likePattern(token);
     return or(
-      ilike(listings.title, like),
-      ilike(listings.buildingName, like),
-      ilike(listings.area, like),
-      ilike(listings.description, like),
-      ilike(listings.landmark, like),
-      ilike(listings.addressLine, like),
+      ilike(listingResolved.title, like),
+      ilike(listingResolved.buildingName, like),
+      ilike(listingResolved.area, like),
+      ilike(listingResolved.description, like),
+      ilike(listingResolved.landmark, like),
+      ilike(listingResolved.addressLine, like),
     )!;
   });
 }
@@ -216,28 +213,28 @@ function propertyDrizzleConditions(
 ): SQL[] {
   const out: SQL[] = [];
   if (filters.electricity.length > 0) {
-    out.push(inArray(listings.electricity, filters.electricity));
+    out.push(inArray(listingResolved.electricity, filters.electricity));
   }
   if (filters.water.length > 0) {
-    out.push(inArray(listings.water, filters.water));
+    out.push(inArray(listingResolved.water, filters.water));
   }
   if (filters.listingTypes.length > 0) {
-    out.push(inArray(listings.listingType, filters.listingTypes));
+    out.push(inArray(listingResolved.listingType, filters.listingTypes));
   }
   if (filters.wifiIncluded) {
-    out.push(eq(listings.wifiIncluded, true));
+    out.push(eq(listingResolved.wifiIncluded, true));
   }
   if (filters.minRentUsd != null) {
-    out.push(gte(listings.monthlyRentUsd, filters.minRentUsd));
+    out.push(gte(listingResolved.monthlyRentUsd, filters.minRentUsd));
   }
   if (filters.maxRentUsd != null) {
-    out.push(lte(listings.monthlyRentUsd, filters.maxRentUsd));
+    out.push(lte(listingResolved.monthlyRentUsd, filters.maxRentUsd));
   }
   if (filters.studentsOnly) {
-    out.push(eq(listings.targetAudience, "students_only"));
+    out.push(eq(listingResolved.targetAudience, "students_only"));
   }
   if (filters.genderRestrictions.length > 0) {
-    out.push(inArray(listings.genderRestriction, filters.genderRestrictions));
+    out.push(inArray(listingResolved.genderRestriction, filters.genderRestrictions));
   }
   return out;
 }
@@ -356,8 +353,8 @@ export class ListingsRepository {
   async findById(id: string) {
     const [row] = await db
       .select(listingPublicColumns)
-      .from(listings)
-      .where(eq(listings.id, id))
+      .from(listingResolved)
+      .where(eq(listingResolved.id, id))
       .limit(1);
     if (!row) return null;
     const normalized = {
@@ -377,11 +374,11 @@ export class ListingsRepository {
     const [origin] = await db.select({ placeId: listings.placeId }).from(listings)
       .where(eq(listings.id, listingId)).limit(1);
     if (!origin) return null;
-    const rows = await db.select(listingPublicColumns).from(listings).where(and(
-      eq(listings.placeId, origin.placeId), ne(listings.id, listingId),
-      eq(listings.status, "active"), ne(listings.availability, "rented"),
-      sql`unit_hidden_reason(listings) IS NULL`, sql`${listings.expiresAt} > now()`,
-    )).orderBy(asc(listings.monthlyRentUsd), asc(listings.id));
+    const rows = await db.select(listingPublicColumns).from(listingResolved).where(and(
+      eq(listingResolved.placeId, origin.placeId), ne(listingResolved.id, listingId),
+      eq(listingResolved.status, "active"), ne(listingResolved.availability, "rented"),
+      sql`${listingResolved.hiddenReason} IS NULL`, sql`${listingResolved.expiresAt} > now()`,
+    )).orderBy(asc(listingResolved.monthlyRentUsd), asc(listingResolved.id));
     return this.withPhotos(rows.map(row => ({ ...row, lng: parseCoord(row.lng), lat: parseCoord(row.lat) })));
   }
 
@@ -396,29 +393,30 @@ export class ListingsRepository {
     q?: string,
   ) {
     const conditions = [
-      eq(listings.status, "active"),
-      ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
-      sql`${listings.expiresAt} > now()`,
+      eq(listingResolved.status, "active"),
+      ne(listingResolved.availability, "rented"),
+      sql`${listingResolved.hiddenReason} IS NULL`,
+      sql`${listingResolved.expiresAt} > now()`,
       ...propertyDrizzleConditions(property),
       ...textSearchDrizzleConditions(q),
     ];
     if (areas.length > 0) {
-      conditions.push(inArray(listings.area, areas));
+      conditions.push(inArray(listingResolved.area, areas));
     }
 
     const boostFirst = sort === 'newest' && process.env.PROMOTION_PLACEMENT_ENABLED !== 'true'
-      ? sql`CASE WHEN ${listings.availability}='available' AND ${listings.boostedUntil}>now() THEN ${listings.boostedUntil} END DESC NULLS LAST`
+      ? sql`CASE WHEN ${listingResolved.availability}='available' AND ${listingResolved.boostedUntil}>now() THEN ${listingResolved.boostedUntil} END DESC NULLS LAST`
       : sql`CASE WHEN false THEN 1 END`;
     const secondary =
       sort === "price_asc"
-        ? asc(listings.monthlyRentUsd)
-        : sql`COALESCE(${listings.publishedAt}, ${listings.createdAt}) DESC`;
+        ? asc(listingResolved.monthlyRentUsd)
+        : sql`COALESCE(${listingResolved.publishedAt}, ${listingResolved.createdAt}) DESC`;
 
     const rows = await db
       .select(listingPublicColumns)
-      .from(listings)
+      .from(listingResolved)
       .where(and(...conditions))
-      .orderBy(boostFirst, secondary, desc(listings.createdAt));
+      .orderBy(boostFirst, secondary, desc(listingResolved.createdAt));
 
     const normalized = rows.map((row) => ({
       ...row,
@@ -472,7 +470,7 @@ export class ListingsRepository {
           l.id AS listing_id,
           d.distance_meters,
           d.campus_slug AS nearest_campus_slug
-        FROM listings l
+        FROM listing_resolved l
         CROSS JOIN LATERAL (
           SELECT
             ST_Distance(l.location, c.location) AS distance_meters,
@@ -483,7 +481,7 @@ export class ListingsRepository {
           LIMIT 1
         ) d
         WHERE l.status = 'active'
-          AND l.availability <> 'rented' AND unit_hidden_reason(l) IS NULL AND l.expires_at > now()
+          AND l.availability <> 'rented' AND l.hidden_reason IS NULL AND l.expires_at > now()
           AND l.location IS NOT NULL
           ${areaFilter}
           ${propertyFilter}
@@ -563,7 +561,7 @@ export class ListingsRepository {
         n.nearest_campus_slug,
         ST_X(l.location::geometry) AS lng,
         ST_Y(l.location::geometry) AS lat
-      FROM listings l
+      FROM listing_resolved l
       INNER JOIN nearest n ON n.listing_id = l.id
       ORDER BY n.distance_meters ASC, l.id ASC
     `);
@@ -582,12 +580,13 @@ export class ListingsRepository {
   ) {
     const meters = radiusKm * 1000;
     const conditions = [
-      eq(listings.status, "active"),
-      ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
-      sql`${listings.expiresAt} > now()`,
-      isNotNull(listings.location),
+      eq(listingResolved.status, "active"),
+      ne(listingResolved.availability, "rented"),
+      sql`${listingResolved.hiddenReason} IS NULL`,
+      sql`${listingResolved.expiresAt} > now()`,
+      isNotNull(listingResolved.location),
       sql`ST_DWithin(
-        ${listings.location},
+        ${listingResolved.location},
         ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
         ${meters}
       )`,
@@ -595,11 +594,11 @@ export class ListingsRepository {
       ...textSearchDrizzleConditions(q),
     ];
     if (areas.length > 0) {
-      conditions.push(inArray(listings.area, areas));
+      conditions.push(inArray(listingResolved.area, areas));
     }
 
     const distanceSql = sql<number>`ST_Distance(
-      ${listings.location},
+      ${listingResolved.location},
       ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
     )`;
 
@@ -608,10 +607,10 @@ export class ListingsRepository {
         ...listingPublicColumns,
         distanceMeters: distanceSql.as("distance_meters"),
       })
-      .from(listings)
+      .from(listingResolved)
       .where(and(...conditions))
       .orderBy(
-        sql`CASE WHEN ${process.env.PROMOTION_PLACEMENT_ENABLED !== "true"} AND ${listings.availability}='available' AND ${listings.boostedUntil}>now() THEN ${listings.boostedUntil} END DESC NULLS LAST`,
+        sql`CASE WHEN ${process.env.PROMOTION_PLACEMENT_ENABLED !== "true"} AND ${listingResolved.availability}='available' AND ${listingResolved.boostedUntil}>now() THEN ${listingResolved.boostedUntil} END DESC NULLS LAST`,
         asc(distanceSql),
       );
 
@@ -720,8 +719,8 @@ export class ListingsRepository {
   async listByPoster(posterId: string) {
     const rows = await db
       .select(listingPublicColumns)
-      .from(listings)
-      .where(eq(listings.posterId, posterId));
+      .from(listingResolved)
+      .where(eq(listingResolved.posterId, posterId));
 
     const normalized = rows.map((row) => ({
       ...row,
@@ -745,51 +744,73 @@ export class ListingsRepository {
     const publishNow = input.publishNow !== false;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const listingType =
-      input.listingType ??
-      deriveListingType(input.spaceType, input.propertyType);
     const captions = input.photoCaptions ?? [];
-    const cutWindows = resolveCutWindows(input);
-    const firstCut = cutWindows[0];
-    const hoursOn = hoursWithPowerFromWindows(cutWindows);
     const contactNumbers = resolveContactNumbers(input);
     const phones = deriveContactPhones(contactNumbers);
+    const shared = normalizedShared(input);
+    let placeId = membership.placeId;
+    if (!placeId) {
+      const [place] = await tx.insert(places).values({
+        ownerId: posterId,
+        kind: input.propertyType === "dormitory" ? "building" : "apartment",
+        area: input.area,
+        landmark: input.landmark,
+        addressLine: input.addressLine ?? null,
+        buildingName: input.buildingName ?? null,
+        primaryCampusId: input.primaryCampusId ?? null,
+        location: sql`ST_GeogFromText(${input.locationWkt})`,
+        electricity: shared.electricity,
+        electricityCutsStart: shared.electricityCutsStart,
+        electricityCutsEnd: shared.electricityCutsEnd,
+        electricityHoursOn: shared.electricityHoursOn,
+        electricityCutWindows: shared.electricityCutWindows,
+        water: shared.water,
+        wifiIncluded: shared.wifiIncluded,
+        routerUps: shared.routerUps,
+        elevator247: shared.elevator24_7,
+        hasElevator: shared.hasElevator,
+        hasSolar: shared.hasSolar,
+        generatorAmperes: shared.generatorAmperes ?? null,
+        generatorIncluded: shared.generatorIncluded,
+        conciergeIncluded: shared.conciergeIncluded,
+        cookingGasIncluded: shared.cookingGasIncluded,
+        waterBillIncluded: shared.waterBillIncluded,
+        buildingFeesIncluded: shared.buildingFeesIncluded,
+        parkingIncludedInRent: shared.parkingIncludedInRent,
+        amenities: input.amenities,
+        smokingPolicy: shared.smokingPolicy,
+        petsPolicy: shared.petsPolicy,
+        guestsPolicy: shared.guestsPolicy,
+        quietHours: shared.quietHours,
+        targetAudience: shared.targetAudience,
+      }).returning({ id: places.id });
+      if (!place) return null;
+      placeId = place.id;
+    }
+
+    const unitType = deriveUnitType(input.spaceType);
 
     const [row] = await tx
       .insert(listings)
       .values({
         ...membership,
+        placeId: placeId!,
         posterId,
-        listingType,
+        unitType,
+        genderRule: deriveGenderRule(input.genderRestriction),
+        bedsTotal: unitType === "shared_bed" ? (membership.bedsTotal ?? input.beds) : null,
+        bedsAvailable: unitType === "shared_bed" ? (membership.bedsAvailable ?? null) : null,
+        inventoryNeedsConfirmation: unitType === "shared_bed"
+          ? (membership.inventoryNeedsConfirmation ?? membership.bedsAvailable == null)
+          : false,
         spaceType: input.spaceType,
         propertyType: input.propertyType,
         priceBasis: input.priceBasis,
-        targetAudience: input.targetAudience,
-        genderRestriction: input.genderRestriction,
         monthlyRentUsd: input.monthlyRentUsd,
         securityDepositUsd: input.securityDepositUsd,
         leaseTerm: input.leaseTerm,
         availableFrom: input.availableFrom ?? null,
         paymentModality: input.paymentModality,
-        electricity: input.electricity,
-        electricityCutsStart: firstCut?.start ?? null,
-        electricityCutsEnd: firstCut?.end ?? null,
-        electricityHoursOn: hoursOn,
-        electricityCutWindows: cutWindows,
-        water: input.water,
-        wifiIncluded: input.wifiIncluded,
-        routerUps: input.routerUps,
-        elevator24_7: input.elevator24_7,
-        hasElevator: input.hasElevator,
-        hasSolar: input.hasSolar,
-        generatorAmperes: input.generatorAmperes ?? null,
-        generatorIncluded: input.generatorIncluded,
-        conciergeIncluded: input.conciergeIncluded,
-        cookingGasIncluded: input.cookingGasIncluded,
-        waterBillIncluded: input.waterBillIncluded,
-        buildingFeesIncluded: input.buildingFeesIncluded,
-        parkingIncludedInRent: input.parkingIncludedInRent,
-        amenities: input.amenities,
         bedrooms: input.bedrooms,
         beds: input.beds,
         bathrooms: input.bathrooms,
@@ -797,10 +818,6 @@ export class ListingsRepository {
         furnishingType: input.furnishingType,
         floorNumber: input.floorNumber,
         areaSqm: input.areaSqm ?? null,
-        smokingPolicy: input.smokingPolicy,
-        petsPolicy: input.petsPolicy,
-        guestsPolicy: input.guestsPolicy,
-        quietHours: input.quietHours,
         title: input.title,
         description: input.description,
         highlightTags: input.highlightTags,
@@ -810,12 +827,6 @@ export class ListingsRepository {
         contactPhone: phones.contactPhone ?? input.contactPhone ?? null,
         whatsappNumber: phones.whatsappNumber ?? input.whatsappNumber ?? null,
         contactNumbers,
-        area: input.area,
-        landmark: input.landmark,
-        addressLine: input.addressLine ?? null,
-        buildingName: input.buildingName ?? null,
-        primaryCampusId: input.primaryCampusId ?? null,
-        location: sql`ST_GeogFromText(${input.locationWkt})`,
         status: publishNow ? "active" : "draft",
         availability: "available",
         publishedAt: publishNow ? now : null,
@@ -920,15 +931,15 @@ export class ListingsRepository {
   async topAreasByPinCount(limit = 10) {
     const rows = await db
       .select({
-        name: listings.area,
+        name: listingResolved.area,
         count: sql<number>`count(*)::int`.as("count"),
       })
-      .from(listings)
+      .from(listingResolved)
       .where(
-        and(eq(listings.status, "active"), ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`),
+        and(eq(listingResolved.status, "active"), ne(listingResolved.availability, "rented"), sql`${listingResolved.hiddenReason} IS NULL`),
       )
-      .groupBy(listings.area)
-      .orderBy(desc(sql`count(*)`), asc(listings.area))
+      .groupBy(listingResolved.area)
+      .orderBy(desc(sql`count(*)`), asc(listingResolved.area))
       .limit(limit);
     return rows.map((r) => ({
       name: String(r.name),
@@ -954,9 +965,9 @@ export class ListingsRepository {
         COUNT(l.id)::int AS count
       FROM universities u
       LEFT JOIN institutions i ON i.id = u.institution_id
-      LEFT JOIN listings l
+      LEFT JOIN listing_resolved l
         ON l.status = 'active'
-        AND l.availability <> 'rented' AND unit_hidden_reason(l) IS NULL AND l.expires_at > now()
+        AND l.availability <> 'rented' AND l.hidden_reason IS NULL AND l.expires_at > now()
         AND l.location IS NOT NULL
         AND u.location IS NOT NULL
         AND ST_DWithin(l.location, u.location, ${campusHousingRadiusMeters})
@@ -1021,46 +1032,41 @@ export class ListingsRepository {
     return db.transaction(async (tx) => {
       await promotionLock(tx);
       const original = await lockInventory(tx,id);
+      const nextUnitType = deriveUnitType(write.spaceType);
       if(input.expectedPlaceUpdatedAt){
         const [place]=await tx.execute(sql`SELECT updated_at FROM places WHERE id=${String(original.place_id)}::uuid FOR UPDATE`);
         if(!place || new Date(String(place.updated_at)).toISOString()!==input.expectedPlaceUpdatedAt)throw new ConflictError('Shared details changed. Refresh before saving.');
       }
-      if (original.unit_type === 'shared_bed' && (write.beds !== original.beds || write.listingType !== original.listing_type)) throw new ValidationError('Change shared-bed inventory using the inventory controls');
-      if (original.availability === 'rented' && write.listingType !== original.listing_type) throw new ValidationError('Confirm vacancy before changing the unit type');
+      if (original.unit_type === 'shared_bed' && (write.beds !== original.beds || nextUnitType !== original.unit_type)) throw new ValidationError('Change shared-bed inventory using the inventory controls');
+      if (original.availability === 'rented' && nextUnitType !== original.unit_type) throw new ValidationError('Confirm vacancy before changing the unit type');
+      const values=sharedSqlValues(input);
+      let overrides: Record<string, unknown> = {};
+      let unitAmenities: string[] = [];
+      let amenityOverrides: Record<string, boolean> = {};
+      if(input.differentFields){
+        overrides=Object.fromEntries(Object.entries(sharedFields).filter(([key])=>input.differentFields!.includes(key)).map(([,col])=>[col,values[col]]));
+        const [place]=await tx.execute(sql`SELECT amenities FROM places WHERE id=${String(original.place_id)}::uuid`);
+        const custom=input.differentFields.includes('amenities');
+        unitAmenities=custom?input.amenities:[];
+        amenityOverrides=custom?Object.fromEntries((place!.amenities as string[]).filter(a=>!input.amenities.includes(a)).map(a=>[a,false])):{};
+      }
       await tx
         .update(listings)
         .set({
           ...(input.bathroomPrivacy ? {bathroomPrivacy:input.bathroomPrivacy}:{}),
-          listingType: write.listingType,
+          unitType: nextUnitType,
+          genderRule: deriveGenderRule(write.genderRestriction),
+          bedsTotal: nextUnitType === 'shared_bed' ? (original.unit_type === 'shared_bed' ? Number(original.beds_total) : write.beds) : null,
+          bedsAvailable: nextUnitType === 'shared_bed' && original.unit_type === 'shared_bed' ? Number(original.beds_available) : null,
+          inventoryNeedsConfirmation: nextUnitType === 'shared_bed' ? (original.unit_type === 'shared_bed' ? Boolean(original.inventory_needs_confirmation) : true) : false,
           spaceType: write.spaceType,
           propertyType: write.propertyType,
           priceBasis: write.priceBasis,
-          targetAudience: write.targetAudience,
-          genderRestriction: write.genderRestriction,
           monthlyRentUsd: write.monthlyRentUsd,
           securityDepositUsd: write.securityDepositUsd,
           leaseTerm: write.leaseTerm,
           availableFrom: write.availableFrom,
           paymentModality: write.paymentModality,
-          electricity: write.electricity,
-          electricityCutsStart: write.electricityCutsStart,
-          electricityCutsEnd: write.electricityCutsEnd,
-          electricityHoursOn: write.electricityHoursOn,
-          electricityCutWindows: write.electricityCutWindows,
-          water: write.water,
-          wifiIncluded: write.wifiIncluded,
-          routerUps: write.routerUps,
-          elevator24_7: write.elevator24_7,
-          hasElevator: write.hasElevator,
-          hasSolar: write.hasSolar,
-          generatorAmperes: write.generatorAmperes,
-          generatorIncluded: write.generatorIncluded,
-          conciergeIncluded: write.conciergeIncluded,
-          cookingGasIncluded: write.cookingGasIncluded,
-          waterBillIncluded: write.waterBillIncluded,
-          buildingFeesIncluded: write.buildingFeesIncluded,
-          parkingIncludedInRent: write.parkingIncludedInRent,
-          amenities: write.amenities,
           bedrooms: write.bedrooms,
           beds: write.beds,
           bathrooms: write.bathrooms,
@@ -1068,10 +1074,6 @@ export class ListingsRepository {
           furnishingType: write.furnishingType,
           floorNumber: write.floorNumber,
           areaSqm: write.areaSqm,
-          smokingPolicy: write.smokingPolicy,
-          petsPolicy: write.petsPolicy,
-          guestsPolicy: write.guestsPolicy,
-          quietHours: write.quietHours,
           title: write.title,
           description: write.description,
           highlightTags: write.highlightTags,
@@ -1081,27 +1083,32 @@ export class ListingsRepository {
           contactPhone: write.contactPhone,
           whatsappNumber: write.whatsappNumber,
           contactNumbers: write.contactNumbers,
-          area: write.area,
-          landmark: write.landmark,
-          addressLine: write.addressLine,
-          buildingName: write.buildingName,
-          primaryCampusId: write.primaryCampusId,
-          ...(options.writeLocation
-            ? { location: sql`ST_GeogFromText(${write.locationWkt})` }
-            : {}),
+          placeOverrides: overrides,
+          unitAmenities,
+          amenityOverrides,
           updatedAt: now,
         })
         .where(eq(listings.id, id));
 
-      if(input.differentFields){
-        const values=sharedSqlValues(input);
-        const overrides=Object.fromEntries(Object.entries(sharedFields).filter(([key])=>input.differentFields!.includes(key)).map(([,col])=>[col,values[col]]));
-        const [place]=await tx.execute(sql`SELECT amenities FROM places WHERE id=${String(original.place_id)}::uuid`);
-        const custom=input.differentFields.includes('amenities');
-        // A second, metadata-only write restores place sources after the legacy bridge.
-        await tx.update(listings).set({placeOverrides:overrides,unitAmenities:custom?input.amenities:[],
-          amenityOverrides:custom?Object.fromEntries((place!.amenities as string[]).filter(a=>!input.amenities.includes(a)).map(a=>[a,false])):{},
-        }).where(eq(listings.id,id));
+      if(!input.differentFields){
+        const shared=normalizedShared(input);
+        await tx.update(places).set({
+          area:write.area, landmark:write.landmark, addressLine:write.addressLine,
+          buildingName:write.buildingName, primaryCampusId:write.primaryCampusId,
+          ...(options.writeLocation?{location:sql`ST_GeogFromText(${write.locationWkt})`}:{}),
+          electricity:shared.electricity, electricityCutsStart:shared.electricityCutsStart,
+          electricityCutsEnd:shared.electricityCutsEnd, electricityHoursOn:shared.electricityHoursOn,
+          electricityCutWindows:shared.electricityCutWindows, water:shared.water,
+          wifiIncluded:shared.wifiIncluded, routerUps:shared.routerUps, elevator247:shared.elevator24_7,
+          hasElevator:shared.hasElevator, hasSolar:shared.hasSolar,
+          generatorAmperes:shared.generatorAmperes, generatorIncluded:shared.generatorIncluded,
+          conciergeIncluded:shared.conciergeIncluded, cookingGasIncluded:shared.cookingGasIncluded,
+          waterBillIncluded:shared.waterBillIncluded, buildingFeesIncluded:shared.buildingFeesIncluded,
+          parkingIncludedInRent:shared.parkingIncludedInRent, amenities:input.amenities,
+          smokingPolicy:shared.smokingPolicy, petsPolicy:shared.petsPolicy,
+          guestsPolicy:shared.guestsPolicy, quietHours:shared.quietHours,
+          targetAudience:shared.targetAudience, updatedAt:now,
+        }).where(eq(places.id,String(original.place_id)));
       }
       await tx.delete(listingPhotos).where(eq(listingPhotos.listingId, id));
       if (write.photos.length > 0) {

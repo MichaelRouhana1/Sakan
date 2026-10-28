@@ -69,8 +69,9 @@ export async function changeUnitInventory(tx: Tx, listingId: string, input: Inve
   }
  }
  await tx.execute(sql`UPDATE listings SET hidden=${input.hidden ?? unit.hidden},
-  gender_restriction=${input.genderRestriction ?? unit.gender_restriction},
-  availability=${availability}::listing_availability,beds_total=${total},beds_available=${available},updated_at=now()
+  gender_rule=${input.genderRestriction === undefined ? unit.gender_rule : input.genderRestriction === 'girls_only' ? 'female_only' : input.genderRestriction === 'boys_only' ? 'male_only' : 'any'}::unit_gender_rule,
+  availability=${availability}::listing_availability,beds_total=${total},beds_available=${available},
+  inventory_needs_confirmation=${unit.unit_type === 'shared_bed' && available === null},updated_at=now()
   WHERE id=${listingId}::uuid`);
  await settlePlaceInventory(tx, String(unit.place_id));
  return readInventory(tx, listingId);
@@ -78,7 +79,7 @@ export async function changeUnitInventory(tx: Tx, listingId: string, input: Inve
 
 export async function readInventory(tx: Tx, listingId: string, ownerId?: string) {
  const [row] = await tx.execute(sql`SELECT l.id,l.title,l.status,l.place_id AS "placeId",l.unit_type AS "unitType",l.hidden,
-  p.hidden AS "placeHidden",l.gender_restriction AS "genderRestriction",
+  p.hidden AS "placeHidden",r.gender_restriction AS "genderRestriction",
   l.availability,l.beds_total AS "bedsTotal",l.beds_available AS "bedsAvailable",
   l.inventory_needs_confirmation AS "inventoryNeedsConfirmation",l.inventory_version AS "inventoryVersion",
   unit_hidden_reason(l) AS "hiddenReason",
@@ -87,7 +88,7 @@ export async function readInventory(tx: Tx, listingId: string, ownerId?: string)
    FROM listings s WHERE p.kind='apartment' AND s.place_id=l.place_id AND s.poster_id=l.poster_id AND s.id<>l.id
     AND (unit_occupied(s) OR (l.unit_type='whole_apartment' AND s.inventory_needs_confirmation))
     AND (s.unit_type='whole_apartment' OR l.unit_type='whole_apartment')), '[]'::jsonb) AS blockers
-  FROM listings l JOIN places p ON p.id=l.place_id AND p.owner_id=l.poster_id
+  FROM listings l JOIN listing_resolved r ON r.id=l.id JOIN places p ON p.id=l.place_id AND p.owner_id=l.poster_id
   WHERE l.id=${listingId}::uuid ${ownerId ? sql`AND l.poster_id=${ownerId}::uuid` : sql``}`);
  if (!row) throw new NotFoundError('Listing not found');
  return row;

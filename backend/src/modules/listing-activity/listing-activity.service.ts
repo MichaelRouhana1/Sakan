@@ -10,7 +10,7 @@ export async function recordActivity(listingId: string, kind: 'view' | 'contact_
   const eventId = input.eventId ?? randomUUID();
   return db.transaction(async tx => {
     // Serialize per listing: durable tap-window check and aggregate update share one transaction.
-    const rows = await tx.execute(sql`SELECT id,unit_hidden_reason(listings) AS hidden_reason,poster_id,status,availability,expires_at,view_count,contact_tap_count FROM listings WHERE id=${listingId}::uuid FOR UPDATE`);
+    const rows = await tx.execute(sql`SELECT l.id,CASE WHEN l.hidden THEN 'unit_hidden' WHEN p.hidden THEN 'place_hidden' WHEN u.account_status IN ('restricted','banned') THEN 'owner_restricted' END AS hidden_reason,l.poster_id,l.status,l.availability,l.expires_at,l.view_count,l.contact_tap_count FROM listings l JOIN places p ON p.id=l.place_id JOIN users u ON u.id=l.poster_id WHERE l.id=${listingId}::uuid FOR UPDATE OF l`);
     const listing = rows[0] as Row | undefined;
     if (!listing) throw new NotFoundError('Listing not found');
     const unchanged = { id: listingId, viewCount: Number(listing.view_count), leadCount: Number(listing.contact_tap_count), counted: false };

@@ -1,9 +1,67 @@
 # Places and units — foundation and implementation plan
 
 Slices 1–3 are implemented and committed. Slices 2 and 3 are approved; slice 3
-is on `main` at `6fdd3f7`. Slice 4 (wizard and dashboard) is implemented on
-2026-10-12; its implementation and verification record is below. Slice 5 remains
-deferred and untouched. Earlier verification records are historical.
+is on `main` at `6fdd3f7`. Slice 4 (wizard and dashboard) was implemented on
+2026-10-12. Slice 5 cleanup was applied to the guarded local `studently_dev`
+database on 2026-10-28. Earlier verification records below are historical.
+
+## Slice 5 — cleanup completed (2026-10-28)
+
+The verified custom-format backup is
+`backups/studently_dev-20261028-1615.dump` (303,263 bytes). The cleanup runner
+refuses any database except loopback `studently_dev`, requires the matching
+`studently_ops.environment_guard`, checks that backup, takes a transaction lock,
+and applies `0038_places_cleanup.sql` in one transaction.
+
+Deletion came only from IDs already stored in
+`studently_ops.housing_seed_manifest`; no title, owner, prefix, or name matching
+was used. The transaction deleted 17 listings, 51 listing photos, 10 places,
+20 place photos, two promotion campaigns, two service intervals, four promotion
+ledger rows, and the manifest-backed demo owner. Related activity, allocation,
+bump-execution, and notification rows were removed by their exact doomed listing
+or campaign IDs; foreign-key cascades handled the remaining listing dependents.
+The housing manifest now contains only the retained Studently Admin user row.
+No housing reseed is part of slice 5, and the frozen `skoun-housing-v1:` fixture
+namespace remains unchanged.
+
+The five requested Slice4 Bliss units remain, across `Slice4 Bliss House` and
+`Slice4 Bliss Rooms`. The final database has seven listings and four places.
+Campus/academic/tuition/benefit catalogs remain at 36 institutions, 101 campuses,
+191 faculties, 642 programs, 642 tuition rates, 34 fee items, and 94 benefits.
+
+Migration 0038 removes the transitional listing write bridges, duplicated
+`listing_campus_routes` cache, legacy listing enums, and the duplicated place,
+utility, rule, and audience columns from `listings`. Runtime repositories now read
+the canonical place/unit model and `place_campus_routes`. `listing_resolved`
+remains a read-only compatibility projection; it no longer writes or stores legacy
+values. `listings.beds` remains deliberately because it is the physical bed count
+for current non-shared units, not a duplicated place field. The old destructive
+housing manifest path was removed from the canonical seed.
+
+Verification after apply:
+
+- Backend build, 30 unit/API tests, seven lifecycle tests, ten audit tests,
+  17 promotion scenarios, ten search scenarios, 19 inventory scenarios,
+  12 wizard scenarios, 22 foundation scenarios, and six price-guide tests pass.
+- Frontend focused tests pass except the three already-known matcher UI failures:
+  short-viewport composer visibility, location-search focus, and the storage-error
+  heading. The runner also reports its parent group as failed because those three
+  children fail.
+- Frontend TypeScript is unchanged at the 122-diagnostic baseline, with no added or
+  removed diagnostics. Production Expo export passes for web, iOS, and Android,
+  including 84 static web routes and both native Hermes bundles.
+- Browser smoke checks show five `Slice4 Bliss` search results and load the host
+  dashboard. The real create flow reaches the photo step and retains three selected
+  photos, but the unauthenticated browser correctly returns “Sign in again” for
+  each upload, so no listing was published and no smoke-test data was left behind.
+- Final database checks confirm all five Slice4 listing IDs, zero sampled legacy
+  columns, no `listing_campus_routes` table, and migration 0038 at the ledger head.
+
+Restore the pre-cleanup backup from the repository root with:
+
+```sh
+pg_restore --clean --if-exists --no-owner --dbname=studently_dev backups/studently_dev-20261028-1615.dump
+```
 
 ## Slice 4 follow-ups (2026-10-24)
 
@@ -92,9 +150,10 @@ by individual unit cards. The dashboard groups actual place membership, provides
 Add a unit and shared editing, and retains each unit's own statistics and controls.
 The implementation and rollout notes follow below.
 
-### Remaining slice (not authorized for implementation in this change)
+### Slice 5 — cleanup (completed 2026-10-28)
 
-- Slice 5: removal of transitional legacy columns and old route cache.
+Transitional legacy columns and the duplicated route cache are removed. See the
+completion and verification record above.
 
 ## Slice 4 — wizard and dashboard handoff (2026-10-12)
 

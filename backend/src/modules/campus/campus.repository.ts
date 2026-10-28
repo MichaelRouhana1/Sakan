@@ -135,7 +135,7 @@ export class CampusRepository {
         COUNT(*)::int AS count,
         MIN(l.monthly_rent_usd)::int AS min_usd,
         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY l.monthly_rent_usd)::int AS median_usd
-      FROM listings l
+      FROM listing_resolved l
       JOIN universities u ON u.slug = ${slug}
       WHERE l.status = 'active'
         AND l.availability <> 'rented'

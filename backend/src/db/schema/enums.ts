@@ -27,13 +27,6 @@ export const listingAvailabilityEnum = pgEnum("listing_availability", [
   "rented",
 ]);
 
-export const listingTypeEnum = pgEnum("listing_type", [
-  "entire_apartment",
-  "studio",
-  "private_room",
-  "shared_dorm_bed",
-]);
-
 export const spaceTypeEnum = pgEnum("space_type", [
   "entire_place",
   "private_room",
@@ -97,12 +90,6 @@ export const targetAudienceEnum = pgEnum("target_audience", [
   "anyone",
   "students_only",
   "students_professionals",
-]);
-
-export const genderRestrictionEnum = pgEnum("gender_restriction", [
-  "anyone",
-  "boys_only",
-  "girls_only",
 ]);
 
 export const userGenderEnum = pgEnum("user_gender", ["male", "female"]);

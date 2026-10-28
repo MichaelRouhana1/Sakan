@@ -38,23 +38,20 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
   const client = postgres(connection, { max: 1, connect_timeout: 5 });
   try {
     await client.begin(async (tx) => {
-      await tx.unsafe(`CREATE TEMP TABLE listings (
+      await tx.unsafe(`CREATE TEMP TABLE listing_resolved (
         id uuid, status text, monthly_rent_usd integer, expires_at timestamptz,
         area text, space_type text, property_type text, bedrooms integer, price_basis text,
         availability text NOT NULL DEFAULT 'available', hidden_reason text
       ) ON COMMIT DROP`);
-      // This aggregate fixture models the visibility contract. The real shared
-      // occupancy function is exercised against all migrations in inventory integration.
-      await tx.unsafe("CREATE FUNCTION pg_temp.unit_hidden_reason(pg_temp.listings) RETURNS text LANGUAGE sql AS 'SELECT $1.hidden_reason'");
       const dialect = new PgDialect();
       async function aggregate(query: PriceGuideInput = input) {
         const compiled = dialect.sqlToQuery(priceGuideAggregateQuery(query));
-        const [row] = await tx.unsafe<PriceGuideAggregate[]>(compiled.sql.replace("unit_hidden_reason(listings)", "pg_temp.unit_hidden_reason(listings)"), compiled.params);
+        const [row] = await tx.unsafe<PriceGuideAggregate[]>(compiled.sql, compiled.params);
         return row;
       }
       async function seed(n: number) {
-        await tx.unsafe("TRUNCATE pg_temp.listings");
-        await tx.unsafe(`INSERT INTO pg_temp.listings
+        await tx.unsafe("TRUNCATE pg_temp.listing_resolved");
+        await tx.unsafe(`INSERT INTO pg_temp.listing_resolved
           (id, status, monthly_rent_usd, expires_at, area, space_type, property_type, bedrooms, price_basis)
           SELECT ('00000000-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid,
             'active', 100*i, now() + interval '1 day', 'Hamra', 'entire_place',
@@ -70,7 +67,7 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
         assert.deepEqual(priceGuideFromAggregate(await aggregate()), {
           n: 10, lowUsd: 325, medianUsd: 550, highUsd: 775, match: "area_space_beds_basis",
         });
-        await tx.unsafe("UPDATE pg_temp.listings SET monthly_rent_usd = monthly_rent_usd / 100");
+        await tx.unsafe("UPDATE pg_temp.listing_resolved SET monthly_rent_usd = monthly_rent_usd / 100");
         assert.deepEqual(priceGuideFromAggregate(await aggregate()), {
           n: 10, lowUsd: 3, medianUsd: 6, highUsd: 8, match: "area_space_beds_basis",
         });
@@ -91,12 +88,12 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
           "bedrooms = 0", "bedrooms = 2", "property_type = 'studio'",
         ]) {
           await seed(10);
-          await tx.unsafe(`UPDATE pg_temp.listings SET ${change} WHERE monthly_rent_usd = 100`);
+          await tx.unsafe(`UPDATE pg_temp.listing_resolved SET ${change} WHERE monthly_rent_usd = 100`);
           assert.equal((await aggregate()).n, 9, change);
           assert.equal(priceGuideFromAggregate(await aggregate()), null, change);
         }
         await seed(10);
-        await tx.unsafe("UPDATE pg_temp.listings SET availability = 'pending'");
+        await tx.unsafe("UPDATE pg_temp.listing_resolved SET availability = 'pending'");
         assert.equal((await aggregate()).n, 10, "under-offer listings remain eligible");
         assert.equal(priceGuideFromAggregate(await aggregate({ ...input,
           excludeListingId: "00000000-0000-4000-8000-000000000001",
@@ -105,12 +102,12 @@ test("SQL filters and quartiles use the complete strict population", async (t) =
 
       await t.test("studio OR zero-bedroom classification is symmetric; 2+ stays grouped", async () => {
         await seed(10);
-        await tx.unsafe("UPDATE pg_temp.listings SET property_type = 'studio', expires_at = NULL");
+        await tx.unsafe("UPDATE pg_temp.listing_resolved SET property_type = 'studio', expires_at = NULL");
         assert.equal((await aggregate({ ...input, propertyType: "studio", bedrooms: 1 })).n, 10);
         assert.equal((await aggregate({ ...input, bedrooms: 0 })).n, 10);
-        await tx.unsafe("UPDATE pg_temp.listings SET property_type = 'apartment', bedrooms = 0");
+        await tx.unsafe("UPDATE pg_temp.listing_resolved SET property_type = 'apartment', bedrooms = 0");
         assert.equal((await aggregate({ ...input, propertyType: "studio", bedrooms: 1 })).n, 10);
-        await tx.unsafe("UPDATE pg_temp.listings SET bedrooms = 3");
+        await tx.unsafe("UPDATE pg_temp.listing_resolved SET bedrooms = 3");
         assert.equal((await aggregate({ ...input, bedrooms: 2 })).n, 10);
         assert.equal((await aggregate({ ...input, bedrooms: 12 })).n, 10);
         assert.equal((await aggregate()).n, 0);

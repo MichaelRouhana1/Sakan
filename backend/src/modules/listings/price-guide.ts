@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { LEBANON_AREA_SET } from "../../constants/lebanonAreas.js";
 import { PRICE_GUIDE_MIN_COMPS } from "../../constants/listings.js";
-import { listings } from "../../db/schema/listings.js";
+import { listingResolved } from "../../db/schema/listing-resolved.js";
 import {
   listingPropertyTypeEnum,
   priceBasisEnum,
@@ -45,24 +45,24 @@ export function priceGuideAggregateQuery(input: PriceGuideInput) {
     ? 0 : Math.min(input.bedrooms, 2);
   return sql`
     SELECT count(*)::int AS n,
-      percentile_cont(0.25) WITHIN GROUP (ORDER BY ${listings.monthlyRentUsd}) AS "lowUsd",
-      percentile_cont(0.5) WITHIN GROUP (ORDER BY ${listings.monthlyRentUsd}) AS "medianUsd",
-      percentile_cont(0.75) WITHIN GROUP (ORDER BY ${listings.monthlyRentUsd}) AS "highUsd"
-    FROM ${listings}
-    WHERE ${listings.status} = 'active'
-      AND ${listings.availability} <> 'rented'
-      AND unit_hidden_reason(listings) IS NULL
-      AND ${listings.monthlyRentUsd} > 0
-      AND (${listings.expiresAt} IS NULL OR ${listings.expiresAt} > now())
-      AND ${listings.area} = ${input.area}
-      AND ${listings.spaceType} = ${input.spaceType}
-      AND ${listings.priceBasis} = ${input.priceBasis}
+      percentile_cont(0.25) WITHIN GROUP (ORDER BY ${listingResolved.monthlyRentUsd}) AS "lowUsd",
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY ${listingResolved.monthlyRentUsd}) AS "medianUsd",
+      percentile_cont(0.75) WITHIN GROUP (ORDER BY ${listingResolved.monthlyRentUsd}) AS "highUsd"
+    FROM ${listingResolved}
+    WHERE ${listingResolved.status} = 'active'
+      AND ${listingResolved.availability} <> 'rented'
+      AND ${listingResolved.hiddenReason} IS NULL
+      AND ${listingResolved.monthlyRentUsd} > 0
+      AND (${listingResolved.expiresAt} IS NULL OR ${listingResolved.expiresAt} > now())
+      AND ${listingResolved.area} = ${input.area}
+      AND ${listingResolved.spaceType} = ${input.spaceType}
+      AND ${listingResolved.priceBasis} = ${input.priceBasis}
       AND CASE
-        WHEN ${listings.propertyType} = 'studio' OR ${listings.bedrooms} = 0 THEN 0
-        WHEN ${listings.bedrooms} = 1 THEN 1
+        WHEN ${listingResolved.propertyType} = 'studio' OR ${listingResolved.bedrooms} = 0 THEN 0
+        WHEN ${listingResolved.bedrooms} = 1 THEN 1
         ELSE 2
       END = ${bucket}
-      ${input.excludeListingId ? sql`AND ${listings.id} <> ${input.excludeListingId}` : sql``}
+      ${input.excludeListingId ? sql`AND ${listingResolved.id} <> ${input.excludeListingId}` : sql``}
   `;
 }
 

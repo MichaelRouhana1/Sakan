@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
-import { listings, savedListings } from "../../db/schema/index.js";
+import { listingResolved, listings, savedListings } from "../../db/schema/index.js";
 import {
   listingPublicColumns,
   listingsRepository,
@@ -21,8 +21,8 @@ export class SavedRepository {
         ...listingPublicColumns,
       })
       .from(savedListings)
-      .innerJoin(listings, eq(savedListings.listingId, listings.id))
-      .where(and(eq(savedListings.userId, userId),sql`unit_hidden_reason(listings) IS NULL`))
+      .innerJoin(listingResolved, eq(savedListings.listingId, listingResolved.id))
+      .where(and(eq(savedListings.userId, userId),sql`${listingResolved.hiddenReason} IS NULL`))
       .orderBy(desc(savedListings.createdAt));
 
     const listingRows = rows.map(({ savedId: _s, savedAt: _a, ...listing }) => ({

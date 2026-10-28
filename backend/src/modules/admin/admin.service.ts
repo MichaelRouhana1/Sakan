@@ -5,6 +5,7 @@ import {
   creditTransactions,
   listingPhotos,
   listingReports,
+  listingResolved,
   listings,
   users,
 } from "../../db/schema/index.js";
@@ -244,9 +245,9 @@ export class AdminService {
         listingId: listingReports.listingId,
         reason: listingReports.reason,
         createdAt: listingReports.createdAt,
-        listingTitle: listings.title,
-        listingArea: listings.area,
-        listingStatus: listings.status,
+        listingTitle: listingResolved.title,
+        listingArea: listingResolved.area,
+        listingStatus: listingResolved.status,
         posterId: users.id,
         posterEmail: users.email,
         posterFirstName: users.firstName,
@@ -254,8 +255,8 @@ export class AdminService {
         posterAccountStatus: users.accountStatus,
       })
       .from(listingReports)
-      .innerJoin(listings, eq(listingReports.listingId, listings.id))
-      .innerJoin(users, eq(listings.posterId, users.id))
+       .innerJoin(listingResolved, eq(listingReports.listingId, listingResolved.id))
+       .innerJoin(users, eq(listingResolved.posterId, users.id))
       .where(eq(listingReports.status, status))
       .orderBy(desc(listingReports.createdAt));
 
@@ -384,35 +385,35 @@ export class AdminService {
   async searchListings(query: { q?: string; status?: "draft" | "active" | "archived" | "removed" }) {
     const filters = [];
     const q = query.q?.trim();
-    if (query.status) filters.push(eq(listings.status, query.status));
+    if (query.status) filters.push(eq(listingResolved.status, query.status));
     if (q) {
       const like = `%${q}%`;
       const parts = [
-        ilike(listings.title, like),
-        ilike(listings.area, like),
+        ilike(listingResolved.title, like),
+        ilike(listingResolved.area, like),
         ilike(users.email, like),
       ];
-      if (UUID_RE.test(q)) parts.push(eq(listings.id, q));
+      if (UUID_RE.test(q)) parts.push(eq(listingResolved.id, q));
       filters.push(or(...parts));
     }
 
     const rows = await db
       .select({
-        id: listings.id,
-        title: listings.title,
-        area: listings.area,
-        status: listings.status,
-        monthlyRentUsd: listings.monthlyRentUsd,
-        viewCount: listings.viewCount,
-        createdAt: listings.createdAt,
+        id: listingResolved.id,
+        title: listingResolved.title,
+        area: listingResolved.area,
+        status: listingResolved.status,
+        monthlyRentUsd: listingResolved.monthlyRentUsd,
+        viewCount: listingResolved.viewCount,
+        createdAt: listingResolved.createdAt,
         posterId: users.id,
         posterEmail: users.email,
         posterFirstName: users.firstName,
         posterLastName: users.lastName,
         posterAccountStatus: users.accountStatus,
       })
-      .from(listings)
-      .innerJoin(users, eq(listings.posterId, users.id))
+      .from(listingResolved)
+      .innerJoin(users, eq(listingResolved.posterId, users.id))
       .where(filters.length ? and(...filters) : undefined)
       .orderBy(desc(listings.createdAt))
       .limit(50);

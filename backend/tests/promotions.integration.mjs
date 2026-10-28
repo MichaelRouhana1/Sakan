@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
+import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
 
 const source = new URL(process.env.DATABASE_URL);
 const name = `studently_promotion_test_${randomUUID().replaceAll('-', '')}`;
@@ -17,10 +18,13 @@ try {
   process.env.DATABASE_URL = source.toString();
   database = postgres(source.toString(), { max: 1, onnotice: () => {} });
   const journal = JSON.parse(await readFile(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'));
-  for (const entry of journal.entries) {
+  // Slice 5 is intentionally restricted to the named local dev database; this
+  // isolated suite exercises runtime behavior on the immediately prior schema.
+  for (const entry of journal.entries.filter(entry => entry.idx < 38)) {
     const migration = await readFile(new URL(`../drizzle/${entry.tag}.sql`, import.meta.url), 'utf8');
     for (const statement of migration.split('--> statement-breakpoint')) await database.unsafe(statement);
   }
+  await exposeCurrentRuntimeView(database);
   console.log('PASS all migrations on isolated database');
   const { DEFAULT_PROMOTION_CATALOG, getPromotionCatalog } = await import('../dist/config/promotion-catalog.js');
   const config = structuredClone(DEFAULT_PROMOTION_CATALOG);

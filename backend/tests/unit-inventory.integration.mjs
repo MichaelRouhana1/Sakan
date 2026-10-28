@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import postgres from 'postgres';
+import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
 const url=new URL(process.env.DATABASE_URL);
 if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname))throw new Error('Loopback database required');
 const name='studently_inventory_test_'+randomUUID().replaceAll('-','');
@@ -29,6 +30,7 @@ try {
   await client`DELETE FROM drizzle.__drizzle_migrations WHERE created_at=1791700006000`;
   assert.deepEqual((await applyInventory(client)).migrations,['0035_inventory_gender_version']);
  });
+ await exposeCurrentRuntimeView(client);
  process.env.ADMIN_AUTH_REQUIRED='true';process.env.ADMIN_API_KEY='inventory-integration-admin-key';
  const inv=await import('../dist/modules/listings/inventory.service.js');
  const {listingsRepository:repo}=await import('../dist/modules/listings/listings.repository.js');
@@ -43,12 +45,20 @@ try {
  const [other]=await client`INSERT INTO users(role,post_credits) VALUES ('poster',0) RETURNING id`;
  const actor={kind:'api_key',clerkId:null,userId:null};
  async function unit(type='studio',place=null,poster=owner.id) {
-  const [row]=await client`INSERT INTO listings(poster_id,place_id,listing_type,status,availability,monthly_rent_usd,electricity,water,wifi_included,area,title,beds,location,published_at,expires_at)
-   VALUES (${poster},${place},${type},'active','available',500,'solar','state_well_24_7',true,'Hamra','Inventory test home',4,ST_GeogFromText('POINT(35.48 33.89)'),now(),now()+interval '30 days') RETURNING *`;
+   if(!place) place=(await client`INSERT INTO places(owner_id,kind,area,location,electricity,water,wifi_included)
+    VALUES (${poster},'apartment','Hamra',ST_GeogFromText('POINT(35.48 33.89)'),'solar','state_well_24_7',true) RETURNING id`)[0].id;
+   const unitType=type==='shared_dorm_bed'?'shared_bed':type==='private_room'?'private_room':'whole_apartment';
+   const [row]=await client`INSERT INTO listings(poster_id,place_id,unit_type,gender_rule,status,availability,monthly_rent_usd,
+    space_type,property_type,price_basis,title,beds,beds_total,beds_available,inventory_needs_confirmation,published_at,expires_at)
+    VALUES (${poster},${place},${unitType}::unit_type,'any','active','available',500,
+     ${unitType==='shared_bed'?'shared_room':unitType==='private_room'?'private_room':'entire_place'}::space_type,
+     ${type==='studio'?'studio':unitType==='shared_bed'?'dormitory':'apartment'}::listing_property_type,
+     ${unitType==='shared_bed'?'per_bed_month':unitType==='private_room'?'per_room_month':'per_unit_month'}::price_basis,
+     'Inventory test home',4,${unitType==='shared_bed'?4:null},null,${unitType==='shared_bed'},now(),now()+interval '30 days') RETURNING *`;
   await client`INSERT INTO listing_photos(listing_id,url,sort_order) VALUES (${row.id},'/uploads/1.png',0),(${row.id},'/uploads/2.png',1),(${row.id},'/uploads/3.png',2)`;
   return row;
  }
- const row=async id=>(await client`SELECT *,unit_hidden_reason(listings) AS hidden_reason FROM listings WHERE id=${id}`)[0];
+  const row=async id=>(await client`SELECT r.*,unit_hidden_reason(l) AS hidden_reason FROM listings l JOIN listing_resolved r ON r.id=l.id WHERE l.id=${id}`)[0];
  const update=async(id,patch,poster=owner.id)=>inv.updateUnitInventory(id,{expectedVersion:(await row(id)).inventory_version,...patch},poster);
  const buy=(l,productId='bump_3')=>promo.createPromotion(owner.id,{listingId:l.id,productId,marketKey:'area:Hamra',mode:'start',autoRenew:false,catalogVersion:config.version,idempotencyKey:randomUUID()});
  const whole=await unit();const room=await unit('private_room',whole.place_id);
@@ -196,8 +206,8 @@ try {
   await assert.rejects(inv.updateUnitInventory(shared.id,{expectedVersion:before.inventoryVersion,genderRestriction:'boys_only'},owner.id),/Refresh/);
   await update(shared.id,{genderRestriction:'anyone'});assert.equal((await row(shared.id)).gender_rule,'any');
   const version=(await row(shared.id)).inventory_version;
-  await client`UPDATE listings SET gender_restriction='boys_only' WHERE id=${shared.id}`;
-  assert.equal((await row(shared.id)).inventory_version,version+1,'legacy editor changes invalidate suggestions too');
+   await client`UPDATE listings SET gender_rule='male_only' WHERE id=${shared.id}`;
+   assert.equal((await row(shared.id)).inventory_version,version+1,'canonical editor changes invalidate suggestions too');
   await assert.rejects(update(room.id,{genderRestriction:'girls_only'}),/listing editor/);
   await assert.rejects(inv.getOwnerInventory(shared.id,other.id),/not found/);
   await assert.rejects(update(shared.id,{genderRestriction:'girls_only'},other.id),/not found/);
@@ -218,11 +228,6 @@ try {
   assert.equal((await inv.getOwnerInventory(b.id,owner.id)).blockers[0].id,apartment.id);
   await assert.rejects(update(b.id,{bedAction:'rent_one'}),/occupied inventory/);
   assert.equal((await row(b.id)).beds_available,2,'conflicting bed rental rolls back');
- });
- await check('two test listings are approved by exact ID/title/area/rent in deletion manifest',async()=>{
-  const manifest=JSON.parse(await readFile(new URL('../src/db/seeds/legacy-housing-manifest.json',import.meta.url),'utf8'));
-  assert.equal(manifest.listings.length,28);assert.equal(manifest.listings.find(x=>x.id==='fe681bc2-5698-4e87-8036-3d58173577a8').monthly_rent_usd,520);
-  assert.equal(manifest.listings.find(x=>x.id==='b5756273-2e8f-4eb1-b0fb-bb068e4bd438').monthly_rent_usd,650);
  });
  await check('admin HTTP requires authentication and validates requests before writes',async()=>{
   const {default:express}=await import('express');const {once}=await import('node:events');

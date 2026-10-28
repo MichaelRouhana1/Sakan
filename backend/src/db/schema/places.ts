@@ -4,7 +4,8 @@ import { geographyPoint } from "../types/geography.js";
 import { electricityStatusEnum, waterStatusEnum, smokingPolicyEnum, petsPolicyEnum, guestsPolicyEnum, targetAudienceEnum, placeKindEnum } from "./enums.js";
 import { users } from "./users.js";
 import { universities } from "./universities.js";
-import type { RouteLngLat } from "./listing-campus-routes.js";
+
+export type RouteLngLat = { lng: number; lat: number };
 
 export const places = pgTable("places", {
   id: uuid("id").defaultRandom().primaryKey(),

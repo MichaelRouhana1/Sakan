@@ -3,7 +3,7 @@ import { AREA_ALIASES } from "../../constants/areaAliases.js";
 import { AREA_COORDINATES } from "../../constants/areaCoordinates.js";
 import { LEBANON_AREAS, type LebanonArea } from "../../constants/lebanonAreas.js";
 import { db } from "../../db/index.js";
-import { institutions, listings, universities } from "../../db/schema/index.js";
+import { institutions, listingResolved, universities } from "../../db/schema/index.js";
 import {
   diceCoefficient,
   levenshtein,
@@ -156,15 +156,15 @@ async function matchListings(q: string): Promise<ListingSuggestion[]> {
   const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 12);
   const looksLikeUuid = UUID_PREFIX_RE.test(q);
   const idCond = looksLikeUuid
-    ? sql`${listings.id}::text ILIKE ${`${q}%`}`
+    ? sql`${listingResolved.id}::text ILIKE ${`${q}%`}`
     : undefined;
-  const titleSim = sql<number>`similarity(${listings.title}::text, ${q})`;
+  const titleSim = sql<number>`similarity(${listingResolved.title}::text, ${q})`;
   const tokenConds = tokens.map((token) => {
     const like = `%${token.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
     return or(
-      ilike(listings.title, like),
-      ilike(listings.buildingName, like),
-      ilike(listings.area, like),
+      ilike(listingResolved.title, like),
+      ilike(listingResolved.buildingName, like),
+      ilike(listingResolved.area, like),
     )!;
   });
   const tokenMatch = tokenConds.length > 0 ? and(...tokenConds) : undefined;
@@ -173,17 +173,18 @@ async function matchListings(q: string): Promise<ListingSuggestion[]> {
 
   const rows = await db
     .select({
-      id: listings.id,
-      title: listings.title,
-      lng: sql<number | null>`ST_X(${listings.location}::geometry)`.as("lng"),
-      lat: sql<number | null>`ST_Y(${listings.location}::geometry)`.as("lat"),
+      id: listingResolved.id,
+      title: listingResolved.title,
+      lng: sql<number | null>`ST_X(${listingResolved.location}::geometry)`.as("lng"),
+      lat: sql<number | null>`ST_Y(${listingResolved.location}::geometry)`.as("lat"),
     })
-    .from(listings)
+    .from(listingResolved)
     .where(
       and(
-        eq(listings.status, "active"),
-        ne(listings.availability, "rented"), sql`unit_hidden_reason(listings) IS NULL`,
-        sql`${listings.expiresAt} > now()`,
+        eq(listingResolved.status, "active"),
+        ne(listingResolved.availability, "rented"),
+        sql`${listingResolved.hiddenReason} IS NULL`,
+        sql`${listingResolved.expiresAt} > now()`,
         matchCond,
       ),
     )

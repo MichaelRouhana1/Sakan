@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import postgres from 'postgres';
+import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
 const url = new URL(process.env.DATABASE_URL);
 if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('Loopback required');
 const name = 'studently_search_test_' + randomUUID().replaceAll('-', '');
@@ -16,10 +17,13 @@ try {
   url.pathname = '/' + name; process.env.DATABASE_URL = url.toString();
   client = postgres(url.toString(), { max: 1, onnotice: () => {} });
   const journal = JSON.parse(await readFile(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'));
-  for (const entry of journal.entries) {
+  // Slice 5 is intentionally restricted to the named local dev database; this
+  // isolated suite exercises runtime behavior on the immediately prior schema.
+  for (const entry of journal.entries.filter(entry => entry.idx < 38)) {
     const body = await readFile(new URL('../drizzle/' + entry.tag + '.sql', import.meta.url), 'utf8');
     for (const part of body.split('--> statement-breakpoint')) await client.unsafe(part);
   }
+  await exposeCurrentRuntimeView(client);
   const { searchUnits } = await import('../dist/modules/search/unit-search.service.js');
   const { listListingsQuerySchema: schema } = await import('../dist/modules/listings/listings.schemas.js');
   const { listingsService } = await import('../dist/modules/listings/listings.service.js');

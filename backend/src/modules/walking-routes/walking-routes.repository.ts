@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db, type Database } from "../../db/index.js";
-import { listingCampusRoutes, placeCampusRoutes, places, listings, type RouteLngLat } from "../../db/schema/index.js";
+import { placeCampusRoutes, places, listings, type RouteLngLat } from "../../db/schema/index.js";
 
 export const WALKING_PROFILE = "walking";
 export type ListingPin = { id: string; placeId: string; status: string; lng: number | null; lat: number | null };
@@ -71,11 +71,9 @@ export class WalkingRoutesRepository {
  }
  async deleteByListingId(listingId: string): Promise<void> {
   await this.database.delete(placeCampusRoutes).where(sql`${placeCampusRoutes.placeId} IN (SELECT place_id FROM listings WHERE id=${listingId}::uuid)`);
-  await this.database.delete(listingCampusRoutes).where(sql`${listingCampusRoutes.listingId} IN (SELECT id FROM listings WHERE place_id IN (SELECT place_id FROM listings WHERE id=${listingId}::uuid))`);
  }
  async deleteByCampusId(campusId: string): Promise<void> {
   await this.database.delete(placeCampusRoutes).where(eq(placeCampusRoutes.campusId,campusId));
-  await this.database.delete(listingCampusRoutes).where(eq(listingCampusRoutes.campusId,campusId));
  }
 }
 export const walkingRoutesRepository = new WalkingRoutesRepository();

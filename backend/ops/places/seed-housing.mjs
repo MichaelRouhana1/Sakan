@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile, mkdir, copyFile } from 'node:fs/promises';
+import { mkdir, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { housingFixtures, sharedDefaults } from '../../src/db/seeds/housing-fixtures.mjs';
@@ -12,7 +12,6 @@ export const fixtureId=key=>{
  const h=createHash('sha256').update(FIXTURE_ID_NAMESPACE+key).digest('hex');
  return h.slice(0,8)+'-'+h.slice(8,12)+'-4'+h.slice(13,16)+'-8'+h.slice(17,20)+'-'+h.slice(20,32);
 };
-const manifest=JSON.parse(await readFile(new URL('../../src/db/seeds/legacy-housing-manifest.json',import.meta.url),'utf8'));
 const assets=['unit-bedroom','unit-living','unit-detail','shared-facade','shared-kitchen'];
 const ownerId=fixtureId('owner');
 const jsonColumns=new Set(['amenities','electricity_cut_windows','place_overrides','unit_amenities','amenity_overrides','contact_numbers']);
@@ -30,23 +29,7 @@ export async function seedHousing(client,raw=process.env){
   await assertSeedMarker(tx,target);
   await tx`select pg_advisory_xact_lock(183710,2)`;
   await tx.unsafe('CREATE TABLE IF NOT EXISTS studently_ops.housing_seed_manifest(entity text NOT NULL,id uuid NOT NULL,PRIMARY KEY(entity,id))');
-  const result={removedLegacyListings:0,places:0,units:0,unitPhotos:0,placePhotos:0,promotions:0,preservedNonManifestListings:0};
-  const existing=await tx`select id,poster_id,title,created_at,place_id,area,monthly_rent_usd from listings where id=any(${manifest.listings.map(x=>x.id)}::uuid[]) for update`;
-  for(const row of existing){
-   const expected=manifest.listings.find(x=>x.id===row.id);
-   const matches=expected.fingerprint_kind==='owner_confirmed_test'
-    ? row.title===expected.title && row.area===expected.area && row.monthly_rent_usd===expected.monthly_rent_usd
-    : row.poster_id===expected.poster_id && row.title===expected.title && row.created_at.toISOString()===expected.created_at;
-   if(!matches)
-    throw new Error('Legacy manifest fingerprint changed; refusing to delete '+row.id);
-  }
-  if(existing.length){
-   const live=await tx`select id from promotion_campaigns where listing_id=any(${existing.map(x=>x.id)}::uuid[])`;
-   if(live.length)throw new Error('Manifest listing has promotion history; review before removal');
-   await tx`delete from listings where id=any(${existing.map(x=>x.id)}::uuid[])`;
-   await tx`delete from places where id=any(${existing.map(x=>x.place_id)}::uuid[]) and not exists(select from listings where listings.place_id=places.id)`;
-   result.removedLegacyListings=existing.length;
-  }
+  const result={places:0,units:0,unitPhotos:0,placePhotos:0,promotions:0,preservedNonManifestListings:0};
   async function insert(entity,table,row){
    const [exists]=await tx.unsafe('select id from '+table+' where id=$1',[row.id]);
    if(exists){
@@ -73,12 +56,12 @@ export async function seedHousing(client,raw=process.env){
    for(const unit of fixture.units){
     const id=fixtureId('unit/'+fixture.key+'/'+unit.key);
     const isBed=unit.type==='shared_bed';const isRoom=unit.type==='private_room';
-    const row={id,poster_id:ownerId,place_id:placeId,unit_type:unit.type,listing_type:isBed?'shared_dorm_bed':isRoom?'private_room':'entire_apartment',
+    const row={id,poster_id:ownerId,place_id:placeId,unit_type:unit.type,
      space_type:isBed?'shared_room':isRoom?'private_room':'entire_place',property_type:isBed?'dormitory':'apartment',
      price_basis:isBed?'per_bed_month':isRoom?'per_room_month':'per_unit_month',
      status:'active',availability:unit.availability??'available',monthly_rent_usd:unit.rent,security_deposit_usd:unit.rent,
-     ...shared,place_overrides:unit.overrides??{},unit_amenities:unit.amenities??['study_desk','ac_all_rooms'],
-     gender_restriction:unit.gender==='female_only'?'girls_only':unit.gender==='male_only'?'boys_only':'anyone',
+     place_overrides:unit.overrides??{},unit_amenities:unit.amenities??['study_desk','ac_all_rooms'],
+     gender_rule:unit.gender??'any',inventory_needs_confirmation:isBed&&unit.available==null,
      beds:unit.beds,beds_total:isBed?unit.beds:null,beds_available:isBed?unit.available:null,
      bedrooms:unit.bedrooms,bathrooms:unit.bathrooms,bathroom_privacy:unit.privacy,max_occupancy:unit.beds,
      floor_number:unit.floor,area_sqm:unit.size,furnishing_type:'furnished',title:unit.title,

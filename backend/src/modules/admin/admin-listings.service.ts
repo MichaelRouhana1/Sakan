@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../../db/index.js';
-import { listings, listingPhotos, listingReports, users, adminAuditEvents } from '../../db/schema/index.js';
+import { listings, listingResolved, places, listingPhotos, listingReports, users, adminAuditEvents } from '../../db/schema/index.js';
 import { ConflictError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { promotionLock, stopListingPromotions } from '../promotions/promotions.service.js';
 import { lockInventory, settlePlaceInventory, changeUnitInventory, inventorySchema } from '../listings/inventory.service.js';
@@ -35,7 +35,7 @@ export const adminListingBulk = z.object({ids:z.array(z.uuid()).min(1).max(100),
 
 export async function adminListingDetail(id: string, tx: Tx = db as unknown as Tx) {
  const [row] = await tx.select({...listingPublicColumns,poster:{id:users.id,firstName:users.firstName,lastName:users.lastName,email:users.email}})
-  .from(listings).innerJoin(users,eq(users.id,listings.posterId)).where(eq(listings.id,id));
+  .from(listingResolved).innerJoin(users,eq(users.id,listingResolved.posterId)).where(eq(listingResolved.id,id));
  if (!row) throw new NotFoundError('Listing not found');
  const photos = await tx.select().from(listingPhotos).where(eq(listingPhotos.listingId,id)).orderBy(asc(listingPhotos.sortOrder),asc(listingPhotos.id));
  const reports = await tx.select({id:listingReports.id,reason:listingReports.reason,at:listingReports.createdAt}).from(listingReports)
@@ -54,11 +54,11 @@ export async function adminInventoryList(query: z.infer<typeof adminInventoryQue
  const queue = sql`CASE WHEN l.status='removed' THEN 'removed' WHEN l.status='draft' THEN 'draft'
   WHEN EXISTS(SELECT 1 FROM listing_reports r WHERE r.listing_id=l.id AND r.status='open') THEN 'flagged'
   WHEN l.status='archived' THEN 'archived' ELSE 'active' END`;
- const grouped = await tx.execute(sql`SELECT ${queue} AS queue,count(*)::int AS n FROM listings l JOIN users u ON u.id=l.poster_id WHERE ${match} GROUP BY 1`);
+ const grouped = await tx.execute(sql`SELECT ${queue} AS queue,count(*)::int AS n FROM listing_resolved l JOIN users u ON u.id=l.poster_id WHERE ${match} GROUP BY 1`);
  const counts:Record<string,number> = {all:0,active:0,flagged:0,draft:0,archived:0,removed:0};
  for (const r of grouped) {counts[String(r.queue)]=Number(r.n);counts.all!+=Number(r.n);}
  const ordering = {publishedAt:sql`l.published_at DESC NULLS LAST`,expiresAt:sql`l.expires_at ASC NULLS LAST`,rent:sql`l.monthly_rent_usd ASC`,flags:sql`(SELECT count(*) FROM listing_reports r WHERE r.listing_id=l.id AND r.status='open') DESC`}[query.sort];
- const ids = await tx.execute(sql`SELECT l.id FROM listings l JOIN users u ON u.id=l.poster_id WHERE ${match}
+ const ids = await tx.execute(sql`SELECT l.id FROM listing_resolved l JOIN users u ON u.id=l.poster_id WHERE ${match}
   AND (${query.queue}='all' OR ${queue}=${query.queue}) ORDER BY ${ordering},l.id LIMIT ${query.pageSize} OFFSET ${(query.page-1)*query.pageSize}`);
  const items=[];
  for (const row of ids) items.push(await adminListingDetail(String(row.id),tx));
@@ -73,9 +73,20 @@ async function mutate(tx:Tx,id:string,input:z.infer<typeof adminListingAction>,a
  else if (input.kind==='edit') {
   if(unit.status==='removed') throw new ConflictError('Restore access before editing a removed listing');
   // Structural conversion needs the later unit editor; do not silently discard occupancy.
-  if(input.patch.listingType!==unit.listing_type) throw new ValidationError('Unit type cannot change in this editor');
   const before=await adminListingDetail(id,tx);
-  await tx.update(listings).set({...input.patch,landmark:input.patch.landmark || null,updatedAt:new Date()}).where(eq(listings.id,id));
+  if(input.patch.listingType!==before.listingType) throw new ValidationError('Unit type cannot change in this editor');
+  const now=new Date();
+  await tx.update(listings).set({
+   title:input.patch.title,description:input.patch.description,monthlyRentUsd:input.patch.monthlyRentUsd,
+   contactName:input.patch.contactName,contactPhone:input.patch.contactPhone || null,
+   whatsappNumber:input.patch.whatsappNumber || null,bedrooms:input.patch.bedrooms,
+   bathrooms:input.patch.bathrooms,
+   placeOverrides:sql`${listings.placeOverrides} || jsonb_build_object(
+    'electricity',${input.patch.electricity}::text,'water',${input.patch.water}::text,'wifi_included',${input.patch.wifiIncluded}::boolean
+   )`,updatedAt:now,
+  }).where(eq(listings.id,id));
+  await tx.update(places).set({area:input.patch.area,landmark:input.patch.landmark || null,updatedAt:now})
+   .where(eq(places.id,String(unit.place_id)));
   const after=await adminListingDetail(id,tx);
   await recordListingUpdateAudit({actor,listingId:id,channel:'admin_patch',publishedAt:before.publishedAt,before:snapshotFromRow(before),after:snapshotFromRow(after)},tx);
  } else if(input.kind==='photo') {

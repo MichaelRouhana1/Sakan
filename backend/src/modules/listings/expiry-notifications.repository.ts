@@ -12,6 +12,7 @@ import { db } from "../../db/index.js";
 import {
   listingLifecycleEvents,
   listings,
+  places,
   notificationDeliveries,
   userPushTokens,
   users,
@@ -71,7 +72,7 @@ const candidateColumns = {
   listingId: listings.id,
   posterId: listings.posterId,
   title: listings.title,
-  area: listings.area,
+  area: places.area,
   monthlyRentUsd: listings.monthlyRentUsd,
   cycleExpiresAt: listings.expiresAt,
   contactName: listings.contactName,
@@ -91,6 +92,7 @@ export class ExpiryNotificationsRepository {
     const rows = await db
       .select(candidateColumns)
       .from(listings)
+      .innerJoin(places, eq(places.id, listings.placeId))
       .innerJoin(users, eq(users.id, listings.posterId))
       .where(
         and(
@@ -108,6 +110,7 @@ export class ExpiryNotificationsRepository {
     const rows = await db
       .select(candidateColumns)
       .from(listings)
+      .innerJoin(places, eq(places.id, listings.placeId))
       .innerJoin(users, eq(users.id, listings.posterId))
       .where(
         and(
@@ -203,7 +206,7 @@ export class ExpiryNotificationsRepository {
         u.expiry_email_enabled AS "expiryEmailEnabled",
         latest.event_type AS "triggerEvent"
       FROM cycles c
-      JOIN listings l ON l.id = c.listing_id
+      JOIN listing_resolved l ON l.id = c.listing_id
       JOIN users u ON u.id = l.poster_id
       CROSS JOIN LATERAL (
         SELECT e.event_type, e.created_at
@@ -383,7 +386,7 @@ export class ExpiryNotificationsRepository {
           WHERE e.listing_id = l.id AND e.cycle_expires_at = d.cycle_expires_at
             AND e.event_type = 'admin_contacted') AS contacted
       FROM notification_deliveries d
-      JOIN listings l ON l.id = d.listing_id
+      JOIN listing_resolved l ON l.id = d.listing_id
       JOIN users u ON u.id = l.poster_id
       WHERE d.kind = 'admin_escalation' AND d.channel = 'admin_inbox'
       ORDER BY d.created_at DESC
