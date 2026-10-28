@@ -54,6 +54,53 @@ type Props = {
 
 type AuthMode = "signIn" | "signUp";
 type SignUpStep = "email" | "verify" | "password";
+type SignInStep = "credentials" | "verify";
+type SignInCodeFactor = "first" | "second";
+
+type ClerkEmailFactor = { strategy?: string; emailAddressId?: string };
+
+function emailCodeFactor(factors: ClerkEmailFactor[] | null | undefined) {
+  return factors?.find((factor) => factor.strategy === "email_code");
+}
+
+/** Password can finish, or Clerk can ask for an email code (client trust or another factor). */
+async function prepareSignInEmailCode(signIn: {
+  status: string | null;
+  supportedFirstFactors: ClerkEmailFactor[] | null;
+  supportedSecondFactors: ClerkEmailFactor[] | null;
+  prepareFirstFactor: (params: {
+    strategy: "email_code";
+    emailAddressId: string;
+  }) => Promise<unknown>;
+  prepareSecondFactor: (params: {
+    strategy: "email_code";
+    emailAddressId?: string;
+  }) => Promise<unknown>;
+}): Promise<SignInCodeFactor | null> {
+  const status = signIn.status ?? "";
+  if (status === "needs_first_factor") {
+    const factor = emailCodeFactor(signIn.supportedFirstFactors);
+    if (!factor?.emailAddressId) return null;
+    await signIn.prepareFirstFactor({
+      strategy: "email_code",
+      emailAddressId: factor.emailAddressId,
+    });
+    return "first";
+  }
+  if (status === "needs_second_factor" || status === "needs_client_trust") {
+    const factor = emailCodeFactor(signIn.supportedSecondFactors);
+    if (factor?.emailAddressId) {
+      await signIn.prepareSecondFactor({
+        strategy: "email_code",
+        emailAddressId: factor.emailAddressId,
+      });
+    } else {
+      await signIn.prepareSecondFactor({ strategy: "email_code" });
+    }
+    return "second";
+  }
+  return null;
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -282,6 +329,9 @@ function SkounAuthModalClerk({
   const [showPassword, setShowPassword] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("signIn");
   const [signUpStep, setSignUpStep] = useState<SignUpStep>("email");
+  const [signInStep, setSignInStep] = useState<SignInStep>("credentials");
+  const [signInFactor, setSignInFactor] = useState<SignInCodeFactor>("second");
+  const [codeNotice, setCodeNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -310,8 +360,37 @@ function SkounAuthModalClerk({
     setShowPassword(false);
     setAuthMode("signIn");
     setSignUpStep("email");
+    setSignInStep("credentials");
+    setSignInFactor("second");
+    setCodeNotice(null);
     setEmail("");
     onClose();
+  };
+
+  const openSignInCodeStep = async (signIn: NonNullable<NonNullable<typeof clerk.client>["signIn"]>) => {
+    const factor = await prepareSignInEmailCode(signIn);
+    if (!factor) {
+      setError("Sign-in could not be completed. Try again.");
+      return false;
+    }
+    setSignInFactor(factor);
+    setVerificationCode("");
+    setSignInStep("verify");
+    setCodeNotice(`Enter the code sent to ${email.trim().toLowerCase()}`);
+    setError(null);
+    return true;
+  };
+
+  const completeSignInAttempt = async (
+    result: NonNullable<NonNullable<typeof clerk.client>["signIn"]>,
+  ) => {
+    if (result.status === "complete" && result.createdSessionId) {
+      await activateClerkSession(clerk, result.createdSessionId);
+      await finishAuth("email");
+      return;
+    }
+    const opened = await openSignInCodeStep(result);
+    if (!opened) return;
   };
 
   const finishAuth = async (provider: AuthProvider) => {
@@ -401,12 +480,7 @@ function SkounAuthModalClerk({
         identifier: email.trim().toLowerCase(),
         password,
       });
-      if (result.status === "complete" && result.createdSessionId) {
-        await activateClerkSession(clerk, result.createdSessionId);
-        await finishAuth("email");
-      } else {
-        setError("Sign-in could not be completed. Try again.");
-      }
+      await completeSignInAttempt(result);
     } catch (err) {
       if (isAlreadySignedInError(err)) {
         try {
@@ -424,6 +498,63 @@ function SkounAuthModalClerk({
       } else {
         setError(clerkErrorMessage(err, "Could not sign in."));
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifySignIn = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signIn) return;
+    const code = verificationCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setFieldErrors({ code: "Enter the 6-digit verification code." });
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setCodeNotice(null);
+    setFieldErrors({});
+    try {
+      const signIn = clerk.client.signIn;
+      const result =
+        signInFactor === "first"
+          ? await signIn.attemptFirstFactor({ strategy: "email_code", code })
+          : await signIn.attemptSecondFactor({ strategy: "email_code", code });
+      await completeSignInAttempt(result);
+    } catch (err) {
+      if (isAlreadySignedInError(err)) {
+        try {
+          await finishExistingSession("email");
+          return;
+        } catch (inner) {
+          setError(
+            inner instanceof UserApiError
+              ? inner.message
+              : clerkErrorMessage(inner, "Could not sign in."),
+          );
+          return;
+        }
+      }
+      setError(clerkErrorMessage(err, "That code was not accepted."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendSignInCode = async () => {
+    if (loading || !clerk.loaded || !clerk.client?.signIn) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const factor = await prepareSignInEmailCode(clerk.client.signIn);
+      if (!factor) {
+        setError("Could not resend the code. Try again.");
+        return;
+      }
+      setSignInFactor(factor);
+      setCodeNotice(`We sent a new code to ${email.trim().toLowerCase()}`);
+    } catch (err) {
+      setError(clerkErrorMessage(err, "Could not resend the code."));
     } finally {
       setLoading(false);
     }
@@ -563,12 +694,7 @@ function SkounAuthModalClerk({
             identifier: email.trim().toLowerCase(),
             password,
           });
-          if (signedIn.status === "complete" && signedIn.createdSessionId) {
-            await activateClerkSession(clerk, signedIn.createdSessionId);
-            await finishAuth("email");
-            return;
-          }
-          setError("Password saved. Sign in with your new password.");
+          await completeSignInAttempt(signedIn);
           return;
         } catch (inner) {
           const axiosErr = inner as {
@@ -607,8 +733,12 @@ function SkounAuthModalClerk({
 
   if (!visible) return null;
 
-  const modalTitle =
-    authMode === "signUp"
+  const verifyingSignIn = authMode === "signIn" && signInStep === "verify";
+  const verifyingSignUp = authMode === "signUp" && signUpStep === "verify";
+
+  const modalTitle = verifyingSignIn
+    ? "Check your email"
+    : authMode === "signUp"
       ? signUpStep === "verify"
         ? "Verify your email"
         : signUpStep === "password"
@@ -616,8 +746,9 @@ function SkounAuthModalClerk({
           : "Create your account"
       : title;
 
-  const modalSubtitle =
-    authMode === "signUp"
+  const modalSubtitle = verifyingSignIn
+    ? `Enter the code sent to ${email.trim().toLowerCase()}`
+    : authMode === "signUp"
       ? signUpStep === "verify"
         ? `Enter the code sent to ${email.trim().toLowerCase()}`
         : signUpStep === "password"
@@ -626,22 +757,27 @@ function SkounAuthModalClerk({
       : "Welcome back! Sign in to continue";
 
   const showOAuth =
-    authMode === "signIn" || (authMode === "signUp" && signUpStep === "email");
+    (authMode === "signIn" && signInStep === "credentials") ||
+    (authMode === "signUp" && signUpStep === "email");
   const passwordReady =
     passwordMeetsPolicy(password) &&
     passwordConfirm.length > 0 &&
     password === passwordConfirm;
   const primaryDisabled =
     loading ||
-    (authMode === "signIn" && (!email.trim() || !password)) ||
+    (authMode === "signIn" &&
+      signInStep === "credentials" &&
+      (!email.trim() || !password)) ||
+    (verifyingSignIn && verificationCode.length < 6) ||
     (authMode === "signUp" && signUpStep === "email" && !email.trim()) ||
     (authMode === "signUp" &&
       signUpStep === "verify" &&
       verificationCode.length < 6) ||
     (authMode === "signUp" && signUpStep === "password" && !passwordReady);
 
-  const primaryLabel =
-    authMode === "signUp"
+  const primaryLabel = verifyingSignIn
+    ? "Verify email"
+    : authMode === "signUp"
       ? signUpStep === "verify"
         ? "Verify email"
         : signUpStep === "password"
@@ -690,7 +826,7 @@ function SkounAuthModalClerk({
                   />
                 ) : null}
 
-                {authMode === "signUp" && signUpStep === "verify" ? (
+                {verifyingSignIn || verifyingSignUp ? (
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Verification code</Text>
                     <TextInput
@@ -780,7 +916,7 @@ function SkounAuthModalClerk({
                   </>
                 ) : null}
 
-                {authMode === "signIn" ||
+                {(authMode === "signIn" && signInStep === "credentials") ||
                 (authMode === "signUp" && signUpStep === "email") ? (
                   <>
                     <View style={styles.inputGroup}>
@@ -855,10 +991,18 @@ function SkounAuthModalClerk({
                   </Text>
                 ) : null}
 
+                {codeNotice && !error ? (
+                  <Text style={styles.lastUsedHint}>{codeNotice}</Text>
+                ) : null}
+
                 {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                 <Pressable
                   onPress={() => {
+                    if (verifyingSignIn) {
+                      void handleVerifySignIn();
+                      return;
+                    }
                     if (authMode === "signUp" && signUpStep === "verify") {
                       void handleVerifySignUp();
                       return;
@@ -889,6 +1033,28 @@ function SkounAuthModalClerk({
                     </View>
                   )}
                 </Pressable>
+
+                {verifyingSignIn ? (
+                  <>
+                    <Pressable
+                      onPress={() => void handleResendSignInCode()}
+                      style={styles.backLinkWrap}
+                    >
+                      <Text style={styles.backLink}>Resend code</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        setSignInStep("credentials");
+                        setVerificationCode("");
+                        setCodeNotice(null);
+                        setError(null);
+                      }}
+                      style={styles.backLinkWrap}
+                    >
+                      <Text style={styles.backLink}>Back to password</Text>
+                    </Pressable>
+                  </>
+                ) : null}
 
                 {authMode === "signUp" && signUpStep === "verify" ? (
                   <>

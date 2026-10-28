@@ -5,7 +5,7 @@ import {randomUUID,createHash} from 'node:crypto';
 import postgres from 'postgres';
 const url=new URL(process.env.DATABASE_URL);
 if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname))throw new Error('Loopback database required');
-const name='skoun_wizard_test_'+randomUUID().replaceAll('-','');
+const name='studently_wizard_test_'+randomUUID().replaceAll('-','');
 const admin=postgres(url.toString(),{max:1,onnotice:()=>{}});let client,passed=0;
 const check=async(name,fn)=>{await fn();passed++;console.log('PASS '+name)};
 try{
@@ -109,6 +109,20 @@ try{
   assert.equal(publishUnitsSchema.safeParse({...input,sharedPhotos:Array.from({length:16},()=>({url:'/uploads/a.jpg'}))}).success,false);
   assert.equal(publishUnitsSchema.safeParse({...input,units:[{...input.units[0],details:{...details,photoUrls:['/uploads/a.jpg']}}]}).success,false);
  });
+ await check('only changed utility fields are overrides; equal copies keep inheriting',async()=>{
+  const place=await ownerPlace(owner.id,first.placeId);
+  const fields=['electricity','electricityCutsStart','electricityCutsEnd','electricityHoursOn','electricityCutWindows','generatorAmperes','hasSolar','generatorIncluded','water','wifiIncluded','routerUps','hasElevator','elevator24_7','conciergeIncluded','cookingGasIncluded','waterBillIncluded','buildingFeesIncluded','parkingIncludedInRent','amenities'];
+  const edit={...details,wifiIncluded:place.wifiIncluded,electricity:'generator_24_7',generatorAmperes:5,differentFields:fields,expectedPlaceUpdatedAt:new Date(place.updatedAt).toISOString()};
+  await listingsService.update({id:owner.id,clerkId:'test',role:'poster'},first.listingIds[0],edit);
+  const [row]=await client`SELECT place_overrides FROM listings WHERE id=${first.listingIds[0]}`;
+  assert.deepEqual(Object.keys(row.place_overrides).sort(),['electricity','generator_amperes']);
+  const saved=await ownerPlace(owner.id,first.placeId);
+  await editPlace(owner.id,first.placeId,editPlaceSchema.parse({details:{...details,water:'tank_delivery'},photos:[],expectedUpdatedAt:new Date(saved.updatedAt).toISOString()}));
+  assert.equal((await repo.findById(first.listingIds[0])).water,'tank_delivery');
+  assert.equal((await repo.findById(first.listingIds[0])).electricity,'generator_24_7');
+  assert.equal((await repo.findById(first.listingIds[1])).water,'tank_delivery');
+  assert.equal((await repo.findById(first.listingIds[1])).electricity,'solar');
+ });
  await check('shared changes preserve unit-specific power, and structural location stays place-owned',async()=>{
   const place=await ownerPlace(owner.id,first.placeId);
   const power=['electricity','generatorAmperes','hasSolar','generatorIncluded','electricityCutWindows','electricityCutsStart','electricityCutsEnd','electricityHoursOn'];
@@ -116,7 +130,7 @@ try{
   await listingsService.update({id:owner.id,clerkId:'test',role:'poster'},first.listingIds[0],edit);
   await editPlace(owner.id,first.placeId,editPlaceSchema.parse({details:{...details,hasSolar:true},photos:[],expectedUpdatedAt:new Date(place.updatedAt).toISOString()}));
   assert.equal((await repo.findById(first.listingIds[0])).electricity,'generator_24_7');
-  assert.equal((await repo.findById(first.listingIds[0])).hasSolar,false);
+  assert.equal((await repo.findById(first.listingIds[0])).hasSolar,true);
   assert.equal((await repo.findById(first.listingIds[1])).hasSolar,true);
   const updated=await ownerPlace(owner.id,first.placeId);
   await assert.rejects(()=>listingsService.update({id:owner.id,clerkId:'test',role:'poster'},first.listingIds[0],{...edit,area:'Verdun',expectedPlaceUpdatedAt:new Date(updated.updatedAt).toISOString()}),/shared location/);

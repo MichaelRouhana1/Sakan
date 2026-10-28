@@ -7,7 +7,7 @@ import { once } from 'node:events';
 import postgres from 'postgres';
 const url = new URL(process.env.DATABASE_URL);
 if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('Loopback required');
-const name = 'skoun_search_test_' + randomUUID().replaceAll('-', '');
+const name = 'studently_search_test_' + randomUUID().replaceAll('-', '');
 const admin = postgres(url.toString(), { max: 1, onnotice: () => {} });
 let client; let passed = 0;
 const check = async (name, fn) => { await fn(); passed++; console.log('PASS ' + name); };
@@ -47,6 +47,15 @@ try {
   const session = randomUUID();
   const search = (q = {}) => searchUnits(schema.parse({ areas: 'Hamra', ...q }), session);
   const ids = rows => rows.map(l => l.id);
+  await check('multi-word search matches every token in any order', async () => {
+    await client`UPDATE listings SET title='Slice4 whole apt on Bliss' WHERE id=${units[0].id}`;
+    const found = await search({ q: 'Bliss Slice4' });
+    assert.ok(found.data.some((row) => row.id === units[0].id) || found.featured.some((row) => row.id === units[0].id));
+    assert.equal((await search({ q: 'Slice4 Missingword' })).pagination.totalMatching, 0);
+    const byPlace = await searchUnits(schema.parse({ campusId: campus.id, q: 'apt Bliss' }), session);
+    assert.ok(byPlace.data.some((row) => row.id === units[0].id) || byPlace.featured.some((row) => row.id === units[0].id));
+    await client`UPDATE listings SET title=${'Search unit 0'} WHERE id=${units[0].id}`;
+  });
   await check('units paginate globally without collapsing place members', async () => {
     const a = await search(), b = await search({ page: '2' });
     assert.equal(a.data.length, 24); assert.equal(b.data.length, 7); assert.equal(a.pagination.total, 31);

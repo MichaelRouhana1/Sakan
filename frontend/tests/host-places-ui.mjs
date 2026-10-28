@@ -56,11 +56,15 @@ try{
  await page.getByRole('button',{name:'Reload saved shared details'}).click();await expect(page.getByRole('alert')).toHaveCount(0);
  failShared=false;await page.getByRole('button',{name:'Save shared details'}).click();await expect.poll(()=>writes.at(-1).body.expectedUpdatedAt).toBe(place.updatedAt);assert.equal(writes.at(-1).body.details.electricity,'generator_24_7');
  checks.push('explicit shared reload refreshes values and concurrency version together');place.electricity='solar';
- failShared=false;await page.goto(origin+'?edit');await expect(page.getByText('Uses the shared details. Choose “Different for this apartment” to change them here.',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Different for this apartment'}).click();
+ failShared=false;await page.goto(origin+'?edit');await expect(page.getByText('Same as building',{exact:true}).first()).toBeVisible();
  await page.getByText('24/7 Generator (Ishtirak)',{exact:true}).click();
  await page.getByRole('button',{name:'10A',exact:true}).click();await page.getByRole('button',{name:'Save unit',exact:true}).click();await expect(page.getByText('Unit saved',{exact:true})).toBeVisible();
- assert.equal(writes.at(-1).body.electricity,'generator_24_7');assert.ok(writes.at(-1).body.differentFields.includes('electricityCutWindows'));assert.equal(writes.at(-1).body.generatorAmperes,10);
- await page.getByRole('button',{name:'Same as building'}).click();await page.getByRole('button',{name:'Save unit',exact:true}).click();await expect.poll(()=>writes.at(-1).body.differentFields.length).toBe(0);assert.equal(writes.at(-1).body.electricity,'solar');checks.push('unit electricity can differ and return to shared values using host wording');
+ assert.equal(writes.at(-1).body.electricity,'generator_24_7');assert.equal(writes.at(-1).body.generatorAmperes,10);
+ assert.ok(writes.at(-1).body.differentFields.includes('electricity'));assert.ok(writes.at(-1).body.differentFields.includes('generatorAmperes'));
+ assert.equal(writes.at(-1).body.differentFields.includes('water'),false);assert.equal(writes.at(-1).body.differentFields.includes('wifiIncluded'),false);
+ await page.getByRole('button',{name:'Reset generator amps to building',exact:true}).click();
+ await page.getByRole('button',{name:'Reset electricity to building',exact:true}).click();
+ await page.getByRole('button',{name:'Save unit',exact:true}).click();await expect.poll(()=>writes.at(-1).body.differentFields.length).toBe(0);assert.equal(writes.at(-1).body.electricity,'solar');checks.push('unit electricity can differ and return to shared values using host wording');
  await page.setViewportSize({width:390,height:844});await page.goto(origin+'?list');await expect(page.getByText('Building · 2 units',{exact:true})).toBeVisible();await expect(page.getByText('20 views · 5 contact taps',{exact:true})).toBeVisible();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:path.join(out,'grouped-phone.png'),fullPage:true});checks.push('grouped phone list keeps per-unit statistics without overflow');
  await page.goto(origin+'?draft');await expect(page.getByTestId('draft-title')).toHaveText('Empty draft');await page.getByRole('button',{name:'Change draft'}).click();await expect(page.getByTestId('draft-title')).toHaveText('Owner saved room');await page.getByRole('button',{name:'Persist draft'}).click();
  await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).some(k=>k.endsWith(':owner')&&localStorage.getItem(k).includes('Owner saved room')))).toBe(true);

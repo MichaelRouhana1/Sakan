@@ -1,4 +1,4 @@
-import { TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
@@ -13,6 +13,7 @@ import {
 import { FURNISHING_OPTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
 import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { patchOverride, resetOverride } from "@/features/listings/create/unitDrafts";
 import type { FurnishingType } from "@/types/listing";
 
 function floorLabel(n: number) {
@@ -25,6 +26,14 @@ function floorLabel(n: number) {
 
 export function BuildingAccessFields(){
   const {draft,patch}=useCreateListingDraft();
+  const source = (label: string, key: "hasElevator" | "elevator24_7") =>
+    !draft.sharedValues ? null : draft.differentFields?.includes(key) ? (
+      <Pressable accessibilityRole="button" accessibilityLabel={`Reset ${label} to building`} onPress={() => resetOverride(draft, patch, [key])} style={{ alignSelf: "flex-start", paddingVertical: 4 }}>
+        <LText variant="caption" style={{ color: Lister.color.primary }}>Reset to building</LText>
+      </Pressable>
+    ) : (
+      <LText variant="caption" tone="muted">Same as building</LText>
+    );
   return (
       <Enter delay={180}>
         <SelectableCard
@@ -32,16 +41,18 @@ export function BuildingAccessFields(){
           title="Elevator in building"
           body="Yes — there is a lift."
           icon="swap-vertical-outline"
-          onPress={() => patch({ hasElevator: !draft.hasElevator })}
+          onPress={() => patchOverride(draft, patch, { hasElevator: !draft.hasElevator }, ["hasElevator"])}
         />
+        {source("elevator", "hasElevator")}
         <View style={{ height: 8 }} />
         <SelectableCard
           selected={draft.elevator24_7}
           title="Elevator works during cuts"
           body="24/7 elevator on generator or solar."
           icon="flash-outline"
-          onPress={() => patch({ elevator24_7: !draft.elevator24_7 })}
+          onPress={() => patchOverride(draft, patch, { elevator24_7: !draft.elevator24_7 }, ["elevator24_7"])}
         />
+        {source("elevator during cuts", "elevator24_7")}
       </Enter>
   );
 }

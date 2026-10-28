@@ -91,8 +91,9 @@ export async function publishUnits(ownerId:string,input:PublishUnitsInput) {
    if(place.kind==='building' && details.spaceType!=='entire_place')throw new ValidationError('A building contains whole apartments. Add rooms to an apartment.');
    if(details.spaceType==='shared_room' && (unit.bedsAvailable==null||unit.bedsAvailable>details.beds))throw new ValidationError('Confirm available beds between 1 and the total bed count');
    const sqlValues=sharedSqlValues(details);
-   const overrides=Object.fromEntries(Object.entries(sharedFields).filter(([key])=>unit.differentFields.includes(key)).map(([,col])=>[col,sqlValues[col]]));
-   const customAmenities=unit.differentFields.includes('amenities');
+   const overrides=Object.fromEntries(Object.entries(sharedFields).filter(([key,col])=>unit.differentFields.includes(key) && JSON.stringify(sqlValues[col] ?? null)!==JSON.stringify(place[col] ?? null)).map(([,col])=>[col,sqlValues[col]]));
+   const placeAmenities=Array.isArray(place.amenities)?place.amenities as string[]:[];
+   const customAmenities=unit.differentFields.includes('amenities') && JSON.stringify([...(details.amenities??[])].sort())!==JSON.stringify([...placeAmenities].sort());
    const id=await listingsRepository.insertUnit(tx,ownerId,details,{placeId,placeOverrides:overrides,
     unitAmenities:customAmenities?details.amenities:[],amenityOverrides:customAmenities?Object.fromEntries((place.amenities as string[]).filter(a=>!details.amenities.includes(a)).map(a=>[a,false])):{},
     bathroomPrivacy:unit.bathroomPrivacy,bedsTotal:details.spaceType==='shared_room'?details.beds:null,

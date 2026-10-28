@@ -22,3 +22,26 @@ export function sharedSqlValues(input: SharedInput) {
  const values = normalizedShared(input);
  return Object.fromEntries(Object.entries(sharedFields).map(([key,col])=>[col,values[key as keyof typeof values] ?? null]));
 }
+
+function sameJson(a: unknown, b: unknown) {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+}
+
+function sameStringSet(a: unknown, b: unknown) {
+  const left = Array.isArray(a) ? [...a].map(String).sort() : [];
+  const right = Array.isArray(b) ? [...b].map(String).sort() : [];
+  return sameJson(left, right);
+}
+
+/** Keep an override only when the unit value differs from the place. Equal copies inherit. */
+export function retainedDifferentFields(
+  fields: readonly string[],
+  unit: Record<string, unknown>,
+  place: Record<string, unknown>,
+) {
+  return fields.filter((key) => {
+    if (key === 'amenities') return !sameStringSet(unit.amenities, place.amenities);
+    if (!(key in sharedFields)) return false;
+    return !sameJson(unit[key], place[key]);
+  });
+}

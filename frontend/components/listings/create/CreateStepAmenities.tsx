@@ -1,5 +1,6 @@
 import { BuildingAccessFields } from './CreateStepSpecs';
-import { SharedDetailsChoice, utilityKeys } from '../edit/SharedDetailsChoice';
+import { patchOverride, resetOverride } from '@/features/listings/create/unitDrafts';
+import type { CreateListingDraft } from '@/features/listings/create/draft';
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -32,6 +33,47 @@ import type { ElectricityStatus, WaterStatus } from "@/types/listing";
 const ELEC: ElectricityStatus[] = ["generator_24_7", "scheduled_cuts", "solar"];
 const WATER: WaterStatus[] = ["state_well_24_7", "tank_delivery"];
 
+const CUT_KEYS = [
+  "electricityCutWindows",
+  "electricityCutsStart",
+  "electricityCutsEnd",
+  "electricityHoursOn",
+] as const;
+
+function FieldSource({
+  label,
+  keys,
+  draft,
+  onReset,
+}: {
+  label: string;
+  keys: readonly string[];
+  draft: CreateListingDraft;
+  onReset: (keys: readonly string[]) => void;
+}) {
+  if (!draft.sharedValues) return null;
+  const overridden = keys.some((key) => draft.differentFields?.includes(key));
+  if (!overridden) {
+    return (
+      <LText variant="caption" tone="muted">
+        Same as building
+      </LText>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Reset ${label} to building`}
+      onPress={() => onReset(keys)}
+      style={{ alignSelf: "flex-start", paddingVertical: 4 }}
+    >
+      <LText variant="caption" style={{ color: Lister.color.primary }}>
+        Reset to building
+      </LText>
+    </Pressable>
+  );
+}
+
 function IncludedInRent({ children }: { children: ReactNode }) {
   return (
     <View style={styles.included}>
@@ -45,6 +87,9 @@ function IncludedInRent({ children }: { children: ReactNode }) {
 
 export function CreateStepAmenities() {
   const { draft, patch, fieldInvalid, formChrome } = useCreateListingDraft();
+  const change = (values: Partial<CreateListingDraft>, keys: readonly string[]) =>
+    patchOverride(draft, patch, values, keys);
+  const reset = (keys: readonly string[]) => resetOverride(draft, patch, keys);
   const electricityInvalid = fieldInvalid("electricity");
   const windowsInvalid = fieldInvalid("electricityCutWindows");
   const waterInvalid = fieldInvalid("water");
@@ -65,12 +110,15 @@ export function CreateStepAmenities() {
 
   function setWindows(next: CutWindow[]) {
     const first = next[0] ?? emptyCutWindow();
-    patch({
-      electricityCutWindows: next,
-      electricityCutsStart: first.start,
-      electricityCutsEnd: first.end,
-      electricityHoursOn: hoursWithPowerFromWindows(next),
-    });
+    change(
+      {
+        electricityCutWindows: next,
+        electricityCutsStart: first.start,
+        electricityCutsEnd: first.end,
+        electricityHoursOn: hoursWithPowerFromWindows(next),
+      },
+      CUT_KEYS,
+    );
   }
 
   function patchWindow(index: number, field: "start" | "end", value: string) {
@@ -81,20 +129,22 @@ export function CreateStepAmenities() {
 
   function toggleAmenity(slug: string) {
     const on = draft.amenities.includes(slug);
-    patch({
-      amenities: on
-        ? draft.amenities.filter((s) => s !== slug)
-        : [...draft.amenities, slug],
-    });
+    change(
+      {
+        amenities: on
+          ? draft.amenities.filter((s) => s !== slug)
+          : [...draft.amenities, slug],
+      },
+      ["amenities"],
+    );
   }
 
-  if (draft.sharedValues && !utilityKeys.some(k=>draft.differentFields?.includes(k))) return <SharedDetailsChoice/>;
   return (
     <View style={{ gap: 16 }}>
-      <SharedDetailsChoice/>
       {(draft.unitCount ?? 1)>1 || formChrome==='edit' ? <BuildingAccessFields/> : null}
       <Enter>
         <WizardFieldLabel required>Electricity</WizardFieldLabel>
+        <FieldSource label="electricity" keys={["electricity"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />
         <WizardFieldGroup field="electricity" style={{ gap: 8 }}>
           {ELEC.map((value) => (
@@ -104,7 +154,11 @@ export function CreateStepAmenities() {
               title={ELECTRICITY_LABELS[value]}
               icon="flash-outline"
               error={electricityInvalid}
-              onPress={() =>
+              onPress={() => {
+                if (draft.sharedValues) {
+                  change({ electricity: value }, ["electricity"]);
+                  return;
+                }
                 patch({
                   electricity: value,
                   hasSolar: value === "solar" ? true : draft.hasSolar,
@@ -114,8 +168,8 @@ export function CreateStepAmenities() {
                     value === "scheduled_cuts" && windows.length === 0
                       ? [emptyCutWindow()]
                       : draft.electricityCutWindows,
-                })
-              }
+                });
+              }}
             />
           ))}
         </WizardFieldGroup>
@@ -124,6 +178,7 @@ export function CreateStepAmenities() {
           <>
             <View style={{ height: 8 }} />
             <WizardFieldLabel required>Generator / ishtirak amps</WizardFieldLabel>
+            <FieldSource label="generator amps" keys={["generatorAmperes"]} draft={draft} onReset={reset} />
             <View style={{ height: 8 }} />
             <WizardFieldGroup field="generatorAmperes">
               <SegmentedPills
@@ -136,7 +191,7 @@ export function CreateStepAmenities() {
                     ? String(draft.generatorAmperes)
                     : null
                 }
-                onChange={(v) => patch({ generatorAmperes: Number(v) })}
+                onChange={(v) => change({ generatorAmperes: Number(v) }, ["generatorAmperes"])}
               />
             </WizardFieldGroup>
           </>
@@ -146,6 +201,7 @@ export function CreateStepAmenities() {
         <Enter delay={40}>
           <View style={[styles.cutsBox, windowsInvalid && styles.cutsBoxError]}>
             <WizardFieldLabel required>When are the cuts?</WizardFieldLabel>
+            <FieldSource label="cut windows" keys={CUT_KEYS} draft={draft} onReset={reset} />
             <LText variant="caption" tone="muted">
               Daily windows with no EDL power. Add each cut — overnight included.
             </LText>
@@ -230,8 +286,9 @@ export function CreateStepAmenities() {
           title="Solar / UPS inverter"
           body="Backup present even if generator is the main source."
           icon="sunny-outline"
-          onPress={() => patch({ hasSolar: !draft.hasSolar })}
+          onPress={() => change({ hasSolar: !draft.hasSolar }, ["hasSolar"])}
         />
+        <FieldSource label="solar" keys={["hasSolar"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />
         <IncludedInRent>
           <SelectableCard
@@ -239,8 +296,9 @@ export function CreateStepAmenities() {
             title="Generator fee included in rent"
             body="Off = billed by meter / ishtirak separately."
             icon="cash-outline"
-            onPress={() => patch({ generatorIncluded: !draft.generatorIncluded })}
+            onPress={() => change({ generatorIncluded: !draft.generatorIncluded }, ["generatorIncluded"])}
           />
+          <FieldSource label="generator fee" keys={["generatorIncluded"]} draft={draft} onReset={reset} />
         </IncludedInRent>
       </Enter>
       {showUtilityDisclaimer ? (
@@ -269,6 +327,7 @@ export function CreateStepAmenities() {
       <Enter delay={140}>
         <WaterSectionMarker />
         <WizardFieldLabel required>Water</WizardFieldLabel>
+        <FieldSource label="water" keys={["water"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />
         <WizardFieldGroup field="water" style={{ gap: 8 }}>
           {WATER.map((value) => (
@@ -278,7 +337,7 @@ export function CreateStepAmenities() {
               title={WATER_LABELS[value]}
               icon="water-outline"
               error={waterInvalid}
-              onPress={() => patch({ water: value })}
+              onPress={() => change({ water: value }, ["water"])}
             />
           ))}
         </WizardFieldGroup>
@@ -292,9 +351,10 @@ export function CreateStepAmenities() {
                 body="Off = renter pays municipality / tanker / overage separately."
                 icon="cash-outline"
                 onPress={() =>
-                  patch({ waterBillIncluded: !draft.waterBillIncluded })
+                  change({ waterBillIncluded: !draft.waterBillIncluded }, ["waterBillIncluded"])
                 }
               />
+              <FieldSource label="water bill" keys={["waterBillIncluded"]} draft={draft} onReset={reset} />
             </IncludedInRent>
           </>
         ) : null}
@@ -305,23 +365,26 @@ export function CreateStepAmenities() {
             selected={draft.wifiIncluded}
             title="High-speed Wi-Fi included"
             icon="wifi-outline"
-            onPress={() => patch({ wifiIncluded: !draft.wifiIncluded })}
-          />
+          onPress={() => change({ wifiIncluded: !draft.wifiIncluded }, ["wifiIncluded"])}
+        />
+        <FieldSource label="Wi-Fi" keys={["wifiIncluded"]} draft={draft} onReset={reset} />
         </IncludedInRent>
         <View style={{ height: 8 }} />
         <SelectableCard
           selected={draft.routerUps}
           title="Router on UPS"
           icon="battery-charging-outline"
-          onPress={() => patch({ routerUps: !draft.routerUps })}
+          onPress={() => change({ routerUps: !draft.routerUps }, ["routerUps"])}
         />
+        <FieldSource label="router UPS" keys={["routerUps"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />
         <SelectableCard
           selected={draft.conciergeIncluded}
           title="Concierge / natour included"
           icon="person-outline"
-          onPress={() => patch({ conciergeIncluded: !draft.conciergeIncluded })}
+          onPress={() => change({ conciergeIncluded: !draft.conciergeIncluded }, ["conciergeIncluded"])}
         />
+        <FieldSource label="concierge" keys={["conciergeIncluded"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />
         <IncludedInRent>
           <SelectableCard
@@ -330,9 +393,10 @@ export function CreateStepAmenities() {
             body="Syndic, elevator fund, shared generator share beyond your unit meter — if billed with rent."
             icon="cash-outline"
             onPress={() =>
-              patch({ buildingFeesIncluded: !draft.buildingFeesIncluded })
+              change({ buildingFeesIncluded: !draft.buildingFeesIncluded }, ["buildingFeesIncluded"])
             }
           />
+          <FieldSource label="building fees" keys={["buildingFeesIncluded"]} draft={draft} onReset={reset} />
         </IncludedInRent>
         <View style={{ height: 8 }} />
         <IncludedInRent>
@@ -340,12 +404,14 @@ export function CreateStepAmenities() {
             selected={draft.cookingGasIncluded}
             title="Cooking gas included"
             icon="flame-outline"
-            onPress={() => patch({ cookingGasIncluded: !draft.cookingGasIncluded })}
+            onPress={() => change({ cookingGasIncluded: !draft.cookingGasIncluded }, ["cookingGasIncluded"])}
           />
+          <FieldSource label="cooking gas" keys={["cookingGasIncluded"]} draft={draft} onReset={reset} />
         </IncludedInRent>
       </Enter>
       <Enter delay={220}>
         <LText variant="subtitle">Interior amenities</LText>
+        <FieldSource label="amenities" keys={["amenities"]} draft={draft} onReset={reset} />
         <View style={styles.grid}>
           {AMENITY_OPTIONS.map((opt) => {
             const on = draft.amenities.includes(opt.slug);
@@ -378,9 +444,10 @@ export function CreateStepAmenities() {
                 body="Off = parking is extra."
                 icon="cash-outline"
                 onPress={() =>
-                  patch({ parkingIncludedInRent: !draft.parkingIncludedInRent })
+                  change({ parkingIncludedInRent: !draft.parkingIncludedInRent }, ["parkingIncludedInRent"])
                 }
               />
+              <FieldSource label="parking fee" keys={["parkingIncludedInRent"]} draft={draft} onReset={reset} />
             </IncludedInRent>
           </View>
         ) : null}

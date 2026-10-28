@@ -5,6 +5,30 @@ is on `main` at `6fdd3f7`. Slice 4 (wizard and dashboard) is implemented on
 2026-10-12; its implementation and verification record is below. Slice 5 remains
 deferred and untouched. Earlier verification records are historical.
 
+## Slice 4 follow-ups (2026-10-24)
+
+- Sign-in stays in the same modal when Clerk returns `needs_client_trust`,
+  `needs_second_factor`, or an email-code first factor. The host gets a code
+  field, resend, and the Clerk error. A correct password no longer ends on
+  “Sign-in could not be completed.” The modal is the shared web and native screen.
+- A unit utility field is inherited unless that field’s value differs from the
+  place. Changing electricity stores an electricity override only. Water, Wi-Fi,
+  elevator, and fees keep following later place edits. Each overridden field has
+  “Reset to building”. `0037_per_field_utility_overrides.sql` drops stored
+  overrides that already equal the place, including a copied amenity list, and
+  `listing_resolved` reports those fields as the place source.
+- Listing search treats a multi-word query as AND across tokens, in any order.
+  Each token may match the title, place name, or area (description, landmark,
+  and address still count). `Slice4 Bliss` matches “Slice4 whole apt on Bliss”.
+
+Apply `0037` only to the local dev database (`studently_dev`), from `backend`:
+
+```sh
+node ops/places/apply-field-overrides.mjs
+```
+
+The runner refuses any other database name. It does not reset or seed.
+
 ## Approved decisions and remaining slices (2026-10-10)
 
 These decisions supersede the earlier grouping and promotion-limit proposals.
@@ -166,7 +190,9 @@ Reproduce from `backend`: `npm run test:wizard`, `npm run test:places`,
 `npm run test:listing-audit`. From `frontend`: `node --test
  tests/unit-wizard.test.mjs tests/photo-persistence.test.mjs
  tests/photo-crop-queue.test.mjs tests/matcher.test.mjs`,
-`node tests/host-places-ui.mjs`, `node tests/typecheck-baseline.mjs 6fdd3f7`,
+`node tests/host-places-ui.mjs`, `node tests/auth-signin-code-ui.mjs` (mocked
+Clerk `needs_client_trust` / second-factor / first-factor email-code step: send,
+resend, wrong code, success), `node tests/typecheck-baseline.mjs 6fdd3f7`,
 `npm run build -- --output-dir .expo/slice4-export`, then
 `node tests/unit-wizard-ui.mjs`. Browser checks use local Microsoft Edge.
 Local ignored evidence: `frontend/.expo/host-places-ui/`, `slice4-ui/`,
@@ -489,8 +515,8 @@ missing fixture records and preserve existing dates, counters, edits and history
 
 The guard requires all of:
 - Explicit `DEPLOYMENT_ENV=local` or `staging`; production is refused.
-- A loopback host with database `skoun_dev`, or the exact
-  `skoun_staging` database on `HOUSING_SEED_ALLOWED_HOST`.
+- A loopback host with database `studently_dev`, or the exact
+  `studently_staging` database on `HOUSING_SEED_ALLOWED_HOST`.
 - An independently provisioned database marker matching the environment and
   actual database name.
 - `NODE_ENV` must not be `production` for the seed operation.
@@ -501,14 +527,14 @@ strictly named disposable-database allowance.
 
 For development, set `DEPLOYMENT_ENV=local` and `DEV_DATABASE_URL` in the
 backend's local environment to a loopback PostgreSQL URL ending in
-`/skoun_dev`. Then the one command from the repository root is:
+`/studently_dev`. Then the one command from the repository root is:
 
 ```sh
 npm run db:reset:dev
 ```
 
 Reset uses only `DEV_DATABASE_URL`; it never derives a destructive target from
-`DATABASE_URL`. It refuses any target except loopback `skoun_dev`. A database
+`DATABASE_URL`. It refuses any target except loopback `studently_dev`. A database
 created by this command receives its marker; a pre-existing unmarked database is
 refused. Existing connections prevent the drop (there is no FORCE).
 The command runs all migrations, then the existing campus, academic/tuition and
@@ -523,14 +549,14 @@ For staging, a database administrator provisions this marker separately on the
 verified nonproduction database; the housing seed never creates its own marker:
 
 ```sql
-CREATE SCHEMA skoun_ops;
-CREATE TABLE skoun_ops.environment_guard (
+CREATE SCHEMA studently_ops;
+CREATE TABLE studently_ops.environment_guard (
   singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
   environment text NOT NULL,
   database_name text NOT NULL
 );
-INSERT INTO skoun_ops.environment_guard(environment,database_name)
-VALUES ('staging','skoun_staging');
+INSERT INTO studently_ops.environment_guard(environment,database_name)
+VALUES ('staging','studently_staging');
 ```
 
 The housing seed itself does not edit campus, tuition, academic or benefit data.
@@ -589,7 +615,7 @@ Post-backfill dry-run output, condensed:
 }
 ```
 
-A new dedicated local `skoun_dev` database was created and the reset command
+A new dedicated local `studently_dev` database was created and the reset command
 completed: 36 institutions, 101 campuses, 191 faculties, 642 programs with rates,
 94 benefits, and the housing inventory above. Its dry run has no blockers or
 warnings, all 34 migrations recognized, and resolver parity 17/17.

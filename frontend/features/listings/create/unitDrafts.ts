@@ -37,3 +37,34 @@ export function adjacentStep(d:CreateListingDraft,direction:1|-1){
  const steps=wizardStepOrder(d);
  return direction===1?steps.find(s=>s>d.step) ?? 9:[...steps].reverse().find(s=>s<d.step) ?? 0;
 }
+
+/** Mark only the fields the host changed. Absent keys keep inheriting the place. */
+export function patchOverride(
+  draft: CreateListingDraft,
+  patch: (next: Partial<CreateListingDraft>) => void,
+  values: Partial<CreateListingDraft>,
+  keys: readonly string[],
+) {
+  if (!draft.sharedValues) {
+    patch(values);
+    return;
+  }
+  const next = new Set([...(draft.differentFields ?? []), ...keys]);
+  patch({ ...values, differentFields: [...next] });
+}
+
+export function resetOverride(
+  draft: CreateListingDraft,
+  patch: (next: Partial<CreateListingDraft>) => void,
+  keys: readonly string[],
+) {
+  if (!draft.sharedValues) return;
+  const restored: Partial<CreateListingDraft> = {};
+  for (const key of keys) {
+    (restored as Record<string, unknown>)[key] = draft.sharedValues[key as keyof CreateListingDraft];
+  }
+  patch({
+    ...restored,
+    differentFields: (draft.differentFields ?? []).filter((key) => !keys.includes(key)),
+  });
+}

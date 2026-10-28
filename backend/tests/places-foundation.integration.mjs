@@ -14,7 +14,7 @@ import path from 'node:path';
 
 const url=new URL(process.env.DATABASE_URL);
 if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname))throw new Error('Foundation tests require a loopback database server');
-const name='skoun_places_test_'+randomUUID().replaceAll('-','');
+const name='studently_places_test_'+randomUUID().replaceAll('-','');
 const admin=postgres(url.toString(),{max:1,onnotice:()=>{}});
 let client;let assetsDir;let passed=0;
 const check=async(label,fn)=>{await fn();passed++;console.log('PASS '+label);};
@@ -157,15 +157,15 @@ try{
  });
  const seedEnv={NODE_ENV:'test',DEPLOYMENT_ENV:'local',DATABASE_URL:url.toString(),UPLOAD_DIR:''};
  await check('production, protected names, remote local hosts and unmarked DBs are refused',async()=>{
-  for(const patch of [{NODE_ENV:'production'},{DEPLOYMENT_ENV:'production'},{DEPLOYMENT_ENV:undefined},{DATABASE_URL:'postgres://x@localhost/postgres'},{DATABASE_URL:'postgres://x@db.example/skoun_dev'},{DEPLOYMENT_ENV:'staging',DATABASE_URL:'postgres://x@db.example/skoun_staging'}])
+  for(const patch of [{NODE_ENV:'production'},{DEPLOYMENT_ENV:'production'},{DEPLOYMENT_ENV:undefined},{DATABASE_URL:'postgres://x@localhost/postgres'},{DATABASE_URL:'postgres://x@db.example/studently_dev'},{DEPLOYMENT_ENV:'staging',DATABASE_URL:'postgres://x@db.example/studently_staging'}])
    assert.throws(()=>seedTarget({...seedEnv,...patch}));
   assert.throws(()=>seedTarget({...seedEnv,DEV_DATABASE_URL:undefined},{reset:true}));
   await assert.rejects(client.begin('read only',tx=>assertSeedMarker(tx,seedTarget(seedEnv))));
  });
- await client.unsafe('CREATE SCHEMA skoun_ops; CREATE TABLE skoun_ops.environment_guard(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),environment text NOT NULL,database_name text NOT NULL)');
- await client`insert into skoun_ops.environment_guard(environment,database_name) values('local',${name})`;
+ await client.unsafe('CREATE SCHEMA studently_ops; CREATE TABLE studently_ops.environment_guard(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),environment text NOT NULL,database_name text NOT NULL)');
+ await client`insert into studently_ops.environment_guard(environment,database_name) values('local',${name})`;
  for(const slug of new Set(housingFixtures.map(x=>x.campus)))await client`insert into universities(name,slug,location) values(${slug},${slug},ST_GeogFromText('POINT(35.48 33.90)')) on conflict(slug) do nothing`;
- assetsDir=await mkdtemp(path.join(tmpdir(),'skoun-housing-assets-'));seedEnv.UPLOAD_DIR=assetsDir;
+ assetsDir=await mkdtemp(path.join(tmpdir(),'studently-housing-assets-'));seedEnv.UPLOAD_DIR=assetsDir;
  await check('new seed creates all place/unit scenarios and bundled galleries',async()=>{
   const nonDemoBefore=await client`select to_jsonb(l) value from listings l order by id`;
   const result=await seedHousing(client,seedEnv);
@@ -207,7 +207,7 @@ try{
 finally{
  if(client)await client.end();
  await admin.unsafe('DROP DATABASE IF EXISTS "'+name+'" WITH (FORCE)');await admin.end();
- if(assetsDir && path.resolve(assetsDir).startsWith(path.resolve(tmpdir())+path.sep) && path.basename(assetsDir).startsWith('skoun-housing-assets-'))await rm(assetsDir,{recursive:true});
+ if(assetsDir && path.resolve(assetsDir).startsWith(path.resolve(tmpdir())+path.sep) && path.basename(assetsDir).startsWith('studently-housing-assets-'))await rm(assetsDir,{recursive:true});
 }
 // The application repository owns a separate lazy pool. The test DB is already
 // removed and all test assertions have completed.

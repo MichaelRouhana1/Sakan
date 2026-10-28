@@ -25,7 +25,7 @@ export async function seedHousing(client,raw=process.env){
  return client.begin(async tx=>{
   await assertSeedMarker(tx,target);
   await tx`select pg_advisory_xact_lock(183710,2)`;
-  await tx.unsafe('CREATE TABLE IF NOT EXISTS skoun_ops.housing_seed_manifest(entity text NOT NULL,id uuid NOT NULL,PRIMARY KEY(entity,id))');
+  await tx.unsafe('CREATE TABLE IF NOT EXISTS studently_ops.housing_seed_manifest(entity text NOT NULL,id uuid NOT NULL,PRIMARY KEY(entity,id))');
   const result={removedLegacyListings:0,places:0,units:0,unitPhotos:0,placePhotos:0,promotions:0,preservedNonManifestListings:0};
   const existing=await tx`select id,poster_id,title,created_at,place_id,area,monthly_rent_usd from listings where id=any(${manifest.listings.map(x=>x.id)}::uuid[]) for update`;
   for(const row of existing){
@@ -46,13 +46,13 @@ export async function seedHousing(client,raw=process.env){
   async function insert(entity,table,row){
    const [exists]=await tx.unsafe('select id from '+table+' where id=$1',[row.id]);
    if(exists){
-    const [owned]=await tx`select id from skoun_ops.housing_seed_manifest where entity=${entity} and id=${row.id}`;
+    const [owned]=await tx`select id from studently_ops.housing_seed_manifest where entity=${entity} and id=${row.id}`;
     if(!owned)throw new Error('Fixture ID collision outside seed manifest: '+entity+'/'+row.id);
     return false; // Reruns preserve dates, counters, host edits, and ledger rows.
    }
    const data=serializable(tx,row);
    await tx`insert into ${tx(table)} ${tx(data,Object.keys(data))}`;
-   await tx`insert into skoun_ops.housing_seed_manifest(entity,id) values(${entity},${row.id}) on conflict do nothing`;
+   await tx`insert into studently_ops.housing_seed_manifest(entity,id) values(${entity},${row.id}) on conflict do nothing`;
    return true;
   }
   await insert('user','users',{id:ownerId,role:'poster',first_name:'Housing',last_name:'Demo',post_credits:99,boost_credits:0,boost_credit_units_version:1,legacy_boost_credit_unit_rate:1200,free_credit_claimed:true});
@@ -111,7 +111,7 @@ export async function seedHousing(client,raw=process.env){
     }
    }
   }
-  result.preservedNonManifestListings=Number((await tx`select count(*) n from listings l where not exists(select from skoun_ops.housing_seed_manifest m where m.entity='listing' and m.id=l.id)`)[0].n);
+  result.preservedNonManifestListings=Number((await tx`select count(*) n from listings l where not exists(select from studently_ops.housing_seed_manifest m where m.entity='listing' and m.id=l.id)`)[0].n);
   return result;
  });
 }

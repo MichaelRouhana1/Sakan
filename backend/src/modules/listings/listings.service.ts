@@ -1,5 +1,5 @@
 import { ownerPlace } from './unit-publish.service.js';
-import { sharedFields, locationFields } from './place-fields.js';
+import { sharedFields, locationFields, normalizedShared, retainedDifferentFields } from './place-fields.js';
 import { ConflictError } from '../../lib/errors.js';
 import {
   ForbiddenError,
@@ -343,8 +343,20 @@ export class ListingsService {
     if(input.differentFields){
       const place=await ownerPlace(owner.id,String(listing.placeId));
       if(!input.expectedPlaceUpdatedAt || new Date(place.updatedAt).toISOString()!==input.expectedPlaceUpdatedAt)throw new ConflictError('Shared details changed. Refresh before saving.');
+      const unitRecord=input as Record<string,unknown>;
+      const placeRecord=place as Record<string,unknown>;
+      const derived=['electricityCutWindows','electricityCutsStart','electricityCutsEnd','electricityHoursOn'];
+      if(input.differentFields.some(key=>derived.includes(key))){
+        const normalized=normalizedShared(input);
+        input.electricityCutWindows=normalized.electricityCutWindows;
+        input.electricityCutsStart=normalized.electricityCutsStart;
+        input.electricityCutsEnd=normalized.electricityCutsEnd;
+        input.electricityHoursOn=normalized.electricityHoursOn;
+        input.differentFields=[...new Set([...input.differentFields,...derived])];
+      }
+      input.differentFields=retainedDifferentFields(input.differentFields, unitRecord, placeRecord);
       for(const key of [...Object.keys(sharedFields),'amenities']) {
-        if(!input.differentFields.includes(key))(input as Record<string,unknown>)[key]=(place as Record<string,unknown>)[key];
+        if(!input.differentFields.includes(key))unitRecord[key]=placeRecord[key];
       }
     }
     const now = new Date();

@@ -166,32 +166,48 @@ function parseNullableJsonStringArray(value: unknown): string[] | null {
   return parseJsonStringArray(value);
 }
 
-/** Text search OR fragments for Drizzle browse. */
-function textSearchDrizzleConditions(q: string | undefined): SQL[] {
+function searchTokens(q: string | undefined): string[] {
   if (!q || q.trim().length === 0) return [];
-  const like = `%${q.trim()}%`;
-  return [
-    or(
-      ilike(listings.title, like),
-      ilike(listings.description, like),
-      ilike(listings.area, like),
-      ilike(listings.landmark, like),
-      ilike(listings.addressLine, like),
-    )!,
-  ];
+  return q.trim().split(/\s+/).filter(Boolean).slice(0, 12);
 }
 
-/** Raw-SQL text search AND fragment for hub / point queries (alias `l`). */
+function likePattern(token: string): string {
+  return `%${token.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+}
+
+/** Each word must match somewhere in the title, place name, or area (any order). */
+function textSearchDrizzleConditions(q: string | undefined): SQL[] {
+  return searchTokens(q).map((token) => {
+    const like = likePattern(token);
+    return or(
+      ilike(listings.title, like),
+      ilike(listings.buildingName, like),
+      ilike(listings.area, like),
+      ilike(listings.description, like),
+      ilike(listings.landmark, like),
+      ilike(listings.addressLine, like),
+    )!;
+  });
+}
+
+/** Raw-SQL text search: AND across tokens, OR across title, place name, and area (alias `l`). */
 function textSearchSqlFragment(q: string | undefined): SQL {
-  if (!q || q.trim().length === 0) return sql``;
-  const like = `%${q.trim()}%`;
-  return sql`AND (
-    l.title ILIKE ${like}
-    OR l.description ILIKE ${like}
-    OR l.area ILIKE ${like}
-    OR COALESCE(l.landmark, '') ILIKE ${like}
-    OR COALESCE(l.address_line, '') ILIKE ${like}
-  )`;
+  const tokens = searchTokens(q);
+  if (tokens.length === 0) return sql``;
+  return sql.join(
+    tokens.map((token) => {
+      const like = likePattern(token);
+      return sql`AND (
+        l.title ILIKE ${like}
+        OR COALESCE(l.building_name, '') ILIKE ${like}
+        OR l.area ILIKE ${like}
+        OR COALESCE(l.description, '') ILIKE ${like}
+        OR COALESCE(l.landmark, '') ILIKE ${like}
+        OR COALESCE(l.address_line, '') ILIKE ${like}
+      )`;
+    }),
+    sql` `,
+  );
 }
 
 /** Drizzle AND fragments for property browse filters. */

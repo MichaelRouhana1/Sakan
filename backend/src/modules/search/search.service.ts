@@ -153,20 +153,23 @@ async function matchUniversities(q: string): Promise<UniversitySuggestion[]> {
 async function matchListings(q: string): Promise<ListingSuggestion[]> {
   if (q.length < 2) return [];
 
-  const like = `%${q}%`;
+  const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 12);
   const looksLikeUuid = UUID_PREFIX_RE.test(q);
   const idCond = looksLikeUuid
     ? sql`${listings.id}::text ILIKE ${`${q}%`}`
     : undefined;
   const titleSim = sql<number>`similarity(${listings.title}::text, ${q})`;
-  const titleFuzzy = useTrigram(q)
-    ? sql`similarity(${listings.title}::text, ${q}) >= ${TRGM_MIN}`
-    : undefined;
-  const titleCond = ilike(listings.title, like);
-  const matchCond =
-    idCond || titleFuzzy
-      ? or(titleCond, ...(idCond ? [idCond] : []), ...(titleFuzzy ? [titleFuzzy] : []))
-      : titleCond;
+  const tokenConds = tokens.map((token) => {
+    const like = `%${token.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+    return or(
+      ilike(listings.title, like),
+      ilike(listings.buildingName, like),
+      ilike(listings.area, like),
+    )!;
+  });
+  const tokenMatch = tokenConds.length > 0 ? and(...tokenConds) : undefined;
+  const matchCond = tokenMatch && idCond ? or(tokenMatch, idCond) : tokenMatch ?? idCond;
+  if (!matchCond) return [];
 
   const rows = await db
     .select({
