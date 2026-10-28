@@ -18,7 +18,7 @@ import {
 import type { DraftCheckpoint, DraftSlot } from "@/features/listings/create/draft";
 import { labelListingType } from "@/lib/listingLabels";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
 import { hostListingStatus } from "@/components/web/host/hostListingStatus";
 
@@ -93,7 +93,7 @@ export function HostListingListView({
                       <Ionicons
                         name="image-outline"
                         size={16}
-                        color={Skoun.color.inkFaint}
+                        color={Studently.color.inkFaint}
                       />
                     </View>
                   )}
@@ -185,7 +185,7 @@ export function HostListingListView({
                     <Ionicons
                       name="image-outline"
                       size={16}
-                      color={Skoun.color.inkFaint}
+                      color={Studently.color.inkFaint}
                     />
                   </View>
                 )}
@@ -267,9 +267,9 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E2E8F0",
   },
   headerCell: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
@@ -291,9 +291,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   dataCell: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   listingCol: { flex: 2.2, minWidth: 0 },
   listingColCompact: { flex: 1, minWidth: 0 },
@@ -330,23 +330,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rowTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 18,
   },
   rowMeta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   editBtn: {
     marginTop: 8,
     cursor: "pointer",
   },
   editText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
 });

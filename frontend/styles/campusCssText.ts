@@ -3,18 +3,18 @@ import { TICKET_SHADOW } from "@/lib/ticketMask";
 /** Campus web CSS. Injected from CampusShell in SPA mode (`web.output: "single"`
  *  skips `app/+html.tsx`) and still inlined there for static export. */
 export const CAMPUS_CSS = `
-.skoun-campus,
-#skoun-campus {
+.studently-campus,
+#studently-campus {
   font-family: 'DM Sans', system-ui, sans-serif;
   background: #F9FAFB;
   color: #121826;
   -webkit-font-smoothing: antialiased;
   -webkit-overflow-scrolling: touch;
 }
-.skoun-campus [role="button"],
-.skoun-campus [role="link"],
-#skoun-campus [role="button"],
-#skoun-campus [role="link"] { cursor: pointer; }
+.studently-campus [role="button"],
+.studently-campus [role="link"],
+#studently-campus [role="button"],
+#studently-campus [role="link"] { cursor: pointer; }
 @keyframes sk-campus-in {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -94,15 +94,15 @@ export const CAMPUS_CSS = `
   .campus-cal-ledger { max-width: 100% !important; }
 }
 @media (max-width: 639px) {
-  #skoun-campus, .skoun-campus { touch-action: manipulation; }
-  .skoun-benefit-card-shadow {
+  #studently-campus, .studently-campus { touch-action: manipulation; }
+  .studently-benefit-card-shadow {
     filter: ${TICKET_SHADOW};
     -webkit-filter: ${TICKET_SHADOW};
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skoun-campus *,
-  #skoun-campus * {
+  .studently-campus *,
+  #studently-campus * {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }

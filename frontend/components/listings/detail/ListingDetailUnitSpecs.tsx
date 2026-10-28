@@ -6,7 +6,7 @@ import {
   listingDetailChrome as chrome,
   type ListingDetailVariant,
 } from "@/components/listings/detail/listingDetailChrome";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { labelListingType } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
@@ -106,7 +106,7 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
         <View style={styles.grid}>
           {rows.map((row) => (
             <View key={row.label} style={styles.tile}>
-              <Ionicons name={row.icon} size={18} color={Skoun.color.primary} />
+              <Ionicons name={row.icon} size={18} color={Studently.color.primary} />
               <LText variant="caption" tone="muted">
                 {row.label}
               </LText>
@@ -133,7 +133,7 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
               <Ionicons
                 name={row.icon}
                 size={16}
-                color={Skoun.color.inkMuted}
+                color={Studently.color.inkMuted}
               />
               <LText variant="caption" tone="muted" style={styles.label}>
                 {row.label}
@@ -161,16 +161,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 4,
     padding: 12,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   webHeading: {
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.3,
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     marginBottom: 4,
     paddingHorizontal: 24,
   },
@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
   value: {
     flex: 1,
     textAlign: "right",
-    fontFamily: Skoun.type.bodySemi,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodySemi,
+    color: Studently.color.ink,
     fontSize: 15,
     lineHeight: 22,
   },

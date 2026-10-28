@@ -7,7 +7,7 @@ import {
   BenefitCardSkeleton,
 } from "@/components/campus/BenefitCard";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { categoryMeta } from "@/features/benefits/categories";
 import {
   isCampusExclusive,
@@ -94,7 +94,7 @@ export function BenefitRelated({ current, columns }: Props) {
           <Ionicons
             name="arrow-forward"
             size={14}
-            color={Skoun.color.primary}
+            color={Studently.color.primary}
           />
         </Pressable>
       </View>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
     lineHeight: 28,
     letterSpacing: -0.3,
@@ -176,8 +176,8 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
   browseText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   grid: {
     flexDirection: "row",

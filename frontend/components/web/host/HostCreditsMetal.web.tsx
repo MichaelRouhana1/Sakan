@@ -1,7 +1,7 @@
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import type { CSSProperties, ReactNode } from "react";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 /** Full-shape mask — same recipe as metal-fx `MetalBadge`, not the 1px ring punch. */
 function popularMask(
@@ -144,8 +144,8 @@ const BADGE_SHEEN: CSSProperties = {
 
 const BADGE_LABEL: CSSProperties = {
   position: "relative",
-  color: Skoun.color.ink,
-  fontFamily: Skoun.type.bodySemi,
+  color: Studently.color.ink,
+  fontFamily: Studently.type.bodySemi,
   fontSize: 11,
   fontWeight: 600,
   letterSpacing: 0.4,
@@ -162,12 +162,12 @@ const CTA: CSSProperties = {
   border: "1px solid #DDDDDD",
   borderRadius: 8,
   background: "#FFFFFF",
-  color: Skoun.color.ink,
+  color: Studently.color.ink,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontFamily: Skoun.type.bodySemi,
+  fontFamily: Studently.type.bodySemi,
   fontSize: 14,
   fontWeight: 600,
 };

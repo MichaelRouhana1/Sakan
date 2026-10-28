@@ -108,7 +108,7 @@ export const SILENCE_COPY: Record<
   },
 };
 
-const STORAGE_KEY = "skoun.silenceTip";
+const STORAGE_KEY = "studently.silenceTip";
 const memory = new Map<string, SilenceAction>();
 
 function readStored(): Record<string, string> {

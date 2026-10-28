@@ -1,11 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { LText } from "@/components/lister/Typography";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
 import type { Listing } from "@/types/listing";
@@ -18,7 +18,7 @@ export function SavedWeb() {
   if (authLoading || (isSignedIn && isLoading)) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={Skoun.color.primary} size="large" />
+        <ActivityIndicator color={Studently.color.primary} size="large" />
       </View>
     );
   }
@@ -33,7 +33,7 @@ export function SavedWeb() {
           actionLabel="Sign in"
           onAction={() => setAuthOpen(true)}
         />
-        <SkounAuthModal
+        <StudentlyAuthModal
           visible={authOpen}
           onClose={() => setAuthOpen(false)}
           onSuccess={() => setAuthOpen(false)}
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
     letterSpacing: -0.5,
   },
   center: {

@@ -4,8 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { housingFixtures, sharedDefaults } from '../../src/db/seeds/housing-fixtures.mjs';
 import { seedTarget, assertSeedMarker } from './seed-guard.mjs';
+// Frozen ID namespace, not branding. Fixture IDs derive from this string and are what
+// studently_ops.housing_seed_manifest, seed idempotency and manifest-only deletion match on.
+// Changing it would make a re-seed create a second demo set and orphan the first.
+const FIXTURE_ID_NAMESPACE='skoun-housing-v1:';
 export const fixtureId=key=>{
- const h=createHash('sha256').update('skoun-housing-v1:'+key).digest('hex');
+ const h=createHash('sha256').update(FIXTURE_ID_NAMESPACE+key).digest('hex');
  return h.slice(0,8)+'-'+h.slice(8,12)+'-4'+h.slice(13,16)+'-8'+h.slice(17,20)+'-'+h.slice(20,32);
 };
 const manifest=JSON.parse(await readFile(new URL('../../src/db/seeds/legacy-housing-manifest.json',import.meta.url),'utf8'));

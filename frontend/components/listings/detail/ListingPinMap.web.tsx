@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
 import {
-  createSkounMap,
-  destroySkounMap,
+  createStudentlyMap,
+  destroyStudentlyMap,
   listingPinHtml,
   loadMapbox,
   makeMarker,
@@ -13,7 +13,7 @@ import {
   toLngLat,
   type MapboxMap,
   type Marker,
-} from "@/lib/skounMapbox.web";
+} from "@/lib/studentlyMapbox.web";
 
 type Props = {
   lat: number;
@@ -42,7 +42,7 @@ export function ListingPinMap({
       try {
         const mapboxgl = await loadMapbox();
         if (cancelled || !hostRef.current) return;
-        const map = createSkounMap(
+        const map = createStudentlyMap(
           mapboxgl,
           hostRef.current,
           { lat, lng },
@@ -71,7 +71,7 @@ export function ListingPinMap({
       cancelled = true;
       markerRef.current?.remove();
       markerRef.current = null;
-      destroySkounMap(mapRef.current);
+      destroyStudentlyMap(mapRef.current);
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- create once
@@ -107,7 +107,7 @@ export function ListingPinMap({
       ) : null}
       <div
         ref={hostRef}
-        className="skoun-mapbox-map"
+        className="studently-mapbox-map"
         style={{
           width: "100%",
           height: "100%",
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   wrap: {
     width: "100%",
     overflow: "hidden",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
     position: "relative",
   },
   missing: {
@@ -131,6 +131,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 12,
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
 });

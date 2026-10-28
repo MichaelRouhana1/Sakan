@@ -10,29 +10,29 @@ import { View } from "react-native";
  * The badge sits outside the beam because the beam clips overflow to the edge.
  */
 const TIP_CSS = `
-@keyframes skoun-match-tip {
+@keyframes studently-match-tip {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  @keyframes skoun-match-tip {
+  @keyframes studently-match-tip {
     from, to { opacity: 1; transform: none; }
   }
 }
-.skounBestBeam[data-beam][data-active]::after,
-.skounBestBeam[data-beam][data-fading]::after {
+.studentlyBestBeam[data-beam][data-active]::after,
+.studentlyBestBeam[data-beam][data-fading]::after {
   opacity: 1 !important;
 }
-.skounBestBeam[data-beam][data-active]::before,
-.skounBestBeam[data-beam][data-fading]::before {
+.studentlyBestBeam[data-beam][data-active]::before,
+.studentlyBestBeam[data-beam][data-fading]::before {
   opacity: 1 !important;
 }
-.skounBestBeam[data-beam] [data-beam-bloom] {
+.studentlyBestBeam[data-beam] [data-beam-bloom] {
   opacity: 0.85 !important;
 }
 [data-best-match-tip] {
   overflow: auto;
-  animation: skoun-match-tip 160ms ease-out;
+  animation: studently-match-tip 160ms ease-out;
 }
 `;
 
@@ -62,7 +62,7 @@ export function BestMatchBeam({
           colorVariant="colorful"
           theme="dark"
           borderRadius={16}
-          className="skounBestBeam"
+          className="studentlyBestBeam"
           style={{ display: "block", width: "100%" }}
         >
           {card}

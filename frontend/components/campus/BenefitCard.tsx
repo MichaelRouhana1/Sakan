@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { TicketBackdrop, type TicketTear } from "@/components/campus/TicketBackdrop";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { categoryMeta } from "@/features/benefits/categories";
 import {
   isCampusExclusive,
@@ -181,8 +181,8 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
     }
     const animation = Animated.timing(anim, {
       toValue: 1,
-      duration: Skoun.motion.enterMs,
-      delay: Math.min(index, MAX_STAGGER_STEPS) * Skoun.motion.staggerMs,
+      duration: Studently.motion.enterMs,
+      delay: Math.min(index, MAX_STAGGER_STEPS) * Studently.motion.staggerMs,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
@@ -208,7 +208,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
               : styles.shadowWrapRest),
         IS_WEB && hovered && styles.shadowLiftHover,
       ]}
-      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+      {...(IS_WEB ? ({ className: "studently-benefit-card-shadow" } as object) : null)}
     >
       <Animated.View
         style={[
@@ -252,7 +252,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
             corner={CORNER}
             notch={NOTCH}
             tear={ticketTear(stack, size.w, size.h, stubH)}
-            fill={Skoun.color.surface}
+            fill={Studently.color.surface}
             stubFill={STUB_TINT}
             stubOpacity={STUB_TINT_ALPHA}
           />
@@ -296,7 +296,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
             <Ionicons
               name={exclusive ? "school-outline" : "checkmark-circle-outline"}
               size={12}
-              color={exclusive ? Skoun.color.primary : Skoun.color.inkMuted}
+              color={exclusive ? Studently.color.primary : Studently.color.inkMuted}
             />
             <LText
               variant="caption"
@@ -349,7 +349,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
             <Ionicons
               name="arrow-forward"
               size={11}
-              color={hovered ? Skoun.color.primary : Skoun.color.inkMuted}
+              color={hovered ? Studently.color.primary : Studently.color.inkMuted}
             />
           </View>
         </View>
@@ -399,7 +399,7 @@ export function BenefitCardSkeleton() {
         styles.shadowHost,
         IS_WEB && (width < 640 ? styles.shadowWrapMobile : styles.shadowWrapRest),
       ]}
-      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+      {...(IS_WEB ? ({ className: "studently-benefit-card-shadow" } as object) : null)}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
@@ -428,7 +428,7 @@ export function BenefitCardSkeleton() {
           corner={CORNER}
           notch={NOTCH}
           tear={ticketTear(stack, size.w, size.h, 0)}
-          fill={Skoun.color.surface}
+          fill={Studently.color.surface}
           stubFill={STUB_TINT}
           stubOpacity={STUB_TINT_ALPHA}
         />
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
     // Web paints the surface on the box and masks it; native leaves the box
     // transparent so the SVG backdrop (silhouette + shadow) shows through.
     // Never box-shadow this on web — it draws a gray rect under the cutouts.
-    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    backgroundColor: IS_WEB ? Studently.color.surface : "transparent",
     overflow: "visible",
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     height: 228,
   },
   ticketPressed: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   ticketPressedNative: {
     opacity: 0.88,
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
   body: {
     gap: 16,
     justifyContent: "space-between",
-    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    backgroundColor: IS_WEB ? Studently.color.surface : "transparent",
   },
   bodyRow: {
     flex: 1,
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
   iconWellLogo: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   logoImg: {
     width: 40,
@@ -624,8 +624,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   title: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyBold,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 18,
     lineHeight: 24,
   },
@@ -638,22 +638,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   chipExclusive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderColor: "#C5D6F5",
   },
   chipText: {
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
     flexShrink: 1,
   },
   chipTextExclusive: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
 
   railVertical: {
@@ -744,8 +744,8 @@ const styles = StyleSheet.create({
     borderColor: "rgba(47, 111, 237, 0.42)",
   },
   stamp: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodyBold,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodyBold,
     letterSpacing: -0.2,
     textAlign: "center",
     ...(Platform.OS === "web"
@@ -763,8 +763,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stubCtaLabel: {
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     lineHeight: 16,
     textAlign: "center",
@@ -776,18 +776,18 @@ const styles = StyleSheet.create({
       : null),
   },
   stubCtaLabelHover: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
 
   skeletonTicket: {},
   skeletonStamp: {
     width: 72,
     height: 30,
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
     borderColor: "transparent",
   },
   skeletonBlock: {
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   skeletonLine: {
     height: 12,

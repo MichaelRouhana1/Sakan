@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { ReportReasonOptions } from "@/components/listings/ReportReasonOptions";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   reportErrorMessage,
   useReportListing,
@@ -110,7 +110,7 @@ export function ReportListingDialog({
                 <Ionicons
                   name="checkmark"
                   size={28}
-                  color={Skoun.color.primaryDeep}
+                  color={Studently.color.primaryDeep}
                 />
               </View>
               <LText variant="title" style={styles.thanksTitle}>
@@ -128,7 +128,7 @@ export function ReportListingDialog({
                     <Ionicons
                       name="lock-closed"
                       size={11}
-                      color={Skoun.color.primaryDeep}
+                      color={Studently.color.primaryDeep}
                     />
                     <LText variant="label" style={styles.pillText}>
                       Confidential
@@ -158,7 +158,7 @@ export function ReportListingDialog({
                     focused && styles.closeFocus,
                   ]}
                 >
-                  <Ionicons name="close" size={18} color={Skoun.color.ink} />
+                  <Ionicons name="close" size={18} color={Studently.color.ink} />
                 </Pressable>
               </View>
 
@@ -180,7 +180,7 @@ export function ReportListingDialog({
                   <Ionicons
                     name="alert-circle"
                     size={16}
-                    color={Skoun.color.danger}
+                    color={Studently.color.danger}
                   />
                   <LText variant="caption" tone="danger" style={styles.errorText}>
                     {error}
@@ -193,7 +193,7 @@ export function ReportListingDialog({
                   <Ionicons
                     name="eye-off-outline"
                     size={16}
-                    color={Skoun.color.inkFaint}
+                    color={Studently.color.inkFaint}
                   />
                   <LText variant="caption" tone="muted" style={styles.reassureText}>
                     Landlord isn’t notified
@@ -215,7 +215,7 @@ export function ReportListingDialog({
                 >
                   {busy ? (
                     <ActivityIndicator
-                      color={Skoun.color.surface}
+                      color={Studently.color.surface}
                       size="small"
                     />
                   ) : (
@@ -233,7 +233,7 @@ export function ReportListingDialog({
                         name="arrow-forward"
                         size={16}
                         color={
-                          chosen ? Skoun.color.surface : Skoun.color.inkFaint
+                          chosen ? Studently.color.surface : Studently.color.inkFaint
                         }
                         accessibilityElementsHidden
                       />
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
     ...(IS_WEB
       ? ({
           backdropFilter: "blur(8px)",
@@ -270,15 +270,15 @@ const styles = StyleSheet.create({
   dialog: {
     width: "100%",
     maxWidth: 480,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 20,
     paddingHorizontal: 28,
     paddingTop: 24,
     paddingBottom: 22,
     borderWidth: 1,
     borderTopWidth: 5,
-    borderColor: Skoun.color.border,
-    borderTopColor: Skoun.color.primaryDeep,
+    borderColor: Studently.color.border,
+    borderTopColor: Studently.color.primaryDeep,
     overflow: "hidden",
     zIndex: 1,
     ...(IS_WEB
@@ -306,14 +306,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.primaryMist,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.primaryMist,
   },
   pillText: {
     letterSpacing: 0.8,
     fontSize: 10,
     lineHeight: 12,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   headline: {
     fontSize: 22,
@@ -329,18 +329,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   closeHover: {
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   closeFocus: {
     ...(IS_WEB
       ? ({
           outlineWidth: 2,
           outlineStyle: "solid",
-          outlineColor: Skoun.color.primary,
+          outlineColor: Studently.color.primary,
           outlineOffset: 2,
         } as object)
       : null),
@@ -356,8 +356,8 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.dangerSoft,
+    borderRadius: Studently.radius.sm,
+    backgroundColor: Studently.color.dangerSoft,
   },
   errorText: {
     flex: 1,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     ...(IS_WEB
       ? ({
           cursor: "pointer",
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
       : null),
   },
   submitReady: {
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
     ...(IS_WEB
       ? ({ boxShadow: "0 8px 18px rgba(18, 24, 38, 0.18)" } as object)
       : null),
@@ -411,10 +411,10 @@ const styles = StyleSheet.create({
   },
   submitLabel: {
     fontSize: 15,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   submitLabelReady: {
-    color: Skoun.color.surface,
+    color: Studently.color.surface,
   },
   thanks: {
     alignItems: "center",
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     marginBottom: 8,
   },
   thanksTitle: {

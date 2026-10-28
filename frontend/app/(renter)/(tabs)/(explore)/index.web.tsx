@@ -1,6 +1,6 @@
-import { SkounHomePage } from "@/components/web/home/SkounHomePage";
+import { StudentlyHomePage } from "@/components/web/home/StudentlyHomePage";
 
 /** Web homepage for renter index route `/`. */
 export default function RenterTabsIndexWeb() {
-  return <SkounHomePage />;
+  return <StudentlyHomePage />;
 }

@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { LEBANON_AREAS } from "@/constants/areas";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const FAQS = [
   {
-    q: "How does Skoun work for finding a room in Lebanon?",
-    a: "Browse listings by area or university campus, open a room you like, then message the poster on WhatsApp. Skoun is a classifieds layer — we don’t take booking deposits or act as the landlord.",
+    q: "How does Studently work for finding a room in Lebanon?",
+    a: "Browse listings by area or university campus, open a room you like, then message the poster on WhatsApp. Studently is a classifieds layer — we don’t take booking deposits or act as the landlord.",
   },
   {
     q: "Are prices in USD or LBP?",
@@ -19,11 +19,11 @@ const FAQS = [
   },
   {
     q: "Is it free to list a room?",
-    a: "Yes. Posters can create a listing without paying Skoun. Renters browse and contact for free.",
+    a: "Yes. Posters can create a listing without paying Studently. Renters browse and contact for free.",
   },
   {
     q: "Which areas are covered?",
-    a: "Skoun focuses on Lebanon — starting with Beirut corridors students actually search: Hamra, Ras Beirut, Ashrafieh, Achrafieh, Bliss, and nearby neighbourhoods.",
+    a: "Studently focuses on Lebanon — starting with Beirut corridors students actually search: Hamra, Ras Beirut, Ashrafieh, Achrafieh, Bliss, and nearby neighbourhoods.",
   },
 ] as const;
 
@@ -183,24 +183,24 @@ const styles = StyleSheet.create({
   h2: {
     fontSize: 22,
     fontWeight: "800",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.3,
   },
   seoLead: {
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 20,
     maxWidth: 640,
   },
   faqList: {
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    borderRadius: Skoun.radius.lg,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    borderRadius: Studently.radius.lg,
+    backgroundColor: Studently.color.surface,
     overflow: "hidden",
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   faqHeader: {
     flexDirection: "row",
@@ -211,24 +211,24 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   faqHeaderHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   faqQ: {
     flex: 1,
     fontSize: 14,
     fontWeight: "700",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 20,
   },
   faqChevron: {
     fontSize: 18,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "700",
   },
   faqA: {
     paddingHorizontal: 18,
     paddingBottom: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 22,
     fontSize: 14,
   },
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   moreLabel: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "700",
     fontSize: 13,
   },
@@ -250,20 +250,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
   },
   tabActive: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   tabLabel: {
     fontWeight: "600",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     fontSize: 13,
   },
   tabLabelActive: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   linkGrid: {
     flexDirection: "row",
@@ -273,14 +273,14 @@ const styles = StyleSheet.create({
   linkChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.sm,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   linkChipHover: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   linkText: {
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontSize: 13,
     fontWeight: "500",
   },

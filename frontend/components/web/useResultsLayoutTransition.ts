@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 
-const ACTIVE_CLASS = "skoun-results-transition";
+const ACTIVE_CLASS = "studently-results-transition";
 
 // Amber uses the browser's default 250ms ease transition between named cards.
 // Keep the page chrome still while the individual card snapshots move/resize.

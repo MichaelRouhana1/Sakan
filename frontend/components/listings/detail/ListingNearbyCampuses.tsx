@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { formatDistanceShort } from "@/lib/formatDistance";
 import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
@@ -108,11 +108,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.3,
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
   },
   jump: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   list: {
     borderTopWidth: 1,
@@ -133,10 +133,10 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     minWidth: 0,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 22,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   dist: {
     flexShrink: 0,

@@ -76,7 +76,7 @@ export function PhotoCropModal({
   // The shell's client width excludes the browser scrollbar, as production layout does.
   const viewportWidth =
     Platform.OS === "web" && typeof document !== "undefined"
-      ? document.getElementById("skoun-web-shell")?.clientWidth || width
+      ? document.getElementById("studently-web-shell")?.clientWidth || width
       : width;
   const detail = detailPhotoFrame(
     width,

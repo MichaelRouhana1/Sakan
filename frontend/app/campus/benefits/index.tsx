@@ -2,7 +2,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CampusTopNav } from "@/components/campus/CampusTopNav";
 import { StudentBenefitsPage } from "@/components/campus/StudentBenefitsPage";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const Screen = Platform.OS === "web" ? View : SafeAreaView;
 
@@ -23,7 +23,7 @@ export default function CampusBenefits() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
   },
   body: {
     flex: 1,

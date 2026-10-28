@@ -2,7 +2,7 @@ import { useLayoutEffect } from "react";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { CampusFooter } from "@/components/campus/CampusFooter";
 import { CampusTopNav } from "@/components/campus/CampusTopNav";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { CAMPUS_CSS } from "@/styles/campusCssText";
 
@@ -26,7 +26,7 @@ export function CampusShell({ children }: Props) {
   // CSS would otherwise never load. Same fallback pattern as AdminNeuShell.
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
-    const id = "skoun-campus-css";
+    const id = "studently-campus-css";
     let style = document.getElementById(id) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement("style");
@@ -40,9 +40,9 @@ export function CampusShell({ children }: Props) {
 
   return (
     <View
-      nativeID="skoun-campus"
+      nativeID="studently-campus"
       style={styles.root}
-      {...({ className: "skoun-campus" } as object)}
+      {...({ className: "studently-campus" } as object)}
     >
       <CampusTopNav />
       <View style={styles.body}>
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     // which eats mobile pans without actually scrolling.
     minHeight: 0,
     height: "100%" as unknown as number,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
     boxSizing: "border-box",
     display: "flex" as unknown as "flex",
     flexDirection: "column",

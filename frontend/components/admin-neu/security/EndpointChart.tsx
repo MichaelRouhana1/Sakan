@@ -156,12 +156,12 @@ export function EndpointChart({ points, range, onRange }: Props) {
           onClick={(event) => setHover(indexFromClientX(event))}
         >
           <defs>
-            <linearGradient id="skoun-sec-api-fill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="studently-sec-api-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={ADMIN_CHART.moss} stopOpacity="0.26" />
               <stop offset="100%" stopColor={ADMIN_CHART.moss} stopOpacity="0.02" />
             </linearGradient>
             <linearGradient
-              id="skoun-sec-scrape-fill"
+              id="studently-sec-scrape-fill"
               x1="0"
               y1="0"
               x2="0"
@@ -207,8 +207,8 @@ export function EndpointChart({ points, range, onRange }: Props) {
             />
           ))}
 
-          <path d={plot.reqArea} fill="url(#skoun-sec-api-fill)" />
-          <path d={plot.scrapeArea} fill="url(#skoun-sec-scrape-fill)" />
+          <path d={plot.reqArea} fill="url(#studently-sec-api-fill)" />
+          <path d={plot.scrapeArea} fill="url(#studently-sec-scrape-fill)" />
           <path
             d={plot.reqLine}
             fill="none"

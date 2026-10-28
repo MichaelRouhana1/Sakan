@@ -16,7 +16,7 @@ import {
   hostNavSection,
   type HostNavSection,
 } from "@/constants/hostRoutes";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -93,7 +93,7 @@ function HostNavLinks({ variant, onNavigate }: NavLinksProps) {
               <Ionicons
                 name={item.icon}
                 size={drawer ? 20 : 18}
-                color={active ? Skoun.color.primary : Skoun.color.inkMuted}
+                color={active ? Studently.color.primary : Studently.color.inkMuted}
               />
             </View>
             <Text
@@ -145,7 +145,7 @@ export function HostSideNav({
         <Ionicons
           name={collapsed ? "chevron-forward" : "chevron-back"}
           size={16}
-          color={Skoun.color.ink}
+          color={Studently.color.ink}
         />
       </Pressable>
     </View>
@@ -189,7 +189,7 @@ export function HostNavDrawer({ visible, onClose }: DrawerProps) {
                 pressed && styles.itemPressed,
               ]}
             >
-              <Ionicons name="close" size={22} color={Skoun.color.ink} />
+              <Ionicons name="close" size={22} color={Studently.color.ink} />
             </Pressable>
           </View>
           <HostNavLinks variant="drawer" onNavigate={onClose} />
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingLeft: 0,
     paddingRight: 12,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
     borderRightWidth: 1,
     borderRightColor: "#E2E8F0",
     boxSizing: "border-box",
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
         }),
   },
   railToggleHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   railLinks: {
     gap: 4,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingVertical: 8,
     paddingHorizontal: 8,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     flexDirection: "row",
     flexWrap: "nowrap",
     alignItems: "center",
@@ -308,19 +308,19 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   railItemActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   railItemHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   railLabel: {
     flexShrink: 1,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   labelActive: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   itemPressed: {
     opacity: 0.85,
@@ -332,13 +332,13 @@ const styles = StyleSheet.create({
   },
   drawerBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
   },
   drawerPanel: {
     width: "100%",
     maxWidth: 320,
     height: "100%",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     paddingTop: Platform.OS === "web" ? 20 : 48,
     paddingBottom: 28,
     paddingHorizontal: 20,
@@ -364,9 +364,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   drawerTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.3,
   },
   drawerClose: {
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     ...webCursor,
   },
   drawerLinks: {
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -400,15 +400,15 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   drawerItemActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   drawerItemHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   drawerLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   drawerDivider: {
     height: 1,
@@ -423,9 +423,9 @@ const styles = StyleSheet.create({
     ...webCursor,
   },
   drawerSwitchText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textDecorationLine: "underline",
   },
 });

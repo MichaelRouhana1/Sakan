@@ -13,8 +13,8 @@ import {
   ListingMapCarouselCard,
   MAP_CAROUSEL_BODY_H,
 } from "@/components/listings/ListingMapCarouselCard";
-import { Skoun } from "@/constants/theme";
-import { skounShadow } from "@/lib/skounShadow";
+import { Studently } from "@/constants/theme";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import type { Listing } from "@/types/listing";
 
 export const MAP_CAROUSEL_CLOSE_H = 40;
@@ -134,7 +134,7 @@ export function ListingMapCarousel({
         hitSlop={10}
         style={[styles.close, { right: closeRight }]}
       >
-        <Ionicons name="close" size={18} color={Skoun.color.inkMuted} />
+        <Ionicons name="close" size={18} color={Studently.color.inkMuted} />
       </Pressable>
 
       <FlatList
@@ -176,9 +176,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     alignItems: "center",
     justifyContent: "center",
-    ...skounShadow({ y: 2, blur: 6, opacity: 0.16, elevation: 4 }),
+    ...studentlyShadow({ y: 2, blur: 6, opacity: 0.16, elevation: 4 }),
   },
 });

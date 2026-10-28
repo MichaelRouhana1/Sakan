@@ -20,7 +20,7 @@ const DUAL_CURRENCY_NOTE: Record<string, string> = {
 
 function dualCurrencyDisclaimer(slug: string) {
   const extra = DUAL_CURRENCY_NOTE[slug] ?? "";
-  return `Official figures change. Skoun is an estimate, not an invoice. ${extra}Each line shows the academic year of its source.`;
+  return `Official figures change. Studently is an estimate, not an invoice. ${extra}Each line shows the academic year of its source.`;
 }
 
 function tuitionForCredits(

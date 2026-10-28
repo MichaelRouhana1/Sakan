@@ -13,7 +13,7 @@ import {
   type ViewToken,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { ListingPhoto } from "@/types/listing";
 
@@ -56,13 +56,13 @@ export function ListingGallery({
     return (
       <View style={[styles.placeholder, { height }]}>
         <LinearGradient
-          colors={[Skoun.color.bgWash, Skoun.color.primaryMist]}
+          colors={[Studently.color.bgWash, Studently.color.primaryMist]}
           style={StyleSheet.absoluteFill}
         />
         <Ionicons
           name="image-outline"
           size={36}
-          color={Skoun.color.inkFaint}
+          color={Studently.color.inkFaint}
         />
         <LText variant="caption" tone="faint">
           No photos yet
@@ -140,7 +140,7 @@ export function ListingGallery({
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
     overflow: "hidden",
     ...(Platform.OS === "web" ? ({ touchAction: "pan-x" } as any) : {}),
   },
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   dots: {
     position: "absolute",
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   dotOn: {
     width: 18,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   count: {
     position: "absolute",
@@ -177,10 +177,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(18,24,38,0.55)",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: Skoun.radius.pill,
+    borderRadius: Studently.radius.pill,
   },
   countText: {
-    color: Skoun.color.surface,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.surface,
+    fontFamily: Studently.type.bodySemi,
   },
 });

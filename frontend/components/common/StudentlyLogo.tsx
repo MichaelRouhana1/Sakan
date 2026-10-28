@@ -6,16 +6,16 @@ type Props = {
 };
 
 /**
- * Exact user-provided brand logo component for Skoun.
+ * Approved glossy pin / S-arrow artwork shared by web and native branding.
  */
-export function SkounLogo({ size = 32, style }: Props) {
+export function StudentlyLogo({ size = 32, style }: Props) {
   return (
-    <View style={[{ width: size, height: size }, style]}>
+    <View style={[{ width: size, height: size, flexShrink: 0 }, style]}>
       <Image
         source={require("../../assets/images/logo.png")}
         style={styles.img}
         resizeMode="contain"
-        accessibilityLabel="Skoun Logo"
+        accessibilityLabel="Studently Logo"
       />
     </View>
   );

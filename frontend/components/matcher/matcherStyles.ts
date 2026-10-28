@@ -1,9 +1,9 @@
 import { Platform, StyleSheet, type ViewStyle } from "react-native";
-import { Skoun } from "@/constants/theme";
-import { skounShadow } from "@/lib/skounShadow";
+import { Studently } from "@/constants/theme";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 
-const c = Skoun.color;
-const t = Skoun.type;
+const c = Studently.color;
+const t = Studently.type;
 const interactive: ViewStyle =
   Platform.OS === "web"
     ? ({
@@ -20,7 +20,7 @@ export const matcherStyles = StyleSheet.create({
     position: "relative",
     backgroundColor: c.surface,
     overflow: "hidden",
-    ...skounShadow({ blur: 42, x: -10, y: 0, opacity: 0.1, elevation: 14 }),
+    ...studentlyShadow({ blur: 42, x: -10, y: 0, opacity: 0.1, elevation: 14 }),
   },
   drawerDesktop: { width: 560, borderLeftWidth: 1, borderLeftColor: c.bgWash },
   drawerMobile: { width: "100%" },
@@ -98,7 +98,7 @@ export const matcherStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 4,
-    ...skounShadow({ blur: 14, y: 4, opacity: 0.12, elevation: 3 }),
+    ...studentlyShadow({ blur: 14, y: 4, opacity: 0.12, elevation: 3 }),
   },
   messageMark: {
     width: 26,
@@ -138,7 +138,7 @@ export const matcherStyles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: c.primaryMist,
     borderRadius: 18,
-    ...skounShadow({ blur: 12, y: 5, opacity: 0.34, elevation: 8 }),
+    ...studentlyShadow({ blur: 12, y: 5, opacity: 0.34, elevation: 8 }),
   },
   answerCopy: { flexShrink: 1, gap: 2 },
   answerText: {
@@ -274,7 +274,7 @@ export const matcherStyles = StyleSheet.create({
     backgroundColor: c.surface,
     pointerEvents: "none",
     zIndex: 3,
-    ...skounShadow({ blur: 10, y: 4, opacity: 0.12, elevation: 4 }),
+    ...studentlyShadow({ blur: 10, y: 4, opacity: 0.12, elevation: 4 }),
     ...(Platform.OS === "web"
       ? ({
           transitionProperty: "opacity",
@@ -299,7 +299,7 @@ export const matcherStyles = StyleSheet.create({
   },
   segmentSelected: {
     backgroundColor: c.surface,
-    ...skounShadow({ blur: 3, y: 1, opacity: 0.05, elevation: 1 }),
+    ...studentlyShadow({ blur: 3, y: 1, opacity: 0.05, elevation: 1 }),
   },
   segmentText: { fontFamily: t.bodyMedium, fontSize: 11, color: c.inkMuted },
   segmentTextSelected: { fontFamily: t.bodySemi, color: c.ink },
@@ -464,7 +464,7 @@ export const matcherStyles = StyleSheet.create({
     gap: 8,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    ...skounShadow({ blur: 18, y: -4, opacity: 0.06, elevation: 6 }),
+    ...studentlyShadow({ blur: 18, y: -4, opacity: 0.06, elevation: 6 }),
   },
   mobileOptionsScroll: { flexGrow: 0, flexShrink: 1 },
   keyboardHeader: { paddingBottom: 4 },

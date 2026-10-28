@@ -1,13 +1,13 @@
 import { StyleSheet, Text, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 type PillTone = "progress" | "action" | "live" | "muted";
 
 const TONES: Record<PillTone, { dot: string; text: string }> = {
-  progress: { dot: "#F59E0B", text: Skoun.color.ink },
-  action: { dot: "#EF4444", text: Skoun.color.ink },
-  live: { dot: "#22C55E", text: Skoun.color.ink },
-  muted: { dot: "#94A3B8", text: Skoun.color.inkMuted },
+  progress: { dot: "#F59E0B", text: Studently.color.ink },
+  action: { dot: "#EF4444", text: Studently.color.ink },
+  live: { dot: "#22C55E", text: Studently.color.ink },
+  muted: { dot: "#94A3B8", text: Studently.color.inkMuted },
 };
 
 type Props = {
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   label: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
   },
 });

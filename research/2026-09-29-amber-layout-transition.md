@@ -14,7 +14,7 @@ Inspected 2026-09-29. This investigation is limited to the desktop layout toggle
 
 Source base: https://cdn-static-assets.amberstudent.com/amber-user-website/build/assets/
 
-## Skoun adaptation
+## Studently adaptation
 
 - Run explicit list/grid toggle updates inside a View Transition, using React DOM `flushSync` so the new layout is committed before the browser captures it.
 - Give each result wrapper a stable, instance-scoped CSS transition name in both layouts, including larger result sets.

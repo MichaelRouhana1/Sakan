@@ -7,7 +7,7 @@ import {
   type ListingDetailVariant,
 } from "@/components/listings/detail/listingDetailChrome";
 import { amenityLabel } from "@/constants/listingWizard";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -63,7 +63,7 @@ export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
             <Ionicons
               name={iconFor(item)}
               size={18}
-              color={Skoun.color.primaryDeep}
+              color={Studently.color.primaryDeep}
             />
             <LText variant="caption" style={styles.label} numberOfLines={2}>
               {item}
@@ -105,12 +105,12 @@ const styles = StyleSheet.create({
   },
   label: {
     flex: 1,
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.ink,
   },
   more: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   moreCenter: { textAlign: "center" },
 });

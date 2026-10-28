@@ -1,8 +1,8 @@
 {
-  "name": "skoun",
+  "name": "studently",
   "version": "1.0.0",
   "private": true,
-  "description": "Sakan Lebanon — monorepo (Expo mobile app + Express API)",
+  "description": "Studently Lebanon — monorepo (Expo mobile app + Express API)",
   "scripts": {
     "dev:frontend": "npm --prefix frontend start",
     "dev:backend": "npm --prefix backend run dev",

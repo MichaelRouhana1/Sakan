@@ -5,16 +5,16 @@
  */
 export default {
   expo: {
-    name: "Skoun",
-    slug: "skoun",
+    name: "Studently",
+    slug: "studently",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "skoun",
+    scheme: "studently",
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.skoun.app",
+      bundleIdentifier: "com.studently.app",
       infoPlist: {
         // Dev: listing photos are served over LAN http:// (Expo Go uses its own
         // ATS; this applies to custom/dev builds).
@@ -25,11 +25,11 @@ export default {
       },
     },
     android: {
-      package: "com.skoun.app",
+      package: "com.studently.app",
       // Listing photos are served over LAN http:// during local/dev.
       usesCleartextTraffic: true,
       adaptiveIcon: {
-        backgroundColor: "#E6F4FE",
+        backgroundColor: "#FFFFFF",
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundImage: "./assets/images/android-icon-background.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
@@ -65,16 +65,16 @@ export default {
         "expo-image-picker",
         {
           photosPermission:
-            "Skoun needs photo access so landlords can show listing rooms and exteriors.",
+            "Studently needs photo access so landlords can show listing rooms and exteriors.",
           cameraPermission:
-            "Skoun needs camera access to photograph listing spaces.",
+            "Studently needs camera access to photograph listing spaces.",
         },
       ],
       [
         "expo-location",
         {
           locationWhenInUsePermission:
-            "Skoun uses your location only to place the listing pin near you.",
+            "Studently uses your location only to place the listing pin near you.",
         },
       ],
       [

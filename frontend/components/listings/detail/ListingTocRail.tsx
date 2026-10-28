@@ -8,7 +8,7 @@ import {
   type CSSProperties,
 } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { scrollToListingSection } from "@/lib/scrollToListingSection";
 
 type Ion = ComponentProps<typeof Ionicons>["name"];
@@ -20,7 +20,7 @@ export type ListingTocItem = {
 };
 
 const IS_WEB = Platform.OS === "web";
-const SHELL_ID = "skoun-web-shell";
+const SHELL_ID = "studently-web-shell";
 const DOT = 30;
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const MOVE_MS = 320;
@@ -200,12 +200,12 @@ export function ListingTocRail({ items }: Props) {
                     style={{
                       ...DOT_FACE,
                       background: active
-                        ? Skoun.color.primary
-                        : Skoun.color.surface,
+                        ? Studently.color.primary
+                        : Studently.color.surface,
                       borderColor: active
-                        ? Skoun.color.primary
+                        ? Studently.color.primary
                         : hoveredId === item.id
-                          ? Skoun.color.primary
+                          ? Studently.color.primary
                           : "#D9E0EA",
                       boxShadow: active
                         ? "0 0 0 3px rgba(47, 111, 237, 0.16)"
@@ -220,7 +220,7 @@ export function ListingTocRail({ items }: Props) {
                         active ? (FILLED[item.icon] ?? item.icon) : item.icon
                       }
                       size={15}
-                      color={active ? "#fff" : Skoun.color.primary}
+                      color={active ? "#fff" : Studently.color.primary}
                     />
                   </span>
                   <span
@@ -277,7 +277,7 @@ export function ListingTocRail({ items }: Props) {
                 <Ionicons
                   name={active ? (FILLED[item.icon] ?? item.icon) : item.icon}
                   size={15}
-                  color={active ? "#fff" : Skoun.color.primary}
+                  color={active ? "#fff" : Studently.color.primary}
                 />
               </Pressable>
             );
@@ -318,7 +318,7 @@ const PROGRESS: CSSProperties = {
   left: DOT / 2,
   top: "50%",
   height: 2,
-  background: Skoun.color.primary,
+  background: Studently.color.primary,
   transform: "translateY(-50%)",
   pointerEvents: "none",
   zIndex: 0,
@@ -332,7 +332,7 @@ const BEAD: CSSProperties = {
   marginLeft: -4,
   borderRadius: 99,
   background: "#fff",
-  border: `2px solid ${Skoun.color.primary}`,
+  border: `2px solid ${Studently.color.primary}`,
   transform: "translateY(-50%)",
   pointerEvents: "none",
   zIndex: 0,
@@ -372,8 +372,8 @@ const LABEL: CSSProperties = {
   background: "#fff",
   border: "1px solid #E5EAF1",
   boxShadow: "0 6px 16px rgba(18, 24, 38, 0.08)",
-  color: Skoun.color.ink,
-  fontFamily: Skoun.type.bodySemi,
+  color: Studently.color.ink,
+  fontFamily: Studently.type.bodySemi,
   fontSize: 11,
   lineHeight: "14px",
   letterSpacing: 0.1,
@@ -412,10 +412,10 @@ const styles = StyleSheet.create({
     borderColor: "#D9E0EA",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   nativeDotOn: {
-    backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
+    borderColor: Studently.color.primary,
   },
 });

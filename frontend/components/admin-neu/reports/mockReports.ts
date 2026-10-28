@@ -182,7 +182,7 @@ const P: Record<string, ReportPoster> = {
     id: "u-06",
     firstName: "Hassan",
     lastName: "Fares",
-    email: "hassan.fares@skoun.dev",
+    email: "hassan.fares@studently.dev",
     accountStatus: "restricted",
     warningCount: 1,
   },

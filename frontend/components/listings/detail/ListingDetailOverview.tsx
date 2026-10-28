@@ -6,7 +6,7 @@ import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBad
 import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
 import { RentInclusionLines } from "@/components/listings/detail/RentInclusionLines";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { formatDistanceMeters } from "@/lib/formatDistance";
 import {
@@ -82,7 +82,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
 
       {distance || hasPin ? (
         <View style={styles.distanceRow}>
-          <Ionicons name="location" size={20} color={Skoun.color.primary} />
+          <Ionicons name="location" size={20} color={Studently.color.primary} />
           <View style={{ flex: 1 }}>
             {distance ? (
               <LText variant="subtitle" style={styles.distanceText}>
@@ -111,7 +111,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
       <View style={styles.chipWrap}>
         {listing.targetAudience === "students_only" ? (
           <View style={[styles.chip, styles.chipAccent]}>
-            <Ionicons name="school-outline" size={13} color={Skoun.color.ink} />
+            <Ionicons name="school-outline" size={13} color={Studently.color.ink} />
             <LText variant="caption" style={styles.chipText}>
               Students only
             </LText>
@@ -126,7 +126,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
         ) : null}
         {listing.nearestCampusName ? (
           <View style={styles.chip}>
-            <Ionicons name="school" size={13} color={Skoun.color.primary} />
+            <Ionicons name="school" size={13} color={Studently.color.primary} />
             <LText variant="caption" style={styles.chipText} numberOfLines={1}>
               {listing.nearestCampusName}
               {listing.distanceMeters != null
@@ -147,13 +147,13 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
           <Ionicons
             name="shield-checkmark-outline"
             size={18}
-            color={Skoun.color.primary}
+            color={Studently.color.primary}
           />
           <LText variant="subtitle">Utilities on this listing</LText>
         </View>
         <View style={styles.infraGrid}>
           <View style={styles.infraBox}>
-            <Ionicons name="flash-outline" size={18} color={Skoun.color.warning} />
+            <Ionicons name="flash-outline" size={18} color={Studently.color.warning} />
             <View style={{ flex: 1 }}>
               <LText variant="caption" tone="muted">
                 Electricity
@@ -219,7 +219,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: -24,
@@ -246,8 +246,8 @@ const styles = StyleSheet.create({
   },
   distanceText: { fontSize: 14 },
   viewMap: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   chipWrap: {
     flexDirection: "row",
@@ -262,17 +262,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   chipAccent: {
-    backgroundColor: Skoun.color.brassSoft,
-    borderColor: Skoun.color.borderStrong,
+    backgroundColor: Studently.color.brassSoft,
+    borderColor: Studently.color.borderStrong,
   },
   chipText: {
-    fontFamily: Skoun.type.bodySemi,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodySemi,
+    color: Studently.color.ink,
   },
   infra: {
     gap: 10,
@@ -289,9 +289,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 10,
     padding: 12,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
 });

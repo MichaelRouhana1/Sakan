@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReportReasonOptions } from "@/components/listings/ReportReasonOptions";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   reportErrorMessage,
   useReportListing,
@@ -36,7 +36,7 @@ type Phase = "pick" | "thanks";
 
 /**
  * Quiet integrity sheet — confidential docket, three fixed reasons.
- * Skoun tokens; no emoji; does not compete with WhatsApp CTA.
+ * Studently tokens; no emoji; does not compete with WhatsApp CTA.
  */
 export function ReportListingSheet({
   listingId,
@@ -156,7 +156,7 @@ export function ReportListingSheet({
                 <Ionicons
                   name="checkmark"
                   size={26}
-                  color={Skoun.color.primaryDeep}
+                  color={Studently.color.primaryDeep}
                 />
               </View>
               <LText variant="subtitle">Report filed</LText>
@@ -170,7 +170,7 @@ export function ReportListingSheet({
                 <Ionicons
                   name="lock-closed"
                   size={11}
-                  color={Skoun.color.primaryDeep}
+                  color={Studently.color.primaryDeep}
                 />
                 <LText variant="label" style={styles.pillText}>
                   Confidential
@@ -229,7 +229,7 @@ export function ReportListingSheet({
                 >
                   {busy ? (
                     <ActivityIndicator
-                      color={Skoun.color.surface}
+                      color={Studently.color.surface}
                       size="small"
                     />
                   ) : (
@@ -273,15 +273,15 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
   },
   sheet: {
-    backgroundColor: Skoun.color.surface,
-    borderTopLeftRadius: Skoun.radius.xl,
-    borderTopRightRadius: Skoun.radius.xl,
+    backgroundColor: Studently.color.surface,
+    borderTopLeftRadius: Studently.radius.xl,
+    borderTopRightRadius: Studently.radius.xl,
     borderTopWidth: 1,
-    borderColor: Skoun.color.border,
-    paddingHorizontal: Skoun.space.lg,
+    borderColor: Studently.color.border,
+    paddingHorizontal: Studently.space.lg,
     paddingTop: 10,
     gap: 10,
   },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Skoun.color.borderStrong,
+    backgroundColor: Studently.color.borderStrong,
     marginBottom: 4,
   },
   pill: {
@@ -300,15 +300,15 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.primaryMist,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.primaryMist,
     marginTop: 4,
   },
   pillText: {
     letterSpacing: 0.8,
     fontSize: 10,
     lineHeight: 12,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   title: {
     fontSize: 20,
@@ -330,23 +330,23 @@ const styles = StyleSheet.create({
   },
   submit: {
     minHeight: 52,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   submitReady: {
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
   },
   submitPressed: {
     opacity: 0.92,
   },
   submitLabel: {
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   submitLabelReady: {
-    color: Skoun.color.surface,
+    color: Studently.color.surface,
   },
   cancel: {
     alignSelf: "center",
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     marginBottom: 4,
   },
   thanksBody: {

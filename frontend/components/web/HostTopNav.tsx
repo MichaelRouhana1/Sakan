@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { SkounLogo } from "@/components/common/SkounLogo";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
 import { HOST_CREDITS_PATH } from "@/constants/hostRoutes";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_PAD_X, WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useCredits } from "@/features/credits/useCredits";
@@ -57,7 +57,7 @@ export function HostTopNav({
                 pressed && styles.pressed,
               ]}
             >
-              <Ionicons name="menu" size={22} color={Skoun.color.ink} />
+              <Ionicons name="menu" size={22} color={Studently.color.ink} />
             </Pressable>
           ) : null}
 
@@ -65,12 +65,12 @@ export function HostTopNav({
             <Pressable
               onPress={() => router.push("/" as never)}
               accessibilityRole="link"
-              accessibilityLabel="Skoun home"
+              accessibilityLabel="Studently home"
               style={styles.brandHit}
             >
-              <SkounLogo size={showMenuButton ? 28 : 32} />
+              <StudentlyLogo size={showMenuButton ? 28 : 32} />
               <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
-                Skoun
+                Studently
               </Text>
             </Pressable>
           </Link>
@@ -109,7 +109,7 @@ export function HostTopNav({
                   pressed && styles.pressed,
                 ]}
               >
-                <Ionicons name="add" size={18} color={Skoun.color.ink} />
+                <Ionicons name="add" size={18} color={Studently.color.ink} />
               </Pressable>
             </View>
           ) : null}
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     ...webCursor,
@@ -184,9 +184,9 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   brand: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     letterSpacing: -0.6,
   },
   brandCompact: {
@@ -204,9 +204,9 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   switchLinkText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textDecorationLine: "underline",
   },
   credits: {
@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   creditsText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   creditsPlus: {
     width: 32,

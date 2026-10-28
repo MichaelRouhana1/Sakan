@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 type Props = {
   landmark: string | null | undefined;
@@ -18,7 +18,7 @@ export function NearLandmark({ landmark, area, compact }: Props) {
         <Ionicons
           name="navigate-outline"
           size={compact ? 13 : 16}
-          color={Skoun.color.inkMuted}
+          color={Studently.color.inkMuted}
         />
         <LText variant="caption" tone="muted" numberOfLines={1}>
           {area}
@@ -35,7 +35,7 @@ export function NearLandmark({ landmark, area, compact }: Props) {
       <Ionicons
         name="location"
         size={compact ? 13 : 16}
-        color={Skoun.color.primary}
+        color={Studently.color.primary}
       />
       <LText
         variant="caption"
@@ -61,17 +61,17 @@ const styles = StyleSheet.create({
   },
   emphasis: {
     alignSelf: "flex-start",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: Skoun.radius.pill,
+    borderRadius: Studently.radius.pill,
     borderWidth: 1,
-    borderColor: Skoun.color.primarySoft,
+    borderColor: Studently.color.primarySoft,
     maxWidth: "100%",
   },
   label: {
-    color: Skoun.color.primaryDeep,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primaryDeep,
+    fontFamily: Studently.type.bodySemi,
     flexShrink: 1,
   },
 });

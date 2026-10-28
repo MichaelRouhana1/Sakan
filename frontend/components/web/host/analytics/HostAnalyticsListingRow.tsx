@@ -11,7 +11,7 @@ import {
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
 import { formatAnalyticsDaysLeft, formatAnalyticsViews } from "@/components/web/host/analytics/hostAnalyticsFormat";
 import { hostListingStatus } from "@/components/web/host/hostListingStatus";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { HostAnalyticsListing } from "@/features/listings/hostAnalytics";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 
@@ -65,7 +65,7 @@ export function HostAnalyticsListingRow({
               <Ionicons
                 name="image-outline"
                 size={16}
-                color={Skoun.color.inkFaint}
+                color={Studently.color.inkFaint}
               />
             </View>
           )}
@@ -157,9 +157,9 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E2E8F0",
   },
   headerCell: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
@@ -180,9 +180,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   dataCell: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   listingCol: { flex: 2.2, minWidth: 0 },
   listingColCompact: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
@@ -219,15 +219,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rowTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 18,
   },
   rowMeta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   trailingCompact: {
     flexShrink: 0,
@@ -236,13 +236,13 @@ const styles = StyleSheet.create({
     maxWidth: 140,
   },
   metricPrimary: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   metricSecondary: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

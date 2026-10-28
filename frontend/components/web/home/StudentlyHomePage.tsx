@@ -16,10 +16,10 @@ import {
 } from "react-native";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
-import { SkounLogo } from "@/components/common/SkounLogo";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
@@ -264,11 +264,11 @@ function HomeNav({
           onPress={() => router.push("/" as never)}
           style={styles.navBrand}
           accessibilityRole="link"
-          accessibilityLabel="Skoun home"
+          accessibilityLabel="Studently home"
         >
-          <SkounLogo size={32} />
+          <StudentlyLogo size={32} />
           <Text style={[styles.navBrandText, solid && styles.navBrandTextSolid]}>
-            Skoun
+            Studently
           </Text>
         </Pressable>
 
@@ -321,7 +321,7 @@ function HomeNav({
 
           {!isSignedIn ? (
             <Pressable onPress={handleLoginClick} accessibilityRole="button" style={styles.homeLoginTextBtn}>
-              <Text style={[styles.navLink, solid && styles.navLinkSolid, { fontFamily: Skoun.type.bodyBold }]}>
+              <Text style={[styles.navLink, solid && styles.navLinkSolid, { fontFamily: Studently.type.bodyBold }]}>
                 Login
               </Text>
             </Pressable>
@@ -336,7 +336,7 @@ function HomeNav({
               <Ionicons
                 name="person-outline"
                 size={18}
-                color={solid ? Skoun.color.ink : "#fff"}
+                color={solid ? Studently.color.ink : "#fff"}
               />
             </Pressable>
 
@@ -529,7 +529,7 @@ function ListingCard({
   );
 }
 
-export function SkounHomePage() {
+export function StudentlyHomePage() {
   const { width } = useWindowDimensions();
   const [navSolid, setNavSolid] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -686,7 +686,7 @@ export function SkounHomePage() {
                   <Ionicons
                     name={c.icon}
                     size={15}
-                    color={Skoun.color.primarySoft}
+                    color={Studently.color.primarySoft}
                     style={{ marginRight: 6 }}
                   />
                   <Text style={styles.chipText}>{c.label}</Text>
@@ -942,7 +942,7 @@ export function SkounHomePage() {
             {VALUE_PROPS.map((v) => (
               <View key={v.id} style={styles.valueCard}>
                 <View style={styles.valueIcon}>
-                  <Ionicons name={v.icon} size={26} color={Skoun.color.primary} />
+                  <Ionicons name={v.icon} size={26} color={Studently.color.primary} />
                 </View>
                 <Text style={styles.valueTitle}>{v.title}</Text>
                 <Text style={styles.valueBody}>{v.body}</Text>
@@ -1008,7 +1008,7 @@ export function SkounHomePage() {
         <View style={[styles.section, { paddingHorizontal: padX }]}>
           <SectionHeader
             title="Find your place in 3 easy steps"
-            subtitle="Skoun connects renters and posters — leases stay between you."
+            subtitle="Studently connects renters and posters — leases stay between you."
           />
           <View style={[styles.steps, isNarrow && styles.stepsNarrow]}>
             {STEPS.map((s, i) => (
@@ -1109,7 +1109,7 @@ export function SkounHomePage() {
                 <Ionicons
                   name="chatbubbles-outline"
                   size={24}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
               </View>
               <Text style={styles.helpTitle}>Live chat</Text>
@@ -1119,7 +1119,7 @@ export function SkounHomePage() {
               onPress={() =>
                 Linking.openURL(
                   "https://wa.me/?text=" +
-                    encodeURIComponent("Hi Skoun — I have a question about housing."),
+                    encodeURIComponent("Hi Studently — I have a question about housing."),
                 )
               }
               style={styles.helpCard}
@@ -1131,14 +1131,14 @@ export function SkounHomePage() {
               <Text style={styles.helpMeta}>Fastest reply</Text>
             </Pressable>
             <Pressable
-              onPress={() => Linking.openURL("mailto:hello@skoun.app")}
+              onPress={() => Linking.openURL("mailto:hello@studently.app")}
               style={styles.helpCard}
             >
               <View style={[styles.helpIcon, { backgroundColor: "#FEF3C7" }]}>
                 <Ionicons name="mail-outline" size={24} color="#B45309" />
               </View>
               <Text style={styles.helpTitle}>Email us</Text>
-              <Text style={styles.helpMeta}>hello@skoun.app</Text>
+              <Text style={styles.helpMeta}>hello@studently.app</Text>
             </Pressable>
           </View>
         </View>
@@ -1148,7 +1148,10 @@ export function SkounHomePage() {
           <View style={[styles.footerInner, { paddingHorizontal: padX }]}>
             <View style={[styles.footerGrid, isNarrow && styles.footerGridNarrow]}>
               <View style={styles.footerBrandCol}>
-                <Text style={styles.footerBrand}>Skoun</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <StudentlyLogo size={36} />
+                  <Text style={styles.footerBrand}>Studently</Text>
+                </View>
                 <Text style={styles.footerTag}>
                   Lebanon rental classifieds — find, save, connect on WhatsApp.
                 </Text>
@@ -1164,7 +1167,7 @@ export function SkounHomePage() {
                 <Pressable onPress={openAuth}>
                   <Text style={styles.footerLink}>Help</Text>
                 </Pressable>
-                <Pressable onPress={() => Linking.openURL("mailto:hello@skoun.app")}>
+                <Pressable onPress={() => Linking.openURL("mailto:hello@studently.app")}>
                   <Text style={styles.footerLink}>Contact</Text>
                 </Pressable>
               </View>
@@ -1176,13 +1179,13 @@ export function SkounHomePage() {
               </View>
             </View>
             <Text style={styles.footerCopy}>
-              © {new Date().getFullYear()} Skoun. Matchmaking only — we don’t hold leases
+              © {new Date().getFullYear()} Studently. Matchmaking only — we don’t hold leases
               or deposits.
             </Text>
           </View>
         </View>
       </ScrollView>
-      <SkounAuthModal
+      <StudentlyAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={() => setAuthModalOpen(false)}
@@ -1226,7 +1229,7 @@ const styles = StyleSheet.create({
   navSolid: {
     backgroundColor: "rgba(255,255,255,0.96)",
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   navInner: {
     flexDirection: "row",
@@ -1240,26 +1243,26 @@ const styles = StyleSheet.create({
   },
   navBrand: { flexDirection: "row", alignItems: "center", gap: 5 },
   navBrandText: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 26,
     letterSpacing: -0.8,
     color: "#fff",
   },
-  navBrandTextSolid: { color: Skoun.color.primary },
+  navBrandTextSolid: { color: Studently.color.primary },
   navRight: { flexDirection: "row", alignItems: "center", gap: 18 },
   navLink: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
     color: "rgba(255,255,255,0.92)",
   },
-  navLinkSolid: { color: Skoun.color.inkMuted },
+  navLinkSolid: { color: Studently.color.inkMuted },
   homeHostCta: {
     paddingVertical: 8,
     paddingHorizontal: 4,
     cursor: "pointer",
   },
   homeHostCtaText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     textDecorationLine: "underline",
   },
   navLogin: {
@@ -1271,16 +1274,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  navLoginSolid: { borderColor: Skoun.color.border },
+  navLoginSolid: { borderColor: Studently.color.border },
   navCta: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 8,
   },
-  navCtaSolid: { backgroundColor: Skoun.color.primary },
+  navCtaSolid: { backgroundColor: Studently.color.primary },
   navCtaText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     color: "#fff",
   },
@@ -1290,7 +1293,7 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center",
     overflow: "visible",
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
     position: "relative",
     zIndex: 3,
   },
@@ -1323,7 +1326,7 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   heroTitle: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 56,
     letterSpacing: -1.4,
     color: "#fff",
@@ -1332,7 +1335,7 @@ const styles = StyleSheet.create({
   },
   heroTitleSm: { fontSize: 32, lineHeight: 36 },
   heroSub: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 16,
     lineHeight: 24,
     color: "rgba(255,255,255,0.95)",
@@ -1358,7 +1361,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   chipText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "#fff",
   },
@@ -1395,19 +1398,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   searchHintStatic: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 18,
     color: "#4b5563",
   },
   searchHintCycle: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 18,
     color: "#4b5563",
   },
   searchInput: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     paddingVertical: 8,
     outlineStyle: "none" as never,
   },
@@ -1415,7 +1418,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1428,12 +1431,12 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   popularLabel: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     color: "rgba(255,255,255,0.8)",
   },
   popularLink: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
     color: "#fff",
     textDecorationLine: "underline",
@@ -1455,14 +1458,14 @@ const styles = StyleSheet.create({
   },
   sectionHeadText: { flex: 1, gap: 10, maxWidth: 820 },
   sectionTitle: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 36,
     lineHeight: 44,
     letterSpacing: -0.6,
     color: "#111928",
   },
   sectionSub: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 17,
     lineHeight: 26,
     color: "#4b5563",
@@ -1472,36 +1475,36 @@ const styles = StyleSheet.create({
   countryTab: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
     paddingHorizontal: 18,
     paddingVertical: 12,
   },
   countryTabActive: {
-    backgroundColor: Skoun.color.primaryMist,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primaryMist,
+    borderColor: Studently.color.primary,
   },
   countryTabText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 15,
     color: "#374151",
   },
   countryTabTextActive: {
     color: "#111928",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
   },
   discoverEmpty: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "#6b7280",
     marginTop: 12,
   },
   uniTile: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     borderWidth: 1,
     borderColor: "#D5DCE7",
     overflow: "hidden",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     ...(IS_WEB
       ? ({
           boxShadow: "0 2px 8px rgba(18, 24, 38, 0.05)",
@@ -1540,7 +1543,7 @@ const styles = StyleSheet.create({
       : null),
   },
   uniTileLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     fontWeight: "600",
     lineHeight: 18,
@@ -1564,7 +1567,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
     position: "relative",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
     display: "flex",
   },
   tileImage: {
@@ -1588,7 +1591,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingTop: 8,
     textAlign: "center",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 16,
     fontWeight: "600",
     lineHeight: 20,
@@ -1601,13 +1604,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 16,
     paddingVertical: 9,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
   },
-  railPillActive: { backgroundColor: Skoun.color.primaryDeep },
+  railPillActive: { backgroundColor: Studently.color.primaryDeep },
   railPillText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   railPillTextActive: { color: "#fff" },
 
@@ -1628,7 +1631,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     flexShrink: 0,
   },
-  cardMedia: { height: 148, position: "relative", backgroundColor: Skoun.color.bgWash },
+  cardMedia: { height: 148, position: "relative", backgroundColor: Studently.color.bgWash },
   cardImg: { width: "100%", height: "100%" },
   cardTag: {
     position: "absolute",
@@ -1640,7 +1643,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   cardTagText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 11,
     color: "#fff",
   },
@@ -1673,42 +1676,42 @@ const styles = StyleSheet.create({
   dotActive: { width: 16, backgroundColor: "#fff" },
   cardBody: { padding: 12, gap: 4 },
   cardTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   cardArea: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   utilRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 4 },
   utilChip: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   utilChipText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 10,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   cardPrice: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     marginTop: 6,
   },
   cardPriceUnit: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 
   trustBand: {
     width: "100%",
-    // Amber TrustPilotBanner mint wash (Skoun social proof)
+    // Amber TrustPilotBanner mint wash (Studently social proof)
     backgroundColor: "#e9f9f2",
     borderTopWidth: 1,
     borderBottomWidth: 1,
@@ -1726,22 +1729,22 @@ const styles = StyleSheet.create({
   },
   stars: { flexDirection: "row", gap: 2 },
   testimonialQuote: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 22,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     minHeight: 66,
   },
   testimonialName: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     marginTop: 4,
   },
   testimonialPlace: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 
   valueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 20 },
@@ -1756,20 +1759,20 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
   },
   valueTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 17,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   valueBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 22,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 
   promoRow: { flexDirection: "row", gap: 16 },
@@ -1783,25 +1786,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   promoWarm: { backgroundColor: "#FEF3C7" },
-  promoMist: { backgroundColor: Skoun.color.primaryMist },
-  promoDeep: { backgroundColor: Skoun.color.primaryDeep },
+  promoMist: { backgroundColor: Studently.color.primaryMist },
+  promoDeep: { backgroundColor: Studently.color.primaryDeep },
   promoTitle: {
-    fontFamily: Skoun.type.displayMedium,
+    fontFamily: Studently.type.displayMedium,
     fontSize: 20,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   promoTitleOnDark: { color: "#fff" },
   promoBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 21,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     flex: 1,
   },
   promoBodyOnDark: { color: "rgba(255,255,255,0.78)" },
   promoBtn: {
     alignSelf: "flex-start",
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -1809,11 +1812,11 @@ const styles = StyleSheet.create({
   },
   promoBtnOnDark: { backgroundColor: "#fff" },
   promoBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     color: "#fff",
   },
-  promoBtnTextOnDark: { color: Skoun.color.primaryDeep },
+  promoBtnTextOnDark: { color: Studently.color.primaryDeep },
 
   steps: { flexDirection: "row", alignItems: "stretch", gap: 0 },
   stepsNarrow: { flexDirection: "column", gap: 16 },
@@ -1828,35 +1831,35 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderWidth: 2,
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   stepN: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 22,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   stepTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textAlign: "center",
   },
   stepBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 20,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textAlign: "center",
   },
   stepDash: {
     width: 40,
     borderTopWidth: 2,
     borderStyle: "dashed",
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     marginTop: -40,
   },
 
@@ -1875,13 +1878,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(18,24,38,0.55)",
   },
   bannerTitle: {
-    fontFamily: Skoun.type.displayMedium,
+    fontFamily: Studently.type.displayMedium,
     fontSize: 24,
     color: "#fff",
     zIndex: 1,
   },
   bannerBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 21,
     color: "rgba(255,255,255,0.85)",
@@ -1898,15 +1901,15 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   bannerBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
 
   dirTabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
     gap: 4,
   },
   dirTab: {
@@ -1915,24 +1918,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  dirTabActive: { borderBottomColor: Skoun.color.primary },
+  dirTabActive: { borderBottomColor: Studently.color.primary },
   dirTabText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
-  dirTabTextActive: { color: Skoun.color.primary },
+  dirTabTextActive: { color: Studently.color.primary },
   dirLinks: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   dirLink: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
   },
   dirLinkText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
 
   helpGrid: { flexDirection: "row", gap: 14 },
@@ -1942,7 +1945,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     padding: 18,
     gap: 8,
     alignItems: "flex-start",
@@ -1956,20 +1959,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   helpTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   helpMeta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 
   footer: {
     backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
     paddingTop: 40,
     paddingBottom: 32,
   },
@@ -1978,34 +1981,34 @@ const styles = StyleSheet.create({
   footerGridNarrow: { flexDirection: "column", gap: 24 },
   footerBrandCol: { flex: 1.3, gap: 10, maxWidth: 320 },
   footerBrand: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 24,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   footerTag: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 21,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   footerHead: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     marginBottom: 10,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   footerLink: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     marginBottom: 8,
   },
   footerCopy: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
 
   homeLoginTextBtn: {
@@ -2045,7 +2048,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   homeLoginBannerText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontStyle: "italic",
     fontSize: 15,
     color: "#2C3E50",
@@ -2059,7 +2062,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   homeMenuText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     color: "#334155",
   },

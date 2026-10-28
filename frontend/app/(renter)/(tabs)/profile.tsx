@@ -11,10 +11,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
-import { Skoun } from "@/constants/theme";
-import { skounShadow } from "@/lib/skounShadow";
+import { Studently } from "@/constants/theme";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { api } from "@/lib/api";
 import type { User } from "@/types/user";
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
               <>
                 <Text style={styles.guestTitle}>{displayName}</Text>
                 <Text style={styles.guestSubtitle}>
-                  {user?.email || user?.phone || "Skoun member"}
+                  {user?.email || user?.phone || "Studently member"}
                 </Text>
               </>
             ) : (
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Ionicons name="school-outline" size={20} color={Skoun.color.ink} />
+                <Ionicons name="school-outline" size={20} color={Studently.color.ink} />
               </View>
               <View>
                 <Text style={styles.menuLabel}>My campus</Text>
@@ -123,7 +123,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Ionicons name="person-outline" size={20} color={Skoun.color.ink} />
+                <Ionicons name="person-outline" size={20} color={Studently.color.ink} />
               </View>
               <Text style={styles.menuLabel}>Personal Information</Text>
             </View>
@@ -144,7 +144,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Ionicons name="heart-outline" size={20} color={Skoun.color.ink} />
+                <Ionicons name="heart-outline" size={20} color={Studently.color.ink} />
               </View>
               <Text style={styles.menuLabel}>Shortlist & Saved</Text>
             </View>
@@ -158,7 +158,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Ionicons name="help-circle-outline" size={20} color={Skoun.color.ink} />
+                <Ionicons name="help-circle-outline" size={20} color={Studently.color.ink} />
               </View>
               <Text style={styles.menuLabel}>Help & Support</Text>
             </View>
@@ -172,7 +172,7 @@ export default function ProfileScreen() {
           >
             <View style={styles.menuLeft}>
               <View style={styles.menuIconBg}>
-                <Ionicons name="shield-checkmark-outline" size={20} color={Skoun.color.ink} />
+                <Ionicons name="shield-checkmark-outline" size={20} color={Studently.color.ink} />
               </View>
               <Text style={styles.menuLabel}>Privacy Policy</Text>
             </View>
@@ -204,7 +204,7 @@ export default function ProfileScreen() {
       </ScrollView>
       </HideIosTabScrollFade>
 
-      <SkounAuthModal
+      <StudentlyAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={() => setAuthModalOpen(false)}
@@ -296,18 +296,18 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   guestTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   guestSubtitle: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   loginLink: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.primary,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.primary,
     textDecorationLine: "underline",
   },
 
@@ -344,9 +344,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   menuLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   chevronCircle: {
     width: 32,
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
   },
   sheetContainer: {
     backgroundColor: "#FFFFFF",
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     gap: 16,
-    ...skounShadow({ color: "#000000", y: -4, blur: 12, opacity: 0.15, elevation: 10 }),
+    ...studentlyShadow({ color: "#000000", y: -4, blur: 12, opacity: 0.15, elevation: 10 }),
   },
   dragHandle: {
     width: 40,
@@ -390,17 +390,17 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   sheetTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 20,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   inputGroup: {
     marginTop: 4,
   },
   emailInput: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     height: 52,
     borderRadius: 12,
     borderWidth: 1,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   continueBtn: {
     height: 50,
     borderRadius: 12,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
   },
   continueText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
     color: "#FFFFFF",
   },
@@ -437,9 +437,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
   },
   dividerText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     paddingHorizontal: 12,
   },
   socialButtonsGroup: {
@@ -461,8 +461,8 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   socialBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
 });

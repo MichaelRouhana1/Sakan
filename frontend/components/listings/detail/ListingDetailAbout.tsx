@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   listingDetailChrome as chrome,
   type ListingDetailVariant,
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   gap: { gap: 10 },
   body: { lineHeight: 22 },
   more: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
 });

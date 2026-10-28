@@ -9,7 +9,7 @@ In `backend/.env` (loaded by `dotenv` from the backend cwd):
 | Variable | Role |
 |----------|------|
 | `RESEND_API_KEY` | Resend server key. Unset with `EMAIL_FROM` → deliveries `skipped` (“Resend is not configured”). |
-| `EMAIL_FROM` | Sender. Tests: `Skoun <onboarding@resend.dev>`. Production: verified domain. |
+| `EMAIL_FROM` | Sender. Tests: `Studently <onboarding@resend.dev>`. Production: verified domain. |
 | `ADMIN_NOTIFICATION_EMAILS` | Comma-separated staff inboxes for the 24h follow-up. |
 | `FRONTEND_PUBLIC_URL` | Origin for links (`/hosting/listing/…/outcome`, `/admin/expired?id=…`). Defaults to `http://localhost:8081`. |
 

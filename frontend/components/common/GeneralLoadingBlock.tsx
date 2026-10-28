@@ -1,6 +1,6 @@
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { GeneralLoadingBlockProps } from "@/components/common/GeneralLoadingBlock.types";
 
 /** Native fallback — `thinking-orbs` is web-only (HTML canvas). */
@@ -23,7 +23,7 @@ export function GeneralLoadingBlock({
       accessibilityRole="progressbar"
       accessibilityLabel={label}
     >
-      <ActivityIndicator color={Skoun.color.primary} size={spinnerSize} />
+      <ActivityIndicator color={Studently.color.primary} size={spinnerSize} />
       {label && showLabel ? (
         <LText
           variant={layout === "inline" ? "caption" : "body"}

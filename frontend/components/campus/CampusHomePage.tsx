@@ -12,7 +12,7 @@ import { campusShellPadTop } from "@/components/campus/CampusShell";
 import { HeroCap } from "@/components/campus/HeroCap";
 import { HeroRipple } from "@/components/campus/HeroRipple";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 
@@ -164,7 +164,7 @@ export function CampusHomePage() {
             ]}
           >
             <LText style={styles.ctaText}>Open tuition calculator</LText>
-            <Ionicons name="arrow-forward" size={16} color={Skoun.color.ink} />
+            <Ionicons name="arrow-forward" size={16} color={Studently.color.ink} />
           </Pressable>
         </View>
 
@@ -191,7 +191,7 @@ export function CampusHomePage() {
                 <Ionicons
                   name={tool.icon}
                   size={22}
-                  color={tool.live ? Skoun.color.primary : Skoun.color.inkFaint}
+                  color={tool.live ? Studently.color.primary : Studently.color.inkFaint}
                 />
                 <LText
                   variant="subtitle"
@@ -322,11 +322,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     pointerEvents: "auto",
   },
   badgeText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.2,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: Skoun.color.ink,
+    borderColor: Studently.color.ink,
     cursor: "pointer",
     pointerEvents: "auto",
   },
@@ -375,14 +375,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   ctaHover: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   ctaText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     lineHeight: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   visual: {
     flex: 1.4,
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   divider: {
     width: "100%",
     height: 1,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
     marginBottom: 24,
   },
   dividerDesktop: {
@@ -467,11 +467,11 @@ const styles = StyleSheet.create({
   },
   colRule: {
     borderRightWidth: 1,
-    borderRightColor: Skoun.color.border,
+    borderRightColor: Studently.color.border,
   },
   colRuleBottom: {
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   colHover: {
     backgroundColor: "rgba(47, 111, 237, 0.04)",

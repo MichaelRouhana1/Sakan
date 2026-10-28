@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   getPasswordChecks,
   getPasswordTier,
@@ -52,7 +52,7 @@ export function PasswordStrengthMeter({ password }: Props) {
             key={key}
             style={[
               styles.tierLabel,
-              tier === key ? { color: TIER_COLOR[key], fontFamily: Skoun.type.bodySemi } : null,
+              tier === key ? { color: TIER_COLOR[key], fontFamily: Studently.type.bodySemi } : null,
             ]}
           >
             {key === "better" ? "Better" : key === "strong" ? "Strong" : "Weak"}
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   tierLabel: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     color: "#A1A1AA",
     textTransform: "capitalize",
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   checkText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     color: "#71717A",
   },

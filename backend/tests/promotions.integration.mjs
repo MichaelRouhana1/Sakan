@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 
 const source = new URL(process.env.DATABASE_URL);
-const name = `skoun_promotion_test_${randomUUID().replaceAll('-', '')}`;
+const name = `studently_promotion_test_${randomUUID().replaceAll('-', '')}`;
 const admin = postgres(source.toString(), { max: 1, onnotice: () => {} });
 let database;
 let passed = 0;

@@ -1,4 +1,4 @@
-# Skoun — TODO
+# Studently — TODO
 
 Living checklist for setup, integrations, and product work.
 

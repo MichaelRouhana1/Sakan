@@ -1,11 +1,11 @@
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const FLASH_MS = 640;
-const RING = `0 0 0 3px ${Skoun.color.primary}66`;
+const RING = `0 0 0 3px ${Studently.color.primary}66`;
 const RING_GONE = "0 0 0 3px rgba(47, 111, 237, 0)";
 const MIST_GONE = "rgba(232, 238, 246, 0)";
 const SCROLL_OPTS: AddEventListenerOptions = { passive: true };
-const SHELL_ID = "skoun-web-shell";
+const SHELL_ID = "studently-web-shell";
 
 let activeFlash: Animation | null = null;
 let jumpGen = 0;
@@ -101,11 +101,11 @@ function flashSection(el: HTMLElement) {
   activeFlash = el.animate(
     [
       {
-        backgroundColor: Skoun.color.primaryMist,
+        backgroundColor: Studently.color.primaryMist,
         boxShadow: RING,
       },
       {
-        backgroundColor: Skoun.color.primaryMist,
+        backgroundColor: Studently.color.primaryMist,
         boxShadow: RING,
         offset: 0.38,
       },

@@ -16,10 +16,10 @@ import {
 } from "react-native";
 import { ProfileIdentityPanel } from "@/components/web/ProfileIdentityPanel";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { LText } from "@/components/lister/Typography";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
 import { api } from "@/lib/api";
@@ -33,7 +33,7 @@ import type { User } from "@/types/user";
 type PressState = { pressed: boolean; hovered?: boolean };
 
 const web = Platform.OS === "web";
-const SUPPORT_EMAIL = "hello@skoun.app";
+const SUPPORT_EMAIL = "hello@studently.app";
 
 function useLayoutWidth() {
   const { width } = useWindowDimensions();
@@ -105,7 +105,7 @@ export function ProfileWeb() {
 
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
-    const id = "skoun-profile-css";
+    const id = "studently-profile-css";
     let style = document.getElementById(id) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement("style");
@@ -138,13 +138,13 @@ export function ProfileWeb() {
   if (authLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={Skoun.color.primary} size="large" />
+        <ActivityIndicator color={Studently.color.primary} size="large" />
       </View>
     );
   }
 
   return (
-    <View nativeID="skoun-profile" style={styles.page}>
+    <View nativeID="studently-profile" style={styles.page}>
       <View style={styles.hero}>
         <View style={styles.kickerRow}>
           <View style={styles.kicker}>
@@ -177,7 +177,7 @@ export function ProfileWeb() {
               {isSignedIn
                 ? [ledeEmail, campus?.displayName]
                     .filter(Boolean)
-                    .join("  ·  ") || "Skoun member"
+                    .join("  ·  ") || "Studently member"
                 : "Pin a campus, keep a shortlist, and pick up where you left off on any device."}
             </LText>
           </View>
@@ -195,7 +195,7 @@ export function ProfileWeb() {
             ]}
           >
             <LText style={styles.ctaText}>Sign in</LText>
-            <Ionicons name="arrow-forward" size={16} color={Skoun.color.ink} />
+            <Ionicons name="arrow-forward" size={16} color={Studently.color.ink} />
           </Pressable>
         ) : null}
       </View>
@@ -236,7 +236,7 @@ export function ProfileWeb() {
               <Ionicons
                 name="school-outline"
                 size={22}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
             )}
             <View style={styles.campusCopy}>
@@ -261,7 +261,7 @@ export function ProfileWeb() {
               <Ionicons
                 name="arrow-forward"
                 size={14}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
             </View>
             {campus ? (
@@ -283,7 +283,7 @@ export function ProfileWeb() {
         {!stacked ? <View style={styles.vRule} /> : null}
 
         <Pressable
-          nativeID="skoun-profile-shortlist"
+          nativeID="studently-profile-shortlist"
           accessibilityRole="link"
           accessibilityLabel="Shortlist and saved listings"
           onPress={() => {
@@ -320,13 +320,13 @@ export function ProfileWeb() {
               <Ionicons
                 name="arrow-forward"
                 size={14}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
             </View>
           </View>
 
           {mosaic.length > 0 ? (
-            <View nativeID="skoun-profile-mosaic" style={styles.mosaicRow}>
+            <View nativeID="studently-profile-mosaic" style={styles.mosaicRow}>
               {mosaic.map((listing, i) => {
                 const uri = coverOf(listing);
                 return (
@@ -352,7 +352,7 @@ export function ProfileWeb() {
                         <Ionicons
                           name="image-outline"
                           size={18}
-                          color={Skoun.color.inkFaint}
+                          color={Studently.color.inkFaint}
                         />
                       </View>
                     )}
@@ -394,7 +394,7 @@ export function ProfileWeb() {
           <Ionicons
             name="help-circle-outline"
             size={22}
-            color={Skoun.color.primary}
+            color={Studently.color.primary}
           />
           <LText variant="subtitle" style={styles.colTitle}>
             Help & support
@@ -411,7 +411,7 @@ export function ProfileWeb() {
           <Ionicons
             name="shield-checkmark-outline"
             size={22}
-            color={Skoun.color.primary}
+            color={Studently.color.primary}
           />
           <LText variant="subtitle" style={styles.colTitle}>
             Privacy
@@ -437,13 +437,13 @@ export function ProfileWeb() {
           <Ionicons
             name="log-out-outline"
             size={16}
-            color={Skoun.color.danger}
+            color={Studently.color.danger}
           />
           <LText style={styles.signOutText}>Log out</LText>
         </Pressable>
       ) : null}
 
-      <SkounAuthModal
+      <StudentlyAuthModal
         visible={authOpen}
         onClose={() => setAuthOpen(false)}
         onSuccess={() => setAuthOpen(false)}
@@ -465,7 +465,7 @@ export function ProfileWeb() {
             }}
             accessibilityLabel="Close campus picker"
           />
-          <View nativeID="skoun-profile-dialog" style={styles.dialog}>
+          <View nativeID="studently-profile-dialog" style={styles.dialog}>
             <View style={styles.dialogHead}>
               <LText variant="subtitle">Your campus</LText>
               <Pressable
@@ -477,7 +477,7 @@ export function ProfileWeb() {
                 accessibilityLabel="Close"
                 style={styles.dialogClose}
               >
-                <Ionicons name="close" size={20} color={Skoun.color.ink} />
+                <Ionicons name="close" size={20} color={Studently.color.ink} />
               </Pressable>
             </View>
             <ScrollView
@@ -504,7 +504,7 @@ export function ProfileWeb() {
             </ScrollView>
             {campusSaving ? (
               <View style={styles.dialogBusy}>
-                <ActivityIndicator color={Skoun.color.primary} />
+                <ActivityIndicator color={Studently.color.primary} />
               </View>
             ) : null}
           </View>
@@ -541,10 +541,10 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 8,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   kickerText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.2,
@@ -560,13 +560,13 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   monogramText: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 22,
     lineHeight: 26,
     color: "#FFFFFF",
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     lineHeight: 46,
     letterSpacing: -1.1,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   titleCompact: {
     fontSize: 28,
@@ -606,18 +606,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: Skoun.color.ink,
+    borderColor: Studently.color.ink,
     cursor: "pointer",
   },
   ctaHover: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   ctaText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     lineHeight: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   motion: web
     ? ({
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
   rule: {
     width: "100%",
     height: 1,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
   },
   boardWrap: {
     width: "100%",
@@ -655,12 +655,12 @@ const styles = StyleSheet.create({
   },
   paneRuleBottom: {
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   vRule: {
     width: 1,
     alignSelf: "stretch",
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
     marginVertical: 24,
   },
   paneHover: {
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   campusName: {
     fontSize: 18,
     lineHeight: 24,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   campusHint: {
     lineHeight: 20,
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
   },
   tileTitle: {
     marginTop: 4,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   inlineLink: {
     flexDirection: "row",
@@ -707,16 +707,16 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   inlineLinkText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   inlineGhostText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   mosaicRow: {
     marginTop: 4,
@@ -730,7 +730,7 @@ const styles = StyleSheet.create({
     marginLeft: -36,
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderWidth: 2,
     borderColor: "#FFFFFF",
     cursor: "pointer",
@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   shotCaption: {
     position: "absolute",
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(18, 24, 38, 0.78)",
   },
   shotCaptionText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     color: "#FFFFFF",
   },
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
   },
   colRuleBottom: {
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   colCompact: {
     paddingHorizontal: 16,
@@ -823,9 +823,9 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
   signOutText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.danger,
+    color: Studently.color.danger,
   },
   dialogRoot: {
     flex: 1,
@@ -835,16 +835,16 @@ const styles = StyleSheet.create({
   },
   dialogBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
   },
   dialog: {
     width: "100%",
     maxWidth: 480,
     maxHeight: 640,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     overflow: "hidden",
     zIndex: 2,
   },
@@ -855,7 +855,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   dialogClose: {
     width: 36,

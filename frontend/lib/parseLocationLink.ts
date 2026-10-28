@@ -165,7 +165,7 @@ export async function expandUrlIfNeeded(urlStr: string): Promise<ExpandResult> {
       headers: {
         Accept: "text/html,application/xhtml+xml",
         "User-Agent":
-          "Mozilla/5.0 (compatible; SkounLocation/1.0; +https://skoun.app)",
+          "Mozilla/5.0 (compatible; StudentlyLocation/1.0; +https://studently.app)",
       },
     });
     const body = await res.text();

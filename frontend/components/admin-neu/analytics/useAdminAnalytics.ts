@@ -77,7 +77,7 @@ export function useAdminAnalytics() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `skoun-active-user-trends-${from}-to-${to}.csv`;
+    a.download = `studently-active-user-trends-${from}-to-${to}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     setFlash(`Downloaded trend report for ${result.points.length} days.`);

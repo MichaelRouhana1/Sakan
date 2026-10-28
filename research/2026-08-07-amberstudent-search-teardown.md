@@ -1,8 +1,8 @@
-# Amber Student — Search / Browse page teardown (Skoun adaptation)
+# Amber Student — Search / Browse page teardown (Studently adaptation)
 
 > Source: Amber SearchDesktopV2 (`/places/search/{city}`) — screenshots (list, grid, map split) + Ctrl+U HTML for Bath + CSS chunks `main`, `858`, `6019`.  
 > Assets cached under `research/_amber-search-*.css`.  
-> Skoun brand: cerulean `#2F6FED`, deep `#121826`, mist grounds — DM Sans. Lebanon only.
+> Studently brand: cerulean `#2F6FED`, deep `#121826`, mist grounds — DM Sans. Lebanon only.
 
 ---
 
@@ -14,20 +14,20 @@
 | **Grid** | Same chrome; results become 2–3 column cards; right rail stays |
 | **Map open** | Filter bar stays; **left pane ~35–40%** scrollable list (compact cards); **right pane ~60–65%** sticky full-height map; Close Map control; hide FAQ/SEO/footer chrome while map focused (or keep footer below fold) |
 
-Mobile: Amber collapses to hamburger + compact search; Skoun web can keep stacked filters + full-width list with map as full-screen overlay.
+Mobile: Amber collapses to hamburger + compact search; Studently web can keep stacked filters + full-width list with map as full-screen overlay.
 
 ---
 
-## 2. Chrome inventory (Amber → Skoun)
+## 2. Chrome inventory (Amber → Studently)
 
 ### Header
 - Logo left · **centered search pill** · utility links (Support, Login, menu)
-- Skoun: keep `WebTopNav` Find / Saved / List; add **inline search** (city / area / university) on Find route
+- Studently: keep `WebTopNav` Find / Saved / List; add **inline search** (city / area / university) on Find route
 
 ### Filter bar (sticky under header)
 Amber pills: Smart Filters · Filters · Sort · University · Budget · Move in · Stay · Room Type · Amenities · Bills · Clear All  
 
-**Skoun pills (Lebanon truth):**
+**Studently pills (Lebanon truth):**
 - Filters (opens full panel)
 - Sort
 - Area (city / neighbourhood — not country)
@@ -53,7 +53,7 @@ Vertical image-top card; same data density trimmed
 
 ### Right rail (non-map)
 1. Map preview + **Explore On Map** (cerulean outline)
-2. USP accordions — rewrite for Skoun:
+2. USP accordions — rewrite for Studently:
    - Verified contact paths / WhatsApp-first
    - Utility clarity (electricity · water · Wi‑Fi)
    - Lebanon-local areas & universities
@@ -74,7 +74,7 @@ Vertical image-top card; same data density trimmed
 
 ## 3. CSS / interaction tokens (from Amber CSS, remapped)
 
-| Amber pattern | Approx | Skoun |
+| Amber pattern | Approx | Studently |
 |---------------|--------|-------|
 | Primary CTA | `#ed3a56` / `#f3123c` | `#2F6FED` |
 | Page ground | `#f7f7f7` / white | `#EEF1F6` |
@@ -87,7 +87,7 @@ Typography: Amber system sans → **DM Sans** only.
 
 ---
 
-## 4. Data / routing (Skoun)
+## 4. Data / routing (Studently)
 
 - Route: `/(renter)/(tabs)/` web → `FindBrowse`
 - Query: `?area=`, university, filters via existing `BrowseFiltersValue` + `useListings`

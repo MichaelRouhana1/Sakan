@@ -13,13 +13,13 @@ Values you must swap before production. Dev/test keys and local URLs below are f
 | `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox public `pk.` from [account.mapbox.com](https://account.mapbox.com/access-tokens/) (local: `frontend/.env`). Alias: `EXPO_PUBLIC_MAPBOX_TOKEN`. **Tiles / Mapbox GL only** — walking Directions go through the backend | Same `pk.` token, URL/bundle-restricted in Mapbox dashboard |
 | `EXPO_PUBLIC_MAPBOX_STYLE` | Optional. Default `mapbox://styles/mapbox/standard` | Optional; satellite only if set to `mapbox://styles/mapbox/standard-satellite` |
 | `MAPBOX_DOWNLOADS_TOKEN` | Optional secret `sk.` for native SDK download (EAS secret / local env). **Never** `EXPO_PUBLIC_*`, never commit. Current `@rnmapbox/maps` plugin says download token often unused — keep if prebuild still requires `.netrc` | Same; EAS secret only |
-| `EXPO_PUBLIC_EAS_PROJECT_ID` | `62549b9d-483b-4554-8eb2-0482286f62cb` (`@rouhanamichael/skoun`) | Same UUID in `frontend/.env` and as an EAS env/secret for cloud builds. `app.config.js` copies it to `extra.eas.projectId` (dynamic config; `eas init` cannot auto-write it). See [Before real push notifications](#before-real-push-notifications). |
+| `EXPO_PUBLIC_EAS_PROJECT_ID` | `62549b9d-483b-4554-8eb2-0482286f62cb` (`@rouhanamichael/studently`) | Same UUID in `frontend/.env` and as an EAS env/secret for cloud builds. `app.config.js` copies it to `extra.eas.projectId` (dynamic config; `eas init` cannot auto-write it). See [Before real push notifications](#before-real-push-notifications). |
 
 ---
 
 ## Before real push notifications
 
-EAS project `@rouhanamichael/skoun` already exists. Push tokens only register from a **real native binary**, not Expo Go.
+EAS project `@rouhanamichael/studently` already exists. Push tokens only register from a **real native binary**, not Expo Go.
 
 **Before production:** migrate → backend env ([Resend](#backend--backendenv)) → EAS project id → credentials → native build → [hourly cron](#hetzner--vps-cron).
 
@@ -29,7 +29,7 @@ EAS project `@rouhanamichael/skoun` already exists. Push tokens only register fr
    EXPO_PUBLIC_EAS_PROJECT_ID=62549b9d-483b-4554-8eb2-0482286f62cb
    ```
 
-2. On [expo.dev](https://expo.dev) → project **skoun** → **Credentials**:
+2. On [expo.dev](https://expo.dev) → project **studently** → **Credentials**:
    - Android: set up FCM / Google service account for push
    - iOS: Apple Push key / certificates (requires Apple Developer Program)
 3. Build a real binary from `frontend/` (Expo Go is not enough for reliable production push):
@@ -50,7 +50,7 @@ EAS project `@rouhanamichael/skoun` already exists. Push tokens only register fr
 | `NODE_ENV` | `development` | `production` |
 | `DATABASE_URL` | Local Postgres connection string | Managed Postgres URL (SSL, strong password) |
 | `ADMIN_API_KEY` | `change-me-admin-key` | Long random secret; scripts/curl only — never `EXPO_PUBLIC_*` |
-| `ADMIN_CLERK_IDS` | (empty) | Comma-separated Clerk `user_...` ids for the web admin UI. Or set Clerk `publicMetadata.skounAdmin = true` |
+| `ADMIN_CLERK_IDS` | (empty) | Comma-separated Clerk `user_...` ids for the web admin UI. Or set Clerk `publicMetadata.studentlyAdmin = true` |
 | `PUBLIC_BASE_URL` | LAN IP, e.g. `http://192.168.x.x:3001` | Public HTTPS API URL (listing photo links) |
 | `PORT` | `3001` | Host/port your process listens on (often set by platform) |
 | `UPLOAD_DIR` | `uploads` | Persistent disk path or switch to object storage later |
@@ -59,7 +59,7 @@ EAS project `@rouhanamichael/skoun` already exists. Push tokens only register fr
 | `TRUST_PROXY` | unset | `1` when the API sits behind nginx/Caddy so walking-route rate limits key by client IP (do not set `true`) |
 | `EXPO_ACCESS_TOKEN` | Optional unless Expo enhanced push security is enabled | EAS/Expo server access token when enhanced push security is enabled (expo.dev → Access tokens). Used by the [hourly listing-lifecycle job](#hetzner--vps-cron); leave blank for early testing. See [Before real push notifications](#before-real-push-notifications). |
 | `RESEND_API_KEY` | Optional; email delivery is skipped when absent | Resend server key for the [listing-lifecycle job](#hetzner--vps-cron). Unset skips email; the rest of the job still runs. Set this in the [before-production checklist](#before-real-push-notifications) before hourly cron. Local send checks: [docs/resend.md](docs/resend.md). |
-| `EMAIL_FROM` | Optional locally | Verified Resend sender, such as `Skoun <listings@yourdomain.com>` (tests: `Skoun <onboarding@resend.dev>`). Required with `RESEND_API_KEY` for the [hourly job](#hetzner--vps-cron) to send mail. [docs/resend.md](docs/resend.md) |
+| `EMAIL_FROM` | Optional locally | Verified Resend sender, such as `Studently <listings@yourdomain.com>` (tests: `Studently <onboarding@resend.dev>`). Required with `RESEND_API_KEY` for the [hourly job](#hetzner--vps-cron) to send mail. [docs/resend.md](docs/resend.md) |
 | `ADMIN_NOTIFICATION_EMAILS` | Optional comma-separated list | Staff inboxes that receive expiry follow-ups from the [hourly job](#hetzner--vps-cron). [docs/resend.md](docs/resend.md) |
 
 ---
@@ -80,7 +80,7 @@ The job imports `dotenv/config` and reads `backend/.env` from **cwd**. Cron must
 Example crontab (adjust path/user):
 
 ```
-0 * * * * cd /var/www/sakan/backend && /usr/bin/npm run job:listing-lifecycle >> /var/log/skoun-listing-lifecycle.log 2>&1
+0 * * * * cd /var/www/sakan/backend && /usr/bin/npm run job:listing-lifecycle >> /var/log/studently-listing-lifecycle.log 2>&1
 ```
 
 One-shot test: `cd backend && npm run job:listing-lifecycle`
@@ -99,7 +99,7 @@ Before go-live:
 2. Use **live** keys (`pk_live_`, `sk_live_`) in the env files above.
 3. Enable sign-in methods: Email + Password (with verification), Google, Apple, Facebook as needed.
 4. **Allowed redirect URLs**: production web app URL(s).
-5. **Native redirect**: `skoun://` (matches `scheme` in `frontend/app.json`).
+5. **Native redirect**: `studently://` (matches `scheme` in `frontend/app.json`).
 6. OAuth providers: configure production client IDs/secrets in Clerk for each provider.
 
 ---

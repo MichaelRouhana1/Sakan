@@ -6,7 +6,7 @@ import { PROFILE_CSS } from "@/styles/profileCssText";
 const BG = "#F9FAFB";
 
 /** Homepage motion + tokens — kept in +html so Expo Router does not treat it as a route module. */
-const SKOUN_HOME_CSS = `
+const STUDENTLY_HOME_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
 :root {
@@ -31,7 +31,7 @@ const SKOUN_HOME_CSS = `
   --shine-color: rgba(255,255,255,.45);
 }
 
-.skoun-home {
+.studently-home {
   font-family: var(--sk-font);
   color: var(--sk-ink);
   background: var(--sk-bg);
@@ -39,10 +39,10 @@ const SKOUN_HOME_CSS = `
   -webkit-font-smoothing: antialiased;
 }
 
-.skoun-home * { box-sizing: border-box; }
+.studently-home * { box-sizing: border-box; }
 
-.skoun-home a { color: inherit; text-decoration: none; cursor: pointer; }
-.skoun-home button { font-family: inherit; cursor: pointer; }
+.studently-home a { color: inherit; text-decoration: none; cursor: pointer; }
+.studently-home button { font-family: inherit; cursor: pointer; }
 
 @keyframes sk-search-move {
   0% { opacity: 0; transform: translateY(100%); }
@@ -212,14 +212,14 @@ export default function Root({ children }: { children: ReactNode }) {
         <meta name="theme-color" content="#121826" />
         <meta
           name="description"
-          content="Skoun — Lebanon rental classifieds. Find rooms and apartments by area or university, then connect on WhatsApp."
+          content="Studently — Lebanon rental classifieds. Find rooms and apartments by area or university, then connect on WhatsApp."
         />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Outfit:wght@400;500;600;700&display=swap"
         />
         <link
-          id="skoun-mapbox-css"
+          id="studently-mapbox-css"
           rel="stylesheet"
           href="https://api.mapbox.com/mapbox-gl-js/v3.28.1/mapbox-gl.css"
         />
@@ -260,7 +260,7 @@ body {
   flex-direction: column;
   box-sizing: border-box;
 }
-#skoun-web-shell {
+#studently-web-shell {
   scrollbar-gutter: stable;
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -272,7 +272,7 @@ button, [role="button"], [role="link"] { cursor: pointer; }
     transition-duration: 0.01ms !important;
   }
 }
-${SKOUN_HOME_CSS}
+${STUDENTLY_HOME_CSS}
 ${CAMPUS_CSS}
 ${PROFILE_CSS}
 ${ADMIN_CSS}

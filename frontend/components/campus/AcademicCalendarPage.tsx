@@ -29,7 +29,7 @@ import {
   type HolidayStatus,
   type NationalHoliday,
 } from "@/constants/lebanonHolidays";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 const MONTHS = [
@@ -65,17 +65,17 @@ const YEAR_MIN = 2026;
 const YEAR_MAX = 2027;
 
 const C = {
-  ink: Skoun.color.ink,
-  muted: Skoun.color.inkMuted,
-  faint: Skoun.color.inkFaint,
-  primary: Skoun.color.primary,
-  mist: Skoun.color.primaryMist,
-  soft: Skoun.color.primarySoft,
-  surface: Skoun.color.surface,
+  ink: Studently.color.ink,
+  muted: Studently.color.inkMuted,
+  faint: Studently.color.inkFaint,
+  primary: Studently.color.primary,
+  mist: Studently.color.primaryMist,
+  soft: Studently.color.primarySoft,
+  surface: Studently.color.surface,
   border: "#D5DCE7",
   hair: "#E8EDF4",
-  holiday: Skoun.color.danger,
-  holidaySoft: Skoun.color.dangerSoft,
+  holiday: Studently.color.danger,
+  holidaySoft: Studently.color.dangerSoft,
   tbc: "#3D4F73",
   tbcSoft: "#E4EAF3",
   weekend: "#EEF2F7",
@@ -83,12 +83,12 @@ const C = {
 } as const;
 
 const Type = {
-  display: Skoun.type.display,
-  displaySemi: Skoun.type.displayMedium,
-  sans: Skoun.type.body,
-  sansMed: Skoun.type.bodyMedium,
-  sansSemi: Skoun.type.bodySemi,
-  sansBold: Skoun.type.bodyBold,
+  display: Studently.type.display,
+  displaySemi: Studently.type.displayMedium,
+  sans: Studently.type.body,
+  sansMed: Studently.type.bodyMedium,
+  sansSemi: Studently.type.bodySemi,
+  sansBold: Studently.type.bodyBold,
 } as const;
 
 const web = Platform.OS === "web";
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingLeft: 16,
     paddingRight: 14,
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     backgroundColor: C.primary,
     cursor: "pointer",
     flexShrink: 0,
@@ -1131,7 +1131,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.68)",
   },
   board: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: C.border,
@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
     ...webShadow,
   },
   boardCompact: {
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
   },
   boardFill: {
     padding: 20,
@@ -1644,7 +1644,7 @@ const styles = StyleSheet.create({
   desk: {
     width: 320,
     flexShrink: 0,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: C.border,

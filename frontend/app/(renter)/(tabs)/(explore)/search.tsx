@@ -38,7 +38,7 @@ import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useSearchListings } from "@/features/listings/useSearchListings";
 import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -52,7 +52,7 @@ import {
 } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { toListFilters } from "@/lib/browseFilters";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import {
   campusFarSeparatorKey,
   campusResultsHeading,
@@ -444,7 +444,7 @@ export default function RenterSearchScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="arrow-back" size={24} color={Skoun.color.ink} />
+          <Ionicons name="arrow-back" size={24} color={Studently.color.ink} />
         </Pressable>
 
         <View style={[styles.searchBar, { zIndex: 50, overflow: "visible" }]}>
@@ -474,7 +474,7 @@ export default function RenterSearchScreen() {
               <Ionicons
                 name="options-outline"
                 size={15}
-                color={filtersActive ? "#ffffff" : Skoun.color.inkMuted}
+                color={filtersActive ? "#ffffff" : Studently.color.inkMuted}
               />
               <Text
                 style={[
@@ -513,7 +513,7 @@ export default function RenterSearchScreen() {
             <Ionicons
               name="school-outline"
               size={15}
-              color={activeUniSlug != null ? "#ffffff" : Skoun.color.inkMuted}
+              color={activeUniSlug != null ? "#ffffff" : Studently.color.inkMuted}
             />
             <Text
               style={[styles.filterPillLabel, activeUniSlug != null && styles.filterPillLabelActive]}
@@ -531,7 +531,7 @@ export default function RenterSearchScreen() {
             <Ionicons
               name="swap-vertical-outline"
               size={15}
-              color={sort !== "newest" ? "#ffffff" : Skoun.color.inkMuted}
+              color={sort !== "newest" ? "#ffffff" : Studently.color.inkMuted}
             />
             <Text style={[styles.filterPillLabel, sort !== "newest" && styles.filterPillLabelActive]}>
               {SORT_OPTIONS.find((o) => o.value === sort)?.label || "Sort"}
@@ -637,7 +637,7 @@ export default function RenterSearchScreen() {
                   onPress={() => setMapSearchOpen(true)}
                   style={styles.mapChromeBtn}
                 >
-                  <Ionicons name="search" size={20} color={Skoun.color.ink} />
+                  <Ionicons name="search" size={20} color={Studently.color.ink} />
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -647,7 +647,7 @@ export default function RenterSearchScreen() {
                   onPress={() => setFiltersOpen(true)}
                   style={styles.mapChromeBtn}
                 >
-                  <Ionicons name="options-outline" size={20} color={Skoun.color.ink} />
+                  <Ionicons name="options-outline" size={20} color={Studently.color.ink} />
                   {badgeCount > 0 ? (
                     <View style={styles.mapFilterBadge}>
                       <Text style={styles.mapFilterBadgeText}>{badgeCount}</Text>
@@ -717,7 +717,7 @@ export default function RenterSearchScreen() {
                   onPress={() => setMapSearchOpen(false)}
                   style={styles.mapSearchClose}
                 >
-                  <Ionicons name="close" size={22} color={Skoun.color.ink} />
+                  <Ionicons name="close" size={22} color={Studently.color.ink} />
                 </Pressable>
               </View>
             </View>
@@ -738,7 +738,7 @@ export default function RenterSearchScreen() {
         </Modal>
       ) : listingsQuery.isLoading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator color={Skoun.color.primary} size="large" />
+          <ActivityIndicator color={Studently.color.primary} size="large" />
           <LText style={{ marginTop: 12 }} tone="muted">
             Finding student homes...
           </LText>
@@ -868,7 +868,7 @@ export default function RenterSearchScreen() {
             onPress={() => setSortOpen(false)}
             hitSlop={8}
           >
-            <Ionicons name="close" size={24} color={Skoun.color.ink} />
+            <Ionicons name="close" size={24} color={Studently.color.ink} />
           </Pressable>
         </View>
         <View style={styles.sheetOptions}>
@@ -892,7 +892,7 @@ export default function RenterSearchScreen() {
                   {opt.label}
                 </LText>
                 {active ? (
-                  <Ionicons name="checkmark" size={18} color={Skoun.color.primary} />
+                  <Ionicons name="checkmark" size={18} color={Studently.color.primary} />
                 ) : null}
               </Pressable>
             );
@@ -921,7 +921,7 @@ export default function RenterSearchScreen() {
             onPress={() => setUniOpen(false)}
             hitSlop={8}
           >
-            <Ionicons name="close" size={24} color={Skoun.color.ink} />
+            <Ionicons name="close" size={24} color={Studently.color.ink} />
           </Pressable>
         </View>
 
@@ -1013,9 +1013,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     height: "100%",
   },
   clearBtn: {
@@ -1061,13 +1061,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   filterPillActive: {
-    backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
+    borderColor: Studently.color.primary,
   },
   filterPillLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   filterPillLabelRow: {
     flexDirection: "row",
@@ -1145,15 +1145,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   sheetOptionActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   sheetOptionLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   sheetOptionLabelActive: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "600",
   },
   mapContainer: {
@@ -1182,7 +1182,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    ...skounShadow({ y: 2, blur: 8, opacity: 0.16, elevation: 4 }),
+    ...studentlyShadow({ y: 2, blur: 8, opacity: 0.16, elevation: 4 }),
   },
   mapFilterBadge: {
     position: "absolute",
@@ -1199,7 +1199,7 @@ const styles = StyleSheet.create({
   mapFilterBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontWeight: "700",
   },
   mapSearchOverlay: {
@@ -1232,7 +1232,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: 24,
-    ...skounShadow({ color: "#000000", y: 4, blur: 10, opacity: 0.25, elevation: 8 }),
+    ...studentlyShadow({ color: "#000000", y: 4, blur: 10, opacity: 0.25, elevation: 8 }),
     zIndex: 99,
   },
   floatingPillPressed: {
@@ -1240,7 +1240,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
   },
   floatingPillText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
     color: "#ffffff",
     fontWeight: "700",

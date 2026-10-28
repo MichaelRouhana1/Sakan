@@ -4,7 +4,7 @@ import { ListingMoreMenu } from "@/components/listings/detail/ListingMoreMenu";
 import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
 import { ListingTocRail, type ListingTocItem } from "@/components/listings/detail/ListingTocRail";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { labelPosterRole } from "@/lib/listingLabels";
 import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
@@ -147,7 +147,7 @@ export function ListingContactCard({
               <Ionicons
                 name={saved ? "heart" : "heart-outline"}
                 size={16}
-                color={saved ? Skoun.color.danger : Skoun.color.ink}
+                color={saved ? Studently.color.danger : Studently.color.ink}
               />
             </Pressable>
           </View>
@@ -212,7 +212,7 @@ export function ListingContactCard({
               <Ionicons
                 name="call-outline"
                 size={17}
-                color={canContact ? Skoun.color.primary : "#fff"}
+                color={canContact ? Studently.color.primary : "#fff"}
               />
               <LText
                 variant="subtitle"
@@ -239,7 +239,7 @@ export function ListingContactCard({
             </LText>
             {hasRating ? (
               <View style={styles.metaRow}>
-                <Ionicons name="star" size={13} color={Skoun.color.inkMuted} />
+                <Ionicons name="star" size={13} color={Studently.color.inkMuted} />
                 <LText variant="caption" tone="muted" style={styles.metaText}>
                   {`${listing.rating!.toFixed(1)} · ${listing.reviewCount} review${listing.reviewCount === 1 ? "" : "s"}`}
                 </LText>
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardTop: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E5EAF1",
@@ -316,10 +316,10 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     minWidth: 0,
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
     lineHeight: 21,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   iconBtns: {
     flexDirection: "row",
@@ -339,11 +339,11 @@ const styles = StyleSheet.create({
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   iconBtnHover: {
-    borderColor: Skoun.color.ink,
+    borderColor: Studently.color.ink,
   },
   ticket: {
     flexDirection: "row",
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E5EAF1",
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   },
   ticketRail: {
     width: 4,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   ticketBody: {
     flex: 1,
@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   fareKicker: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 10,
     lineHeight: 13,
     letterSpacing: 0.7,
     textTransform: "uppercase",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   fareRow: {
     flexDirection: "row",
@@ -374,17 +374,17 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   fareAmt: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 28,
     lineHeight: 32,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.6,
   },
   fareUnit: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   ticketSplit: {
     height: 1,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   solid: {
     minHeight: 48,
     borderRadius: 12,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -414,15 +414,15 @@ const styles = StyleSheet.create({
   solidHover: { backgroundColor: "#1E5BD6" },
   solidText: {
     color: "#fff",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
   },
   outline: {
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.surface,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -439,8 +439,8 @@ const styles = StyleSheet.create({
     borderColor: "#1E5BD6",
   },
   outlineText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
   },
   disabled: { opacity: 0.45 },
@@ -453,13 +453,13 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   avatarLetter: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
     lineHeight: 18,
     color: "#fff",
@@ -470,10 +470,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   hostName: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     lineHeight: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   hostMeta: {
     fontSize: 12,
@@ -504,6 +504,6 @@ const styles = StyleSheet.create({
   },
   reportHover: {
     textDecorationLine: "underline",
-    textDecorationColor: Skoun.color.inkMuted,
+    textDecorationColor: Studently.color.inkMuted,
   },
 });

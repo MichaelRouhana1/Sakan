@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 120000,
   workers: 1,
   use: {
-    baseURL: process.env.SKOUN_TEST_URL ?? "http://localhost:8082",
+    baseURL: process.env.STUDENTLY_TEST_URL ?? "http://localhost:8082",
     viewport: { width: 1440, height: 1100 },
     contextOptions: { reducedMotion: "reduce" },
     navigationTimeout: 90000,

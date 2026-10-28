@@ -1,4 +1,4 @@
-const APP_NAME = "Skoun";
+const APP_NAME = "Studently";
 
 export type WhatsAppInquiryAnswers = {
   moveInDate?: string;

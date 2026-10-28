@@ -24,15 +24,15 @@ import type { ContactNumber } from "@/lib/lebanonPhone";
 import { emptyContactNumber } from "@/lib/lebanonPhone";
 
 /** @deprecated Legacy full-draft key — migrated to checkpoint on read. */
-export const CREATE_DRAFT_STORAGE_KEY = "skoun.createListing.draft.v4";
+export const CREATE_DRAFT_STORAGE_KEY = "studently.createListing.draft.v4";
 
-export const CREATE_DRAFT_CHECKPOINT_KEY = "skoun.createListing.checkpoint.v1";
+export const CREATE_DRAFT_CHECKPOINT_KEY = "studently.createListing.checkpoint.v1";
 
-export const CREATE_DRAFT_WORKING_KEY = "skoun.createListing.working.v1";
+export const CREATE_DRAFT_WORKING_KEY = "studently.createListing.working.v1";
 
 /** Which account may claim device drafts saved before account sync. */
 export const CREATE_DRAFT_LEGACY_OWNER_KEY =
-  "skoun.createListing.legacyDraftOwner.v1";
+  "studently.createListing.legacyDraftOwner.v1";
 
 /** Main = resumed primary draft; working = started via + (new listing). */
 export type DraftSlot = "main" | "working";

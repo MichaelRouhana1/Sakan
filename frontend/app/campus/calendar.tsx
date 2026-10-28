@@ -2,7 +2,7 @@ import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AcademicCalendarPage } from "@/components/campus/AcademicCalendarPage";
 import { CampusTopNav } from "@/components/campus/CampusTopNav";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const Screen = Platform.OS === "web" ? View : SafeAreaView;
 
@@ -24,7 +24,7 @@ export default function CampusCalendar() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
   },
   body: {
     flex: 1,

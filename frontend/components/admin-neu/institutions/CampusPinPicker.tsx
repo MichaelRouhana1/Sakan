@@ -4,14 +4,14 @@ import { MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
 import { formatCoordLabel, isInLebanon } from "@/lib/locationWkt";
 import {
   campusPinHtml,
-  createSkounMap,
-  destroySkounMap,
+  createStudentlyMap,
+  destroyStudentlyMap,
   loadMapbox,
   makeMarker,
   toLngLat,
   type MapboxMap,
   type Marker,
-} from "@/lib/skounMapbox.web";
+} from "@/lib/studentlyMapbox.web";
 
 /** Default drop zone — Hamra / Ras Beirut (matches form placeholders). */
 const DEFAULT_CENTER = { lat: 33.897, lng: 35.482 };
@@ -68,7 +68,7 @@ export function CampusPinPicker({ lat, lng, label, onChange }: Props) {
         if (cancelled || !hostRef.current) return;
 
         const start = resolveCenter(lat, lng);
-        const map = createSkounMap(mapboxgl, hostRef.current, start, 14);
+        const map = createStudentlyMap(mapboxgl, hostRef.current, start, 14);
         if (!map) {
           if (!cancelled) setTokenMissing(true);
           return;
@@ -122,7 +122,7 @@ export function CampusPinPicker({ lat, lng, label, onChange }: Props) {
       cancelled = true;
       markerRef.current?.remove();
       markerRef.current = null;
-      destroySkounMap(mapRef.current);
+      destroyStudentlyMap(mapRef.current);
       mapRef.current = null;
       setMapReady(false);
     };
@@ -156,7 +156,7 @@ export function CampusPinPicker({ lat, lng, label, onChange }: Props) {
         ) : null}
         <div
           ref={hostRef}
-          className="skoun-mapbox-map"
+          className="studently-mapbox-map"
           style={{ width: "100%", height: "100%" }}
         />
       </H>

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Skoun } from '@/constants/theme';
+import { Studently } from '@/constants/theme';
 import { fetchInventory, inventoryError, inventoryKey, inventoryMessage, saveInventory, setPlaceVisibility, type InventoryChange, type UnitInventory } from '@/features/listings/hostInventory';
 import type { GenderRestriction } from '@/types/listing';
 
@@ -159,16 +159,16 @@ export function HostInventoryControl({listingId}: {listingId: string}) {
 const styles = StyleSheet.create({
   box: {gap: 8, paddingVertical: 10, alignSelf: 'stretch'},
   stack: {gap: 8}, actions: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
-  body: {fontFamily: Skoun.type.body, fontSize: 13, lineHeight: 19, color: Skoun.color.inkMuted},
-  reason: {fontFamily: Skoun.type.bodySemi, fontSize: 13, lineHeight: 19, color: '#92400E'},
-  error: {color: Skoun.color.danger, fontSize: 13, lineHeight: 19},
+  body: {fontFamily: Studently.type.body, fontSize: 13, lineHeight: 19, color: Studently.color.inkMuted},
+  reason: {fontFamily: Studently.type.bodySemi, fontSize: 13, lineHeight: 19, color: '#92400E'},
+  error: {color: Studently.color.danger, fontSize: 13, lineHeight: 19},
   button: {borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44, justifyContent: 'center', backgroundColor: '#FFFFFF'},
-  buttonText: {fontFamily: Skoun.type.bodySemi, fontSize: 13, color: Skoun.color.ink},
-  selected: {borderColor: Skoun.color.primary, backgroundColor: Skoun.color.primarySoft},
+  buttonText: {fontFamily: Studently.type.bodySemi, fontSize: 13, color: Studently.color.ink},
+  selected: {borderColor: Studently.color.primary, backgroundColor: Studently.color.primarySoft},
   disabled: {opacity: 0.45},
   scrim: {flex: 1, padding: 20, backgroundColor: 'rgba(18,24,38,0.45)', alignItems: 'center', justifyContent: 'center'},
   dialog: {width: '100%', maxWidth: 460, maxHeight: '90%', flexGrow: 0, backgroundColor: '#FFFFFF', borderRadius: 14},
   dialogContent: {padding: 20, gap: 14},
-  title: {fontFamily: Skoun.type.bodyBold, fontSize: 20, color: Skoun.color.ink},
-  input: {borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 12, fontSize: 16, color: Skoun.color.ink},
+  title: {fontFamily: Studently.type.bodyBold, fontSize: 20, color: Studently.color.ink},
+  input: {borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 12, fontSize: 16, color: Studently.color.ink},
 });

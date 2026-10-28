@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { listingMoveInRows } from "@/components/listings/detail/listingMoveIn";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -87,18 +87,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   kicker: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 10,
     lineHeight: 13,
     letterSpacing: 0.7,
     textTransform: "uppercase",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   amt: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     lineHeight: 17,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontVariant: ["tabular-nums"],
   },
 });

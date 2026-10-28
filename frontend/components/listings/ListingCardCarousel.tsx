@@ -17,7 +17,7 @@ import {
 import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import { resolveMediaUrls } from "@/lib/mediaUrl";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 
 const MAX_PHOTOS = 5;
 const PHOTO_ASPECT = SEARCH_PHOTO_ASPECT;
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.9)",
     alignItems: "center",
     justifyContent: "center",
-    ...skounShadow({ y: 2, blur: 6, opacity: 0.18, elevation: 3 }),
+    ...studentlyShadow({ y: 2, blur: 6, opacity: 0.18, elevation: 3 }),
   },
   arrowMotion: webTransition("opacity, transform"),
   arrowLeft: { left: 8 },
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
-    ...skounShadow({ color: "#000000", y: 1, blur: 2, opacity: 0.35, elevation: 2 }),
+    ...studentlyShadow({ color: "#000000", y: 1, blur: 2, opacity: 0.35, elevation: 2 }),
   },
   dotMotion: webTransition("width"),
   dotIdle: {

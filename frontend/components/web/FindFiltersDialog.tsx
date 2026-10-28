@@ -19,7 +19,7 @@ import {
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
   GENDER_FILTER_OPTIONS,
@@ -91,7 +91,7 @@ function toggleInList<T extends string>(
 
 /**
  * Desktop Amber-style filter dialog: left category rail + right options pane.
- * Lebanon / Skoun fields only — no move-in, guarantor, or multi-country fluff.
+ * Lebanon / Studently fields only — no move-in, guarantor, or multi-country fluff.
  */
 export function FindFiltersDialog({
   visible,
@@ -227,7 +227,7 @@ export function FindFiltersDialog({
                 hovered && styles.closeBtnHover,
               ]}
             >
-              <Ionicons name="close" size={22} color={Skoun.color.ink} />
+              <Ionicons name="close" size={22} color={Studently.color.ink} />
             </Pressable>
           </View>
 
@@ -283,13 +283,13 @@ export function FindFiltersDialog({
                       <Ionicons
                         name="search-outline"
                         size={16}
-                        color={Skoun.color.inkFaint}
+                        color={Studently.color.inkFaint}
                       />
                       <TextInput
                         value={areaQuery}
                         onChangeText={setAreaQuery}
                         placeholder="Search area"
-                        placeholderTextColor={Skoun.color.inkFaint}
+                        placeholderTextColor={Studently.color.inkFaint}
                         style={styles.searchInput}
                       />
                     </View>
@@ -359,7 +359,7 @@ export function FindFiltersDialog({
                           }}
                           keyboardType="number-pad"
                           placeholder="0"
-                          placeholderTextColor={Skoun.color.inkFaint}
+                          placeholderTextColor={Studently.color.inkFaint}
                           style={styles.budgetInput}
                         />
                       </View>
@@ -378,7 +378,7 @@ export function FindFiltersDialog({
                           }}
                           keyboardType="number-pad"
                           placeholder="Any"
-                          placeholderTextColor={Skoun.color.inkFaint}
+                          placeholderTextColor={Studently.color.inkFaint}
                           style={styles.budgetInput}
                         />
                       </View>
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   dialog: {
     width: "min(920px, 100%)" as unknown as number,
     maxHeight: "min(720px, 88vh)" as unknown as number,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 16,
     overflow: "hidden",
     boxShadow: "0 16px 32px rgba(18, 24, 38, 0.18)",
@@ -604,11 +604,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   headerTitle: {
     fontSize: 22,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   closeBtn: {
     width: 36,
@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   closeBtnHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   body: {
     flexDirection: "row",
@@ -631,8 +631,8 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
     borderRightWidth: 1,
-    borderRightColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRightColor: Studently.color.border,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   railScroll: {
     flex: 1,
@@ -645,19 +645,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   railItemActive: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   railItemHover: {
     backgroundColor: "rgba(255,255,255,0.6)",
   },
   railLabel: {
     fontSize: 15,
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
   },
   railLabelActive: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodyBold,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodyBold,
   },
   pane: {
     flex: 1,
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
   },
   paneTitle: {
     fontSize: 20,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
     marginBottom: 16,
   },
   paneScroll: {
@@ -686,17 +686,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   searchInput: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     padding: 0,
   },
   optionList: {
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   areaGroupLabel: {
     marginTop: 4,
     marginBottom: 2,
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
   optionRow: {
     flexDirection: "row",
@@ -720,10 +720,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   optionRowOn: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   optionRowHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   optionRowDisabled: {
     opacity: 0.4,
@@ -731,25 +731,25 @@ const styles = StyleSheet.create({
   optionLabel: {
     flex: 1,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   optionLabelOn: {
-    color: Skoun.color.primaryDeep,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.primaryDeep,
+    fontFamily: Studently.type.bodyMedium,
   },
   check: {
     width: 22,
     height: 22,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: Skoun.color.borderStrong,
+    borderColor: Studently.color.borderStrong,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 12,
   },
   checkOn: {
-    backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
+    borderColor: Studently.color.primary,
   },
   budgetRow: {
     flexDirection: "row",
@@ -762,26 +762,26 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   budgetLabel: {
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
   },
   budgetInput: {
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 16,
-    color: Skoun.color.ink,
-    backgroundColor: Skoun.color.surface,
+    color: Studently.color.ink,
+    backgroundColor: Studently.color.surface,
   },
   budgetDash: {
     paddingBottom: 14,
   },
   groupLabel: {
     marginTop: 8,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   footer: {
     flexDirection: "row",
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
     gap: 16,
   },
   clearBtn: {
@@ -801,11 +801,11 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   clearLabel: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
   },
   applyBtn: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: 10,
@@ -813,10 +813,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   applyBtnHover: {
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
   },
   applyLabel: {
     color: "#FFFFFF",
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
   },
 });

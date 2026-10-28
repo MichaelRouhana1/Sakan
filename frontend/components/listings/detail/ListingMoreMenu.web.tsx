@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Liquid } from "liquid-gooey";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { ListingMoreMenuProps } from "@/components/listings/detail/ListingMoreMenu.types";
 
 /** Matches the heart button. Transparent fill so the goo is the surface. */
@@ -130,7 +130,7 @@ export function ListingMoreMenu({
             <Ionicons
               name={linkCopied ? "checkmark" : "link-outline"}
               size={16}
-              color={Skoun.color.ink}
+              color={Studently.color.ink}
             />
           </RoundBtn>
         </Liquid.Item>
@@ -150,7 +150,7 @@ export function ListingMoreMenu({
                 onReport();
               }}
             >
-              <Ionicons name="flag-outline" size={16} color={Skoun.color.ink} />
+              <Ionicons name="flag-outline" size={16} color={Studently.color.ink} />
             </RoundBtn>
           </Liquid.Item>
         )}
@@ -167,7 +167,7 @@ export function ListingMoreMenu({
             <Ionicons
               name={open ? "close" : "ellipsis-horizontal"}
               size={18}
-              color={Skoun.color.ink}
+              color={Studently.color.ink}
             />
           </button>
         </Liquid.Item>

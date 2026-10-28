@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 
 export type CampusFormOption = {
@@ -82,7 +82,7 @@ function OptionMark({
       <Ionicons
         name="globe-outline"
         size={Math.round(size * 0.42)}
-        color={Skoun.color.inkMuted}
+        color={Studently.color.inkMuted}
       />
     </View>
   );
@@ -195,18 +195,18 @@ export function CampusFormSelect({
               accessibilityLabel="Close"
               style={styles.closeBtn}
             >
-              <Ionicons name="close" size={18} color={Skoun.color.inkMuted} />
+              <Ionicons name="close" size={18} color={Studently.color.inkMuted} />
             </Pressable>
           </View>
 
           {searchable ? (
             <View style={styles.searchWrap}>
-              <Ionicons name="search" size={16} color={Skoun.color.inkFaint} />
+              <Ionicons name="search" size={16} color={Studently.color.inkFaint} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
                 placeholder={searchPlaceholder}
-                placeholderTextColor={Skoun.color.inkFaint}
+                placeholderTextColor={Studently.color.inkFaint}
                 autoFocus={Platform.OS === "web"}
                 accessibilityLabel={searchPlaceholder}
                 style={styles.searchInput}
@@ -220,7 +220,7 @@ export function CampusFormSelect({
                   <Ionicons
                     name="close-circle"
                     size={16}
-                    color={Skoun.color.inkFaint}
+                    color={Studently.color.inkFaint}
                   />
                 </Pressable>
               ) : null}
@@ -343,7 +343,7 @@ export function CampusFormSelect({
             <Ionicons
               name={open ? "chevron-up" : "chevron-down"}
               size={16}
-              color={open ? Skoun.color.primary : Skoun.color.inkMuted}
+              color={open ? Studently.color.primary : Studently.color.inkMuted}
               style={styles.passportChevron}
             />
           ) : null}
@@ -366,7 +366,7 @@ export function CampusFormSelect({
           <Ionicons
             name={open ? "chevron-up" : "chevron-down"}
             size={16}
-            color={open ? Skoun.color.primary : Skoun.color.inkMuted}
+            color={open ? Studently.color.primary : Studently.color.inkMuted}
             style={styles.passportChevron}
           />
         ) : null}
@@ -424,7 +424,7 @@ export function CampusFormSelect({
             <OptionMark option={display} size={28} />
           ) : (
             <View style={styles.lockedIcon}>
-              <Ionicons name="checkmark" size={14} color={Skoun.color.primary} />
+              <Ionicons name="checkmark" size={14} color={Studently.color.primary} />
             </View>
           )}
           <View style={styles.triggerCopy}>
@@ -488,7 +488,7 @@ export function CampusFormSelect({
               name="chevron-down"
               size={16}
               color={
-                open || selected ? Skoun.color.primary : Skoun.color.inkMuted
+                open || selected ? Studently.color.primary : Studently.color.inkMuted
               }
             />
           </View>
@@ -526,18 +526,18 @@ const styles = StyleSheet.create({
   railValue: {
     flex: 1,
     minWidth: 0,
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
     lineHeight: 18,
     letterSpacing: -0.2,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   label: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.35,
     textTransform: "uppercase",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   passportTrigger: {
     flexDirection: "row",
@@ -570,11 +570,11 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   passportLockedBadge: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     letterSpacing: 0.4,
     textTransform: "uppercase",
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   mono: {
     width: 28,
@@ -582,14 +582,14 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
     flexShrink: 0,
   },
   monoOpen: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   monoText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 10,
     letterSpacing: 0.3,
     color: "#FFFFFF",
@@ -600,21 +600,21 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   passportValue: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 15,
     lineHeight: 20,
     letterSpacing: -0.2,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   /** Reserve ~3 caps so UA / LAU / USJ share one chevron position. */
   passportValueShort: {
     minWidth: 34,
   },
   passportDetail: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 17,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   passportChevron: {
     flexShrink: 0,
@@ -626,22 +626,22 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     paddingVertical: 10,
     borderWidth: 1.5,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.md,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
+    borderRadius: Studently.radius.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     cursor: "pointer",
   },
   triggerHover: {
-    borderColor: Skoun.color.primarySoft,
+    borderColor: Studently.color.primarySoft,
   },
   triggerOpen: {
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
     ...(Platform.OS === "web"
       ? ({
-          boxShadow: `0 0 0 3px ${Skoun.color.primaryMist}`,
+          boxShadow: `0 0 0 3px ${Studently.color.primaryMist}`,
         } as object)
       : null),
   },
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F9FC",
   },
   triggerDisabled: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     borderColor: "#D5DBE4",
     cursor: "not-allowed",
   },
@@ -661,8 +661,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderWidth: 1.5,
     borderColor: "#C5D6F5",
-    backgroundColor: Skoun.color.primaryMist,
-    borderRadius: Skoun.radius.md,
+    backgroundColor: Studently.color.primaryMist,
+    borderRadius: Studently.radius.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -671,15 +671,15 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 9,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   lockedBadge: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     letterSpacing: 0.2,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     textTransform: "uppercase",
   },
   triggerCopy: {
@@ -688,31 +688,31 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   triggerValue: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 20,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   triggerPlaceholder: {
-    fontFamily: Skoun.type.body,
-    color: Skoun.color.inkFaint,
+    fontFamily: Studently.type.body,
+    color: Studently.color.inkFaint,
   },
   triggerDetail: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   chevronWrap: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
   },
   chevronWrapOpen: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   backdrop: {
     flex: 1,
@@ -722,15 +722,15 @@ const styles = StyleSheet.create({
     padding: Platform.OS === "web" ? 16 : 0,
   },
   panel: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     overflow: "hidden",
     width: "100%",
   },
   panelWeb: {
     maxWidth: 440,
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     ...(Platform.OS === "web"
       ? ({
           boxShadow: "0 22px 48px rgba(18, 24, 38, 0.2)",
@@ -744,11 +744,11 @@ const styles = StyleSheet.create({
   },
   panelWebNarrow: {
     maxWidth: "100%",
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
   },
   panelNative: {
-    borderTopLeftRadius: Skoun.radius.xl,
-    borderTopRightRadius: Skoun.radius.xl,
+    borderTopLeftRadius: Studently.radius.xl,
+    borderTopRightRadius: Studently.radius.xl,
     paddingBottom: 20,
   },
   sheetHandle: {
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
     marginTop: 10,
     marginBottom: 4,
   },
@@ -771,15 +771,15 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E8EDF4",
   },
   panelTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 17,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
@@ -793,16 +793,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 12,
     paddingVertical: 11,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
     borderColor: "transparent",
   },
   searchInput: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     padding: 0,
     outlineStyle: "none" as unknown as undefined,
   },
@@ -816,9 +816,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   empty: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
     paddingHorizontal: 12,
     paddingVertical: 18,
     textAlign: "center",
@@ -827,19 +827,19 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   optionOn: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   optionMarkFallback: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -850,30 +850,30 @@ const styles = StyleSheet.create({
   },
   monoLogoFrame: {
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     backgroundColor: "#fff",
   },
   optionLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 15,
     lineHeight: 20,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   optionLabelOn: {
-    fontFamily: Skoun.type.bodySemi,
-    color: Skoun.color.primary,
+    fontFamily: Studently.type.bodySemi,
+    color: Studently.color.primary,
   },
   optionDetail: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   checkBadge: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },

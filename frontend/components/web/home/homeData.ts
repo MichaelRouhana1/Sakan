@@ -1,5 +1,5 @@
 /**
- * Static marketing content — Amber homepage layout, Skoun product truth.
+ * Static marketing content — Amber homepage layout, Studently product truth.
  */
 
 import type { Ionicons } from "@expo/vector-icons";
@@ -457,7 +457,7 @@ export const VALUE_PROPS = [
   {
     id: "whatsapp",
     title: "WhatsApp in one tap",
-    body: "Open a pre-filled chat with the poster. Skoun is the bridge — deals stay between you.",
+    body: "Open a pre-filled chat with the poster. Studently is the bridge — deals stay between you.",
     icon: "logo-whatsapp" as const,
   },
   {
@@ -505,7 +505,7 @@ export const STEPS = [
   {
     n: "3",
     title: "Move forward",
-    body: "Agree offline. Skoun does not hold deposits or write leases.",
+    body: "Agree offline. Studently does not hold deposits or write leases.",
   },
 ] as const;
 

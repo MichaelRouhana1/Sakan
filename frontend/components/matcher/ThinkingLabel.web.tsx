@@ -4,7 +4,7 @@ export function ThinkingLabel() {
   return createElement(
     "span",
     {
-      className: "skoun-thinking",
+      className: "studently-thinking",
       "data-text": "Thinking...",
       role: "status",
     },

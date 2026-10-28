@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ListingGallery } from "@/components/listings/ListingGallery";
 import { ListingPinMap } from "@/components/listings/detail/ListingPinMap";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
 import type { Listing } from "@/types/listing";
 
@@ -56,7 +56,7 @@ function OverlayBtn({
       <Ionicons
         name={icon}
         size={20}
-        color={selected ? Skoun.color.danger : Skoun.color.ink}
+        color={selected ? Studently.color.danger : Studently.color.ink}
       />
     </Pressable>
   );
@@ -196,7 +196,7 @@ export function ListingDetailGallery({
 const styles = StyleSheet.create({
   wrap: {
     width: "100%",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   topBar: {
     position: "absolute",
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   },
   dotOn: {
     width: 16,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   modePill: {
     flexDirection: "row",
@@ -262,13 +262,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  modeOptOn: { backgroundColor: Skoun.color.surface },
+  modeOptOn: { backgroundColor: Studently.color.surface },
   modeText: {
-    color: Skoun.color.surface,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.surface,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
   },
-  modeTextOn: { color: Skoun.color.ink },
+  modeTextOn: { color: Studently.color.ink },
   countSlot: {
     flex: 1,
     alignItems: "flex-end",
@@ -277,10 +277,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(18,24,38,0.55)",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: Skoun.radius.pill,
+    borderRadius: Studently.radius.pill,
   },
   countText: {
-    color: Skoun.color.surface,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.surface,
+    fontFamily: Studently.type.bodySemi,
   },
 });

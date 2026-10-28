@@ -11,11 +11,11 @@ import {
   useIsSaved,
   useToggleSaved,
 } from "@/features/saved/useSavedListings";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import type { Listing } from "@/types/listing";
 
 const CARD_BORDER = "#E2E8F0";
@@ -66,7 +66,7 @@ export function ListingMapCarouselCard({ listing, width, onPress }: Props) {
             <Ionicons
               name="home-outline"
               size={28}
-              color={Skoun.color.inkFaint}
+              color={Studently.color.inkFaint}
             />
           </View>
         )}
@@ -120,7 +120,7 @@ export function ListingMapCarouselCard({ listing, width, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
     overflow: "hidden",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   mediaFallback: {
     ...StyleSheet.absoluteFillObject,
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    ...skounShadow({ y: 2, blur: 6, opacity: 0.12, elevation: 2 }),
+    ...studentlyShadow({ y: 2, blur: 6, opacity: 0.12, elevation: 2 }),
   },
   body: {
     height: MAP_CAROUSEL_BODY_H,
@@ -160,17 +160,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
     lineHeight: 21,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.15,
   },
   meta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 17,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     marginTop: 2,
   },
   divider: {
@@ -181,21 +181,21 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
   },
   priceLine: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
   },
   from: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   price: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 17,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   unit: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

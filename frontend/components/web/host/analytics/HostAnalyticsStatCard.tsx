@@ -9,7 +9,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 export type AnalyticsCardIcon = keyof typeof Ionicons.glyphMap;
 
@@ -105,7 +105,7 @@ export function AnalyticsCardIconMark({
       <Ionicons
         name={name}
         size={20}
-        color={warning ? Skoun.color.warning : Skoun.color.primary}
+        color={warning ? Studently.color.warning : Studently.color.primary}
       />
     </View>
   );
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   cardSolid: {
     borderColor: "#E2E8F0",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   cardCompact: {
     flexBasis: "47%",
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     overflow: "visible",
   },
   cardWarning: {
-    backgroundColor: Skoun.color.warningSoft,
+    backgroundColor: Studently.color.warningSoft,
     borderColor: "rgba(180,83,9,0.22)",
   },
   cardGlass: {
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     borderColor: web ? "transparent" : "rgba(226,232,240,0.95)",
   },
   glassPaneWarningNative: {
-    backgroundColor: Skoun.color.warningSoft,
+    backgroundColor: Studently.color.warningSoft,
     borderColor: "rgba(180,83,9,0.22)",
   },
   glassSheenClip: {
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   label: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     color: "#8B95A1",
     textTransform: "uppercase",
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     ...(web ? { cursor: "pointer" as const } : null),
   },
   hintMark: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 10,
     lineHeight: 12,
     color: "#8B95A1",
@@ -312,23 +312,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     ...(web
       ? { boxShadow: "0 10px 24px rgba(18,24,38,0.18)" }
       : null),
   },
   tooltipText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
     color: "#FFFFFF",
   },
   value: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 32,
     lineHeight: 36,
     letterSpacing: -0.8,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   valueCompact: {
     fontSize: 28,

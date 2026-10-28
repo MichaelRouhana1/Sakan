@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 type Props = {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -25,7 +25,7 @@ export function WebEmptyState({
   return (
     <View style={styles.wrap} accessibilityRole="text">
       <View style={styles.iconRing}>
-        <Ionicons name={icon} size={32} color={Skoun.color.primary} />
+        <Ionicons name={icon} size={32} color={Studently.color.primary} />
       </View>
       <LText variant="title" style={styles.title}>
         {title}
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   title: {
     textAlign: "center",
     marginBottom: 8,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   message: {
     textAlign: "center",

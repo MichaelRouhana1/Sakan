@@ -23,7 +23,7 @@ import {
   useLiveLebanonAreaGroups,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
   WEB_CONTENT_PAD_X,
@@ -111,7 +111,7 @@ function FilterPill({
             name={icon}
             size={15}
             color={
-              active || open ? Skoun.color.primaryDeep : Skoun.color.inkMuted
+              active || open ? Studently.color.primaryDeep : Studently.color.inkMuted
             }
           />
         ) : null}
@@ -126,7 +126,7 @@ function FilterPill({
             name="chevron-down"
             size={12}
             color={
-              active || open ? Skoun.color.primaryDeep : Skoun.color.inkFaint
+              active || open ? Studently.color.primaryDeep : Studently.color.inkFaint
             }
           />
         ) : null}
@@ -312,12 +312,12 @@ export function FindFilterBar({
             <Ionicons
               name="search-outline"
               size={15}
-              color={Skoun.color.primaryDeep}
+              color={Studently.color.primaryDeep}
             />
             <LText variant="caption" style={[styles.pillLabel, styles.pillLabelActive]}>
               {filters.q}
             </LText>
-            <Ionicons name="close" size={14} color={Skoun.color.primaryDeep} />
+            <Ionicons name="close" size={14} color={Studently.color.primaryDeep} />
           </Pressable>
         ) : null}
 
@@ -611,27 +611,27 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
     flexShrink: 0,
   },
   pillMuted: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   pillActive: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   pillHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   pillLabel: {
     fontSize: 13,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontWeight: "600",
   },
   pillLabelActive: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   clearBtn: {
     paddingHorizontal: 10,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   clearLabel: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "700",
     fontSize: 15,
   },
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   groupLabel: {
     marginTop: 4,
     marginBottom: 2,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontWeight: "700",
     fontSize: 13,
   },
@@ -665,7 +665,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   areaGroupLabel: {
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
     fontWeight: "700",
     letterSpacing: 0.3,
     textTransform: "uppercase",

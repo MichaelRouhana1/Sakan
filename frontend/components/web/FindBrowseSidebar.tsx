@@ -10,23 +10,23 @@ import {
   type ViewStyle,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_SIDEBAR_STICKY_TOP } from "@/constants/webLayout";
 import {
-  createSkounPreviewMap,
-  destroySkounMap,
+  createStudentlyPreviewMap,
+  destroyStudentlyMap,
   loadMapbox,
   makeMarker,
   pricePinHtml,
   type MapboxGL,
   type MapboxMap,
   type Marker,
-} from "@/lib/skounMapbox.web";
+} from "@/lib/studentlyMapbox.web";
 import type { Listing } from "@/types/listing";
 import { groupListingsByPlace } from "@/lib/mapPinGroups";
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
-const SKOUN_BLUE = "#2F6FED";
+const STUDENTLY_BLUE = "#2F6FED";
 const CARD_BORDER = "#E2E8F0";
 const ROW_BORDER = "#F1F5F9";
 
@@ -60,7 +60,7 @@ const USP_ITEMS = [
   {
     id: "free",
     title: "Free to browse & list",
-    body: "Finding a room doesn’t cost you. Posters can list without paying Skoun. Keep the conversation on WhatsApp.",
+    body: "Finding a room doesn’t cost you. Posters can list without paying Studently. Keep the conversation on WhatsApp.",
     icon: "shield-checkmark-outline" as const,
   },
 ] as const;
@@ -107,7 +107,7 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
       try {
         const gl = await loadMapbox();
         if (cancelled || !hostRef.current) return;
-        const map = createSkounPreviewMap(gl, hostRef.current, BEIRUT, 13.2);
+        const map = createStudentlyPreviewMap(gl, hostRef.current, BEIRUT, 13.2);
         if (!map) return;
         glRef.current = gl;
         mapRef.current = map;
@@ -122,7 +122,7 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
       setReady(false);
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];
-      destroySkounMap(mapRef.current);
+      destroyStudentlyMap(mapRef.current);
       mapRef.current = null;
       glRef.current = null;
     };
@@ -161,7 +161,7 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
   return (
     <div
       ref={hostRef}
-      className="skoun-mapbox-map"
+      className="studently-mapbox-map"
       aria-hidden
       style={{
         position: "absolute",
@@ -200,7 +200,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
                 pressed && styles.mapBtnPressed,
               ]}
             >
-              <Ionicons name="map-outline" size={15} color={SKOUN_BLUE} />
+              <Ionicons name="map-outline" size={15} color={STUDENTLY_BLUE} />
               <LText variant="label" style={styles.mapBtnLabel}>
                 Explore on map
               </LText>
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     height: 130, // w-full h-[130px]
     position: "relative",
     overflow: "hidden",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 12,
     paddingLeft: 52,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 18,
     fontSize: 12,
   },

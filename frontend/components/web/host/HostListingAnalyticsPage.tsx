@@ -36,7 +36,7 @@ import {
   POSTER_ANALYTICS_TAB,
 } from "@/constants/hostRoutes";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { HostAnalyticsListing } from "@/features/listings/hostAnalytics";
 import { useListing } from "@/features/listings/useListing";
 import { useListingAnalytics } from "@/features/listings/useListingAnalytics";
@@ -147,7 +147,7 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
     );
   } else if (!data && !isError && (isFetching || isPending)) {
     body = (
-      <ActivityIndicator color={Skoun.color.primary} style={styles.loader} />
+      <ActivityIndicator color={Studently.color.primary} style={styles.loader} />
     );
   } else if (!data) {
     const is404 = statusCode === 404;
@@ -232,8 +232,8 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
         <RefreshControl
           refreshing={isFetching && !isLoading}
           onRefresh={() => void refetch()}
-          tintColor={Skoun.color.primary}
-          colors={[Skoun.color.primary]}
+          tintColor={Studently.color.primary}
+          colors={[Studently.color.primary]}
         />
       }
     >
@@ -306,7 +306,7 @@ function IdentityColumn({
           >
             {cardPending ? (
               <ActivityIndicator
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
                 style={styles.cardSkeletonSpinner}
               />
             ) : null}
@@ -485,9 +485,9 @@ const styles = StyleSheet.create({
     ...(web ? { cursor: "pointer" as const } : null),
   },
   backLinkText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textDecorationLine: "underline",
   },
   pressed: {
@@ -562,9 +562,9 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 24,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.4,
   },
   statusRow: {
@@ -574,16 +574,16 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   daysLeft: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   trust: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   numbers: {
     gap: 10,
@@ -618,10 +618,10 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   comingLine: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   metaCard: {
     paddingHorizontal: 20,
@@ -668,34 +668,34 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     color: "#8B95A1",
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
   metaExpiresValue: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.3,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   metaPublishedValue: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 20,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   metaMutedValue: {
-    fontFamily: Skoun.type.body,
-    color: Skoun.color.inkMuted,
+    fontFamily: Studently.type.body,
+    color: Studently.color.inkMuted,
   },
   metaCreated: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#DDDDDD",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 14,
@@ -723,13 +723,13 @@ const styles = StyleSheet.create({
       : null),
   },
   viewBtnPressed: {
-    borderColor: Skoun.color.primarySoft,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderColor: Studently.color.primarySoft,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   viewBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   loader: {
     marginTop: 48,
@@ -745,14 +745,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   emptyBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textAlign: "center",
     maxWidth: 360,
   },
@@ -761,19 +761,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     ...(web ? { cursor: "pointer" as const } : null),
   },
   retryText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     color: "#FFFFFF",
   },
   refreshHint: {
     marginTop: 12,
     textAlign: "center",
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

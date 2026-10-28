@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { NearLandmark } from "@/components/listings/NearLandmark";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { labelGenderRestriction, labelListingType } from "@/lib/listingLabels";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
@@ -68,7 +68,7 @@ export function CoincidentListingsSection({ listings }: Props) {
                     <Ionicons
                       name="home-outline"
                       size={18}
-                      color={Skoun.color.inkFaint}
+                      color={Studently.color.inkFaint}
                     />
                   </View>
                 )}
@@ -97,7 +97,7 @@ export function CoincidentListingsSection({ listings }: Props) {
               <Ionicons
                 name="chevron-forward"
                 size={18}
-                color={Skoun.color.inkFaint}
+                color={Studently.color.inkFaint}
               />
             </Pressable>
           );
@@ -121,26 +121,26 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   rowLast: {
     borderBottomWidth: 0,
   },
   rowPressed: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   thumb: {
     width: 56,
     height: 56,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     overflow: "hidden",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   thumbFallback: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   rowBody: { flex: 1, gap: 2 },
   price: {

@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 export type DetailSectionId =
   | "description"
@@ -58,9 +58,9 @@ export function ListingDetailSectionTabs({ tabs, activeId, onJump }: Props) {
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   row: {
     paddingHorizontal: 8,
@@ -73,12 +73,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
   },
   labelOn: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   underline: {
     marginTop: 10,
@@ -88,6 +88,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   underlineOn: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
 });

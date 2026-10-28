@@ -5,17 +5,12 @@ import {build} from '../../backend/node_modules/esbuild/lib/main.js';
 import {chromium,expect} from '@playwright/test';
 import {createServer} from 'node:http';
 import {once} from 'node:events';
-import {existsSync} from 'node:fs';
 import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
 const root=path.resolve(import.meta.dirname,'..'),out=path.join(root,'.expo/auth-signin-code-ui');await mkdir(out,{recursive:true});
-// The modal file carries the product name; resolve whichever name this checkout uses.
-const modalFile=['StudentlyAuthModal','SkounAuthModal'].find(name=>existsSync(path.join(root,'components/auth',name+'.tsx')));
-assert.ok(modalFile,'auth modal component not found');
-const entry=`import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import * as Modal from './components/auth/${modalFile}';
-const AuthModal=Object.values(Modal).find(value=>typeof value===\u0027function\u0027);
+const entry=`import React,{useState} from 'react';import {createRoot} from 'react-dom/client';import {StudentlyAuthModal as AuthModal} from './components/auth/StudentlyAuthModal';
 function Host(){const [visible,setVisible]=useState(true);window.modalClosed=!visible;return <AuthModal visible={visible} onClose={()=>setVisible(false)} onSuccess={id=>{window.successId=id;}}/>}
 createRoot(document.getElementById('root')).render(<Host/>);`;
 const stubs={

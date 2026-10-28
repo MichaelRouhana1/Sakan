@@ -5,7 +5,7 @@ import { handoffWhatsApp } from "../lib/whatsappHandoff.ts";
 import { openWhatsAppUrl } from "../lib/openWhatsAppUrl.web.ts";
 
 const base = { propertyType: "studio", area: "Hamra", monthlyRentUsd: 650 };
-const intro = "hi — interested in your studio in Hamra on skoun ($650/mo).";
+const intro = "hi — interested in your studio in Hamra on studently ($650/mo).";
 const empty = `${intro}\nmove-in date:\nwho's moving in (count / students or work):\nok with listed rent + what's included?:`;
 
 test("empty answers preserve the existing template; partial answers trim only their edges", () => {

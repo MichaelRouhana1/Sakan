@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { PaperPlaneArrow } from "@/components/icons/PaperPlaneArrow";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { OFFSCREEN_BEACON_SIZE } from "@/lib/offscreenBeacon";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 
 export type OffscreenArrowTone = "ink" | "danger";
 
@@ -22,8 +22,8 @@ const SELECTED_PIN_RED_DEEP = "#8E241A";
 
 const TONE = {
   ink: {
-    backgroundColor: Skoun.color.ink,
-    hoverBackgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.ink,
+    hoverBackgroundColor: Studently.color.primary,
     borderColor: "#E8EEF6",
     hoverBorderColor: "#FFFFFF",
     zIndex: 480,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    ...skounShadow({ y: 3, blur: 8, opacity: 0.28, elevation: 6 }),
+    ...studentlyShadow({ y: 3, blur: 8, opacity: 0.28, elevation: 6 }),
     cursor: "pointer" as unknown as undefined,
   },
   circlePressed: {

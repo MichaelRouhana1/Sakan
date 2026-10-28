@@ -60,7 +60,7 @@ try{
   await expect.poll(cardIds).toEqual(['f','u1','u2']);
   assert.equal(requests.filter(p=>p.view!=='map').at(-1).page,'1');
   await page.getByLabel('Close filter menu').click({position:{x:10,y:300}});
-  await page.evaluate(()=>{window.scrollTo(0,0);document.getElementById('skoun-web-shell')?.scrollTo(0,0)});
+  await page.evaluate(()=>{window.scrollTo(0,0);document.getElementById('studently-web-shell')?.scrollTo(0,0)});
   await page.screenshot({path:path.join(output,'search-desktop.png'),fullPage:false});
   await page.setViewportSize({width:390,height:844});
   await expect(page.getByText('Talk to posters directly',{exact:false})).toHaveCount(0);

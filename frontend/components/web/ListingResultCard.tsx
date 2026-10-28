@@ -21,7 +21,7 @@ import {
   useIsSaved,
   useToggleSaved,
 } from "@/features/saved/useSavedListings";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
   formatCampusWalkLine,
@@ -427,7 +427,7 @@ export function ListingResultCard({
 
           {proximity ? (
             <View style={styles.proximityRow}>
-              <MapPin size={12} color={Skoun.color.inkMuted} strokeWidth={2} />
+              <MapPin size={12} color={Studently.color.inkMuted} strokeWidth={2} />
               <Text style={styles.proximityText} numberOfLines={2}>
                 {proximity}
               </Text>
@@ -582,7 +582,7 @@ export function ListingResultCard({
             importantForAccessibility={proximity ? "yes" : "no-hide-descendants"}
           >
             {proximity ? (
-              <MapPin size={11} color={Skoun.color.inkMuted} strokeWidth={2} />
+              <MapPin size={11} color={Studently.color.inkMuted} strokeWidth={2} />
             ) : null}
             <Text style={styles.gridProximity} numberOfLines={1}>
               {proximity ?? "\u00A0"}
@@ -613,7 +613,7 @@ export function ListingResultCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     bottom: 8,
     height: 48,
     borderRadius: 16,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     boxShadow: "0 3px 8px rgba(18, 24, 38, 0.28)",
   },
   listBottomGlowOn: {
@@ -701,15 +701,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 17,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.25,
   },
   meta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   proximityRow: {
     flexDirection: "row",
@@ -719,9 +719,9 @@ const styles = StyleSheet.create({
   },
   proximityText: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 17,
   },
   divider: {
@@ -791,41 +791,41 @@ const styles = StyleSheet.create({
   },
   heartGlyph: {
     fontSize: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   heartOn: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   priceBlock: {
     gap: 4,
     alignItems: "stretch",
   },
   priceFrom: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   price: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.3,
   },
   priceUnit: {
     fontSize: 13,
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.inkMuted,
   },
   cta: {
     marginTop: 10,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     paddingVertical: 11,
     paddingHorizontal: 12,
     borderRadius: 10,
     alignItems: "center",
   },
   ctaText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 13,
     color: "#FFFFFF",
   },
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
     overflow: "hidden",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   gridHeart: {
     position: "absolute",
@@ -875,17 +875,17 @@ const styles = StyleSheet.create({
     paddingRight: 4,
   },
   gridTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
     lineHeight: 21,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.15,
   },
   gridMeta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   gridPriceCol: {
     alignItems: "flex-end",
@@ -893,29 +893,29 @@ const styles = StyleSheet.create({
     paddingTop: 1,
   },
   gridFrom: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     lineHeight: 14,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   gridPrice: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 17,
     lineHeight: 21,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.2,
   },
   gridPriceUnit: {
     fontSize: 11,
-    fontFamily: Skoun.type.body,
-    color: Skoun.color.inkMuted,
+    fontFamily: Studently.type.body,
+    color: Studently.color.inkMuted,
   },
   gridProximity: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     lineHeight: 15,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   gridProximityRow: {
     flexDirection: "row",

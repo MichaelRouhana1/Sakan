@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingBrowseMap } from "@/components/listings/ListingBrowseMap";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { CampusMeta, Listing } from "@/types/listing";
 
 type Props = {
@@ -63,7 +63,7 @@ export function FindMapPane({
               hovered && styles.closeHover,
             ]}
           >
-            <Ionicons name="close" size={16} color={Skoun.color.inkMuted} />
+            <Ionicons name="close" size={16} color={Studently.color.inkMuted} />
             <LText variant="caption" style={styles.closeLabel}>
               Close map
             </LText>
@@ -82,7 +82,7 @@ export function FindMapPane({
           <LText variant="caption" style={styles.closeFloatLabel}>
             Close Map
           </LText>
-          <Ionicons name="close" size={14} color={Skoun.color.ink} />
+          <Ionicons name="close" size={14} color={Studently.color.ink} />
         </Pressable>
       ) : null}
       <View style={[styles.mapWrap, fullHeight && styles.mapWrapFull]}>
@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
   pane: {
     width: 360,
     flexShrink: 0,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     overflow: "hidden",
     maxHeight: "calc(100vh - 120px)" as unknown as number,
   },
@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderBottomColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
   },
   title: {
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   close: {
     flexDirection: "row",
@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   closeHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   closeLabel: {
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
   },
   closeFloat: {
     position: "absolute",
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   closeFloatLabel: {
     color: "#1E293B",
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 12,
   },
   mapWrap: {

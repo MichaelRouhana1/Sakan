@@ -106,11 +106,11 @@ export function TrendChart({ points, series }: Props) {
           onClick={(event) => setHover(indexFromClientX(event))}
         >
           <defs>
-            <linearGradient id="skoun-renter-fill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="studently-renter-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={MOSS} stopOpacity="0.28" />
               <stop offset="100%" stopColor={MOSS} stopOpacity="0.02" />
             </linearGradient>
-            <linearGradient id="skoun-poster-fill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="studently-poster-fill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={OCHRE} stopOpacity="0.26" />
               <stop offset="100%" stopColor={OCHRE} stopOpacity="0.02" />
             </linearGradient>
@@ -140,10 +140,10 @@ export function TrendChart({ points, series }: Props) {
           ))}
 
           {showRenters ? (
-            <path d={plot.renterArea} fill="url(#skoun-renter-fill)" />
+            <path d={plot.renterArea} fill="url(#studently-renter-fill)" />
           ) : null}
           {showPosters ? (
-            <path d={plot.posterArea} fill="url(#skoun-poster-fill)" />
+            <path d={plot.posterArea} fill="url(#studently-poster-fill)" />
           ) : null}
           {showRenters ? (
             <path

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 
 const listeners = new Set<(open: boolean) => void>();
 
@@ -19,7 +19,7 @@ export function SaveAuthPrompt() {
   }, []);
 
   return (
-    <SkounAuthModal
+    <StudentlyAuthModal
       visible={open}
       onClose={() => setOpen(false)}
       onSuccess={() => setOpen(false)}

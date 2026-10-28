@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   hasUsableWhatsAppPhone,
   listingAllowsWhatsApp,
@@ -56,7 +56,7 @@ export function ListingDetailBottomBar({
           <Ionicons
             name="logo-whatsapp"
             size={18}
-            color={Skoun.color.surface}
+            color={Studently.color.surface}
           />
           <LText variant="subtitle" style={styles.primaryText}>
             WhatsApp
@@ -74,7 +74,7 @@ export function ListingDetailBottomBar({
           <Ionicons
             name="call-outline"
             size={18}
-            color={canContact ? Skoun.color.primary : Skoun.color.surface}
+            color={canContact ? Studently.color.primary : Studently.color.surface}
           />
           <LText
             variant="subtitle"
@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingTop: 10,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
   },
   primary: {
     flex: 1.4,
@@ -138,12 +138,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     borderRadius: 12,
     paddingVertical: 14,
   },
   primaryOff: { opacity: 0.5 },
-  primaryText: { color: Skoun.color.surface },
+  primaryText: { color: Studently.color.surface },
   outline: {
     flex: 1,
     flexDirection: "row",
@@ -153,9 +153,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.surface,
   },
-  outlineText: { color: Skoun.color.primary },
-  reportedText: { color: Skoun.color.inkMuted },
+  outlineText: { color: Studently.color.primary },
+  reportedText: { color: Studently.color.inkMuted },
 });

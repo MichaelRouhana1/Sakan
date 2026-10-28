@@ -6,7 +6,7 @@ import {randomUUID,createHash} from 'node:crypto';
 import postgres from 'postgres';
 const url=new URL(process.env.DATABASE_URL);
 if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname))throw new Error('Loopback database required');
-const name='skoun_inventory_test_'+randomUUID().replaceAll('-','');
+const name='studently_inventory_test_'+randomUUID().replaceAll('-','');
 const admin=postgres(url.toString(),{max:1,onnotice:()=>{}});
 let client;let passed=0;
 const check=async(name,fn)=>{await fn();passed++;console.log('PASS '+name)};

@@ -14,7 +14,7 @@ import {
   useIsSaved,
   useToggleSaved,
 } from "@/features/saved/useSavedListings";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import {
   formatCampusWalkLine,
@@ -108,7 +108,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
 
         {proximity ? (
           <View style={styles.proximityRow}>
-            <MapPin size={11} color={Skoun.color.inkMuted} strokeWidth={2} />
+            <MapPin size={11} color={Studently.color.inkMuted} strokeWidth={2} />
             <Text style={styles.proximity} numberOfLines={2}>
               {proximity}
             </Text>
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
     borderColor: CARD_BORDER,
     flexDirection: "row",
@@ -216,15 +216,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.2,
   },
   meta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   proximityRow: {
     flexDirection: "row",
@@ -234,9 +234,9 @@ const styles = StyleSheet.create({
   },
   proximity: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 15,
   },
   divider: {
@@ -276,28 +276,28 @@ const styles = StyleSheet.create({
   },
   heartGlyph: {
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   heartOn: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   priceBlock: {
     gap: 2,
   },
   priceFrom: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   price: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.3,
   },
   priceUnit: {
     fontSize: 11,
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.inkMuted,
   },
 });

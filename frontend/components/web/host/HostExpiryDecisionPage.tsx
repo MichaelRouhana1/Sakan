@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { HostNotificationPreferences } from "@/components/web/host/HostNotificationPreferences";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   useExpiryDecision,
   useRenewListing,
@@ -38,7 +38,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
   const [renewedNow, setRenewedNow] = useState(false);
 
   if (query.isLoading) {
-    return <View style={styles.center}><ActivityIndicator color={Skoun.color.primary} /></View>;
+    return <View style={styles.center}><ActivityIndicator color={Studently.color.primary} /></View>;
   }
   if (!query.data || query.isError) {
     return (
@@ -109,14 +109,14 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
           onPress={() => router.replace(HOST_LISTINGS_PATH as never)}
           style={styles.back}
         >
-          <Ionicons name="arrow-back" size={18} color={Skoun.color.ink} />
+          <Ionicons name="arrow-back" size={18} color={Studently.color.ink} />
           <Text style={styles.backText}>Your listings</Text>
         </Pressable>
 
         <View style={[styles.hero, compact && styles.heroCompact]}>
           <View style={[styles.media, compact && styles.mediaCompact]}>
             {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
-              <View style={styles.placeholder}><Ionicons name="image-outline" size={32} color={Skoun.color.inkFaint} /></View>
+              <View style={styles.placeholder}><Ionicons name="image-outline" size={32} color={Studently.color.inkFaint} /></View>
             )}
           </View>
           <View style={styles.heroCopy}>
@@ -124,7 +124,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
             <Text style={styles.headline}>{resolvedOutcome ? outcomeTitle(resolvedOutcome) : liveAhead ? "Listing is live" : approachingExpiry ? "Still available?" : "Was it rented?"}</Text>
             <Text style={styles.lede}>
               {resolvedOutcome
-                ? "This listing cycle is resolved. Its history stays saved for you and the Skoun team."
+                ? "This listing cycle is resolved. Its history stays saved for you and the Studently team."
                 : liveAhead
                   ? `This listing is active until ${new Date(data.cycleExpiresAt).toLocaleDateString()}. Come back near expiry to review it.`
                 : approachingExpiry
@@ -142,7 +142,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
 
         {resolvedOutcome || liveAhead ? (
           <View style={styles.resolvedCard}>
-            <Ionicons name="checkmark-circle" size={28} color={Skoun.color.primary} />
+            <Ionicons name="checkmark-circle" size={28} color={Studently.color.primary} />
             <View style={styles.flex}>
               <Text style={styles.cardTitle}>{resolvedOutcome ? outcomeTitle(resolvedOutcome) : "Listing is live"}</Text>
               <Text style={styles.cardBody}>
@@ -172,7 +172,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
                 )}
                 <DecisionButton icon="archive-outline" label="Archive / take down" detail="Keep the listing saved but hidden" quiet onPress={() => void choose("archive")} disabled={busy} />
               </View>
-              {busy ? <ActivityIndicator color={Skoun.color.primary} style={styles.busy} /> : null}
+              {busy ? <ActivityIndicator color={Studently.color.primary} style={styles.busy} /> : null}
               {needsCredit ? (
                 <ActionButton
                   label="Get a post credit"
@@ -188,7 +188,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
               </View>
               {data.checklist.map((item) => (
                 <View key={item.id} style={styles.checkRow}>
-                  <Ionicons name={item.complete ? "checkmark-circle" : "alert-circle-outline"} size={20} color={item.complete ? Skoun.color.primary : Skoun.color.warning} />
+                  <Ionicons name={item.complete ? "checkmark-circle" : "alert-circle-outline"} size={20} color={item.complete ? Studently.color.primary : Studently.color.warning} />
                   <Text style={styles.checkText}>{item.label}</Text>
                 </View>
               ))}
@@ -238,9 +238,9 @@ function DecisionButton(props: {
       onBlur={() => setFocused(false)}
       style={({ pressed }) => [styles.decision, props.primary && styles.decisionPrimary, props.quiet && styles.decisionQuiet, focused && styles.focusRing, pressed && styles.pressed, props.disabled && styles.disabled]}
     >
-      <View style={[styles.decisionIcon, props.primary && styles.decisionIconPrimary]}><Ionicons name={props.icon} size={20} color={props.primary ? "#FFFFFF" : Skoun.color.primary} /></View>
+      <View style={[styles.decisionIcon, props.primary && styles.decisionIconPrimary]}><Ionicons name={props.icon} size={20} color={props.primary ? "#FFFFFF" : Studently.color.primary} /></View>
       <View style={styles.flex}><Text style={[styles.decisionLabel, props.primary && styles.decisionLabelPrimary]}>{props.label}</Text><Text style={[styles.decisionDetail, props.primary && styles.decisionDetailPrimary]}>{props.detail}</Text></View>
-      <Ionicons name="chevron-forward" size={18} color={props.primary ? "#FFFFFF" : Skoun.color.inkMuted} />
+      <Ionicons name="chevron-forward" size={18} color={props.primary ? "#FFFFFF" : Studently.color.inkMuted} />
     </Pressable>
   );
 }
@@ -251,63 +251,63 @@ function ActionButton({ label, onPress, small = false }: { label: string; onPres
 }
 
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, backgroundColor: Skoun.color.bg, paddingBottom: 56 },
+  scroll: { flexGrow: 1, backgroundColor: Studently.color.bg, paddingBottom: 56 },
   page: { width: "100%", maxWidth: 1100, alignSelf: "center", paddingHorizontal: 36, paddingTop: 28 },
   pageCompact: { paddingHorizontal: 18, paddingTop: 18 },
-  center: { flex: 1, minHeight: 420, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: Skoun.color.bg },
-  errorTitle: { fontFamily: Skoun.type.bodyBold, fontSize: 22, color: Skoun.color.ink, textAlign: "center" },
-  errorBody: { fontFamily: Skoun.type.body, fontSize: 15, color: Skoun.color.inkMuted, textAlign: "center" },
+  center: { flex: 1, minHeight: 420, alignItems: "center", justifyContent: "center", padding: 24, gap: 12, backgroundColor: Studently.color.bg },
+  errorTitle: { fontFamily: Studently.type.bodyBold, fontSize: 22, color: Studently.color.ink, textAlign: "center" },
+  errorBody: { fontFamily: Studently.type.body, fontSize: 15, color: Studently.color.inkMuted, textAlign: "center" },
   back: { flexDirection: "row", alignItems: "center", gap: 7, alignSelf: "flex-start", paddingVertical: 8, marginBottom: 18, cursor: "pointer" },
-  backText: { fontFamily: Skoun.type.bodySemi, fontSize: 14, color: Skoun.color.ink },
-  hero: { flexDirection: "row", gap: 28, alignItems: "stretch", padding: 22, borderRadius: 24, backgroundColor: Skoun.color.primaryDeep, overflow: "hidden" },
+  backText: { fontFamily: Studently.type.bodySemi, fontSize: 14, color: Studently.color.ink },
+  hero: { flexDirection: "row", gap: 28, alignItems: "stretch", padding: 22, borderRadius: 24, backgroundColor: Studently.color.primaryDeep, overflow: "hidden" },
   heroCompact: { flexDirection: "column", padding: 16, gap: 18 },
-  media: { width: 280, minHeight: 210, borderRadius: 17, overflow: "hidden", backgroundColor: Skoun.color.bgWash },
+  media: { width: 280, minHeight: 210, borderRadius: 17, overflow: "hidden", backgroundColor: Studently.color.bgWash },
   mediaCompact: { width: "100%", minHeight: 200 },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   heroCopy: { flex: 1, justifyContent: "center", gap: 8 },
-  eyebrow: { fontFamily: Skoun.type.bodyBold, fontSize: 11, letterSpacing: 1.7, textTransform: "uppercase", color: Skoun.color.primarySoft },
-  headline: { fontFamily: Skoun.type.displaySerif, fontSize: 38, lineHeight: 44, color: "#FFFFFF" },
-  lede: { fontFamily: Skoun.type.body, fontSize: 15, lineHeight: 22, color: "#D7DEE9", maxWidth: 560 },
+  eyebrow: { fontFamily: Studently.type.bodyBold, fontSize: 11, letterSpacing: 1.7, textTransform: "uppercase", color: Studently.color.primarySoft },
+  headline: { fontFamily: Studently.type.displaySerif, fontSize: 38, lineHeight: 44, color: "#FFFFFF" },
+  lede: { fontFamily: Studently.type.body, fontSize: 15, lineHeight: 22, color: "#D7DEE9", maxWidth: 560 },
   listingMeta: { marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.16)", gap: 3 },
-  listingTitle: { fontFamily: Skoun.type.bodySemi, fontSize: 15, color: "#FFFFFF" },
-  listingSub: { fontFamily: Skoun.type.body, fontSize: 13, color: "#C5CDD8" },
-  notice: { marginTop: 16, borderRadius: 12, backgroundColor: Skoun.color.primaryMist, padding: 13 },
-  noticeText: { fontFamily: Skoun.type.bodyMedium, fontSize: 14, color: Skoun.color.ink },
+  listingTitle: { fontFamily: Studently.type.bodySemi, fontSize: 15, color: "#FFFFFF" },
+  listingSub: { fontFamily: Studently.type.body, fontSize: 13, color: "#C5CDD8" },
+  notice: { marginTop: 16, borderRadius: 12, backgroundColor: Studently.color.primaryMist, padding: 13 },
+  noticeText: { fontFamily: Studently.type.bodyMedium, fontSize: 14, color: Studently.color.ink },
   contentGrid: { flexDirection: "row", gap: 20, alignItems: "flex-start", marginTop: 22 },
   contentGridCompact: { flexDirection: "column" },
-  actionsCard: { flex: 1.1, width: "100%", borderRadius: 20, borderWidth: 1, borderColor: Skoun.color.border, backgroundColor: Skoun.color.surface, padding: 20 },
-  checklistCard: { flex: 0.9, width: "100%", borderRadius: 20, borderWidth: 1, borderColor: Skoun.color.border, backgroundColor: Skoun.color.surface, padding: 20, gap: 13 },
-  sectionTitle: { fontFamily: Skoun.type.bodyBold, fontSize: 19, color: Skoun.color.ink },
-  sectionBody: { fontFamily: Skoun.type.body, fontSize: 14, lineHeight: 20, color: Skoun.color.inkMuted, marginTop: 4 },
+  actionsCard: { flex: 1.1, width: "100%", borderRadius: 20, borderWidth: 1, borderColor: Studently.color.border, backgroundColor: Studently.color.surface, padding: 20 },
+  checklistCard: { flex: 0.9, width: "100%", borderRadius: 20, borderWidth: 1, borderColor: Studently.color.border, backgroundColor: Studently.color.surface, padding: 20, gap: 13 },
+  sectionTitle: { fontFamily: Studently.type.bodyBold, fontSize: 19, color: Studently.color.ink },
+  sectionBody: { fontFamily: Studently.type.body, fontSize: 14, lineHeight: 20, color: Studently.color.inkMuted, marginTop: 4 },
   actionStack: { gap: 10, marginTop: 18 },
-  decision: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: Skoun.color.border, backgroundColor: Skoun.color.surfaceMuted, cursor: "pointer" },
-  decisionPrimary: { backgroundColor: Skoun.color.primary, borderColor: Skoun.color.primary },
+  decision: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 11, borderRadius: 14, borderWidth: 1, borderColor: Studently.color.border, backgroundColor: Studently.color.surfaceMuted, cursor: "pointer" },
+  decisionPrimary: { backgroundColor: Studently.color.primary, borderColor: Studently.color.primary },
   decisionQuiet: { backgroundColor: "transparent", borderColor: "transparent" },
-  decisionIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: Skoun.color.primaryMist },
+  decisionIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: Studently.color.primaryMist },
   decisionIconPrimary: { backgroundColor: "rgba(255,255,255,0.17)" },
-  decisionLabel: { fontFamily: Skoun.type.bodySemi, fontSize: 15, color: Skoun.color.ink },
+  decisionLabel: { fontFamily: Studently.type.bodySemi, fontSize: 15, color: Studently.color.ink },
   decisionLabelPrimary: { color: "#FFFFFF" },
-  decisionDetail: { fontFamily: Skoun.type.body, fontSize: 12, lineHeight: 17, color: Skoun.color.inkMuted, marginTop: 2 },
+  decisionDetail: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 17, color: Studently.color.inkMuted, marginTop: 2 },
   decisionDetailPrimary: { color: "#E8EEF6" },
   flex: { flex: 1 },
   pressed: { opacity: 0.82 },
-  focusRing: { outlineWidth: 3, outlineColor: Skoun.color.primarySoft, outlineOffset: 2 },
+  focusRing: { outlineWidth: 3, outlineColor: Studently.color.primarySoft, outlineOffset: 2 },
   disabled: { opacity: 0.55 },
   busy: { marginTop: 14 },
   checklistHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 },
-  scorePill: { borderRadius: 999, backgroundColor: Skoun.color.primaryMist, paddingHorizontal: 10, paddingVertical: 5 },
-  scoreText: { fontFamily: Skoun.type.bodySemi, fontSize: 11, color: Skoun.color.primaryDeep },
+  scorePill: { borderRadius: 999, backgroundColor: Studently.color.primaryMist, paddingHorizontal: 10, paddingVertical: 5 },
+  scoreText: { fontFamily: Studently.type.bodySemi, fontSize: 11, color: Studently.color.primaryDeep },
   checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  checkText: { flex: 1, fontFamily: Skoun.type.bodyMedium, fontSize: 14, lineHeight: 20, color: Skoun.color.ink },
-  editNote: { marginTop: 4, borderRadius: 12, backgroundColor: Skoun.color.warningSoft, padding: 12, gap: 4 },
-  editNoteTitle: { fontFamily: Skoun.type.bodySemi, fontSize: 13, color: Skoun.color.ink },
-  editNoteBody: { fontFamily: Skoun.type.body, fontSize: 12, lineHeight: 17, color: Skoun.color.inkMuted },
-  priceGuide: { fontFamily: Skoun.type.body, fontSize: 12, lineHeight: 17, color: Skoun.color.inkMuted },
-  resolvedCard: { marginTop: 22, flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 18, borderWidth: 1, borderColor: Skoun.color.border, backgroundColor: Skoun.color.surface, padding: 18 },
-  cardTitle: { fontFamily: Skoun.type.bodyBold, fontSize: 16, color: Skoun.color.ink },
-  cardBody: { fontFamily: Skoun.type.body, fontSize: 13, color: Skoun.color.inkMuted, marginTop: 2 },
-  button: { alignSelf: "flex-start", marginTop: 14, borderRadius: 10, backgroundColor: Skoun.color.primary, paddingHorizontal: 18, paddingVertical: 12, cursor: "pointer" },
+  checkText: { flex: 1, fontFamily: Studently.type.bodyMedium, fontSize: 14, lineHeight: 20, color: Studently.color.ink },
+  editNote: { marginTop: 4, borderRadius: 12, backgroundColor: Studently.color.warningSoft, padding: 12, gap: 4 },
+  editNoteTitle: { fontFamily: Studently.type.bodySemi, fontSize: 13, color: Studently.color.ink },
+  editNoteBody: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 17, color: Studently.color.inkMuted },
+  priceGuide: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 17, color: Studently.color.inkMuted },
+  resolvedCard: { marginTop: 22, flexDirection: "row", alignItems: "center", gap: 14, borderRadius: 18, borderWidth: 1, borderColor: Studently.color.border, backgroundColor: Studently.color.surface, padding: 18 },
+  cardTitle: { fontFamily: Studently.type.bodyBold, fontSize: 16, color: Studently.color.ink },
+  cardBody: { fontFamily: Studently.type.body, fontSize: 13, color: Studently.color.inkMuted, marginTop: 2 },
+  button: { alignSelf: "flex-start", marginTop: 14, borderRadius: 10, backgroundColor: Studently.color.primary, paddingHorizontal: 18, paddingVertical: 12, cursor: "pointer" },
   buttonSmall: { marginTop: 0, paddingVertical: 9, paddingHorizontal: 13 },
-  buttonText: { fontFamily: Skoun.type.bodySemi, fontSize: 14, color: "#FFFFFF" },
+  buttonText: { fontFamily: Studently.type.bodySemi, fontSize: 14, color: "#FFFFFF" },
   preferences: { marginTop: 24 },
 });

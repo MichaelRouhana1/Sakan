@@ -31,9 +31,9 @@ import {
 } from "@/components/listings/ListingMapCarousel";
 import { SwapHorizIcon } from "@/components/icons/SwapHorizIcon";
 import { CampusOffscreenArrow } from "@/components/listings/CampusOffscreenArrow";
-import { SkounMapPin, SKOUN_CAMPUS_PIN } from "@/components/listings/SkounMapPin";
+import { StudentlyMapPin, STUDENTLY_CAMPUS_PIN } from "@/components/listings/StudentlyMapPin";
 import { appleTabScrollInset } from "@/components/ui/Glass";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
 import {
   buildPinClusterIndex,
@@ -187,7 +187,7 @@ function PriceMarker({
     count > 1
       ? `${shortPriceLabel(amount)} · ${count}`
       : shortPriceLabel(amount);
-  // Static views only — SkounMapPin's Animated.View blanks on iOS MapKit markers.
+  // Static views only — StudentlyMapPin's Animated.View blanks on iOS MapKit markers.
   const fill = selected ? "#C23B2E" : "#2F6FED";
   const deep = selected ? "#8E241A" : "#121826";
 
@@ -1286,7 +1286,7 @@ export function ListingBrowseMap({
                         </LText>
                       </View>
                       <View style={styles.campusPinSlot} pointerEvents="box-none">
-                        <SkounMapPin
+                        <StudentlyMapPin
                           variant="campus"
                           dropped
                           selected={selected}
@@ -1422,7 +1422,7 @@ export function ListingBrowseMap({
             <Ionicons
               name={expanded ? "contract-outline" : "expand-outline"}
               size={20}
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
             />
           </Pressable>
         ) : null}
@@ -1529,11 +1529,11 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   mapShell: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.bgWash,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.bgWash,
     position: "relative",
   },
   mapShellFill: {
@@ -1556,7 +1556,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.94)",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     shadowColor: "#121826",
     shadowOpacity: 0.12,
     shadowRadius: 4,
@@ -1606,19 +1606,19 @@ const styles = StyleSheet.create({
   pricePill: {
     minHeight: 22,
     maxWidth: MARKER_W - 4,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     marginBottom: 2,
     alignItems: "center",
     justifyContent: "center",
   },
   priceText: {
     ...rentPriceTypeCompact,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   clusterBubble: {
     alignItems: "center",
@@ -1634,7 +1634,7 @@ const styles = StyleSheet.create({
   },
   clusterText: {
     color: "#FFFFFF",
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 13,
   },
   clusterTextLg: {
@@ -1668,7 +1668,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1.5,
     borderColor: SELECTED_LINE,
     alignItems: "center",
@@ -1681,7 +1681,7 @@ const styles = StyleSheet.create({
   },
   distanceBadgeText: {
     color: "#8E241A",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
   },
   campusNamed: {
@@ -1701,7 +1701,7 @@ const styles = StyleSheet.create({
   },
   campusNameText: {
     color: "#2A1F14",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     textAlign: "center",
   },
@@ -1709,15 +1709,15 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   campusPinSlot: {
-    width: SKOUN_CAMPUS_PIN.width,
-    height: SKOUN_CAMPUS_PIN.height,
+    width: STUDENTLY_CAMPUS_PIN.width,
+    height: STUDENTLY_CAMPUS_PIN.height,
     position: "relative",
     overflow: "visible",
   },
   campusSwitch: {
     position: "absolute",
-    left: SKOUN_CAMPUS_PIN.width + 2,
-    top: SKOUN_CAMPUS_PIN.headCenterY - 16,
+    left: STUDENTLY_CAMPUS_PIN.width + 2,
+    top: STUDENTLY_CAMPUS_PIN.headCenterY - 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
@@ -1756,7 +1756,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   emptyOverlay: {
     ...StyleSheet.absoluteFillObject,

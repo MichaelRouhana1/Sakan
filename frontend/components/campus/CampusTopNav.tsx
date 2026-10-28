@@ -11,10 +11,10 @@ import {
   View,
 } from "react-native";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
-import { SkounLogo } from "@/components/common/SkounLogo";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   WEB_CONTENT_MAX,
   WEB_CONTENT_PAD_X,
@@ -79,12 +79,12 @@ export function CampusTopNav() {
           <Pressable
             onPress={() => router.push("/campus" as never)}
             accessibilityRole="link"
-            accessibilityLabel="Skoun Campus home"
+            accessibilityLabel="Studently Campus home"
             style={styles.brandHit}
           >
-            <SkounLogo size={compact ? 28 : 32} />
+            <StudentlyLogo size={compact ? 28 : 32} />
             <Text style={[styles.brand, compact && styles.brandCompact]}>
-              Skoun
+              Studently
             </Text>
             <View style={styles.mark}>
               <Text style={styles.markText}>Campus</Text>
@@ -105,7 +105,7 @@ export function CampusTopNav() {
                 pressed && styles.menuBtnPressed,
               ]}
             >
-              <Ionicons name="menu" size={24} color={Skoun.color.ink} />
+              <Ionicons name="menu" size={24} color={Studently.color.ink} />
             </Pressable>
           </View>
         ) : (
@@ -159,7 +159,7 @@ export function CampusTopNav() {
                 accessibilityLabel="Close menu"
                 style={styles.drawerClose}
               >
-                <Ionicons name="close" size={22} color={Skoun.color.ink} />
+                <Ionicons name="close" size={22} color={Studently.color.ink} />
               </Pressable>
             </View>
 
@@ -257,9 +257,9 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   brand: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     letterSpacing: -0.6,
   },
   brandCompact: {
@@ -267,16 +267,16 @@ const styles = StyleSheet.create({
   },
   mark: {
     marginLeft: 4,
-    backgroundColor: Skoun.color.primaryMist,
-    borderRadius: Skoun.radius.pill,
+    backgroundColor: Studently.color.primaryMist,
+    borderRadius: Studently.radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
     flexShrink: 0,
   },
   markText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     letterSpacing: 0.2,
   },
   links: {
@@ -299,9 +299,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   menuBtnPressed: {
@@ -315,13 +315,13 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   navLink: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 15,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   navLinkActive: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodySemi,
   },
   drawerRoot: {
     flex: 1,
@@ -336,12 +336,12 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 340,
     height: "100%",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     paddingTop: Platform.OS === "web" ? 20 : 48,
     paddingBottom: 28,
     paddingHorizontal: 20,
     borderLeftWidth: 1,
-    borderLeftColor: Skoun.color.border,
+    borderLeftColor: Studently.color.border,
     ...(Platform.OS === "web"
       ? ({
           boxShadow: "-12px 0 40px rgba(18, 24, 38, 0.16)",
@@ -361,9 +361,9 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   drawerTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.3,
   },
   drawerClose: {
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   drawerLinks: {
@@ -382,32 +382,32 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   drawerLinkActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   drawerLinkPressed: {
     opacity: 0.9,
   },
   drawerLinkText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   drawerLinkTextActive: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.primary,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.primary,
   },
   drawerActiveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   drawerDivider: {
     height: 1,

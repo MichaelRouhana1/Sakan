@@ -20,7 +20,7 @@ const COPY: Record<ModerationKind, { title: string; body: string; confirm: strin
   },
   restore: {
     title: "Restore this account",
-    body: "Clears suspend or ban so the account can use Skoun again.",
+    body: "Clears suspend or ban so the account can use Studently again.",
     confirm: "Restore",
   },
 };

@@ -105,7 +105,7 @@ export const MOCK_LISTINGS: AdminListing[] = [
       id: "u-06",
       firstName: "Hassan",
       lastName: "Fares",
-      email: "hassan.fares@skoun.dev",
+      email: "hassan.fares@studently.dev",
     },
     photos: [
       { id: "p-03-1", url: photo("photo-1689043528099-2ba014dd7c64"), caption: "Dorm bunks" },

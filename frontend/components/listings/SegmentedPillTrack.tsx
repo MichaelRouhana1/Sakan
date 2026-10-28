@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { GlassSurface, isAppleGlass } from "@/components/ui/Glass";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 export const SEGMENTED_PILL_SLIDE_MS = 200;
@@ -219,7 +219,7 @@ export function SegmentedPillTrack<T extends string>({
                   name={option.icon}
                   size={16}
                   color={
-                    selected ? Skoun.color.surface : Skoun.color.inkMuted
+                    selected ? Studently.color.surface : Studently.color.inkMuted
                   }
                 />
               ) : null}
@@ -273,24 +273,24 @@ export function SegmentedPillTrack<T extends string>({
 
 const styles = StyleSheet.create({
   glassWrap: {
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
   },
   glassFill: {
     alignSelf: "stretch",
   },
   shellGlass: {
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
   },
   shellChip: {
-    backgroundColor: Skoun.color.surfaceMuted,
-    borderRadius: Skoun.radius.pill,
+    backgroundColor: Studently.color.surfaceMuted,
+    borderRadius: Studently.radius.pill,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   shellWell: {
     minHeight: 56,
     backgroundColor: "#F7F9FC",
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1.5,
     borderColor: "#A8C0EC",
     justifyContent: "center",
@@ -316,18 +316,18 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   thumbGlass: {
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     backgroundColor: isAppleGlass
       ? "rgba(47,111,237,0.92)"
-      : Skoun.color.primary,
+      : Studently.color.primary,
   },
   thumbChip: {
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.primary,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.primary,
   },
   thumbWell: {
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.primary,
+    borderRadius: Studently.radius.sm,
+    backgroundColor: Studently.color.primary,
   },
   slotWrap: {
     zIndex: 1,
@@ -368,11 +368,11 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   label: {
-    fontFamily: Skoun.type.bodySemi,
-    color: Skoun.color.inkMuted,
+    fontFamily: Studently.type.bodySemi,
+    color: Studently.color.inkMuted,
     textAlign: "center",
   },
   labelOn: {
-    color: Skoun.color.surface,
+    color: Studently.color.surface,
   },
 });

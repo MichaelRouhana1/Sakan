@@ -7,7 +7,7 @@ import {
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 export default function RenterLayout() {
   const [loaded] = useFonts({
@@ -24,10 +24,10 @@ export default function RenterLayout() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: Skoun.color.bg,
+          backgroundColor: Studently.color.bg,
         }}
       >
-        <ActivityIndicator color={Skoun.color.primary} />
+        <ActivityIndicator color={Studently.color.primary} />
       </View>
     );
   }

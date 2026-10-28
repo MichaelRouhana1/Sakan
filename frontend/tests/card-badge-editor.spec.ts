@@ -22,8 +22,8 @@ async function setup(page: Page, keys: string[] | null = initialKeys, step = 9) 
   await page.route("**/api/**", (route) => route.fulfill({ json: {
     data: route.request().url().endsWith("/users/me") ? { postCredits: 2, boostCredits: 0 } : [],
   } }));
-  await page.route("https://badge-test.invalid/**", (route) => process.env.SKOUN_TEST_PHOTO
-    ? route.fulfill({ path: process.env.SKOUN_TEST_PHOTO, contentType: "image/jpeg" })
+  await page.route("https://badge-test.invalid/**", (route) => process.env.STUDENTLY_TEST_PHOTO
+    ? route.fulfill({ path: process.env.STUDENTLY_TEST_PHOTO, contentType: "image/jpeg" })
     : route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500"><rect width="800" height="500" fill="#dfdad2"/><rect x="460" y="30" width="220" height="320" fill="#b5c9cb"/><path d="M570 30V350M460 190H680" stroke="#fff" stroke-width="12"/><rect x="50" y="270" width="330" height="140" rx="25" fill="#8e9681"/><rect x="80" y="400" width="20" height="40" fill="#514e45"/><rect x="330" y="400" width="20" height="40" fill="#514e45"/></svg>' }));
   await page.addInitScript(({ key, value }) => {
     if (!sessionStorage.getItem("badge-test-seeded")) {
@@ -168,7 +168,7 @@ test("saved order stays first and every other eligible badge is appended", async
 });
 
 test("phone touch reorder stays on the list card", async ({ browser }, info) => {
-  const context = await browser.newContext({ baseURL: process.env.SKOUN_TEST_URL ?? "http://localhost:8082", viewport: { width: 390, height: 1200 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
+  const context = await browser.newContext({ baseURL: process.env.STUDENTLY_TEST_URL ?? "http://localhost:8082", viewport: { width: 390, height: 1200 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
   const page = await context.newPage();
   await setup(page);
   const before = await cardKeys(page);

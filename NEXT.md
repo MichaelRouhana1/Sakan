@@ -78,7 +78,7 @@ You cannot restrict a real user or take down a real listing from this UI today. 
 | Tool | Status |
 |------|--------|
 | Shell + Housing ↔ Campus switch | Done (web). Native campus routes exist but skip `CampusShell` / footer. |
-| Persist last product | Helper writes on switch (`setSkounProduct`); `getSkounProduct` is unused so restore is not wired. |
+| Persist last product | Helper writes on switch (`setStudentlyProduct`); `getStudentlyProduct` is unused so restore is not wired. |
 | Tuition calculator | Done for seeded unis (AUB, LAU, USJ, …) + housing-stats CTA + shareable query params. |
 | Academic calendar | **Holidays only** (`lebanonHolidays.ts`, years 2026–2027). No per-uni registration / add-drop / exams, no ICS. |
 | Student benefits | Catalog + detail + signed-in redemption API. No partner “list your offer” form, no admin CMS for offers. |
@@ -126,7 +126,7 @@ Do **not** pick these up unless the product decision changes:
 - In-app chat
 - Roommate Finder (removed)
 - Card / international payment gateways
-- Paying tuition through Skoun
+- Paying tuition through Studently
 - Full indoor campus maps
 - Scraping university tuition PDFs
 
@@ -151,4 +151,4 @@ Do **not** pick these up unless the product decision changes:
 5. Calculator/Campus analytics events.  
 6. Fix homepage “coming soon” ticker.
 
-Pick **A** if the next milestone is real listings and cash. Pick **B** if the next milestone is students opening Skoun when they are not hunting a room.
+Pick **A** if the next milestone is real listings and cash. Pick **B** if the next milestone is students opening Studently when they are not hunting a room.

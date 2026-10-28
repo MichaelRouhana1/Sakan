@@ -96,7 +96,7 @@ export class CreditsService {
     try {
       const checkout = await gateway.createCheckout({
         amountUsdCents,
-        invoice: `Skoun ${pack.title}`,
+        invoice: `Studently ${pack.title}`,
         externalId: Number(providerExternalId),
         referenceId,
         successCallbackUrl: whishCallbackUrl("success"),

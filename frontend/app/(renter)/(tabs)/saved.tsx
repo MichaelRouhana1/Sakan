@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { Enter } from "@/components/lister/Enter";
 import { EmptyState } from "@/components/lister/EmptyState";
@@ -19,7 +19,7 @@ import {
 } from "@/components/listings/carouselListScroll";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
 import type { Listing } from "@/types/listing";
@@ -98,7 +98,7 @@ export default function SavedScreen() {
         ListEmptyComponent={
           authLoading || (isSignedIn && isLoading) ? (
             <ActivityIndicator
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
               style={{ marginTop: 40 }}
             />
           ) : !isSignedIn ? (
@@ -130,7 +130,7 @@ export default function SavedScreen() {
         ListFooterComponent={<View style={{ height: 24 }} />}
       />
       </HideIosTabScrollFade>
-      <SkounAuthModal
+      <StudentlyAuthModal
         visible={authOpen}
         onClose={() => setAuthOpen(false)}
         onSuccess={() => setAuthOpen(false)}
@@ -146,13 +146,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: Skoun.space.lg,
+    paddingHorizontal: Studently.space.lg,
     paddingBottom: appleTabScrollInset,
     flexGrow: 1,
   },
   header: {
-    paddingTop: Skoun.space.sm,
-    paddingBottom: Skoun.space.md,
+    paddingTop: Studently.space.sm,
+    paddingBottom: Studently.space.md,
     gap: 4,
   },
   switchWrap: {
@@ -160,20 +160,20 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   cardWrap: {
-    marginBottom: Skoun.space.md,
+    marginBottom: Studently.space.md,
     gap: 6,
   },
   unavailable: {
     alignSelf: "flex-start",
-    backgroundColor: Skoun.color.warningSoft,
-    borderRadius: Skoun.radius.pill,
+    backgroundColor: Studently.color.warningSoft,
+    borderRadius: Studently.radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: Skoun.color.warning,
+    borderColor: Studently.color.warning,
   },
   unavailableText: {
-    color: Skoun.color.warning,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.warning,
+    fontFamily: Studently.type.bodySemi,
   },
 });

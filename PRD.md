@@ -1,11 +1,11 @@
 # Product Requirement Document (PRD)
 
-**Product name:** Skoun  
-**Legacy / working title:** Sakan. Older copy and the GitHub repo (`MichaelRouhana1/Sakan`) still use Sakan; the name in the app and remaining product docs is **Skoun**.
+**Product name:** Studently  
+**Legacy / working title:** Sakan. Older copy and the GitHub repo (`MichaelRouhana1/Sakan`) still use Sakan; the name in the app and remaining product docs is **Studently**.
 
 > **Docs vs code:** Field inventory and wizard steps must match `createListingSchema` (`backend/src/modules/listings/listings.schemas.ts`) + `listingWizard.ts` (`frontend/constants/listingWizard.ts`). When in doubt, code wins.
 
-## Project Name: Skoun — Version 1.0
+## Project Name: Studently — Version 1.0
 
 ### 1. Document Overview & Objective
 
@@ -58,7 +58,7 @@ Accounts are dual-capable. Users are not forced into a single role at signup.
         
     - **Building Infrastructure:** 24/7 Working Elevator 🛗.
         
-- **Direct Connect Button:** A prominent action button on every listing detail page. Tapping it triggers a deep-link directly into a native WhatsApp chat with the poster containing a pre-filled template message: _"Hi, I saw your listing for the [Property Type] in [Area] on Skoun. Is it still available?"_ Phone numbers come from the listing’s `contactNumbers` (legacy `whatsappNumber` / `contactPhone` are derived).
+- **Direct Connect Button:** A prominent action button on every listing detail page. Tapping it triggers a deep-link directly into a native WhatsApp chat with the poster containing a pre-filled template message: _"Hi, I saw your listing for the [Property Type] in [Area] on Studently. Is it still available?"_ Phone numbers come from the listing’s `contactNumbers` (legacy `whatsappNumber` / `contactPhone` are derived).
     
 - **Listing Integrity Systems:**
     

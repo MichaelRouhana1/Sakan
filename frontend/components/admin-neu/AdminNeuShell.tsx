@@ -21,6 +21,7 @@ import {
 import { Link, Slot, usePathname } from "expo-router";
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { View } from "react-native";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 import { H } from "./h";
 import { NeuIconButton } from "./NeuPrimitives";
@@ -54,7 +55,7 @@ export function AdminNeuShell({ children }: Props) {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const fontId = "skoun-admin-fonts";
+    const fontId = "studently-admin-fonts";
     if (!document.getElementById(fontId)) {
       const font = document.createElement("link");
       font.id = fontId;
@@ -64,7 +65,7 @@ export function AdminNeuShell({ children }: Props) {
       document.head.appendChild(font);
     }
     // CSS already ships in +html; keep a dedicated tag as fallback for HMR.
-    const id = "skoun-admin-css";
+    const id = "studently-admin-css";
     let style = document.getElementById(id) as HTMLStyleElement | null;
     if (!style) {
       style = document.createElement("style");
@@ -77,14 +78,14 @@ export function AdminNeuShell({ children }: Props) {
   }, []);
 
   /**
-   * Hoist scope onto <html> so Tailwind `important: .skoun-admin` still matches
+   * Hoist scope onto <html> so Tailwind `important: .studently-admin` still matches
    * during route swaps (outgoing nodes can paint one frame outside the shell).
    * useLayoutEffect: before paint, so tab switches don't FOUC unstyled buttons.
    */
   useLayoutEffect(() => {
     if (typeof document === "undefined") return;
     const html = document.documentElement;
-    html.classList.add("skoun-admin");
+    html.classList.add("studently-admin");
     html.setAttribute("data-theme", theme);
     const clay = getComputedStyle(html).getPropertyValue("--admin-clay-100").trim();
     const prevHtml = html.style.backgroundColor;
@@ -94,7 +95,7 @@ export function AdminNeuShell({ children }: Props) {
       document.body.style.backgroundColor = clay;
     }
     return () => {
-      html.classList.remove("skoun-admin");
+      html.classList.remove("studently-admin");
       html.removeAttribute("data-theme");
       html.style.backgroundColor = prevHtml;
       document.body.style.backgroundColor = prevBody;
@@ -111,7 +112,7 @@ export function AdminNeuShell({ children }: Props) {
 
   return (
     <View
-      nativeID="skoun-admin-shell"
+      nativeID="studently-admin-shell"
       style={
         {
           flex: 1,
@@ -122,7 +123,7 @@ export function AdminNeuShell({ children }: Props) {
       }
     >
       <H
-        className="skoun-admin flex h-full min-h-0 flex-col overflow-hidden bg-clay-100 text-clay-900"
+        className="studently-admin flex h-full min-h-0 flex-col overflow-hidden bg-clay-100 text-clay-900"
         data-theme={theme}
       >
         <H className="flex min-h-0 flex-1">
@@ -142,11 +143,12 @@ export function AdminNeuShell({ children }: Props) {
         >
           <H className="mb-6 flex shrink-0 items-start justify-between gap-3 px-1">
             <H>
+              <StudentlyLogo size={32} />
               <H
                 as="p"
                 className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-moss"
               >
-                Skoun Ops
+                Studently Ops
               </H>
               <H as="p" className="mt-1 font-display text-xl font-semibold text-clay-900">
                 Desk
@@ -182,8 +184,9 @@ export function AdminNeuShell({ children }: Props) {
             >
               <Menu size={18} strokeWidth={1.75} />
             </NeuIconButton>
+            <StudentlyLogo size={28} />
             <H as="p" className="flex-1 font-display text-base font-semibold">
-              Skoun Ops
+              Studently Ops
             </H>
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </H>
@@ -202,7 +205,7 @@ export function AdminNeuShell({ children }: Props) {
   );
 }
 
-const NAV_SCROLL_ID = "skoun-admin-nav-scroll";
+const NAV_SCROLL_ID = "studently-admin-nav-scroll";
 
 function navActive(pathname: string, href: string) {
   if (href === "/admin/analytics") {

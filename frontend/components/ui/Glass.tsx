@@ -7,7 +7,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 /** True on iPhone / iPad — native UIVisualEffectView via expo-blur. */
 export const isAppleGlass = Platform.OS === "ios";
@@ -60,7 +60,7 @@ export function GlassChrome({ intensity = "chrome" as Intensity }) {
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: Skoun.color.surface },
+          { backgroundColor: Studently.color.surface },
         ]}
       />
     );
@@ -94,8 +94,8 @@ export const appleTabBarStyle = isAppleGlass
       paddingBottom: 8,
     } as const)
   : ({
-      backgroundColor: Skoun.color.surface,
-      borderTopColor: Skoun.color.border,
+      backgroundColor: Studently.color.surface,
+      borderTopColor: Studently.color.border,
       height: 64,
       paddingTop: 6,
       paddingBottom: 8,
@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   fallback: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
 });

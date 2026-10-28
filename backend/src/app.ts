@@ -36,7 +36,7 @@ export function createApp() {
   }));
 
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, service: "skoun-api" });
+    res.json({ ok: true, service: "studently-api" });
   });
 
   app.use("/api/users", usersRouter);

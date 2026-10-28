@@ -16,16 +16,16 @@ export type { MapboxMap, Marker, Popup };
 
 declare global {
   interface Window {
-    _skounActivePopup?: { remove: () => void } | null;
-    _skounDismissPreview?: (() => void) | null;
+    _studentlyActivePopup?: { remove: () => void } | null;
+    _studentlyDismissPreview?: (() => void) | null;
   }
 }
 
 let mapboxPromise: Promise<MapboxGL> | null = null;
 const resizeObservers = new WeakMap<MapboxMap, ResizeObserver>();
 
-const CAMPUS_LINE_SOURCE = "skoun-campus-line";
-const CAMPUS_LINE_LAYER = "skoun-campus-line-layer";
+const CAMPUS_LINE_SOURCE = "studently-campus-line";
+const CAMPUS_LINE_LAYER = "studently-campus-line-layer";
 const CAMPUS_LINE_COLOR = "#FF3B30";
 const CAMPUS_LINE_WIDTH = 6;
 
@@ -44,7 +44,7 @@ export function toLngLat(coord: { lat: number; lng: number }): [number, number] 
 export function ensureMapboxCss(): void {
   if (typeof document === "undefined") return;
   const version = installedMapboxGlVersion();
-  const id = "skoun-mapbox-css";
+  const id = "studently-mapbox-css";
   if (!document.getElementById(id)) {
     const link = document.createElement("link");
     link.id = id;
@@ -53,7 +53,7 @@ export function ensureMapboxCss(): void {
     document.head.appendChild(link);
   }
 
-  const overridesId = "skoun-mapbox-overrides";
+  const overridesId = "studently-mapbox-overrides";
   let style = document.getElementById(overridesId) as HTMLStyleElement | null;
   if (!style) {
     style = document.createElement("style");
@@ -61,89 +61,89 @@ export function ensureMapboxCss(): void {
     document.head.appendChild(style);
   }
   style.textContent = `
-    .skoun-mapbox-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
-    .skoun-mapbox-map .mapboxgl-map { width: 100%; height: 100%; }
-    .skoun-mapbox-map .mapboxgl-ctrl-attrib { font-size: 10px; }
-    .skoun-mapbox-map--chrome-offset .mapboxgl-ctrl-top-right {
+    .studently-mapbox-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
+    .studently-mapbox-map .mapboxgl-map { width: 100%; height: 100%; }
+    .studently-mapbox-map .mapboxgl-ctrl-attrib { font-size: 10px; }
+    .studently-mapbox-map--chrome-offset .mapboxgl-ctrl-top-right {
       top: 64px;
       right: 16px;
     }
-    .skoun-pitch-toggle {
+    .studently-pitch-toggle {
       font: 700 11px/1 "DM Sans", system-ui, sans-serif !important;
       color: #121826 !important;
       letter-spacing: 0.02em;
     }
-    .skoun-marker-el { background: transparent; border: none; overflow: visible; cursor: pointer; }
-    .skoun-marker-el.inert { pointer-events: none; cursor: default; }
-    .skoun-teardrop, .skoun-cluster-bubble { pointer-events: auto; }
-    .skoun-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: auto; }
-    .skoun-price-pill {
+    .studently-marker-el { background: transparent; border: none; overflow: visible; cursor: pointer; }
+    .studently-marker-el.inert { pointer-events: none; cursor: default; }
+    .studently-teardrop, .studently-cluster-bubble { pointer-events: auto; }
+    .studently-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: auto; }
+    .studently-price-pill {
       background: #fff; border: 1px solid #C5CDD8; border-radius: 8px;
       padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #121826;
       box-shadow: 0 1px 3px rgba(18,24,38,0.12); white-space: nowrap;
       pointer-events: auto; transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
     }
-    .skoun-price-pill.on { background: #121826; border-color: #121826; color: #fff; }
-    .skoun-price-stack.on { transform: scale(1.06); }
-    .skoun-teardrop {
+    .studently-price-pill.on { background: #121826; border-color: #121826; color: #fff; }
+    .studently-price-stack.on { transform: scale(1.06); }
+    .studently-teardrop {
       width: 30px; height: 40px; position: relative; filter: drop-shadow(0 1px 2px rgba(18,24,38,0.28));
     }
-    .skoun-teardrop .head {
+    .studently-teardrop .head {
       width: 30px; height: 30px; border-radius: 50%; position: relative; overflow: hidden;
     }
-    .skoun-teardrop.listing .head { background: #2F6FED; }
-    .skoun-teardrop.listing.selected .head { background: #C23B2E; }
-    .skoun-teardrop .cutout {
+    .studently-teardrop.listing .head { background: #2F6FED; }
+    .studently-teardrop.listing.selected .head { background: #C23B2E; }
+    .studently-teardrop .cutout {
       position: absolute; left: 50%; top: 50%; width: 10px; height: 10px;
       margin: -5px 0 0 -5px; border-radius: 50%; background: #fff;
     }
-    .skoun-teardrop .tip {
+    .studently-teardrop .tip {
       width: 0; height: 0; margin: -5px auto 0;
       border-left: 9px solid transparent; border-right: 9px solid transparent;
       border-top: 14px solid #121826;
     }
-    .skoun-teardrop.listing.selected .tip { border-top-color: #8E241A; }
-    .skoun-campus-pin {
+    .studently-teardrop.listing.selected .tip { border-top-color: #8E241A; }
+    .studently-campus-pin {
       width: 48px; height: 56px; display: flex; flex-direction: column;
       align-items: center; filter: drop-shadow(0 1px 2px rgba(18,24,38,0.3));
     }
-    .skoun-campus-pin,
-    .skoun-campus-pin * { box-sizing: border-box; }
-    .skoun-campus-pin .ring {
+    .studently-campus-pin,
+    .studently-campus-pin * { box-sizing: border-box; }
+    .studently-campus-pin .ring {
       width: 42px; height: 42px; border-radius: 50%;
       border: 2px solid #E8EEF6;
       background: #121826;
       display: flex; align-items: center; justify-content: center;
       box-shadow: 0 0 0 1.5px #121826;
     }
-    .skoun-campus-pin .disc {
+    .studently-campus-pin .disc {
       width: 38px; height: 38px; border-radius: 50%; background: #121826;
       display: flex; align-items: center; justify-content: center;
     }
-    .skoun-campus-pin .stem {
+    .studently-campus-pin .stem {
       width: 4px; height: 10px; background: #121826; border-radius: 2px; margin-top: -1px;
     }
-    .skoun-campus-pin .base {
+    .studently-campus-pin .base {
       width: 14px; height: 4px; border-radius: 2px; background: #121826; margin-top: -1px;
     }
-    .skoun-campus-stack {
+    .studently-campus-stack {
       position: relative;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       pointer-events: none;
       -webkit-font-smoothing: antialiased;
     }
-    .skoun-campus-stack.selected { transform: scale(1.06); }
-    .skoun-campus-stack.clickable {
+    .studently-campus-stack.selected { transform: scale(1.06); }
+    .studently-campus-stack.clickable {
       pointer-events: auto;
       cursor: pointer;
     }
-    .skoun-campus-stack.clickable .skoun-campus-label {
+    .studently-campus-stack.clickable .studently-campus-label {
       transition: background-color 160ms ease;
     }
-    .skoun-campus-stack.clickable:hover .skoun-campus-label {
+    .studently-campus-stack.clickable:hover .studently-campus-label {
       background: #D4B78A;
     }
-    .skoun-campus-label {
+    .studently-campus-label {
       max-width: 120px; padding: 3px 8px; border-radius: 6px;
       background: #C4A574; color: #2A1F14;
       font: 700 11px/1.25 "DM Sans", system-ui, sans-serif;
@@ -151,16 +151,16 @@ export function ensureMapboxCss(): void {
       box-shadow: 0 1px 3px rgba(18,24,38,0.22);
       -webkit-font-smoothing: antialiased;
     }
-    .skoun-campus-stack.selected .skoun-campus-label {
+    .studently-campus-stack.selected .studently-campus-label {
       background: #121826; color: #fff;
     }
-    .skoun-campus-pin-slot {
+    .studently-campus-pin-slot {
       position: relative;
       width: 48px;
       height: 56px;
       flex-shrink: 0;
     }
-    .skoun-campus-switch {
+    .studently-campus-switch {
       position: absolute;
       left: calc(100% + 2px);
       top: 22px;
@@ -176,10 +176,10 @@ export function ensureMapboxCss(): void {
       pointer-events: auto;
       white-space: nowrap;
       z-index: 8;
-      animation: skoun-campus-switch-in 180ms ease;
+      animation: studently-campus-switch-in 180ms ease;
       -webkit-font-smoothing: antialiased;
     }
-    .skoun-campus-switch-mark {
+    .studently-campus-switch-mark {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -188,7 +188,7 @@ export function ensureMapboxCss(): void {
       color: #121826;
       flex-shrink: 0;
     }
-    .skoun-campus-switch-btn {
+    .studently-campus-switch-btn {
       width: 26px;
       height: 26px;
       border-radius: 50%;
@@ -201,38 +201,38 @@ export function ensureMapboxCss(): void {
       flex-shrink: 0;
       transition: background 160ms ease, transform 160ms ease;
     }
-    .skoun-campus-switch-btn.yes {
+    .studently-campus-switch-btn.yes {
       background: #121826;
       color: #FFFFFF;
     }
-    .skoun-campus-switch-btn.no {
+    .studently-campus-switch-btn.no {
       background: #EEF1F6;
       color: #121826;
     }
-    .skoun-campus-switch-btn.yes:hover { background: #2F6FED; }
-    .skoun-campus-switch-btn.no:hover { background: #E2E8F0; }
-    .skoun-campus-switch-btn:focus-visible {
+    .studently-campus-switch-btn.yes:hover { background: #2F6FED; }
+    .studently-campus-switch-btn.no:hover { background: #E2E8F0; }
+    .studently-campus-switch-btn:focus-visible {
       outline: 2px solid #2F6FED;
       outline-offset: 2px;
     }
-    .skoun-campus-switch-btn:active { transform: scale(0.94); }
-    @keyframes skoun-campus-switch-in {
+    .studently-campus-switch-btn:active { transform: scale(0.94); }
+    @keyframes studently-campus-switch-in {
       from { opacity: 0; transform: translateY(-50%) translateX(-8px); }
       to { opacity: 1; transform: translateY(-50%); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .skoun-campus-switch { animation: none; }
-      .skoun-campus-stack.clickable .skoun-campus-label,
-      .skoun-campus-switch-btn { transition: none; }
+      .studently-campus-switch { animation: none; }
+      .studently-campus-stack.clickable .studently-campus-label,
+      .studently-campus-switch-btn { transition: none; }
     }
-    .skoun-dist-badge {
+    .studently-dist-badge {
       display: flex; align-items: center; justify-content: center;
       box-sizing: border-box;
       background: #fff; border: 1.5px solid #C23B2E; border-radius: 999px;
       padding: 0 6px; height: 18px; font: 600 10px/1 "DM Sans", system-ui, sans-serif; color: #8E241A;
       box-shadow: 0 1px 3px rgba(18,24,38,0.16); white-space: nowrap; text-align: center;
     }
-    .skoun-cluster-bubble {
+    .studently-cluster-bubble {
       display: flex; align-items: center; justify-content: center;
       border-radius: 50%; background: #C23B2E; color: #fff;
       font: 700 13px "DM Sans", system-ui, sans-serif;
@@ -241,10 +241,10 @@ export function ensureMapboxCss(): void {
       cursor: pointer; user-select: none;
       transition: transform 120ms ease;
     }
-    .skoun-cluster-bubble:hover { transform: scale(1.06); }
+    .studently-cluster-bubble:hover { transform: scale(1.06); }
 
-    .skoun-mapbox-amber-popup { overflow: visible !important; }
-    .skoun-mapbox-amber-popup .mapboxgl-popup-content {
+    .studently-mapbox-amber-popup { overflow: visible !important; }
+    .studently-mapbox-amber-popup .mapboxgl-popup-content {
       padding: 0 !important;
       border-radius: 16px !important;
       box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04) !important;
@@ -253,25 +253,25 @@ export function ensureMapboxCss(): void {
       background: #ffffff !important;
       width: 240px;
     }
-    .skoun-mapbox-amber-popup .mapboxgl-popup-close-button { display: none !important; }
-    .skoun-mapbox-amber-popup .mapboxgl-popup-tip-container { overflow: visible; }
-    .skoun-mapbox-amber-popup.skoun-popup-n .mapboxgl-popup-tip,
-    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+    .studently-mapbox-amber-popup .mapboxgl-popup-close-button { display: none !important; }
+    .studently-mapbox-amber-popup .mapboxgl-popup-tip-container { overflow: visible; }
+    .studently-mapbox-amber-popup.studently-popup-n .mapboxgl-popup-tip,
+    .studently-mapbox-amber-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
       border-top-color: #ffffff;
     }
-    .skoun-mapbox-amber-popup.skoun-popup-s .mapboxgl-popup-tip,
-    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+    .studently-mapbox-amber-popup.studently-popup-s .mapboxgl-popup-tip,
+    .studently-mapbox-amber-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
       border-bottom-color: #ffffff;
     }
-    .skoun-mapbox-amber-popup.skoun-popup-e .mapboxgl-popup-tip,
-    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+    .studently-mapbox-amber-popup.studently-popup-e .mapboxgl-popup-tip,
+    .studently-mapbox-amber-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
       border-right-color: #ffffff;
     }
-    .skoun-mapbox-amber-popup.skoun-popup-w .mapboxgl-popup-tip,
-    .skoun-mapbox-amber-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+    .studently-mapbox-amber-popup.studently-popup-w .mapboxgl-popup-tip,
+    .studently-mapbox-amber-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
       border-left-color: #ffffff;
     }
-    .skoun-amber-popup-card {
+    .studently-amber-popup-card {
       width: 240px;
       background: #ffffff;
       border-radius: 16px;
@@ -283,17 +283,17 @@ export function ensureMapboxCss(): void {
       color: inherit !important;
       cursor: pointer;
     }
-    .skoun-popup-body-link {
+    .studently-popup-body-link {
       display: block;
       text-decoration: none !important;
       color: inherit !important;
       cursor: pointer;
     }
-    .skoun-popup-media {
+    .studently-popup-media {
       width: 100%; height: 130px; position: relative; overflow: hidden; background: #F1F5F9;
     }
-    .skoun-popup-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .skoun-popup-close-btn {
+    .studently-popup-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .studently-popup-close-btn {
       position: absolute; top: 10px; right: 16px; z-index: 10;
       width: 24px; height: 24px; border-radius: 50%;
       background: rgba(255, 255, 255, 0.92); border: none;
@@ -302,43 +302,43 @@ export function ensureMapboxCss(): void {
       font-size: 11px; font-weight: 700; color: #334155; cursor: pointer; padding: 0;
       line-height: 1; pointer-events: auto;
     }
-    .skoun-popup-close-btn:hover { background: #ffffff; }
-    .skoun-popup-body { display: block; padding: 12px; background: #ffffff; }
-    .skoun-popup-title {
+    .studently-popup-close-btn:hover { background: #ffffff; }
+    .studently-popup-body { display: block; padding: 12px; background: #ffffff; }
+    .studently-popup-title {
       font-size: 14px; font-weight: 700; color: #0F172A;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .skoun-popup-subtitle {
+    .studently-popup-subtitle {
       font-size: 12px; color: #64748B;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;
     }
-    .skoun-popup-price { font-size: 14px; font-weight: 800; color: #0F172A; margin-top: 4px; }
-    .skoun-popup-price .unit { font-size: 12px; font-weight: 400; color: #64748B; }
-    .skoun-amber-popup-group { padding: 12px; width: 240px; }
-    .skoun-popup-group-header {
+    .studently-popup-price { font-size: 14px; font-weight: 800; color: #0F172A; margin-top: 4px; }
+    .studently-popup-price .unit { font-size: 12px; font-weight: 400; color: #64748B; }
+    .studently-amber-popup-group { padding: 12px; width: 240px; }
+    .studently-popup-group-header {
       display: flex; align-items: center; justify-content: space-between;
       font-size: 13px; font-weight: 700; color: #0F172A;
       margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #E2E8F0;
     }
-    .skoun-popup-group-header .skoun-popup-close-btn {
+    .studently-popup-group-header .studently-popup-close-btn {
       position: static;
       flex-shrink: 0;
       margin-left: 8px;
     }
-    .skoun-popup-group-list {
+    .studently-popup-group-list {
       max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
     }
-    .skoun-popup-group-item {
+    .studently-popup-group-item {
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid #E2E8F0;
       text-decoration: none !important; color: inherit !important;
     }
-    .skoun-popup-group-item:hover { background: #F1F5F9; }
-    .skoun-popup-group-title {
+    .studently-popup-group-item:hover { background: #F1F5F9; }
+    .studently-popup-group-title {
       font-size: 12px; font-weight: 600; color: #0F172A;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
     }
-    .skoun-popup-group-price { font-size: 12px; font-weight: 700; color: #2F6FED; }
+    .studently-popup-group-price { font-size: 12px; font-weight: 700; color: #2F6FED; }
   `;
 }
 
@@ -390,7 +390,7 @@ function createPitchToggleControl(): {
       group.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
       btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "skoun-pitch-toggle";
+      btn.className = "studently-pitch-toggle";
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -427,7 +427,7 @@ function attachResizeObserver(el: HTMLElement, map: MapboxMap): void {
   resizeObservers.set(map, observer);
 }
 
-export function createSkounMap(
+export function createStudentlyMap(
   mapboxgl: MapboxGL,
   el: HTMLElement,
   center: { lat: number; lng: number },
@@ -469,7 +469,7 @@ export function createSkounMap(
 }
 
 /** Compact Standard-style map for decorative previews — no nav chrome. */
-export function createSkounPreviewMap(
+export function createStudentlyPreviewMap(
   mapboxgl: MapboxGL,
   el: HTMLElement,
   center: { lat: number; lng: number },
@@ -499,7 +499,7 @@ export function createSkounPreviewMap(
   return map;
 }
 
-export function destroySkounMap(map: MapboxMap | null): void {
+export function destroyStudentlyMap(map: MapboxMap | null): void {
   if (!map) return;
   resizeObservers.get(map)?.disconnect();
   resizeObservers.delete(map);
@@ -629,7 +629,7 @@ function teardropHtml(
   selected = false,
 ): string {
   if (variant === "campus") {
-    return `<div class="skoun-campus-pin" aria-hidden="true">
+    return `<div class="studently-campus-pin" aria-hidden="true">
       <div class="ring"><div class="disc">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="#FFFFFF"/>
@@ -641,7 +641,7 @@ function teardropHtml(
     </div>`;
   }
   const cls = [
-    "skoun-teardrop",
+    "studently-teardrop",
     variant,
     selected && variant === "listing" ? "selected" : "",
   ]
@@ -651,13 +651,13 @@ function teardropHtml(
 }
 
 export function pricePinHtml(label: string, selected: boolean): string {
-  const pillCls = selected ? "skoun-price-pill on" : "skoun-price-pill";
-  const stackCls = selected ? "skoun-price-stack on" : "skoun-price-stack";
+  const pillCls = selected ? "studently-price-pill on" : "studently-price-pill";
+  const stackCls = selected ? "studently-price-stack on" : "studently-price-stack";
   return `<div class="${stackCls}"><div class="${pillCls}">${escapeHtml(label)}</div>${teardropHtml("listing", selected)}</div>`;
 }
 
 export function clusterBubbleHtml(count: number, size: number): string {
-  return `<div class="skoun-cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size >= 46 ? 15 : 13}px">${escapeHtml(String(count))}</div>`;
+  return `<div class="studently-cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size >= 46 ? 15 : 13}px">${escapeHtml(String(count))}</div>`;
 }
 
 const CAMPUS_SWITCH_SWAP_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 6h13.5V3.5L22 7.5 15.5 11.5V9H2zM22 15H8.5v-2.5L2 16.5 8.5 20.5V18H22z"/></svg>`;
@@ -673,20 +673,20 @@ export function campusPinHtml(
   const text = label?.trim();
   if (!text) return pin;
   const stack = [
-    "skoun-campus-stack",
+    "studently-campus-stack",
     selected ? "selected" : "",
     opts?.clickable ? "clickable" : "",
   ]
     .filter(Boolean)
     .join(" ");
   const prompt = opts?.pending
-    ? `<div class="skoun-campus-switch" role="group" aria-label="${escapeHtml(CAMPUS_SWITCH_PROMPT)}">
-        <span class="skoun-campus-switch-mark">${CAMPUS_SWITCH_SWAP_SVG}</span>
-        <button type="button" class="skoun-campus-switch-btn yes" data-campus-switch="confirm" aria-label="Switch to this campus">${CAMPUS_SWITCH_CHECK_SVG}</button>
-        <button type="button" class="skoun-campus-switch-btn no" data-campus-switch="cancel" aria-label="Keep current campus">${CAMPUS_SWITCH_CLOSE_SVG}</button>
+    ? `<div class="studently-campus-switch" role="group" aria-label="${escapeHtml(CAMPUS_SWITCH_PROMPT)}">
+        <span class="studently-campus-switch-mark">${CAMPUS_SWITCH_SWAP_SVG}</span>
+        <button type="button" class="studently-campus-switch-btn yes" data-campus-switch="confirm" aria-label="Switch to this campus">${CAMPUS_SWITCH_CHECK_SVG}</button>
+        <button type="button" class="studently-campus-switch-btn no" data-campus-switch="cancel" aria-label="Keep current campus">${CAMPUS_SWITCH_CLOSE_SVG}</button>
       </div>`
     : "";
-  return `<div class="${stack}"><div class="skoun-campus-label">${escapeHtml(text)}</div><div class="skoun-campus-pin-slot">${pin}${prompt}</div></div>`;
+  return `<div class="${stack}"><div class="studently-campus-label">${escapeHtml(text)}</div><div class="studently-campus-pin-slot">${pin}${prompt}</div></div>`;
 }
 
 export function listingPinHtml(selected = false): string {
@@ -694,7 +694,7 @@ export function listingPinHtml(selected = false): string {
 }
 
 export function distanceBadgeHtml(label: string): string {
-  return `<div class="skoun-dist-badge">${escapeHtml(label)}</div>`;
+  return `<div class="studently-dist-badge">${escapeHtml(label)}</div>`;
 }
 
 export function markerElement(
@@ -702,7 +702,7 @@ export function markerElement(
   opts?: { inert?: boolean },
 ): HTMLDivElement {
   const el = document.createElement("div");
-  el.className = opts?.inert ? "skoun-marker-el inert" : "skoun-marker-el";
+  el.className = opts?.inert ? "studently-marker-el inert" : "studently-marker-el";
   el.innerHTML = html;
   return el;
 }
@@ -949,18 +949,18 @@ export function createAmberPopupHtml(listing: Listing): string {
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80";
   const url = `/listing/${listing.id}`;
 
-  return `<div class="skoun-amber-popup-card">
-    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-popup-body-link" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
-      <div class="skoun-popup-media">
-        <img src="${escapeHtml(coverUrl)}" alt="${title}" class="skoun-popup-img" />
+  return `<div class="studently-amber-popup-card">
+    <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="studently-popup-body-link" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+      <div class="studently-popup-media">
+        <img src="${escapeHtml(coverUrl)}" alt="${title}" class="studently-popup-img" />
       </div>
-      <div class="skoun-popup-body">
-        <div class="skoun-popup-title">${title}</div>
-        <div class="skoun-popup-subtitle">${subtitle}</div>
-        <div class="skoun-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
+      <div class="studently-popup-body">
+        <div class="studently-popup-title">${title}</div>
+        <div class="studently-popup-subtitle">${subtitle}</div>
+        <div class="studently-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
       </div>
     </a>
-    <button type="button" class="skoun-popup-close-btn" aria-label="Close">✕</button>
+    <button type="button" class="studently-popup-close-btn" aria-label="Close">✕</button>
   </div>`;
 }
 
@@ -970,19 +970,19 @@ export function createAmberGroupPopupHtml(group: MapPinGroup): string {
       const title = escapeHtml(listingCardTitle(listing));
       const price = `$${listing.monthlyRentUsd.toLocaleString("en-US")}`;
       const url = `/listing/${listing.id}`;
-      return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="skoun-popup-group-item" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
-        <span class="skoun-popup-group-title">${title}</span>
-        <span class="skoun-popup-group-price">${price}/mo</span>
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="studently-popup-group-item" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
+        <span class="studently-popup-group-title">${title}</span>
+        <span class="studently-popup-group-price">${price}/mo</span>
       </a>`;
     })
     .join("");
 
-  return `<div class="skoun-amber-popup-card skoun-amber-popup-group">
-    <div class="skoun-popup-group-header">
+  return `<div class="studently-amber-popup-card studently-amber-popup-group">
+    <div class="studently-popup-group-header">
       <span>${group.count} places at this pin</span>
-      <button type="button" class="skoun-popup-close-btn" aria-label="Close">✕</button>
+      <button type="button" class="studently-popup-close-btn" aria-label="Close">✕</button>
     </div>
-    <div class="skoun-popup-group-list">${itemsHtml}</div>
+    <div class="studently-popup-group-list">${itemsHtml}</div>
   </div>`;
 }
 
@@ -1133,27 +1133,27 @@ function paintPopupSide(popup: Popup, side: AmberPopupSide): void {
   const node = popup.getElement();
   if (node) {
     node.classList.remove(
-      "skoun-popup-n",
-      "skoun-popup-s",
-      "skoun-popup-e",
-      "skoun-popup-w",
+      "studently-popup-n",
+      "studently-popup-s",
+      "studently-popup-e",
+      "studently-popup-w",
     );
-    node.classList.add(`skoun-popup-${side}`);
-    node.setAttribute("data-skoun-side", side);
+    node.classList.add(`studently-popup-${side}`);
+    node.setAttribute("data-studently-side", side);
   }
   popupSide.set(popup, side);
 }
 
 function bindPopupCloseButton(popup: Popup): void {
   const root = popup.getElement();
-  const btn = root?.querySelector(".skoun-popup-close-btn");
-  if (!(btn instanceof HTMLElement) || btn.dataset.skounBound === "1") return;
-  btn.dataset.skounBound = "1";
+  const btn = root?.querySelector(".studently-popup-close-btn");
+  if (!(btn instanceof HTMLElement) || btn.dataset.studentlyBound === "1") return;
+  btn.dataset.studentlyBound = "1";
   const dismiss = (ev: Event) => {
     ev.preventDefault();
     ev.stopPropagation();
     popup.remove();
-    window._skounDismissPreview?.();
+    window._studentlyDismissPreview?.();
   };
   btn.addEventListener("click", dismiss);
   btn.addEventListener("mousedown", (ev) => {
@@ -1177,12 +1177,12 @@ function wireAmberPopup(
   onClose?: () => void,
 ): void {
   popup.on("open", () => {
-    const prev = window._skounActivePopup;
+    const prev = window._studentlyActivePopup;
     if (prev && prev !== popup) {
       replacingPopups.add(prev as Popup);
       prev.remove();
     }
-    window._skounActivePopup = popup;
+    window._studentlyActivePopup = popup;
     bindPopupCloseButton(popup);
     // Side-replace races can leave detached popup DOM; kill them before onOpen.
     stripOrphanPopupNodes(popup);
@@ -1193,20 +1193,20 @@ function wireAmberPopup(
     // close twice (remove + setPopup); deleting on first close made the
     // second fire call onClose and wipe sheet/route while card stayed open.
     if (replacingPopups.has(popup)) {
-      if (window._skounActivePopup === popup) {
-        window._skounActivePopup = null;
+      if (window._studentlyActivePopup === popup) {
+        window._studentlyActivePopup = null;
       }
       return;
     }
-    window._skounActivePopup = null;
+    window._studentlyActivePopup = null;
     onClose?.();
   });
 }
 
 /** Force-close every amber popup on the map (outside-click / dismiss). */
 export function dismissAmberPopupsOnMap(map: MapboxMap): void {
-  window._skounActivePopup?.remove();
-  window._skounActivePopup = null;
+  window._studentlyActivePopup?.remove();
+  window._studentlyActivePopup = null;
   const root = map.getContainer();
   root.querySelectorAll(".mapboxgl-popup").forEach((node) => {
     node.remove();
@@ -1225,7 +1225,7 @@ export function bindAmberPopup(
     closeButton: false,
     offset: gapOffsetForSide(side),
     maxWidth: "240px",
-    className: `skoun-mapbox-amber-popup skoun-popup-${side}`,
+    className: `studently-mapbox-amber-popup studently-popup-${side}`,
     anchor: mapboxAnchorForSide(side),
     closeOnClick: false,
   }).setHTML(html);
@@ -1267,7 +1267,7 @@ export function applyAmberPopupSide(
   );
   if (wasOpen) {
     next.addTo(ctx.map);
-    // Do NOT set _skounActivePopup here — open handler does, and onOpen may
+    // Do NOT set _studentlyActivePopup here — open handler does, and onOpen may
     // replace again (another applyAmberPopupSide). Overwriting with `next`
     // left a stale pointer while the live card stayed untracked, so the next
     // pin click failed to close it.
@@ -1275,7 +1275,7 @@ export function applyAmberPopupSide(
   // onOpen may have side-replaced again; return the marker's live popup.
   const live = (ctx.marker.getPopup?.() as Popup | null | undefined) ?? next;
   if (wasOpen && live.isOpen()) {
-    window._skounActivePopup = live;
+    window._studentlyActivePopup = live;
     bindPopupCloseButton(live);
     stripOrphanPopupNodes(live);
   }

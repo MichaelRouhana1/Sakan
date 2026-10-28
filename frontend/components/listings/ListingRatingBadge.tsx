@@ -1,5 +1,5 @@
 import { Platform, StyleSheet, Text, View } from "react-native";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import type { Listing } from "@/types/listing";
 
 let SvgComponent: any = null;
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    ...skounShadow({ color: "#000000", y: 1, blur: 3, opacity: 0.08, elevation: 2 }),
+    ...studentlyShadow({ color: "#000000", y: 1, blur: 3, opacity: 0.08, elevation: 2 }),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.95)",
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    ...skounShadow({ y: 1, blur: 4, opacity: 0.1 }),
+    ...studentlyShadow({ y: 1, blur: 4, opacity: 0.1 }),
   },
   featureText: {
     fontSize: 11,

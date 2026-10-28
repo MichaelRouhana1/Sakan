@@ -1,8 +1,8 @@
 # Listing Wizard — page overrides
 
-> **PROJECT:** Skoun  
+> **PROJECT:** Studently  
 > **Page:** listing create wizard  
-> Overrides `frontend/design-system/skoun-web/MASTER.md`. Lister tokens win over generated navy/gold.
+> Overrides `frontend/design-system/studently-web/MASTER.md`. Lister tokens win over generated navy/gold.
 
 ---
 

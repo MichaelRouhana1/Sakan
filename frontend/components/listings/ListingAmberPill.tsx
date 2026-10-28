@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { ListingAmberPill as Pill } from "@/lib/listingCardMeta";
 import { LISTING_PILL_ICONS } from "@/lib/listingPillIcons";
 
@@ -20,7 +20,7 @@ export function ListingAmberPillView({
 }: Props) {
   const Icon = pill.icon ? LISTING_PILL_ICONS[pill.icon] : null;
   const iconSize = compact ? 10 : 11;
-  const color = Skoun.color.ink;
+  const color = Studently.color.ink;
 
   return (
     <View
@@ -61,9 +61,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(47, 111, 237, 0.2)",
   },
   tagText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 11,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   tagTextCompact: {
     fontSize: 10,

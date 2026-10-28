@@ -14,7 +14,7 @@ const base = {
 
 test("whatsapp prefill asks the filters and does not only ask if it is available", () => {
   const text = buildWhatsAppListingMessage(base);
-  assert.match(text, /hi — interested in your studio in Hamra on skoun \(\$650\/mo\)\./);
+  assert.match(text, /hi — interested in your studio in Hamra on studently \(\$650\/mo\)\./);
   assert.match(text, /move-in date:/);
   assert.match(text, /who's moving in \(count \/ students or work\):/);
   assert.match(text, /ok with listed rent \+ what's included\?:/);

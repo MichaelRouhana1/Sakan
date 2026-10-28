@@ -117,7 +117,7 @@ export const MOCK_USERS: AdminUser[] = [
     id: "u-06",
     firstName: "Hassan",
     lastName: "Fares",
-    email: "hassan.fares@skoun.dev",
+    email: "hassan.fares@studently.dev",
     role: "poster",
     accountStatus: "restricted",
     createdAt: "2026-02-08T12:00:00.000Z",

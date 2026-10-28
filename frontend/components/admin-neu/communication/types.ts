@@ -121,7 +121,7 @@ export const AUDIENCE_OPTIONS: {
   label: string;
   hint: string;
 }[] = [
-  { id: "all", label: "All users", hint: "Every account on Skoun" },
+  { id: "all", label: "All users", hint: "Every account on Studently" },
   { id: "renters", label: "Renters only", hint: "Seeking a place" },
   { id: "posters", label: "Posters only", hint: "Listing hosts" },
   { id: "unverified", label: "Unverified email", hint: "Campus domain pending" },

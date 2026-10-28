@@ -17,7 +17,7 @@ import {
 import { CampusFormSelect } from "@/components/campus/CampusFormSelect";
 import { LText } from "@/components/lister/Typography";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   BENEFIT_CATEGORY_ORDER,
@@ -240,7 +240,7 @@ export function StudentBenefitsPage() {
         </View>
 
         <View style={[styles.searchWrap, compact && styles.searchWrapCompact]}>
-          <Ionicons name="search" size={18} color={Skoun.color.inkMuted} />
+          <Ionicons name="search" size={18} color={Studently.color.inkMuted} />
           <TextInput
             value={query}
             onChangeText={(next) => {
@@ -252,7 +252,7 @@ export function StudentBenefitsPage() {
                 ? "Search Spotify, Alfa, food…"
                 : "Search a brand or offer — Spotify, Zomato, Alfa…"
             }
-            placeholderTextColor={Skoun.color.inkFaint}
+            placeholderTextColor={Studently.color.inkFaint}
             accessibilityLabel="Search student benefits"
             returnKeyType="search"
             style={styles.searchInput}
@@ -271,7 +271,7 @@ export function StudentBenefitsPage() {
               <Ionicons
                 name="close-circle"
                 size={20}
-                color={Skoun.color.inkMuted}
+                color={Studently.color.inkMuted}
               />
             </Pressable>
           ) : null}
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 3,
     borderRadius: 2,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     marginBottom: 2,
   },
   kicker: {
@@ -595,10 +595,10 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 680,
     alignSelf: "center",
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.surface,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1.5,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     ...(Platform.OS === "web"
       ? ({ boxShadow: "0 4px 16px rgba(18, 24, 38, 0.06)" } as object)
       : null),
@@ -610,9 +610,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     padding: 0,
     minWidth: 0,
     ...(Platform.OS === "web"
@@ -697,14 +697,14 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   scopeTabLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 15,
     lineHeight: 20,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   scopeTabLabelOn: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.ink,
   },
   scopeUnderline: {
     marginTop: 4,
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scopeUnderlineOn: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   catRow: {
     flexDirection: "row",
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     ...(Platform.OS === "web"
       ? ({
           transitionProperty: "background-color",
@@ -784,17 +784,17 @@ const styles = StyleSheet.create({
       : null),
   },
   catMarkOnPrimary: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   catLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   catLabelOn: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.ink,
   },
   catUnderline: {
     height: 2,
@@ -802,14 +802,14 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   catUnderlineOn: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   results: {
     gap: 28,
     width: "100%",
   },
   count: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     flexShrink: 0,
   },
   section: {
@@ -826,8 +826,8 @@ const styles = StyleSheet.create({
     rowGap: 2,
   },
   sectionTitle: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.ink,
   },
   sectionSub: {
     flexShrink: 1,
@@ -869,8 +869,8 @@ const CATEGORY_PICKS: {
     key: "",
     label: "All",
     icon: "apps-outline",
-    accent: Skoun.color.primary,
-    tint: Skoun.color.primaryMist,
+    accent: Studently.color.primary,
+    tint: Studently.color.primaryMist,
   },
   ...BENEFIT_CATEGORY_ORDER.map((key) => {
     const meta = categoryMeta(key);
@@ -925,7 +925,7 @@ function CategoryPicks({
                 <Ionicons
                   name={item.icon}
                   size={14}
-                  color={on ? Skoun.color.surface : item.accent}
+                  color={on ? Studently.color.surface : item.accent}
                 />
               </View>
               <LText

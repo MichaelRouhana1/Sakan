@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { ListingMoreMenuProps } from "@/components/listings/detail/ListingMoreMenu.types";
 
 /** Native fallback — `liquid-gooey` is web-only. */
@@ -29,7 +29,7 @@ export function ListingMoreMenu({
             <Ionicons
               name={linkCopied ? "checkmark" : "link-outline"}
               size={16}
-              color={Skoun.color.ink}
+              color={Studently.color.ink}
             />
           </Pressable>
           {reported || !canReport ? null : (
@@ -41,7 +41,7 @@ export function ListingMoreMenu({
               accessibilityLabel="Report this listing"
               style={styles.iconBtn}
             >
-              <Ionicons name="flag-outline" size={16} color={Skoun.color.ink} />
+              <Ionicons name="flag-outline" size={16} color={Studently.color.ink} />
             </Pressable>
           )}
         </>
@@ -56,7 +56,7 @@ export function ListingMoreMenu({
         <Ionicons
           name={open ? "close" : "ellipsis-horizontal"}
           size={16}
-          color={Skoun.color.ink}
+          color={Studently.color.ink}
         />
       </Pressable>
     </View>

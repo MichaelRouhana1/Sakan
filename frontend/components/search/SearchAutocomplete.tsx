@@ -21,8 +21,8 @@ import {
   type ViewStyle,
   type View as RNView,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
-import { skounShadow } from "@/lib/skounShadow";
+import { Studently } from "@/constants/theme";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import { useSearchSuggestions } from "@/features/search/useSearchSuggestions";
 import type {
   SearchAreaSuggestion,
@@ -164,7 +164,7 @@ function SuggestionsPanel({
               <Ionicons
                 name={item.icon}
                 size={13}
-                color={Skoun.color.inkMuted}
+                color={Studently.color.inkMuted}
               />
               <Text style={styles.sectionTitle}>{item.title}</Text>
             </View>
@@ -186,7 +186,7 @@ function SuggestionsPanel({
               <Ionicons
                 name={suggestionIcon(item.suggestion.type)}
                 size={16}
-                color={active ? Skoun.color.primary : Skoun.color.inkMuted}
+                color={active ? Studently.color.primary : Studently.color.inkMuted}
               />
             </View>
             <Text
@@ -214,7 +214,7 @@ function SuggestionsPanel({
           <Ionicons
             name="search-outline"
             size={16}
-            color={Skoun.color.primary}
+            color={Studently.color.primary}
           />
           <Text style={styles.footerActionText} numberOfLines={1}>
             Search all for “{value.trim()}”
@@ -250,7 +250,7 @@ export function SearchAutocomplete({
   const wrapRef = useRef<RNView | null>(null);
   const barRef = useRef<RNView | null>(null);
   const reactId = useId().replace(/:/g, "");
-  const anchorDomId = `skoun-search-anchor-${reactId}`;
+  const anchorDomId = `studently-search-anchor-${reactId}`;
   const { data, isFetching } = useSearchSuggestions(
     value,
     suggestionsEnabled && focused && value.trim().length >= 1,
@@ -450,7 +450,7 @@ export function SearchAutocomplete({
           <Ionicons
             name="search"
             size={18}
-            color={Skoun.color.inkMuted}
+            color={Studently.color.inkMuted}
             style={styles.leadingIcon}
           />
         ) : null}
@@ -469,7 +469,7 @@ export function SearchAutocomplete({
             value={value}
             onChangeText={onChangeText}
             placeholder={isPill ? undefined : placeholder}
-            placeholderTextColor={Skoun.color.inkFaint}
+            placeholderTextColor={Studently.color.inkFaint}
             style={[styles.input, isPill && styles.inputPill, style]}
             onFocus={() => {
               setFocused(true);
@@ -502,7 +502,7 @@ export function SearchAutocomplete({
             <Ionicons
               name="close-circle"
               size={20}
-              color={Skoun.color.inkMuted}
+              color={Studently.color.inkMuted}
             />
           </Pressable>
         ) : null}
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     paddingHorizontal: 12,
     minHeight: 44,
   },
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     paddingVertical: 6,
     minHeight: 56,
-    ...skounShadow({ color: "#000000", y: 8, blur: 20, opacity: 0.18, elevation: 8 }),
+    ...studentlyShadow({ color: "#000000", y: 8, blur: 20, opacity: 0.18, elevation: 8 }),
   },
   leadingIcon: {
     marginRight: 8,
@@ -581,20 +581,20 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   },
   hintStatic: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 17,
     color: "#4b5563",
   },
   hintCycle: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 17,
     color: "#4b5563",
   },
   input: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     paddingVertical: 10,
     ...Platform.select({
       web: { outlineStyle: "none" } as object,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 8,
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     maxHeight: 340,
     overflow: "hidden",
-    ...skounShadow({ y: 10, blur: 24, opacity: 0.2, elevation: 16 }),
+    ...studentlyShadow({ y: 10, blur: 24, opacity: 0.2, elevation: 16 }),
   },
   dropdownNative: {
     position: "absolute",
@@ -663,10 +663,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   sectionTitle: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 11,
     fontWeight: "600",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -680,7 +680,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   rowActive: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   rowIconWrap: {
     width: 32,
@@ -691,20 +691,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   rowIconWrapActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   rowLabel: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   rowLabelActive: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
   rowMeta: {
     fontSize: 12,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   footerAction: {
     flexDirection: "row",
@@ -721,13 +721,13 @@ const styles = StyleSheet.create({
   },
   footerActionText: {
     flex: 1,
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   empty: {
     padding: 16,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

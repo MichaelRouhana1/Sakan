@@ -7,7 +7,7 @@ A scripted Explore guide. It does not call a model or add an API endpoint.
 - `scoring.ts` contains weights, evidence evaluation, deterministic ordering, and the explanatory widening ladder. Widening never changes requirements, scores, or list membership.
 - `browseState.ts` validates and serializes URL state. URL navigation wins over saved guide answers.
 - `storage.ts` persists versioned drafts and last-applied answers. Storage failures do not block browsing. Closing a guide saves its draft without applying it.
-- `components/matcher` contains the shared conversation, summary, and card explanation surfaces, styled with Skoun tokens.
+- `components/matcher` contains the shared conversation, summary, and card explanation surfaces, styled with Studently tokens.
 
 The guide uses a full-height right drawer on web (full-screen below 768px and on native). Its conversation and compact answer tray share one scroll region, with navigation fixed beneath it. Historical answers open a staged editor; saving returns to the current question, and cancelling preserves the current unfinished response. Layout tokens live in `components/matcher/matcherStyles.ts`.
 

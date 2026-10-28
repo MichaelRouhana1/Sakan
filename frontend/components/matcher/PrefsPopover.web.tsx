@@ -7,7 +7,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const panel: CSSProperties = {
   position: "fixed",
@@ -18,8 +18,8 @@ const panel: CSSProperties = {
   gap: 6,
   padding: 12,
   borderRadius: 12,
-  background: Skoun.color.surface,
-  border: `1px solid ${Skoun.color.bgWash}`,
+  background: Studently.color.surface,
+  border: `1px solid ${Studently.color.bgWash}`,
   boxShadow: "0 12px 28px rgba(18, 24, 38, 0.14)",
 };
 

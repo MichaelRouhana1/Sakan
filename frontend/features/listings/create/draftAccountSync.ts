@@ -25,7 +25,7 @@ type RemoteSlots = {
 };
 
 function tombstoneKey(userId: string, slot: DraftSlot): string {
-  return `skoun.createListing.draftTombstone.v1:${userId}:${slot}`;
+  return `studently.createListing.draftTombstone.v1:${userId}:${slot}`;
 }
 
 let tail: Promise<void> = Promise.resolve();

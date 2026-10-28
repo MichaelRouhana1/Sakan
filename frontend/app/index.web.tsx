@@ -6,11 +6,11 @@ import {
 } from "@expo-google-fonts/dm-sans";
 import { useFonts } from "expo-font";
 import { ActivityIndicator, View } from "react-native";
-import { SkounHomePage } from "@/components/web/home/SkounHomePage";
-import { Skoun } from "@/constants/theme";
+import { StudentlyHomePage } from "@/components/web/home/StudentlyHomePage";
+import { Studently } from "@/constants/theme";
 
 /**
- * Web marketing homepage — Amber-inspired layout, Skoun brand + product truth.
+ * Web marketing homepage — Amber-inspired layout, Studently brand + product truth.
  */
 export default function IndexWeb() {
   const [loaded] = useFonts({
@@ -28,13 +28,13 @@ export default function IndexWeb() {
           minHeight: "100%" as unknown as number,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: Skoun.color.bg,
+          backgroundColor: Studently.color.bg,
         }}
       >
-        <ActivityIndicator color={Skoun.color.primary} />
+        <ActivityIndicator color={Studently.color.primary} />
       </View>
     );
   }
 
-  return <SkounHomePage />;
+  return <StudentlyHomePage />;
 }

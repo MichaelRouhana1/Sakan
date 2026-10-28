@@ -6,12 +6,12 @@ import {
   HostSideNav,
 } from "@/components/web/host/HostSideNav";
 import { HostTopNav } from "@/components/web/HostTopNav";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { setHostRailInset } from "@/components/web/hostRailInset";
 
-const SIDE_NAV_COLLAPSED_KEY = "skoun.host.sideNavCollapsed";
+const SIDE_NAV_COLLAPSED_KEY = "studently.host.sideNavCollapsed";
 
 function readCollapsed(): boolean {
   if (Platform.OS !== "web" || typeof localStorage === "undefined") {
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
     height: "100vh" as unknown as number,
     maxHeight: "100vh" as unknown as number,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
     boxSizing: "border-box",
     display: "flex" as unknown as "flex",
     flexDirection: "column",

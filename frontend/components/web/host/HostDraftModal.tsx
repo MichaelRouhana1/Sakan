@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { openCreateListing, openWorkingCreateListing } from "@/features/auth/useEnsureSession";
 import {
   checkpointCoverPhoto,
@@ -125,7 +125,7 @@ export function HostDraftModal({ target, onClose, onRemoved }: Props) {
             onPress={onClose}
             style={styles.closeBtn}
           >
-            <Ionicons name="close" size={18} color={Skoun.color.ink} />
+            <Ionicons name="close" size={18} color={Studently.color.ink} />
           </Pressable>
 
           <View style={styles.media}>
@@ -138,7 +138,7 @@ export function HostDraftModal({ target, onClose, onRemoved }: Props) {
               />
             ) : (
               <View style={styles.mediaPlaceholder}>
-                <Ionicons name="image-outline" size={32} color={Skoun.color.inkFaint} />
+                <Ionicons name="image-outline" size={32} color={Studently.color.inkFaint} />
               </View>
             )}
           </View>
@@ -165,10 +165,10 @@ export function HostDraftModal({ target, onClose, onRemoved }: Props) {
             ]}
           >
             {removing ? (
-              <ActivityIndicator color={Skoun.color.ink} size="small" />
+              <ActivityIndicator color={Studently.color.ink} size="small" />
             ) : (
               <>
-                <Ionicons name="trash-outline" size={16} color={Skoun.color.ink} />
+                <Ionicons name="trash-outline" size={16} color={Studently.color.ink} />
                 <Text style={styles.removeBtnText}>Remove listing</Text>
               </>
             )}
@@ -228,23 +228,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
   },
   title: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 6,
   },
   location: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textAlign: "center",
     marginBottom: 24,
   },
   editBtn: {
     width: "100%",
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   editBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     color: "#FFFFFF",
   },
@@ -274,9 +274,9 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   removeBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textDecorationLine: "underline",
   },
 });

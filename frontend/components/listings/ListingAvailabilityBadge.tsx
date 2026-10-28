@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { ListingAvailability } from "@/types/listing";
 
 export function availabilityLabel(
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
   },
   text: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 0.2,
@@ -57,6 +57,6 @@ const styles = StyleSheet.create({
     color: "#92400E",
   },
   rentedText: {
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

@@ -19,7 +19,7 @@ function hexToRgbChannels(hex: string): string {
  * iOS/Android keep shadow* + elevation. Web uses boxShadow so RN-web
  * does not warn about deprecated shadow* props.
  */
-export function skounShadow({
+export function studentlyShadow({
   color = "#121826",
   opacity = 0.12,
   blur,

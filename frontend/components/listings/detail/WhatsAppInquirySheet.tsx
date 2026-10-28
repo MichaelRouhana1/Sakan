@@ -8,7 +8,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
 import { WhatsAppMessagePreview } from "@/components/listings/detail/WhatsAppMessagePreview";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { WhatsAppInquiryController } from "@/features/listings/useWhatsAppInquiry";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { WhatsAppInquiryAnswers } from "@/lib/whatsapp";
@@ -79,7 +79,7 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
               <LText tone="muted" style={styles.subtitle}>Add a few details for the host. Everything is optional.</LText>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Close inquiry" onPress={close} style={styles.close}>
-              <Ionicons name="close" size={22} color={Skoun.color.ink} />
+              <Ionicons name="close" size={22} color={Studently.color.ink} />
             </Pressable>
           </View>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
@@ -94,7 +94,7 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
                   value={answers[key] ?? ""}
                   onChangeText={(value) => setAnswer(key, value)}
                   placeholder={placeholder}
-                  placeholderTextColor={Skoun.color.inkMuted}
+                  placeholderTextColor={Studently.color.inkMuted}
                   editable={!isOpening}
                   style={styles.input}
                 />
@@ -125,27 +125,27 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   desktopOverlay: { justifyContent: "center", alignItems: "center", padding: 24 },
-  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Skoun.color.overlay },
-  sheet: { width: "100%", flexShrink: 1, backgroundColor: Skoun.color.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
-  desktopSheet: { maxWidth: 580, borderRadius: 24, borderWidth: 1, borderColor: Skoun.color.border },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Skoun.color.border, alignSelf: "center", marginTop: 10 },
+  backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Studently.color.overlay },
+  sheet: { width: "100%", flexShrink: 1, backgroundColor: Studently.color.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
+  desktopSheet: { maxWidth: 580, borderRadius: 24, borderWidth: 1, borderColor: Studently.color.border },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Studently.color.border, alignSelf: "center", marginTop: 10 },
   header: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
   heading: { flex: 1, minWidth: 0 },
   subtitle: { marginTop: 6, fontSize: 14, lineHeight: 20 },
-  close: { width: 44, height: 44, justifyContent: "center", alignItems: "center", borderRadius: 22, backgroundColor: Skoun.color.surfaceMuted },
+  close: { width: 44, height: 44, justifyContent: "center", alignItems: "center", borderRadius: 22, backgroundColor: Studently.color.surfaceMuted },
   scroll: { flexShrink: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 20, gap: 16 },
   field: { gap: 7 },
-  label: { fontFamily: Skoun.type.bodyMedium, fontSize: 14, lineHeight: 21 },
-  input: { minHeight: 48, borderWidth: 1, borderColor: Skoun.color.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: Skoun.color.surface, color: Skoun.color.ink, fontFamily: Skoun.type.body, fontSize: 16 },
-  note: { backgroundColor: Skoun.color.warningSoft, color: Skoun.color.warning, borderRadius: 10, padding: 12, fontSize: 14 },
+  label: { fontFamily: Studently.type.bodyMedium, fontSize: 14, lineHeight: 21 },
+  input: { minHeight: 48, borderWidth: 1, borderColor: Studently.color.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, backgroundColor: Studently.color.surface, color: Studently.color.ink, fontFamily: Studently.type.body, fontSize: 16 },
+  note: { backgroundColor: Studently.color.warningSoft, color: Studently.color.warning, borderRadius: 10, padding: 12, fontSize: 14 },
   preview: { gap: 9, marginTop: 4 },
-  error: { color: Skoun.color.danger, backgroundColor: Skoun.color.dangerSoft, padding: 12, borderRadius: 10, marginBottom: 10 },
-  actions: { borderTopWidth: 1, borderTopColor: Skoun.color.border, paddingHorizontal: 20, paddingTop: 14 },
-  primary: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: Skoun.color.primary, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9 },
+  error: { color: Studently.color.danger, backgroundColor: Studently.color.dangerSoft, padding: 12, borderRadius: 10, marginBottom: 10 },
+  actions: { borderTopWidth: 1, borderTopColor: Studently.color.border, paddingHorizontal: 20, paddingTop: 14 },
+  primary: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: Studently.color.primary, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9 },
   primaryText: { color: "#FFFFFF" },
   disabled: { opacity: 0.65 },
   skip: { minHeight: 44, justifyContent: "center", alignItems: "center", paddingVertical: 10 },
-  skipText: { color: Skoun.color.primary, fontFamily: Skoun.type.bodySemi },
+  skipText: { color: Studently.color.primary, fontFamily: Studently.type.bodySemi },
   skipHint: { textAlign: "center", paddingBottom: 6 },
 });

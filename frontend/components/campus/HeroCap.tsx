@@ -1,6 +1,6 @@
 import Svg, { G, Line } from "react-native-svg";
 import { CAP_DASHES, CAP_VIEWBOX } from "@/components/campus/heroCapGeometry";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const RAD = Math.PI / 180;
 
@@ -15,7 +15,7 @@ export function HeroCap() {
       accessible={false}
     >
       <G
-        stroke={Skoun.color.primary}
+        stroke={Studently.color.primary}
         strokeWidth={1.4}
         strokeLinecap="round"
         fill="none"

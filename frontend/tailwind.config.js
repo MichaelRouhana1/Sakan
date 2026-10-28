@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  important: ".skoun-admin",
+  important: ".studently-admin",
   content: [
     "./app/admin/**/*.{ts,tsx}",
     "./components/admin-neu/**/*.{ts,tsx}",

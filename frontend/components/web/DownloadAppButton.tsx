@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 const DARK_ICON_GIF =
   "https://prod-static-assets.amberstudent.com/images/App_Download_Black_Nav_bar.gif?w=80";
@@ -37,11 +37,11 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
           pressed && styles.btnPressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Download Skoun Mobile App"
+        accessibilityLabel="Download Studently Mobile App"
       >
         <View style={styles.iconSlot}>
           {Platform.OS === "web" ? (
-            // Standard <img> element with CSS hue filter to shift pink accent to Skoun brand blue
+            // Standard <img> element with CSS hue filter to shift pink accent to Studently brand blue
             // line-art monochrome remains unaffected
             <img
               src={gifSrc}
@@ -86,7 +86,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Get the Skoun App</Text>
+              <Text style={styles.modalTitle}>Get the Studently App</Text>
               <Pressable
                 onPress={() => setModalVisible(false)}
                 style={styles.closeBtn}
@@ -96,7 +96,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
             </View>
 
             <Text style={styles.modalSub}>
-              Scan the QR code or choose your store to download Skoun on iOS or Android.
+              Scan the QR code or choose your store to download Studently on iOS or Android.
             </Text>
 
             <View style={styles.qrContainer}>
@@ -142,14 +142,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     backgroundColor: "transparent",
     cursor: "pointer" as unknown as "auto",
     transitionProperty: "background-color, transform, color",
     transitionDuration: "0.2s",
   },
   btnHover: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   btnHoverDarkNav: {
     backgroundColor: "rgba(255, 255, 255, 0.15)",
@@ -165,16 +165,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   text: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.1,
   },
   textDarkNav: {
     color: "#FFFFFF",
   },
   textHover: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   textHoverDarkNav: {
     color: "#FFFFFF",
@@ -203,9 +203,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 20,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   closeBtn: {
     width: 32,
@@ -217,13 +217,13 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     fontWeight: "600",
   },
   modalSub: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 20,
     marginBottom: 20,
   },
@@ -245,9 +245,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
   },
   qrText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   badgesRow: {
     flexDirection: "row",
@@ -255,23 +255,23 @@ const styles = StyleSheet.create({
   },
   storeBadge: {
     flex: 1,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: "center",
   },
   badgeLabel: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   badgeSub: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     marginTop: 2,
   },
 });

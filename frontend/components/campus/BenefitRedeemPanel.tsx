@@ -2,11 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
 import { Linking, Platform, Pressable, StyleSheet, View } from "react-native";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { TicketBackdrop } from "@/components/campus/TicketBackdrop";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { categoryMeta } from "@/features/benefits/categories";
 import { REDEMPTION_META, readyItems } from "@/features/benefits/detailCopy";
@@ -22,7 +22,7 @@ type Props = {
 };
 
 const IS_WEB = Platform.OS === "web";
-const SUPPORT_EMAIL = "hello@skoun.app";
+const SUPPORT_EMAIL = "hello@studently.app";
 /** Same bite geometry as the hero ticket and list cards. */
 const NOTCH = 24;
 const CORNER = 28;
@@ -92,7 +92,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
   return (
     <View
       style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}
-      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+      {...(IS_WEB ? ({ className: "studently-benefit-card-shadow" } as object) : null)}
     >
     <View
       onLayout={(e) => {
@@ -118,7 +118,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
           notch={NOTCH}
           tear={{ axis: "horizontal", at: headH || 80 }}
           fill={cat.tint}
-          stubFill={Skoun.color.surface}
+          stubFill={Studently.color.surface}
         />
       ) : null}
       {/* Header stub — category-tinted like the hero's stub */}
@@ -170,7 +170,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
               <Ionicons
                 name="checkmark"
                 size={14}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
               <LText variant="body" style={styles.readyText}>
                 {item}
@@ -189,9 +189,9 @@ export function BenefitRedeemPanel({ benefit }: Props) {
           <LButton
             label="Sign in to unlock"
             onPress={() => setAuthOpen(true)}
-            accessibilityHint="Opens the Skoun sign-in dialog"
+            accessibilityHint="Opens the Studently sign-in dialog"
           />
-          <SkounAuthModal
+          <StudentlyAuthModal
             visible={authOpen}
             onClose={() => setAuthOpen(false)}
             onSuccess={() => setAuthOpen(false)}
@@ -227,7 +227,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
                 <Ionicons
                   name={copied ? "checkmark" : "copy-outline"}
                   size={16}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
                 <LText variant="caption" style={styles.copyLabel}>
                   {copied ? "Copied" : "Copy"}
@@ -263,7 +263,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
               <Ionicons
                 name="open-outline"
                 size={18}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
             </Pressable>
           ) : (
@@ -291,7 +291,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
           <Ionicons
             name="alert-circle-outline"
             size={15}
-            color={Skoun.color.danger}
+            color={Studently.color.danger}
           />
           <LText variant="caption" tone="danger">
             {error}
@@ -310,7 +310,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
         <Ionicons
           name="chatbubble-ellipses-outline"
           size={14}
-          color={Skoun.color.inkMuted}
+          color={Studently.color.inkMuted}
         />
         <LText variant="caption" tone="muted" style={styles.reportText}>
           Not honoured, or the deal changed? Tell us
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   ticket: {
     width: "100%",
-    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    backgroundColor: IS_WEB ? Studently.color.surface : "transparent",
     overflow: "visible",
   },
 
@@ -369,14 +369,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.9,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.ink,
     fontSize: 19,
     lineHeight: 25,
     letterSpacing: -0.2,
   },
   how: {
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 19,
   },
 
@@ -422,8 +422,8 @@ const styles = StyleSheet.create({
   readyText: {
     flex: 1,
     minWidth: 0,
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -447,22 +447,22 @@ const styles = StyleSheet.create({
     gap: 2,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1.5,
     borderStyle: "dashed",
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   codeLabel: {
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 10.5,
     lineHeight: 14,
   },
   codeValue: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.primaryDeep,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.primaryDeep,
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: 0.6,
@@ -472,10 +472,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 4,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
     ...(IS_WEB
       ? ({
           cursor: "pointer",
@@ -485,12 +485,12 @@ const styles = StyleSheet.create({
       : null),
   },
   copyBtnActive: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   copyLabel: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   linkBox: {
     flexDirection: "row",
@@ -498,10 +498,10 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
     borderColor: "#C5D6F5",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     ...(IS_WEB
       ? ({
           cursor: "pointer",
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
       : null),
   },
   linkBoxHover: {
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
   },
   linkCopy: {
     flex: 1,
@@ -519,20 +519,20 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   linkText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   instructionBox: {
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   instructionText: {
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 23,
   },
   errorRow: {
@@ -558,6 +558,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   reportText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
 });

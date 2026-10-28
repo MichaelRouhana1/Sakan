@@ -10,10 +10,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
-import { SkounLogo } from "@/components/common/SkounLogo";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import {
   WEB_CONTENT_MAX,
@@ -231,8 +231,8 @@ export function WebTopNav({ showSearch = false }: Props) {
             accessibilityRole="link"
             style={styles.brandHit}
           >
-            <SkounLogo size={32} />
-            <Text style={styles.brand}>Skoun</Text>
+            <StudentlyLogo size={32} />
+            <Text style={styles.brand}>Studently</Text>
           </Pressable>
         </Link>
 
@@ -310,7 +310,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                 <Ionicons
                   name="person-outline"
                   size={18}
-                  color={Skoun.color.ink}
+                  color={Studently.color.ink}
                 />
               </View>
             </Pressable>
@@ -440,8 +440,8 @@ export function WebTopNav({ showSearch = false }: Props) {
         </View>
       </View>
 
-      {/* SKOUN CUSTOM AMBER-STYLE AUTH MODAL */}
-      <SkounAuthModal
+      {/* STUDENTLY CUSTOM AMBER-STYLE AUTH MODAL */}
+      <StudentlyAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={() => setAuthModalOpen(false)}
@@ -493,9 +493,9 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   brand: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     letterSpacing: -0.6,
   },
   searchWrap: {
@@ -521,9 +521,9 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   hostCtaText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textDecorationLine: "underline",
   },
 
@@ -538,12 +538,12 @@ const styles = StyleSheet.create({
   loginBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
   },
   loginBtnText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   profileAvatarTrigger: {
     width: 40,
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   loginToContinueText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontStyle: "italic",
     fontSize: 15,
     color: "#2C3E50",
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     width: 22,
   },
   menuText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     color: "#334155",
   },

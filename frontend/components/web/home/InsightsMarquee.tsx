@@ -18,7 +18,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import {
   CAMPUS_TICKER,
@@ -38,7 +38,7 @@ function TickItem({
   icon,
   selected,
 }: HomeTickerItem) {
-  const accent = selected ? "#FFFFFF" : Skoun.color.primary;
+  const accent = selected ? "#FFFFFF" : Studently.color.primary;
   return (
     <View style={[styles.item, selected && styles.itemSelected]}>
       {!selected ? <View style={styles.diamond} /> : null}
@@ -197,7 +197,7 @@ function StatBlock({ stat }: { stat: HomeStat }) {
       <Ionicons
         name={stat.icon}
         size={22}
-        color={Skoun.color.primary}
+        color={Studently.color.primary}
         style={styles.statIcon}
       />
       <View style={styles.statCopy}>
@@ -207,7 +207,7 @@ function StatBlock({ stat }: { stat: HomeStat }) {
             <Ionicons
               name="arrow-forward"
               size={14}
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
             />
           ) : null}
         </View>
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: ROW_H,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
     overflow: "hidden",
     position: "relative",
     justifyContent: "center",
@@ -307,8 +307,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginHorizontal: 12,
     gap: 8,
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.primary,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.primary,
     transform: [{ scale: 1.12 }],
   },
   diamond: {
@@ -319,13 +319,13 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   label: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
     letterSpacing: 0.4,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   labelSelected: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
     letterSpacing: 0.6,
     color: "#FFFFFF",
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     backgroundColor: BAND,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
     paddingHorizontal: 40,
     paddingVertical: 28,
     gap: 24,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginVertical: -8,
     marginHorizontal: -10,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     ...(Platform.OS === "web"
       ? ({
           cursor: "pointer",
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
       : null),
   },
   statBlockLinkActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   statIcon: {
     marginTop: 2,
@@ -400,14 +400,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   statBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 19,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

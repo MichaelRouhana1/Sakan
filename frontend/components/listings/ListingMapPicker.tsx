@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { NearLandmark } from "@/components/listings/NearLandmark";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { formatDistanceMeters } from "@/lib/formatDistance";
 import { labelGenderRestriction, labelListingType } from "@/lib/listingLabels";
@@ -50,7 +50,7 @@ export function ListingMapPicker({
             hitSlop={10}
             style={styles.dismiss}
           >
-            <Ionicons name="close" size={18} color={Skoun.color.inkMuted} />
+            <Ionicons name="close" size={18} color={Studently.color.inkMuted} />
           </Pressable>
         ) : null}
       </View>
@@ -97,7 +97,7 @@ export function ListingMapPicker({
                     <Ionicons
                       name="home-outline"
                       size={18}
-                      color={Skoun.color.inkFaint}
+                      color={Studently.color.inkFaint}
                     />
                   </View>
                 )}
@@ -126,7 +126,7 @@ export function ListingMapPicker({
                     <Ionicons
                       name="navigate-outline"
                       size={13}
-                      color={Skoun.color.primary}
+                      color={Studently.color.primary}
                     />
                     <LText
                       variant="caption"
@@ -142,7 +142,7 @@ export function ListingMapPicker({
               <Ionicons
                 name="chevron-forward"
                 size={18}
-                color={Skoun.color.inkFaint}
+                color={Studently.color.inkFaint}
               />
             </Pressable>
           );
@@ -154,10 +154,10 @@ export function ListingMapPicker({
 
 const styles = StyleSheet.create({
   shell: {
-    borderRadius: Skoun.radius.lg,
-    backgroundColor: Skoun.color.surface,
+    borderRadius: Studently.radius.lg,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     overflow: "hidden",
     maxHeight: 280,
   },
@@ -166,21 +166,21 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 12,
-    paddingHorizontal: Skoun.space.md,
+    paddingHorizontal: Studently.space.md,
     paddingTop: 14,
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
-    backgroundColor: Skoun.color.primaryMist,
+    borderBottomColor: Studently.color.border,
+    backgroundColor: Studently.color.primaryMist,
   },
   headerCopy: { flex: 1, gap: 2 },
   dismiss: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -190,26 +190,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: Skoun.space.md,
+    paddingHorizontal: Studently.space.md,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   rowPressed: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   thumb: {
     width: 56,
     height: 56,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     overflow: "hidden",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   thumbFallback: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   rowBody: { flex: 1, gap: 2 },
   price: {
@@ -223,6 +223,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   distanceText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
   },
 });

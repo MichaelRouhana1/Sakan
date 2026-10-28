@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
 
 export type HostListingsLayout = "grid" | "list";
@@ -39,7 +39,7 @@ export function HostListingsToolbar({
             <Ionicons
               name={layout === "grid" ? "reorder-three-outline" : "grid-outline"}
               size={18}
-              color={Skoun.color.ink}
+              color={Studently.color.ink}
             />
           </Pressable>
           <View
@@ -64,7 +64,7 @@ export function HostListingsToolbar({
                 createDisabled && styles.disabled,
               ]}
             >
-              <Ionicons name="add" size={20} color={Skoun.color.ink} />
+              <Ionicons name="add" size={20} color={Studently.color.ink} />
             </Pressable>
           </View>
         </View>
@@ -89,9 +89,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 24,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: -0.4,
   },
   actions: {
@@ -121,10 +121,10 @@ const styles = StyleSheet.create({
   hint: {
     alignSelf: "flex-end",
     maxWidth: 320,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textAlign: "right",
   },
 });

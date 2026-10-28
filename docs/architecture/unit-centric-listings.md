@@ -6,13 +6,13 @@ Accepted
 
 ## Decision
 
-Skoun models inventory as a **flat** `listings` table: **one row = one rentable offer** (entire apartment, studio, private room, or shared dorm bed). There is **no** property → room-variant → lease-option hierarchy.
+Studently models inventory as a **flat** `listings` table: **one row = one rentable offer** (entire apartment, studio, private room, or shared dorm bed). There is **no** property → room-variant → lease-option hierarchy.
 
 ## Context
 
 AmberStudent-style PBSA platforms aggregate many room types and lease terms under one building URL. That fits large purpose-built student residences with weekly contracts.
 
-Skoun’s [PRD](../../PRD.md) is different:
+Studently’s [PRD](../../PRD.md) is different:
 
 - Matchmaking only — the platform does **not** handle leases, deposits, or rent payments.
 - Lebanon supply is mostly individual apartments and rooms from private landlords, not 200-bed complexes.

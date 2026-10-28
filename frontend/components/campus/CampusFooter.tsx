@@ -1,7 +1,8 @@
 import { Link, type Href } from "expo-router";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
+import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 export function CampusFooter() {
@@ -19,9 +20,12 @@ export function CampusFooter() {
         ]}
       >
         <View style={[styles.brandCol, stacked && styles.brandColStacked]}>
-          <LText variant="subtitle" style={styles.brand}>
-            Skoun
-          </LText>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <StudentlyLogo size={32} />
+            <LText variant="subtitle" style={styles.brand}>
+              Studently
+            </LText>
+          </View>
           <LText variant="caption" tone="muted" style={styles.tagline}>
             Student tools for private universities in Lebanon — tuition
             estimates, then rooms near campus.
@@ -50,7 +54,7 @@ export function CampusFooter() {
           tone="faint"
           style={[styles.copyright, stacked && styles.copyrightStacked]}
         >
-          © {new Date().getFullYear()} Skoun · Lebanon · Estimates are not
+          © {new Date().getFullYear()} Studently · Lebanon · Estimates are not
           invoices
         </LText>
       </View>
@@ -62,8 +66,8 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 48,
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderTopColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
     width: "100%",
   },
   inner: {
@@ -92,7 +96,7 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   brand: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
     fontSize: 18,
   },
   tagline: {
@@ -115,12 +119,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   link: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
   },
   bottom: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: "center",

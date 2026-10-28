@@ -4,7 +4,7 @@ import { Image, Platform, StyleSheet, View } from "react-native";
 import { stubStamp } from "@/components/campus/BenefitCard";
 import { TicketBackdrop } from "@/components/campus/TicketBackdrop";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { categoryMeta } from "@/features/benefits/categories";
 import {
   isCampusExclusive,
@@ -62,7 +62,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
   return (
     <View
       style={[styles.shadowWrap, IS_WEB && styles.shadowWrapWeb]}
-      {...(IS_WEB ? ({ className: "skoun-benefit-card-shadow" } as object) : null)}
+      {...(IS_WEB ? ({ className: "studently-benefit-card-shadow" } as object) : null)}
     >
       <View
         onLayout={(e) => {
@@ -86,7 +86,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
                 ? { axis: "horizontal", at: size.h - (stubH || STUB_STACK_H) }
                 : { axis: "vertical", at: size.w - STUB_W }
             }
-            fill={Skoun.color.surface}
+            fill={Studently.color.surface}
             stubFill={meta.tint}
           />
         ) : null}
@@ -151,7 +151,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
               <Ionicons
                 name={benefit.isGlobal ? "globe-outline" : "flag-outline"}
                 size={12}
-                color={Skoun.color.inkMuted}
+                color={Studently.color.inkMuted}
               />
               <LText variant="caption" style={styles.chipText}>
                 {benefit.isGlobal ? "Global offer" : "Lebanon only"}
@@ -162,7 +162,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
                 <Ionicons
                   name="school-outline"
                   size={12}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
                 <LText
                   variant="caption"
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   },
   ticket: {
     width: "100%",
-    backgroundColor: IS_WEB ? Skoun.color.surface : "transparent",
+    backgroundColor: IS_WEB ? Studently.color.surface : "transparent",
     overflow: "visible",
   },
   ticketRow: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   logoWellImg: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   logoImg: {
     width: 48,
@@ -339,22 +339,22 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   chipExclusive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderColor: "#C5D6F5",
   },
   chipText: {
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.bodyMedium,
   },
   chipTextExclusive: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
 
   railVertical: {
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   stamp: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     letterSpacing: -0.4,
     textAlign: "center",
     ...(IS_WEB ? ({ whiteSpace: "nowrap" } as object) : null),
@@ -441,8 +441,8 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   holderValue: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodySemi,
     textAlign: "center",
   },
 });

@@ -23,7 +23,7 @@ export function AdminWebOnly() {
           textAlign: "center",
         }}
       >
-        Skoun Ops
+        Studently Ops
       </Text>
       <Text
         style={{

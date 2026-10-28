@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** Skoun Web
+**Project:** Studently Web
 **Generated:** 2026-08-06 15:40:01
 **Category:** Marketplace (P2P)
 
@@ -14,9 +14,9 @@
 
 ## Global Rules
 
-### Skoun brand override (LOCKED — ignore generated palette below)
+### Studently brand override (LOCKED — ignore generated palette below)
 
-Use `frontend/constants/listerTheme.ts` (`Skoun` export). Do **not** use purple/green from ui-ux-pro-max output.
+Use `frontend/constants/listerTheme.ts` (`Studently` export). Do **not** use purple/green from ui-ux-pro-max output.
 
 | Role | Hex | Usage |
 |------|-----|-------|
@@ -34,7 +34,7 @@ Use `frontend/constants/listerTheme.ts` (`Skoun` export). Do **not** use purple/
 
 **Aesthetic POV:** Editorial hospitality marketplace — Beirut rental site. Search-first hierarchy, dense desktop grid, calm stone-mint grounds, cerulean actions, navy typography. Not mobile app chrome scaled up.
 
-### Color Palette (structure reference only — use Skoun tokens above)
+### Color Palette (structure reference only — use Studently tokens above)
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|

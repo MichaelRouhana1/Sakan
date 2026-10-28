@@ -34,7 +34,7 @@ import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabil
 import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { ListingContactCard } from "@/components/listings/detail/ListingContactCard";
 import { ReportListingDialog } from "@/components/web/ReportListingDialog";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openListingEdit } from "@/features/listings/edit/openListingEdit";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
@@ -274,7 +274,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   const shareLink = async () => {
     const url = IS_WEB
       ? window.location.href
-      : `https://skoun.app/listing/${listing.id}`;
+      : `https://studently.app/listing/${listing.id}`;
     try {
       if (IS_WEB) {
         await Clipboard.setStringAsync(url);
@@ -353,7 +353,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 <Ionicons
                   name="arrow-back"
                   size={15}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
                 <LText
                   variant="caption"
@@ -367,7 +367,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           <Ionicons
             name="chevron-forward"
             size={13}
-            color={Skoun.color.inkFaint}
+            color={Studently.color.inkFaint}
           />
           <LText variant="caption" tone="muted" style={styles.crumbCurrent}>
             {listing.area}
@@ -375,7 +375,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           <Ionicons
             name="chevron-forward"
             size={13}
-            color={Skoun.color.inkFaint}
+            color={Studently.color.inkFaint}
           />
           <LText
             variant="caption"
@@ -415,7 +415,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                       <Ionicons
                         name="image-outline"
                         size={36}
-                        color={Skoun.color.inkFaint}
+                        color={Studently.color.inkFaint}
                       />
                       <LText variant="caption" tone="faint">
                         No photos yet
@@ -440,7 +440,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                     <Ionicons
                       name="chevron-back"
                       size={18}
-                      color={Skoun.color.ink}
+                      color={Studently.color.ink}
                     />
                   </Pressable>
                   <Pressable
@@ -456,7 +456,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                     <Ionicons
                       name="chevron-forward"
                       size={18}
-                      color={Skoun.color.ink}
+                      color={Studently.color.ink}
                     />
                   </Pressable>
                   <View style={styles.galleryCount}>
@@ -567,7 +567,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 style={[styles.fact, i === facts.length - 1 && styles.factLast]}
               >
                 <View style={styles.factLabelRow}>
-                  <Ionicons name={f.icon} size={13} color={Skoun.color.inkFaint} />
+                  <Ionicons name={f.icon} size={13} color={Studently.color.inkFaint} />
                   <LText variant="label" tone="muted" style={styles.factLabel}>
                     {f.label}
                   </LText>
@@ -600,7 +600,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 <Ionicons
                   name="flash-outline"
                   size={20}
-                  color={Skoun.color.warning}
+                  color={Studently.color.warning}
                 />
                 <LText variant="label" tone="muted">
                   Electricity
@@ -845,16 +845,16 @@ const styles = StyleSheet.create({
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   crumbText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   crumbCurrent: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     flexShrink: 1,
   },
   linkHover: {
     textDecorationLine: "underline",
-    textDecorationColor: Skoun.color.primary,
+    textDecorationColor: Studently.color.primary,
   },
   columns: {
     flexDirection: "row",
@@ -882,8 +882,8 @@ const styles = StyleSheet.create({
   galleryMain: {
     flex: 1,
     minWidth: 0,
-    borderRadius: Skoun.radius.lg,
-    backgroundColor: Skoun.color.bgWash,
+    borderRadius: Studently.radius.lg,
+    backgroundColor: Studently.color.bgWash,
     ...PHOTO_FRAME,
   },
   galleryOpen: {
@@ -892,7 +892,7 @@ const styles = StyleSheet.create({
   },
   galleryMainClip: {
     ...StyleSheet.absoluteFill,
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
   },
   galleryMainImg: {
@@ -942,12 +942,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: Skoun.radius.pill,
+    borderRadius: Studently.radius.pill,
     backgroundColor: "rgba(18, 24, 38, 0.72)",
   },
   galleryCountText: {
     color: "#fff",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
   },
   galleryThumbs: {
     width: DETAIL_THUMBS_WIDTH,
@@ -957,15 +957,15 @@ const styles = StyleSheet.create({
   galleryThumb: {
     flex: 1,
     minHeight: 0,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.bgWash,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.bgWash,
     overflow: "hidden",
     ...PHOTO_FRAME,
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   galleryThumbClip: {
     ...StyleSheet.absoluteFill,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     overflow: "hidden",
   },
   galleryThumbImg: {
@@ -984,7 +984,7 @@ const styles = StyleSheet.create({
   },
   galleryMoreText: {
     color: "#fff",
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
   },
 
   headerRow: {
@@ -1051,10 +1051,10 @@ const styles = StyleSheet.create({
   factValue: {
     flex: 1,
     minWidth: 0,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 21,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   factValueRow: {
     flexDirection: "row",
@@ -1080,7 +1080,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   anchor: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     ...(IS_WEB
       ? ({ scrollMarginTop: WEB_NAV_HEIGHT + 16 } as object)
       : null),
@@ -1092,13 +1092,13 @@ const styles = StyleSheet.create({
     paddingLeft: 24,
   },
   sectionNumber: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodyBold,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodyBold,
     letterSpacing: 1,
     fontSize: 12,
   },
   sectionTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.3,

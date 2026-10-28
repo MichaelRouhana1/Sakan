@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 import { Lister } from "@/constants/listerTheme";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import { LButton } from "./Button";
 import { LText } from "./Typography";
 
@@ -14,7 +14,7 @@ type Props = {
 };
 
 /**
- * Empty feed illustration — layered Skoun shapes + Ionicons (no emoji).
+ * Empty feed illustration — layered Studently shapes + Ionicons (no emoji).
  * Keeps title / body / optional CTA API.
  */
 export function EmptyState({
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderColor: Lister.color.border,
     alignItems: "center",
     justifyContent: "center",
-    ...skounShadow({ y: 4, blur: 10, opacity: 0.08, elevation: 2 }),
+    ...studentlyShadow({ y: 4, blur: 10, opacity: 0.08, elevation: 2 }),
   },
   frameInner: {
     width: 64,

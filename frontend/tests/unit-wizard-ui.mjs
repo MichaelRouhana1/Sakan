@@ -9,7 +9,7 @@ import {chromium,expect} from '@playwright/test';
 const frontend=path.resolve(import.meta.dirname,'..'),root=path.join(frontend,'.expo/slice4-export'),out=path.join(frontend,'.expo/slice4-ui');await mkdir(out,{recursive:true});
 const bundle=await build({stdin:{contents:`export * from './features/listings/create/draft';`,loader:'ts',resolveDir:frontend},bundle:true,write:false,format:'esm',platform:'node'});
 const {INITIAL_DRAFT}=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].contents).toString('base64'));
-const key='skoun.createListing.checkpoint.v1';
+const key='studently.createListing.checkpoint.v1';
 const photo=(id)=>({localId:id,status:'ready',uri:'https://photos.test/'+id+'.jpg',url:'https://photos.test/'+id+'.jpg',caption:'Bedroom'});
 const baseDraft={...INITIAL_DRAFT,spaceType:'private_room',propertyType:'apartment',area:'Hamra',pin:{...INITIAL_DRAFT.pin,confirmed:true},primaryCampusId:'10000000-0000-4000-8000-000000000001',furnishingType:'furnished',electricity:'solar',water:'state_well_24_7',bathroomPrivacy:'shared',monthlyRentUsd:'300',areaSqm:'20',title:'Bright room near campus',description:'A bright room near campus with shared kitchen and living space.',listingPosterRole:'landlord',contactName:'Test Host',contactNumbers:[{kind:'mobile',prefix:'71',subscriber:'123456',calls:true,whatsapp:true}],photos:[photo('a'),photo('b'),photo('c')]};
 const mime={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.ttf':'font/ttf','.png':'image/png','.svg':'image/svg+xml'};

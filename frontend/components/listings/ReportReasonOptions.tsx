@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   REPORT_REASONS,
   type ReportReasonAccent,
@@ -14,9 +14,9 @@ const ACCENT: Record<
   ReportReasonAccent,
   { icon: string; well: string }
 > = {
-  danger: { icon: Skoun.color.danger, well: Skoun.color.dangerSoft },
-  warning: { icon: Skoun.color.warning, well: Skoun.color.warningSoft },
-  primary: { icon: Skoun.color.primary, well: Skoun.color.primaryMist },
+  danger: { icon: Studently.color.danger, well: Studently.color.dangerSoft },
+  warning: { icon: Studently.color.warning, well: Studently.color.warningSoft },
+  primary: { icon: Studently.color.primary, well: Studently.color.primaryMist },
 };
 
 type Props = {
@@ -68,7 +68,7 @@ export function ReportReasonOptions({
               <Ionicons
                 name={item.icon}
                 size={22}
-                color={selected ? tint.icon : Skoun.color.inkMuted}
+                color={selected ? tint.icon : Studently.color.inkMuted}
               />
             </View>
             <View style={styles.copy}>
@@ -105,10 +105,10 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surfaceMuted,
     ...(IS_WEB
       ? ({
           cursor: "pointer",
@@ -118,12 +118,12 @@ const styles = StyleSheet.create({
       : null),
   },
   rowHover: {
-    borderColor: Skoun.color.borderStrong,
+    borderColor: Studently.color.borderStrong,
     backgroundColor: "#EEF2F7",
   },
   rowSelected: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   rowPressed: {
     opacity: 0.94,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
       ? ({
           outlineWidth: 2,
           outlineStyle: "solid",
-          outlineColor: Skoun.color.primary,
+          outlineColor: Studently.color.primary,
           outlineOffset: 2,
         } as object)
       : null),
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     ...(IS_WEB
       ? ({
           transitionProperty: "background-color",
@@ -164,26 +164,26 @@ const styles = StyleSheet.create({
   labelOn: {
     fontSize: 15,
     lineHeight: 20,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
   },
   radio: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: Skoun.color.borderStrong,
+    borderColor: Studently.color.borderStrong,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   radioOn: {
-    borderColor: Skoun.color.primaryDeep,
-    backgroundColor: Skoun.color.primaryDeep,
+    borderColor: Studently.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
   },
   radioDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
 });

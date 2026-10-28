@@ -47,7 +47,7 @@ import {
   type HoverPoint,
 } from "@/components/web/HoverCommitCursor";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useSearchListings } from "@/features/listings/useSearchListings";
 import { SearchPagination } from "@/components/listings/SearchPagination";
@@ -187,7 +187,7 @@ export function FindBrowse() {
     setMapOpen(false);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "instant" });
-      document.getElementById("skoun-web-shell")?.scrollTo({ top: 0, behavior: "instant" });
+      document.getElementById("studently-web-shell")?.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [browse.applyRevision]);
   useEffect(() => { if (browse.open) setFiltersOpen(false); }, [browse.open]);
@@ -254,7 +254,7 @@ export function FindBrowse() {
     setHideFooter(isMap);
     setLockScroll(isMap);
     if (isMap && typeof document !== "undefined") {
-      document.getElementById("skoun-web-shell")?.scrollTo(0, 0);
+      document.getElementById("studently-web-shell")?.scrollTo(0, 0);
     }
     return () => {
       setFullBleed(false);
@@ -431,7 +431,7 @@ export function FindBrowse() {
                     name={opt.icon}
                     size={16}
                     color={
-                      active ? Skoun.color.primaryDeep : Skoun.color.inkMuted
+                      active ? Studently.color.primaryDeep : Studently.color.inkMuted
                     }
                   />
                   <LText
@@ -495,7 +495,7 @@ export function FindBrowse() {
       search.setPage(page);
       if (typeof window !== "undefined") {
         window.scrollTo({ top: 0, behavior: "instant" });
-        document.getElementById("skoun-web-shell")?.scrollTo({ top: 0, behavior: "instant" });
+        document.getElementById("studently-web-shell")?.scrollTo({ top: 0, behavior: "instant" });
       }
     }} /> : null}
     </View>
@@ -553,7 +553,7 @@ export function FindBrowse() {
                 hovered && styles.mobileMapCtaHover,
               ]}
             >
-              <Ionicons name="map-outline" size={18} color={Skoun.color.primary} />
+              <Ionicons name="map-outline" size={18} color={Studently.color.primary} />
               <LText variant="subtitle" style={styles.mobileMapLabel}>
                 Explore on map
               </LText>
@@ -710,12 +710,12 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   crumbLink: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodyMedium,
   },
   crumbCurrent: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
   },
   headingRow: {
     position: "relative",
@@ -781,10 +781,10 @@ const styles = StyleSheet.create({
     pointerEvents: "none",
   },
   h1: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 28,
     lineHeight: 34,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
     letterSpacing: -0.4,
   },
   h1Map: {
@@ -792,28 +792,28 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   h1Em: {
-    fontFamily: Skoun.type.display,
-    color: Skoun.color.primary,
+    fontFamily: Studently.type.display,
+    color: Studently.color.primary,
   },
   h1Count: {
     fontSize: 16,
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.body,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.body,
   },
   h1Sub: {
     fontSize: 18,
     lineHeight: 26,
-    color: Skoun.color.inkMuted,
-    fontFamily: Skoun.type.body,
+    color: Studently.color.inkMuted,
+    fontFamily: Studently.type.body,
     marginTop: 2,
   },
   viewToggle: {
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   viewBtn: {
     flexDirection: "row",
@@ -823,14 +823,14 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   viewBtnActive: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   viewLabel: {
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   viewLabelActive: {
-    color: Skoun.color.primaryDeep,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.primaryDeep,
+    fontFamily: Studently.type.bodyMedium,
   },
   mainRow: {
     flexDirection: "row",
@@ -849,14 +849,14 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
   },
   mobileMapCtaHover: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   mobileMapLabel: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   mapSplit: {
     flex: 1,

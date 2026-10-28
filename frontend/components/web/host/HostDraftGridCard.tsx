@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   checkpointCoverPhoto,
   checkpointDisplayTitle,
@@ -34,7 +34,7 @@ export function HostDraftGridCard({ checkpoint, onPress }: Props) {
           />
         ) : (
           <View style={styles.placeholder}>
-            <Ionicons name="image-outline" size={22} color={Skoun.color.inkFaint} />
+            <Ionicons name="image-outline" size={22} color={Studently.color.inkFaint} />
           </View>
         )}
         <View style={styles.pillWrap}>
@@ -84,14 +84,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 18,
   },
   subtitle: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

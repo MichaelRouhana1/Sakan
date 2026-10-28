@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { parsePreferences } from "./preferences";
 import type { MatcherPreferences } from "./types";
 
-const KEY = "skoun.findMyPlace.v1";
+const KEY = "studently.findMyPlace.v1";
 let writes = Promise.resolve();
 export async function readMatcherPreferences() {
   try {

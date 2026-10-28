@@ -4,7 +4,7 @@ import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { HostCreditsPage } from "@/components/web/host/HostCreditsPage";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 export default function CreditsScreen() {
   return (
@@ -26,7 +26,7 @@ export default function CreditsScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
   },
   safe: {
     flex: 1,

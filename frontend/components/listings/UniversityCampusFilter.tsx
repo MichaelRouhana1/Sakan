@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   useInstitutions,
   type Institution,
@@ -111,7 +111,7 @@ export function UniversityCampusFilter({
   };
 
   if (catalog.isLoading) {
-    return <ActivityIndicator color={Skoun.color.primary} />;
+    return <ActivityIndicator color={Studently.color.primary} />;
   }
 
   return (
@@ -125,7 +125,7 @@ export function UniversityCampusFilter({
         <TextInput
           style={styles.search}
           placeholder="Search university…"
-          placeholderTextColor={Skoun.color.inkFaint}
+          placeholderTextColor={Studently.color.inkFaint}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
@@ -184,14 +184,14 @@ export function UniversityCampusFilter({
                     name={expanded ? "chevron-up" : "chevron-down"}
                     size={16}
                     color={
-                      selectedHere ? Skoun.color.primary : Skoun.color.inkFaint
+                      selectedHere ? Studently.color.primary : Studently.color.inkFaint
                     }
                   />
                 ) : selectedHere ? (
                   <Ionicons
                     name="checkmark"
                     size={16}
-                    color={Skoun.color.primary}
+                    color={Studently.color.primary}
                   />
                 ) : null}
               </Pressable>
@@ -211,7 +211,7 @@ export function UniversityCampusFilter({
                         <Ionicons
                           name="location-outline"
                           size={16}
-                          color={on ? Skoun.color.primary : Skoun.color.inkMuted}
+                          color={on ? Studently.color.primary : Studently.color.inkMuted}
                         />
                         <View style={styles.rowText}>
                           <LText
@@ -230,7 +230,7 @@ export function UniversityCampusFilter({
                           <Ionicons
                             name="checkmark"
                             size={16}
-                            color={Skoun.color.primary}
+                            color={Studently.color.primary}
                           />
                         ) : null}
                       </Pressable>
@@ -259,31 +259,31 @@ const styles = StyleSheet.create({
   search: {
     flex: 1,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   allBtn: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     alignItems: "center",
     justifyContent: "center",
   },
   allBtnOn: {
-    backgroundColor: Skoun.color.primaryMist,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primaryMist,
+    borderColor: Studently.color.primary,
   },
   allLabel: {
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontWeight: "600",
   },
   allLabelOn: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "700",
   },
   list: { gap: 2 },
@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
     paddingLeft: 44,
     borderRadius: 10,
   },
-  rowOn: { backgroundColor: Skoun.color.primaryMist },
+  rowOn: { backgroundColor: Studently.color.primaryMist },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { color: Skoun.color.ink, fontWeight: "600" },
-  rowTitleOn: { color: Skoun.color.primary, fontWeight: "700" },
+  rowTitle: { color: Studently.color.ink, fontWeight: "600" },
+  rowTitleOn: { color: Studently.color.primary, fontWeight: "700" },
 });

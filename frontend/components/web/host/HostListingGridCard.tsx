@@ -10,7 +10,7 @@ import {
   hostListingAnalyticsPath,
   posterListingAnalyticsPath,
 } from "@/constants/hostRoutes";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { Listing } from "@/types/listing";
 
@@ -61,7 +61,7 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
           />
         ) : (
           <View style={[styles.placeholder, styles.noPointer]}>
-            <Ionicons name="image-outline" size={22} color={Skoun.color.inkFaint} />
+            <Ionicons name="image-outline" size={22} color={Studently.color.inkFaint} />
           </View>
         )}
         <View style={[styles.pillWrap, styles.noPointer]}>
@@ -168,20 +168,20 @@ const styles = StyleSheet.create({
       : null),
   },
   imageBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   title: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 18,
   },
   subtitle: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

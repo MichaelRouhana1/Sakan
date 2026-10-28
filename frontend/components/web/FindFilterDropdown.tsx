@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 
 export const FILTER_BAR_HEIGHT = 52;
@@ -156,12 +156,12 @@ export function MenuSearch({
 }) {
   return (
     <View style={styles.search}>
-      <Ionicons name="search-outline" size={16} color={Skoun.color.inkFaint} />
+      <Ionicons name="search-outline" size={16} color={Studently.color.inkFaint} />
       <TextInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={Skoun.color.inkFaint}
+        placeholderTextColor={Studently.color.inkFaint}
         style={styles.searchInput}
       />
       {value ? (
@@ -171,7 +171,7 @@ export function MenuSearch({
           onPress={() => onChange("")}
           hitSlop={6}
         >
-          <Ionicons name="close-circle" size={16} color={Skoun.color.inkFaint} />
+          <Ionicons name="close-circle" size={16} color={Studently.color.inkFaint} />
         </Pressable>
       ) : null}
     </View>
@@ -218,33 +218,33 @@ export function BudgetRangeControl({
           {createElement("style", {
             dangerouslySetInnerHTML: {
               __html: `
-                input[data-skoun-range]::-webkit-slider-runnable-track {
+                input[data-studently-range]::-webkit-slider-runnable-track {
                   background: transparent;
                   height: 4px;
                 }
-                input[data-skoun-range]::-moz-range-track {
+                input[data-studently-range]::-moz-range-track {
                   background: transparent;
                   height: 4px;
                   border: none;
                 }
-                input[data-skoun-range]::-webkit-slider-thumb {
+                input[data-studently-range]::-webkit-slider-thumb {
                   -webkit-appearance: none;
                   appearance: none;
                   width: 16px;
                   height: 16px;
                   margin-top: -6px;
                   border-radius: 50%;
-                  background: ${Skoun.color.primary};
+                  background: ${Studently.color.primary};
                   border: 2px solid #ffffff;
                   box-shadow: 0 1px 4px rgba(18, 24, 38, 0.28);
                   cursor: pointer;
                   pointer-events: auto;
                 }
-                input[data-skoun-range]::-moz-range-thumb {
+                input[data-studently-range]::-moz-range-thumb {
                   width: 16px;
                   height: 16px;
                   border-radius: 50%;
-                  background: ${Skoun.color.primary};
+                  background: ${Studently.color.primary};
                   border: 2px solid #ffffff;
                   box-shadow: 0 1px 4px rgba(18, 24, 38, 0.28);
                   cursor: pointer;
@@ -269,7 +269,7 @@ export function BudgetRangeControl({
             max: RENT_MAX,
             step: RENT_STEP,
             value: lo,
-            "data-skoun-range": "low",
+            "data-studently-range": "low",
             "aria-label": "Minimum budget",
             onChange: (e: { target: { value: string } }) =>
               commit(Number(e.target.value), hi),
@@ -281,7 +281,7 @@ export function BudgetRangeControl({
             max: RENT_MAX,
             step: RENT_STEP,
             value: hi,
-            "data-skoun-range": "high",
+            "data-studently-range": "high",
             "aria-label": "Maximum budget",
             onChange: (e: { target: { value: string } }) =>
               commit(lo, Number(e.target.value)),
@@ -351,7 +351,7 @@ function webRangeStyle(
     zIndex: layer === "low" ? (close ? 4 : 2) : 3,
     clipPath: clip,
     WebkitClipPath: clip,
-    accentColor: Skoun.color.primary,
+    accentColor: Studently.color.primary,
     WebkitAppearance: "none",
     appearance: "none",
   };
@@ -389,29 +389,29 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   reset: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "700",
     fontSize: 14,
   },
   resetOff: {
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   row: {
     paddingVertical: 10,
     paddingHorizontal: 2,
   },
   rowHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
     marginHorizontal: -8,
     paddingHorizontal: 10,
     borderRadius: 8,
   },
   rowLabel: {
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   rowLabelOn: {
     fontWeight: "700",
@@ -421,39 +421,39 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     backgroundColor: "#FFFFFF",
   },
   chipOn: {
-    borderColor: Skoun.color.primary,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primary,
+    backgroundColor: Studently.color.primaryMist,
   },
   chipHover: {
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   chipLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   chipLabelOn: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   search: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     outlineStyle: "none",
     paddingVertical: 0,
   } as Record<string, unknown>,
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   budgetCap: {
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     height: 4,
     borderRadius: 999,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   budgetPills: {
     flexDirection: "row",
@@ -502,20 +502,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   budgetDollar: {
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     fontWeight: "700",
   },
   budgetInput: {
     flex: 1,
     fontSize: 14,
     fontWeight: "600",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     outlineStyle: "none",
     paddingVertical: 0,
   } as Record<string, unknown>,

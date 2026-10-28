@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   rentInclusionLines,
   type RentInclusionInput,
@@ -31,7 +31,7 @@ export function RentInclusionLines({ listing }: { listing: RentInclusionInput })
 const styles = StyleSheet.create({
   block: { gap: 4, paddingTop: 4 },
   on: {
-    fontFamily: Skoun.type.bodySemi,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodySemi,
+    color: Studently.color.ink,
   },
 });

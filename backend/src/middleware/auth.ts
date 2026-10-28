@@ -54,7 +54,7 @@ async function isStaffAdmin(clerkId: string): Promise<boolean> {
 
   try {
     const clerkUser = await getClerkClient().users.getUser(clerkId);
-    return clerkUser.publicMetadata?.skounAdmin === true;
+    return clerkUser.publicMetadata?.studentlyAdmin === true;
   } catch {
     return false;
   }
@@ -156,7 +156,7 @@ export async function optionalAuth(
 }
 
 /**
- * Admin: Clerk staff JWT (allowlist or publicMetadata.skounAdmin) or x-admin-key.
+ * Admin: Clerk staff JWT (allowlist or publicMetadata.studentlyAdmin) or x-admin-key.
  * If both sent, staff Clerk identity wins for audit.
  *
  * Auth is deferred until ADMIN_AUTH_REQUIRED=true (default on only in production).

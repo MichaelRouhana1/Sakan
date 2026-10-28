@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { answerLabel } from "@/features/matcher/questions";
 import {
   DIMENSIONS,
@@ -117,7 +117,7 @@ export function MatchSummaryBar({
               aria-hidden
               name={detailsOpen ? "information-circle" : "information-circle-outline"}
               size={18}
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
             />
             <Text style={s.linkLg}>Preferences</Text>
           </Pressable>
@@ -145,7 +145,7 @@ export function MatchSummaryBar({
           aria-hidden={true}
           name="pencil-outline"
           size={18}
-          color={Skoun.color.primary}
+          color={Studently.color.primary}
         />
         <Text style={s.linkLg}>Edit</Text>
       </Pressable>
@@ -172,16 +172,16 @@ const s = StyleSheet.create({
     minWidth: 0,
   },
   muted: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   link: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     lineHeight: 16,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   action: {
     minHeight: 28,
@@ -208,10 +208,10 @@ const s = StyleSheet.create({
     cursor: "pointer",
   },
   linkLg: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 20,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   warning: {
     flexBasis: "100%",
@@ -220,9 +220,9 @@ const s = StyleSheet.create({
     position: "relative",
   },
   note: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
 });

@@ -2,12 +2,12 @@ import { Platform } from "react-native";
 
 declare global {
   interface Window {
-    __SKOUN_OAUTH_HREF?: string;
+    __STUDENTLY_OAUTH_HREF?: string;
   }
 }
 
-if (typeof window !== "undefined" && !window.__SKOUN_OAUTH_HREF) {
-  window.__SKOUN_OAUTH_HREF = window.location.href;
+if (typeof window !== "undefined" && !window.__STUDENTLY_OAUTH_HREF) {
+  window.__STUDENTLY_OAUTH_HREF = window.location.href;
 }
 
 type ClerkSessionLike = {
@@ -231,7 +231,7 @@ export async function completeOAuthSession(
   return activateClerkSession(clerk, sessionId);
 }
 
-const OAUTH_RETURN_TO_KEY = "skoun.oauth.returnTo";
+const OAUTH_RETURN_TO_KEY = "studently.oauth.returnTo";
 
 let oauthRedirectInFlight: Promise<boolean> | null = null;
 let oauthDidNavigate = false;
@@ -302,7 +302,7 @@ function oauthCallbackSearchParams(): URLSearchParams {
 
 function restoreOAuthCallbackUrlIfNeeded(): void {
   if (typeof window === "undefined") return;
-  const href = window.__SKOUN_OAUTH_HREF;
+  const href = window.__STUDENTLY_OAUTH_HREF;
   if (!href) return;
   try {
     const snap = new URL(href);

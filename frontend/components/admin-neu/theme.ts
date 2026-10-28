@@ -1,6 +1,6 @@
 export type AdminTheme = "light" | "dark";
 
-export const ADMIN_THEME_KEY = "skoun-admin-theme";
+export const ADMIN_THEME_KEY = "studently-admin-theme";
 
 /** Lucide / SVG muted ink — tracks clay-500 across themes. */
 export const ADMIN_MUTED = "var(--admin-clay-500)";

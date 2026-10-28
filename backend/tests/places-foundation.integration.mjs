@@ -166,6 +166,10 @@ try{
  await client`insert into studently_ops.environment_guard(environment,database_name) values('local',${name})`;
  for(const slug of new Set(housingFixtures.map(x=>x.campus)))await client`insert into universities(name,slug,location) values(${slug},${slug},ST_GeogFromText('POINT(35.48 33.90)')) on conflict(slug) do nothing`;
  assetsDir=await mkdtemp(path.join(tmpdir(),'studently-housing-assets-'));seedEnv.UPLOAD_DIR=assetsDir;
+ await check('fixture IDs stay on the original namespace so existing manifests keep matching',async()=>{
+  assert.equal(fixtureId('owner'),'f7fcddd9-24a0-4f65-8795-e8a6230717ad');
+  assert.equal(fixtureId('place/achrafieh-rooms'),'2061f41a-8973-4f4c-8958-c586643fd7fa');
+ });
  await check('new seed creates all place/unit scenarios and bundled galleries',async()=>{
   const nonDemoBefore=await client`select to_jsonb(l) value from listings l order by id`;
   const result=await seedHousing(client,seedEnv);

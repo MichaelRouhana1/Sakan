@@ -26,7 +26,7 @@ import { EditListingDrawer } from "@/components/listings/edit/EditListingDrawer"
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { hostEditSection, HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
 import { draftHasMeaningfulProgress } from "@/features/listings/create/createDraftCheckpoint";
@@ -163,8 +163,8 @@ export function HostListingsPage() {
           <RefreshControl
             refreshing={isFetching && !isLoading}
             onRefresh={() => void refetch()}
-            tintColor={Skoun.color.primary}
-            colors={[Skoun.color.primary]}
+            tintColor={Studently.color.primary}
+            colors={[Studently.color.primary]}
           />
         }
       >
@@ -179,7 +179,7 @@ export function HostListingsPage() {
 
           {isLoading && items.length === 0 ? (
             <ActivityIndicator
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
               style={styles.loader}
             />
           ) : isError && items.length === 0 ? (
@@ -308,14 +308,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 22,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   emptyBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     textAlign: "center",
     maxWidth: 360,
   },
@@ -324,19 +324,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
   },
   retryText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     color: "#FFFFFF",
   },
   refreshHint: {
     marginTop: 16,
     textAlign: "center",
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
 });

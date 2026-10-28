@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { PRICE_BASIS_LABELS } from "@/lib/listingLabels";
 import type { MatchPresentation } from "@/features/matcher/types";
 import { useCoarsePointer } from "@/lib/useCoarsePointer";
@@ -106,7 +106,7 @@ export function BestMatchBadge({
           aria-hidden
           name={hot || open ? "information-circle" : "information-circle-outline"}
           size={15}
-          color={Skoun.color.primary}
+          color={Studently.color.primary}
         />
       </Pressable>
       {open ? (
@@ -196,18 +196,18 @@ const styles = StyleSheet.create({
   },
   badgeHot: {
     backgroundColor: "#FFFFFF",
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
     boxShadow: "0 4px 12px rgba(47, 111, 237, 0.22)",
   },
   badgeFocus: {
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
     boxShadow: "0 0 0 2px #FFFFFF, 0 0 0 4px #2F6FED",
   },
   label: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   panel: {
     marginTop: 8,
@@ -222,22 +222,22 @@ const styles = StyleSheet.create({
     boxShadow: "0 16px 36px rgba(18, 24, 38, 0.16)",
   },
   kicker: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   reason: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   basis: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   rule: {
     height: 1,
@@ -246,31 +246,31 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   score: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
     lineHeight: 22,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   muted: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   detail: {
     gap: 2,
   },
   detailLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   footnote: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     paddingTop: 2,
   },
 });

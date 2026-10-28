@@ -35,7 +35,7 @@ import {
 } from "@/components/listings/detail/ListingDetailSectionTabs";
 import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDetailUnitSpecs";
 import { ReportListingSheet } from "@/components/listings/ReportListingSheet";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
@@ -148,7 +148,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     return (
       <ListerScreen>
         <View style={styles.center}>
-          <ActivityIndicator color={Skoun.color.primary} />
+          <ActivityIndicator color={Studently.color.primary} />
         </View>
       </ListerScreen>
     );
@@ -307,16 +307,16 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Skoun.color.bg },
+  flex: { flex: 1, backgroundColor: Studently.color.bg },
   content: {
     paddingBottom: 24,
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: Skoun.space.lg,
+    padding: Studently.space.lg,
   },
   sectionPad: {
     paddingHorizontal: 16,

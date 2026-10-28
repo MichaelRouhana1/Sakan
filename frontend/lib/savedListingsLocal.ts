@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const KEY = "skoun.savedListings";
-const MIGRATED_KEY = "skoun.savedListings.migrated";
+const KEY = "studently.savedListings";
+const MIGRATED_KEY = "studently.savedListings.migrated";
 
 /** Read legacy device-only saved listing IDs (full Listing JSON blobs). */
 export async function getLocalSavedListingIds(): Promise<string[]> {

@@ -7,7 +7,7 @@ import { HostAnalyticsGlassPane } from "@/components/web/host/analytics/HostAnal
 import {
   type HostEditSection,
 } from "@/constants/hostRoutes";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { openListingEdit } from "@/features/listings/edit/openListingEdit";
 import {
   dismissSilenceTip,
@@ -184,31 +184,31 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   kicker: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     color: "#8B95A1",
     textTransform: "uppercase",
     letterSpacing: 1.2,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 18,
     lineHeight: 24,
     letterSpacing: -0.2,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   body: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 20,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   button: {
     alignSelf: "flex-start",
     marginTop: 6,
     minHeight: 40,
     borderRadius: 8,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 14,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   buttonText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     color: "#FFFFFF",
   },

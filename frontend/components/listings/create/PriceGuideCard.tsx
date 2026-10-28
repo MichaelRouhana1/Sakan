@@ -19,7 +19,7 @@ export function PriceGuideCard({ guide, priceBasis, onUse }: {
 }) {
   return (
     <View testID="price-guide" style={styles.card}>
-      <LText variant="subtitle">Similar on Skoun</LText>
+      <LText variant="subtitle">Similar on Studently</LText>
       <LText>Often {dollars(guide.lowUsd)}–{dollars(guide.highUsd)} / month</LText>
       <LText variant="caption" tone="muted">{BASIS_LABEL[priceBasis]}</LText>
       <LText variant="caption" tone="muted">
@@ -33,7 +33,7 @@ export function PriceGuideCard({ guide, priceBasis, onUse }: {
         style={styles.button}
       />
       <LText variant="caption" tone="muted">
-        Asking prices on Skoun; no guarantee of renting.
+        Asking prices on Studently; no guarantee of renting.
       </LText>
     </View>
   );

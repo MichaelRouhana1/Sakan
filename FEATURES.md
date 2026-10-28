@@ -1,7 +1,7 @@
-# Skoun — Features & Components Inventory
+# Studently — Features & Components Inventory
 
 > Snapshot of what exists in the codebase (Expo frontend + Express backend).  
-> Product: Lebanon rental classifieds matchmaking. **Skoun** is the product name; **Sakan** is the legacy / working title (GitHub repo `MichaelRouhana1/Sakan`).
+> Product: Lebanon rental classifieds matchmaking. **Studently** is the product name; **Sakan** is the legacy / working title (GitHub repo `MichaelRouhana1/Sakan`).
 >
 > **Docs vs code:** Field inventory and wizard steps must match `createListingSchema` + `listingWizard.ts`; when in doubt, code wins.
 
@@ -12,8 +12,8 @@
 ### Auth & onboarding
 | Feature | Status | Where |
 |--------|--------|--------|
-| Clerk OAuth (Google / Apple / Facebook) | Done | `SkounAuthModal.tsx` |
-| Clerk email + password sign-in / sign-up | Done | `SkounAuthModal.tsx` |
+| Clerk OAuth (Google / Apple / Facebook) | Done | `StudentlyAuthModal.tsx` |
+| Clerk email + password sign-in / sign-up | Done | `StudentlyAuthModal.tsx` |
 | Renter-first; poster role on first publish | Done | `users.repository` provision + `listings.service` promote |
 | Browse ↔ host shell switch (nav only) | Done | `SwitchRoleControl.tsx` |
 | Clerk JWT on protected API routes | Done | `backend/src/middleware/auth.ts` |
@@ -24,7 +24,7 @@
 
 1. [Clerk Dashboard](https://dashboard.clerk.com): enable Email + Password, email verification, Google / Apple / Facebook OAuth.
 2. Web redirect URLs: `http://localhost:8081` (and production domain).
-3. Native OAuth: Expo scheme `skoun` in `frontend/app.json`.
+3. Native OAuth: Expo scheme `studently` in `frontend/app.json`.
 4. `frontend/.env`: `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...`
 5. `backend/.env`: `CLERK_SECRET_KEY=sk_test_...`
 
@@ -120,8 +120,8 @@
 | Hourly listing lifecycle job | Done (CLI) | `npm run job:listing-lifecycle`; old archive command remains an alias |
 | Expiry push + email | Done (configuration required) | Expo Push + Resend delivery ledger and receipt handling |
 | Expiry follow-up admin inbox | Done | `/admin/expired`; manual personal contact actions only |
-| Design tokens (Skoun / Lister) | Done | `constants/theme.ts`, `listerTheme.ts` |
-| Admin ops tokens | Done | `constants/adminTheme.ts`, `design-system/skoun-admin/` |
+| Design tokens (Studently / Lister) | Done | `constants/theme.ts`, `listerTheme.ts` |
+| Admin ops tokens | Done | `constants/adminTheme.ts`, `design-system/studently-admin/` |
 | Reduced-motion support | Done | `lib/useReducedMotion.ts` |
 | Glass / Apple tab chrome | Done | `components/ui/Glass.tsx` |
 
@@ -131,7 +131,7 @@
 
 ### Auth
 - `/` → redirect to renter browse (guest OK)
-- Sign-in / sign-up via `SkounAuthModal` (no role-select screen)
+- Sign-in / sign-up via `StudentlyAuthModal` (no role-select screen)
 
 ### Renter
 - `/(renter)/(tabs)/` — Search (list/map)
@@ -186,7 +186,7 @@
 | `ListingBrowseMap.web` | Web/Mapbox browse map parity |
 | `ListingMapPreview` | Bottom preview for selected map pin |
 | `ListingMapPicker` | Sheet when several listings share one pin |
-| `SkounMapPin` | Custom map pin (listing / campus variants) |
+| `StudentlyMapPin` | Custom map pin (listing / campus variants) |
 | `LocationPicker` | Poster pin drop, landmarks, GPS (native) |
 | `LocationPicker.web` | Same for web + `StaticPinMap` |
 | `PhotoPickerGrid` | Draft photo grid (3–15) |
@@ -284,7 +284,7 @@
 | `savedListingsLocal.ts` | Legacy local shortlist |
 | `safeBack.ts` | Safe navigation back |
 | `useReducedMotion.ts` | a11y motion preference |
-| `skounMapbox.web.ts` | Mapbox GL helpers for web maps |
+| `studentlyMapbox.web.ts` | Mapbox GL helpers for web maps |
 | `mapboxEnv.ts` | Mapbox token aliases, Standard style, static image URL |
 | `mapboxWalkingRoute.ts` | Backend walking-route `api.get` client + ok-only L1 cache (Directions run on the server) |
 | `features/listings/useWalkingRoute.ts` | Hook for campus→listing walking polyline |
@@ -292,7 +292,7 @@
 ### `constants/`
 | Module | Role |
 |--------|------|
-| `theme.ts` (`Skoun`) | Brand tokens |
+| `theme.ts` (`Studently`) | Brand tokens |
 | `listerTheme.ts` | Lister UI tokens |
 | `Colors.ts` | Expo color scheme leftovers |
 | `areas.ts` | Lebanon areas + multi-select caps |
@@ -449,8 +449,8 @@
 
 - **Role-gated apps:** separate `(renter)` and `(poster)` / hosting shells; switch is nav-only  
 - **Maps:** Mapbox Standard (`@rnmapbox/maps` native, needs a **dev client**; Mapbox GL JS on web). University mode draws cached walking Directions polylines (straight dashed line if Directions fail).  
-- **Design:** Cool bank-blue Skoun tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
-- **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Skoun user id/role  
+- **Design:** Cool bank-blue Studently tokens (Ocean `#2F6FED`, navy `#121826`, DM Sans via Lister)  
+- **Auth today:** Clerk (OAuth + email/password) + verified JWT on API; AsyncStorage caches Studently user id/role  
 - **Monetization today:** Whish Pay checkout (live or local mock); credits grant on verified payment; publish spends a post credit for a 2nd+ live listing (first concurrent live slot is free); boost *purchase* exists, boost *spend* stubbed  
 - **Admin:** web `/admin` (Clerk staff) + `x-admin-key` for scripts; Institution Registry + expiry inbox live; most other neu desks still `mockStore` despite `live: true`  
 

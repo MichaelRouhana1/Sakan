@@ -5,7 +5,7 @@ import { LText } from "@/components/lister/Typography";
 import type { GeneralLoadingBlockProps } from "@/components/common/GeneralLoadingBlock.types";
 
 /**
- * Flatten every grey/white canvas pixel to black, then recolor to Skoun ocean
+ * Flatten every grey/white canvas pixel to black, then recolor to Studently ocean
  * `#2F6FED`. Hue-rotate alone cannot tint near-white cores, so they stayed grey.
  */
 const OCEAN_TINT =

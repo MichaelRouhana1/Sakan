@@ -10,7 +10,7 @@ import {
 import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
 import { LText } from "@/components/lister/Typography";
 import { appleTabScrollInset } from "@/components/ui/Glass";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   buildPinClusterIndex,
   clusterBubbleSize,
@@ -33,8 +33,8 @@ import {
   bindAmberPopup,
   campusPinHtml,
   clusterBubbleHtml,
-  createSkounMap,
-  destroySkounMap,
+  createStudentlyMap,
+  destroyStudentlyMap,
   dismissAmberPopupsOnMap,
   distanceBadgeHtml,
   distanceBadgeOnPath,
@@ -49,7 +49,7 @@ import {
   type MapboxMap,
   type Marker,
   type Popup,
-} from "@/lib/skounMapbox.web";
+} from "@/lib/studentlyMapbox.web";
 import { CampusOffscreenArrow } from "@/components/listings/CampusOffscreenArrow";
 import { campusPinLabel, CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 import {
@@ -356,9 +356,9 @@ export function ListingBrowseMap({
   }
 
   useEffect(() => {
-    window._skounDismissPreview = dismissPreview;
+    window._studentlyDismissPreview = dismissPreview;
     return () => {
-      window._skounDismissPreview = null;
+      window._studentlyDismissPreview = null;
     };
   }, []);
 
@@ -683,7 +683,7 @@ export function ListingBrowseMap({
             ? { lat: groups[0].lat, lng: groups[0].lng }
             : { lat: 33.8938, lng: 35.5018 };
 
-        const map = createSkounMap(mapboxgl, hostRef.current, center, 12);
+        const map = createStudentlyMap(mapboxgl, hostRef.current, center, 12);
         if (!map) {
           if (!cancelled) setTokenMissing(true);
           return;
@@ -696,7 +696,7 @@ export function ListingBrowseMap({
           if (
             target instanceof Element &&
             target.closest(
-              ".skoun-marker-el, .mapboxgl-ctrl, .skoun-amber-popup-card, .skoun-popup-close-btn",
+              ".studently-marker-el, .mapboxgl-ctrl, .studently-amber-popup-card, .studently-popup-close-btn",
             )
           ) {
             return;
@@ -704,7 +704,7 @@ export function ListingBrowseMap({
           if (Date.now() < ignoreNextMapClickUntil.current) {
             return;
           }
-          window._skounDismissPreview?.();
+          window._studentlyDismissPreview?.();
         });
 
         const onViewport = () => {
@@ -753,7 +753,7 @@ export function ListingBrowseMap({
       clusterMarkersRef.current.clear();
       overlayBadgeRef.current?.remove();
       overlayBadgeRef.current = null;
-      destroySkounMap(mapRef.current);
+      destroyStudentlyMap(mapRef.current);
       mapRef.current = null;
       mapboxRef.current = null;
       setMapReady(false);
@@ -1483,8 +1483,8 @@ export function ListingBrowseMap({
           ref={hostRef}
           className={
             fillContainer
-              ? "skoun-mapbox-map skoun-mapbox-map--chrome-offset"
-              : "skoun-mapbox-map"
+              ? "studently-mapbox-map studently-mapbox-map--chrome-offset"
+              : "studently-mapbox-map"
           }
           style={{ width: "100%", height: "100%" }}
         />
@@ -1499,7 +1499,7 @@ export function ListingBrowseMap({
             <Ionicons
               name={expanded ? "contract-outline" : "expand-outline"}
               size={20}
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
             />
           </Pressable>
         ) : null}
@@ -1585,11 +1585,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   mapShell: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.bgWash,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.bgWash,
     position: "relative",
   },
   mapShellFill: {
@@ -1610,7 +1610,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
   },
   expandBtn: {
     position: "absolute",
@@ -1624,7 +1624,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.94)",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     boxShadow: "0 1px 4px rgba(18, 24, 38, 0.12)",
   },
   hintBar: {

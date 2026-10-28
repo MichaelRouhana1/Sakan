@@ -64,9 +64,9 @@ async function setup(page: Page, count = 3, step = 5) {
     }),
   );
   await page.route("https://badge-test.invalid/**", (route) =>
-    process.env.SKOUN_TEST_PHOTO
+    process.env.STUDENTLY_TEST_PHOTO
       ? route.fulfill({
-          path: process.env.SKOUN_TEST_PHOTO,
+          path: process.env.STUDENTLY_TEST_PHOTO,
           contentType: "image/jpeg",
         })
       : route.fulfill({

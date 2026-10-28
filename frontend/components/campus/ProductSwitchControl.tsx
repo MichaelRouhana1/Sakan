@@ -7,8 +7,8 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
-import { setSkounProduct } from "@/lib/skounProduct";
+import { Studently } from "@/constants/theme";
+import { setStudentlyProduct } from "@/lib/studentlyProduct";
 
 type Props = {
   variant: "toCampus" | "toHousing";
@@ -28,7 +28,7 @@ export function ProductSwitchControl({
     label ?? (variant === "toCampus" ? "Campus" : "Find a place");
 
   const onPress = () => {
-    void setSkounProduct(variant === "toCampus" ? "campus" : "housing");
+    void setStudentlyProduct(variant === "toCampus" ? "campus" : "housing");
     if (variant === "toCampus") {
       router.push("/campus" as never);
       return;
@@ -60,9 +60,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   text: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     textDecorationLine: "underline",
   },
 });

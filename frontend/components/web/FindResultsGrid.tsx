@@ -5,7 +5,7 @@ import { LText } from "@/components/lister/Typography";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   campusFarSeparatorKey,
   withCampusDistanceSeparator,
@@ -75,7 +75,7 @@ const SKELETON_SHINE_CSS = `
 
 function ensureSkeletonShineCss() {
   if (typeof document === "undefined") return;
-  const id = "skoun-skel-shine-css";
+  const id = "studently-skel-shine-css";
   let style = document.getElementById(id) as HTMLStyleElement | null;
   if (!style) {
     style = document.createElement("style");
@@ -282,7 +282,7 @@ export function FindResultsGrid({
                 {
                   // Keep identities across the different list/grid card trees.
                   // Encode IDs as CSS identifiers and scope to this results set.
-                  viewTransitionName: `skoun-result-${transitionScope}-${Array.from(row.listing.id, (c) => c.codePointAt(0)!.toString(16)).join("-")}`,
+                  viewTransitionName: `studently-result-${transitionScope}-${Array.from(row.listing.id, (c) => c.codePointAt(0)!.toString(16)).join("-")}`,
                 } as object,
               ]}
             >
@@ -298,7 +298,7 @@ export function FindResultsGrid({
       </View>
       {loading ? (
         <View style={styles.loadingMore}>
-          <ActivityIndicator color={Skoun.color.primary} size="small" />
+          <ActivityIndicator color={Studently.color.primary} size="small" />
           <LText variant="caption" tone="muted">
             Updating…
           </LText>
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   skeleton: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   skeletonPhoto: {
     position: "relative",
     aspectRatio: 16 / 10,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     overflow: "hidden",
   },
   skeletonPhotoList: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     width: 280,
     minHeight: 220,
     flexShrink: 0,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     overflow: "hidden",
   },
   skeletonHeart: {
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   bone: {
     position: "relative",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
     borderRadius: 4,
     overflow: "hidden",
   },

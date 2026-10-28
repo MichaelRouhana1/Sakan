@@ -10,7 +10,7 @@ type CategoryMeta = {
 };
 
 /**
- * Deep, desaturated accents that sit calmly on the cool Skoun ground — the
+ * Deep, desaturated accents that sit calmly on the cool Studently ground — the
  * point is that a student can scan the grid by colour and shape, so each
  * category has to stay distinguishable from the brand blue.
  */

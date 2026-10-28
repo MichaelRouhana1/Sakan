@@ -19,7 +19,7 @@ import { LButton } from "@/components/lister/Button";
 import { SegmentedPillTrack } from "@/components/listings/SegmentedPillTrack";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { ACADEMIC_CATALOG, CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useCampusHousingStats } from "@/features/campus/useCampusHousingStats";
 import { useCampusInstitutions } from "@/features/campus/useCampusInstitutions";
@@ -47,9 +47,9 @@ const PERIOD_COPY: Record<CostPeriod, string> = {
 };
 
 const BAR_COLOR: Record<CostLine["kind"], string> = {
-  tuition: Skoun.color.primary,
+  tuition: Studently.color.primary,
   fee: "#3D4F73",
-  living: Skoun.color.primarySoft,
+  living: Studently.color.primarySoft,
 };
 
 function parsePeriod(
@@ -280,7 +280,7 @@ export function TuitionCalculatorPage() {
     const url =
       Platform.OS === "web" && typeof window !== "undefined"
         ? window.location.href
-        : `https://skoun.app/campus/calculator?uni=${uniSlug}&faculty=${facultySlug}&program=${programSlug}`;
+        : `https://studently.app/campus/calculator?uni=${uniSlug}&faculty=${facultySlug}&program=${programSlug}`;
     if (Platform.OS === "web" && navigator.clipboard) {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -538,7 +538,7 @@ export function TuitionCalculatorPage() {
               <Ionicons
                 name="home-outline"
                 size={16}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
               <Text style={styles.textBtnLabel}>
                 See rooms nearby
@@ -625,8 +625,8 @@ export function TuitionCalculatorPage() {
                         size={18}
                         color={
                           effectiveCredits <= 0
-                            ? Skoun.color.inkFaint
-                            : Skoun.color.ink
+                            ? Studently.color.inkFaint
+                            : Studently.color.ink
                         }
                       />
                     </Pressable>
@@ -652,7 +652,7 @@ export function TuitionCalculatorPage() {
                       inputMode="numeric"
                       maxLength={3}
                       placeholder="0"
-                      placeholderTextColor={Skoun.color.inkFaint}
+                      placeholderTextColor={Studently.color.inkFaint}
                       accessibilityLabel={`Custom ${creditUnit}`}
                       style={[
                         styles.creditInput,
@@ -678,8 +678,8 @@ export function TuitionCalculatorPage() {
                         size={18}
                         color={
                           effectiveCredits >= totalMajorCredits
-                            ? Skoun.color.inkFaint
-                            : Skoun.color.ink
+                            ? Studently.color.inkFaint
+                            : Studently.color.ink
                         }
                       />
                     </Pressable>
@@ -919,8 +919,8 @@ export function TuitionCalculatorPage() {
                     size={18}
                     color={
                       effectiveCredits <= 0
-                        ? Skoun.color.inkFaint
-                        : Skoun.color.ink
+                        ? Studently.color.inkFaint
+                        : Studently.color.ink
                     }
                   />
                 </Pressable>
@@ -946,7 +946,7 @@ export function TuitionCalculatorPage() {
                   inputMode="numeric"
                   maxLength={3}
                   placeholder="0"
-                  placeholderTextColor={Skoun.color.inkFaint}
+                  placeholderTextColor={Studently.color.inkFaint}
                   accessibilityLabel={`Custom ${creditUnit}`}
                   style={[
                     styles.creditInput,
@@ -972,8 +972,8 @@ export function TuitionCalculatorPage() {
                     size={18}
                     color={
                       effectiveCredits >= totalMajorCredits
-                        ? Skoun.color.inkFaint
-                        : Skoun.color.ink
+                        ? Studently.color.inkFaint
+                        : Studently.color.ink
                     }
                   />
                 </Pressable>
@@ -986,7 +986,7 @@ export function TuitionCalculatorPage() {
           <>
             <Text style={styles.placeholder}>
               {noTable
-                ? "Tuition for this faculty isn’t in Skoun yet. You can still browse rooms near campus."
+                ? "Tuition for this faculty isn’t in Studently yet. You can still browse rooms near campus."
                 : "Choose a university, faculty, and major. The statement prints as soon as a program is set."}
             </Text>
             <View style={styles.checklist}>
@@ -996,7 +996,7 @@ export function TuitionCalculatorPage() {
                     name={step.done ? "checkmark-circle" : "ellipse-outline"}
                     size={18}
                     color={
-                      step.done ? Skoun.color.primary : Skoun.color.inkFaint
+                      step.done ? Studently.color.primary : Studently.color.inkFaint
                     }
                   />
                   <Text
@@ -1060,7 +1060,7 @@ export function TuitionCalculatorPage() {
                 <Ionicons
                   name="open-outline"
                   size={16}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
                 <Text style={styles.textBtnLabel}>Open tuition source</Text>
               </Pressable>
@@ -1072,7 +1072,7 @@ export function TuitionCalculatorPage() {
                 <Ionicons
                   name="home-outline"
                   size={16}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
                 <Text style={styles.housingTitle}>
                   {campusSlug
@@ -1140,7 +1140,7 @@ export function TuitionCalculatorPage() {
                 <Ionicons
                   name={copied ? "checkmark" : "link-outline"}
                   size={16}
-                  color={copied ? Skoun.color.primary : Skoun.color.primary}
+                  color={copied ? Studently.color.primary : Studently.color.primary}
                 />
                 <Text style={styles.textBtnLabel}>
                   {copied ? "Copied" : "Copy link to this estimate"}
@@ -1232,7 +1232,7 @@ function MobilePath({
                       : "layers-outline"
                 }
                 size={14}
-                color={Skoun.color.primary}
+                color={Studently.color.primary}
               />
             </View>
           )}
@@ -1245,7 +1245,7 @@ function MobilePath({
           <Ionicons
             name="chevron-forward"
             size={16}
-            color={Skoun.color.inkFaint}
+            color={Studently.color.inkFaint}
           />
         </Pressable>
       ))}
@@ -1375,22 +1375,22 @@ const styles = StyleSheet.create({
     width: 40,
     height: 3,
     borderRadius: 2,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     marginBottom: 2,
   },
   kicker: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   title: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 40,
     lineHeight: 46,
     letterSpacing: -0.8,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   titleCompact: {
     fontSize: 24,
@@ -1406,20 +1406,20 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E2E8F0",
   },
   heroMeta: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.2,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   formCard: {
     position: "relative",
     marginTop: 4,
     borderWidth: 1,
     borderColor: "#D5DCE7",
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     ...webShadow,
   },
   formCardFill: {
@@ -1464,7 +1464,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingVertical: 8,
     paddingHorizontal: 10,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
     borderColor: "#C5D6F5",
     backgroundColor: "rgba(255,255,255,0.88)",
@@ -1474,14 +1474,14 @@ const styles = StyleSheet.create({
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
   },
   pathRowHover: {
-    borderColor: Skoun.color.primarySoft,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primarySoft,
+    backgroundColor: Studently.color.primaryMist,
   },
   pathMark: {
     width: 28,
     height: 28,
     borderRadius: 9,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -1492,24 +1492,24 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   pathLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 10,
     letterSpacing: 0.45,
     textTransform: "uppercase",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   pathValue: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 20,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   stepCue: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.35,
     textTransform: "uppercase",
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     zIndex: 1,
     marginTop: 2,
   },
@@ -1531,26 +1531,26 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1.5,
     borderColor: "#C5D6F5",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   railDotDone: {
-    backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
+    borderColor: Studently.color.primary,
   },
   railIndex: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 10,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   railLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   railLabelDone: {
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   railLine: {
     flex: 1,
@@ -1559,7 +1559,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   railLineDone: {
-    backgroundColor: Skoun.color.primarySoft,
+    backgroundColor: Studently.color.primarySoft,
   },
   formDivider: {
     height: 1,
@@ -1569,26 +1569,26 @@ const styles = StyleSheet.create({
   },
   fieldNote: {
     marginTop: -10,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   label: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   hint: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   loadCard: {
     gap: 12,
     padding: 16,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     backgroundColor: "rgba(255,255,255,0.82)",
     borderWidth: 1,
     borderColor: "#D9E3F4",
@@ -1600,11 +1600,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     letterSpacing: 0.35,
     textTransform: "uppercase",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   loadMeter: {
     flexDirection: "row",
@@ -1613,11 +1613,11 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   loadFigure: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -0.8,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontVariant: ["tabular-nums"],
   },
   loadFigureCompact: {
@@ -1625,21 +1625,21 @@ const styles = StyleSheet.create({
     lineHeight: 36,
   },
   loadUnit: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
     lineHeight: 20,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     flexShrink: 1,
   },
   loadBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 20,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   loadEmphasis: {
-    fontFamily: Skoun.type.bodySemi,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodySemi,
+    color: Studently.color.ink,
   },
   customToggle: {
     flexDirection: "row",
@@ -1652,26 +1652,26 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   customToggleLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   switchTrack: {
     width: 44,
     height: 26,
     borderRadius: 13,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
     paddingHorizontal: 3,
     justifyContent: "center",
   },
   switchTrackOn: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   switchThumb: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   switchThumbOn: {
     transform: [{ translateX: 18 }],
@@ -1695,15 +1695,15 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
   },
   stepperBtnHover: {
-    borderColor: Skoun.color.primarySoft,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primarySoft,
+    backgroundColor: Studently.color.primaryMist,
   },
   stepperBtnDisabled: {
     opacity: 0.45,
@@ -1711,15 +1711,15 @@ const styles = StyleSheet.create({
   },
   creditInput: {
     borderWidth: 1.5,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.md,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
+    borderRadius: Studently.radius.md,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 22,
     lineHeight: 28,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     minHeight: 48,
     minWidth: 72,
     maxWidth: 96,
@@ -1728,19 +1728,19 @@ const styles = StyleSheet.create({
     outlineStyle: "none" as unknown as undefined,
   },
   creditInputFocus: {
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
     ...(Platform.OS === "web"
       ? ({
-          boxShadow: `0 0 0 3px ${Skoun.color.primaryMist}`,
+          boxShadow: `0 0 0 3px ${Studently.color.primaryMist}`,
         } as object)
       : null),
   },
   ledger: {
     borderWidth: 1,
     borderColor: "#D5DCE7",
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     ...webShadow,
   },
   ledgerWide: {
@@ -1752,7 +1752,7 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   mast: {
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 14,
@@ -1765,7 +1765,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   mastKicker: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     letterSpacing: 0.7,
     textTransform: "uppercase",
@@ -1785,12 +1785,12 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.18)",
   },
   mastSchool: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     color: "rgba(255,255,255,0.72)",
   },
   mastProgram: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
     lineHeight: 18,
     color: "#FFFFFF",
@@ -1806,13 +1806,13 @@ const styles = StyleSheet.create({
   },
   mastGhostLabel: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
     color: "rgba(255,255,255,0.62)",
   },
   total: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 40,
     lineHeight: 44,
     letterSpacing: -1.2,
@@ -1828,7 +1828,7 @@ const styles = StyleSheet.create({
     opacity: 0.42,
   },
   totalSub: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "rgba(255,255,255,0.62)",
   },
@@ -1837,7 +1837,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 18,
     gap: 8,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   ledgerBodyCompact: {
     padding: 16,
@@ -1865,11 +1865,11 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   compactLoadFigure: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 28,
     lineHeight: 32,
     letterSpacing: -0.6,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontVariant: ["tabular-nums"],
   },
   ledgerWait: {
@@ -1877,9 +1877,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   placeholder: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     lineHeight: 22,
   },
   checklist: {
@@ -1892,16 +1892,16 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   checkLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   checkLabelDone: {
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   error: {
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.danger,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.danger,
   },
   line: {
     gap: 6,
@@ -1915,21 +1915,21 @@ const styles = StyleSheet.create({
   },
   lineLabel: {
     flex: 1,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   lineAmt: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontVariant: ["tabular-nums"],
   },
   barTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     overflow: "hidden",
   },
   barFill: {
@@ -1938,15 +1938,15 @@ const styles = StyleSheet.create({
     minWidth: 6,
   },
   disclaimer: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     lineHeight: 16,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   years: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   textBtn: {
     flexDirection: "row",
@@ -1960,9 +1960,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   textBtnLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   housingRule: {
     height: 1,
@@ -1980,9 +1980,9 @@ const styles = StyleSheet.create({
   },
   housingTitle: {
     flex: 1,
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   housingStats: {
     flexDirection: "row",
@@ -1994,15 +1994,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   housingStatValue: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontVariant: ["tabular-nums"],
   },
   housingStatLabel: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   housingStatRule: {
     width: 1,
@@ -2010,10 +2010,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   housingBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     lineHeight: 20,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   housingCta: {
     marginTop: 2,

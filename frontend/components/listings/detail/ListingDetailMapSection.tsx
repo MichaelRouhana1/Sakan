@@ -6,7 +6,7 @@ import {
 } from "@/components/listings/detail/listingDetailChrome";
 import { ListingPinMap } from "@/components/listings/detail/ListingPinMap";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useUniversities } from "@/features/universities/useUniversities";
 import {
   formatDistanceMeters,
@@ -83,7 +83,7 @@ export function ListingDetailMapSection({ listing, variant = "card" }: Props) {
 const styles = StyleSheet.create({
   gap: { gap: 12 },
   mapClip: {
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     overflow: "hidden",
   },
   row: {
@@ -101,6 +101,6 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     minWidth: 0,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
   },
 });

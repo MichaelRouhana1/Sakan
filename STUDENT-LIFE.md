@@ -1,6 +1,6 @@
-# Skoun Campus — Student Life Platform Roadmap
+# Studently Campus — Student Life Platform Roadmap
 
-Skoun stays a housing marketplace. This document is the plan to wrap that marketplace in a **student-life product** so students have a reason to open Skoun all year — not only when they need a room.
+Studently stays a housing marketplace. This document is the plan to wrap that marketplace in a **student-life product** so students have a reason to open Studently all year — not only when they need a room.
 
 Housing is the **monetization engine** (landlords, owners, agents pay to list). Campus tools are the **traffic engine** (free utilities that bring students in and keep them coming back). The two products share one account, one brand, and one conversion path: every Campus screen can send a student into housing near their university.
 
@@ -11,7 +11,7 @@ Housing is the **monetization engine** (landlords, owners, agents pay to list). 
 | Tool | Status in code |
 |------|----------------|
 | Shell + Housing ↔ Campus switch | **Built (web)** — `CampusShell`, `CampusTopNav`, `ProductSwitchControl`, `/campus`. Native `app/campus/_layout.tsx` skips the shell/footer. |
-| Persist last product | Helper `lib/skounProduct.ts` **writes** on switch; `getSkounProduct` is unused (restore not confirmed). |
+| Persist last product | Helper `lib/studentlyProduct.ts` **writes** on switch; `getStudentlyProduct` is unused (restore not confirmed). |
 | Tuition calculator | **Built** for seeded unis — `/campus/calculator`, `/api/campus/*`. |
 | Academic calendar | **Holidays only** (`lebanonHolidays.ts`, 2026–2027). No per-uni registration / add-drop / exams, no ICS. |
 | Student benefits | **Built** — catalog + detail + signed-in `/api/benefits/:id/redemption`. No partner “list your offer” form, no admin CMS. |
@@ -23,7 +23,7 @@ Housing is the **monetization engine** (landlords, owners, agents pay to list). 
 
 **Problem:** A housing-only app is seasonal. Students disappear between move-in cycles, which makes the audience weaker for paying listers.
 
-**Solution:** A second product inside Skoun — **Campus** — that is useful during registration, midterms, holidays, and everyday campus life. Housing remains the default public site. Campus is one header click away.
+**Solution:** A second product inside Studently — **Campus** — that is useful during registration, midterms, holidays, and everyday campus life. Housing remains the default public site. Campus is one header click away.
 
 **Who it is for**
 
@@ -42,7 +42,7 @@ Housing is the **monetization engine** (landlords, owners, agents pay to list). 
 
 **Two products, three shells**
 
-Skoun already has Housing (renter) and Hosting (poster). Campus is a **third shell**, not a tab mixed into browse.
+Studently already has Housing (renter) and Hosting (poster). Campus is a **third shell**, not a tab mixed into browse.
 
 | Shell | Who | Entry | Status |
 |-------|-----|-------|--------|
@@ -66,7 +66,7 @@ All new student utilities live on a **separate UI**. A persistent header control
 
 **On Campus** (new `CampusTopNav`)
 
-- Logo + Skoun + a small `Campus` mark so people know which product they are in.
+- Logo + Studently + a small `Campus` mark so people know which product they are in.
 - Primary nav: Home · Universities · Calculator · Calendar · Benefits.
 - **Housing** button — `Find a place` / `Switch to housing` — sends them back to browse, preferably pre-filtered to their university if we know it.
 - Same Login / profile menu (one Clerk account).
@@ -158,7 +158,7 @@ Analytics instrumentation (events, not a full growth program) starts in Phase 0 
 
 ### Out of scope here
 
-Visual redesign of Housing. Campus may look different (more editorial / directory, less map-and-cards) but must still feel like Skoun (logo, Ocean/navy tokens, DM Sans).
+Visual redesign of Housing. Campus may look different (more editorial / directory, less map-and-cards) but must still feel like Studently (logo, Ocean/navy tokens, DM Sans).
 
 ---
 
@@ -200,7 +200,7 @@ Then BAU, UOB, LIU, RHU, UA. Then the rest of the private catalog.
 | Result summary | Big USD total + breakdown + “per month” living slice |
 | Compare | Optional v1.5: pin two majors or two universities |
 | Share | Copy link with query params (`?uni=aub&major=...`) so it is SEO-indexable later |
-| Disclaimer | Official figures change; Skoun is an estimate; source + academic year shown |
+| Disclaimer | Official figures change; Studently is an estimate; source + academic year shown |
 | CTA | “See rooms near {campus}” → Housing browse with that `universitySlugs` |
 
 ### Calculator UI components
@@ -275,7 +275,7 @@ Until a CMS exists: edit seeds, re-run seed. Track `academic_year`. When a uni p
 
 **Status in code:** **not built.** Campus home Universities card is `live: false`. No `/campus/universities/[slug]` pages.
 
-**Goal:** Skoun is the place you look up “where is the library / which faculty is on this campus / what majors exist” for private universities in Lebanon. This is also the **SEO foundation** (one indexable page per university, then per campus).
+**Goal:** Studently is the place you look up “where is the library / which faculty is on this campus / what majors exist” for private universities in Lebanon. This is also the **SEO foundation** (one indexable page per university, then per campus).
 
 Reuse Phase 1 tables. Expand entities. Housing already has institution + campus gate coordinates — that is the map skeleton, not the encyclopedia.
 
@@ -362,7 +362,7 @@ Each university page: unique title/description, slug already on `institutions`, 
 
 **Status in code:** national holidays only (`lebanonHolidays.ts`, 2026–2027). No per-uni dates, no ICS.
 
-**Goal:** “When does fall start at LAU?” / “is Monday a holiday?” — a reason to open Skoun in September, December, and April.
+**Goal:** “When does fall start at LAU?” / “is Monday a holiday?” — a reason to open Studently in September, December, and April.
 
 ### Features
 
@@ -508,7 +508,7 @@ Student → student. Distinct from ambassador.
 
 | Feature | Detail |
 |---------|--------|
-| Referral code per user | `skoun.app/r/ahmad` |
+| Referral code per user | `studently.app/r/ahmad` |
 | Attribution | Signup + `calculator_complete` or first housing WhatsApp — pick **one** success event and stick to it |
 | Reward | v1: waitlist / “we’ll launch rewards”; don’t owe cash before economics are clear |
 
@@ -626,7 +626,7 @@ Do this in order so the first feature is real, not a mock sitting on the housing
 | Arabic / RTL | Whole-product, not Campus-only |
 | Student email verification | Benefits v2 |
 | In-app chat / roommate finder | Already out of housing PRD; don’t smuggle in via Campus |
-| Paying tuition through Skoun | Wrong business; we estimate, we don’t bill unis |
+| Paying tuition through Studently | Wrong business; we estimate, we don’t bill unis |
 | Full campus indoor maps | POI pins are enough |
 | Scrapers for tuition PDFs | Legal/fragility; manual seeds + source URLs |
 | Rebuilding Housing UI to “look like Campus” | Separate products on purpose |
@@ -651,7 +651,7 @@ Lagging indicators (Campus helps the marketplace):
 
 ## Appendix — existing foundations to reuse
 
-| Already in Skoun | Reuse for Campus |
+| Already in Studently | Reuse for Campus |
 |------------------|------------------|
 | `institutions` + `universities` seeds (36 / 101) | Directory + calculator + maps |
 | `InstitutionLogo`, campus picker, `/me/campus` | Defaults and branding |

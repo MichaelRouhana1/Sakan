@@ -7,8 +7,24 @@ dist/
 .DS_Store
 coverage/
 *.tsbuildinfo
+backups/
 # Local verification emails (may contain OTP codes) — never commit
 backend/.email-outbox/
 # Vendor dumps scraped for research — may contain third-party tokens.
 research/_amber-*
 tmp-img/
+
+# Brand working files stay local: logo exploration, renders, generators and scratch.
+# Only the exported kit and the source of the shipped app mark are tracked.
+brand/logo-concepts/*
+!brand/logo-concepts/kit/
+brand/logo-concepts/kit/*
+!brand/logo-concepts/kit/GUIDELINES.md
+!brand/logo-concepts/kit/*.svg
+!brand/logo-concepts/kit/export/
+brand/pin-arrow/
+brand/pin-arrow-glossy/*
+!brand/pin-arrow-glossy/APP-ASSETS.md
+!brand/pin-arrow-glossy/pin-arrow-filled-interior.png
+__pycache__/
+*.pyc

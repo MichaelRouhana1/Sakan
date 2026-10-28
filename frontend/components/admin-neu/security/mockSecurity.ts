@@ -9,31 +9,31 @@ export const ACTORS = {
   rania: {
     id: "adm_rania",
     name: "Rania Khoury",
-    email: "rania@skoun.ops",
+    email: "rania@studently.ops",
     role: "super_admin" as const,
   },
   nabil: {
     id: "adm_nabil",
     name: "Nabil Haddad",
-    email: "nabil@skoun.ops",
+    email: "nabil@studently.ops",
     role: "moderator" as const,
   },
   maya: {
     id: "adm_maya",
     name: "Maya Saab",
-    email: "maya@skoun.ops",
+    email: "maya@studently.ops",
     role: "moderator" as const,
   },
   karim: {
     id: "adm_karim",
     name: "Karim Fares",
-    email: "karim@skoun.ops",
+    email: "karim@studently.ops",
     role: "support" as const,
   },
   lina: {
     id: "adm_lina",
     name: "Lina Mansour",
-    email: "lina@skoun.ops",
+    email: "lina@studently.ops",
     role: "analyst" as const,
   },
 };

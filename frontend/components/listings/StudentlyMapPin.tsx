@@ -1,20 +1,20 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 
-export type SkounMapPinVariant = "listing" | "campus";
-export type SkounMapPinAccent = "default" | "danger";
+export type StudentlyMapPinVariant = "listing" | "campus";
+export type StudentlyMapPinAccent = "default" | "danger";
 
 type Props = {
-  variant?: SkounMapPinVariant;
+  variant?: StudentlyMapPinVariant;
   /** Animate drop when true (skipped under reduced motion). Drop runs once on mount only. */
   dropped?: boolean;
   selected?: boolean;
   /** Color accent — danger = red selected pin on the browse map. */
-  accent?: SkounMapPinAccent;
+  accent?: StudentlyMapPinAccent;
 };
 
 const LISTING = {
@@ -46,7 +46,7 @@ const CAMPUS_DISC = 38;
  * Listing = ocean-blue teardrop with cutout.
  * Campus = navy disc + school glyph + short stem (unmistakable vs $ pins).
  */
-export function SkounMapPin({
+export function StudentlyMapPin({
   variant = "listing",
   dropped = true,
   selected = false,
@@ -114,7 +114,7 @@ export function SkounMapPin({
               <Ionicons
                 name="school"
                 size={18}
-                color={Skoun.color.surface}
+                color={Studently.color.surface}
               />
             </View>
           </View>
@@ -137,7 +137,7 @@ export function SkounMapPin({
           styles.selectRing,
           {
             opacity: selected ? 1 : 0,
-            borderColor: Skoun.color.brass,
+            borderColor: Studently.color.brass,
           },
         ]}
       />
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
     zIndex: 2,
-    ...skounShadow({ y: 1, blur: 3, opacity: 0.28, elevation: 3 }),
+    ...studentlyShadow({ y: 1, blur: 3, opacity: 0.28, elevation: 3 }),
   },
   headShade: {
     position: "absolute",
@@ -284,18 +284,18 @@ const styles = StyleSheet.create({
     height: CAMPUS_DISC + 4,
     borderRadius: (CAMPUS_DISC + 4) / 2,
     borderWidth: 2,
-    borderColor: Skoun.color.brassSoft,
+    borderColor: Studently.color.brassSoft,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     zIndex: 2,
-    ...skounShadow({ y: 1, blur: 3, opacity: 0.3, elevation: 4 }),
+    ...studentlyShadow({ y: 1, blur: 3, opacity: 0.3, elevation: 4 }),
   },
   campusDisc: {
     width: CAMPUS_DISC,
     height: CAMPUS_DISC,
     borderRadius: CAMPUS_DISC / 2,
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 10,
     marginTop: -1,
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     borderRadius: 2,
     zIndex: 1,
   },
@@ -311,13 +311,13 @@ const styles = StyleSheet.create({
     width: 14,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     marginTop: -1,
   },
 });
 
 /** Exported for map anchor math (campus badge). */
-export const SKOUN_CAMPUS_PIN = {
+export const STUDENTLY_CAMPUS_PIN = {
   width: CAMPUS_W,
   height: CAMPUS_H,
   /** Vertical center of the campus disc within the pin slot. */

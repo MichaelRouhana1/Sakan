@@ -49,7 +49,7 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { SafeAreaListener, useSafeAreaInsets } from "react-native-safe-area-context";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useLiveLebanonAreas } from "@/constants/areas";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { useSearchSuggestions } from "@/features/search/useSearchSuggestions";
@@ -155,7 +155,7 @@ export function PreferenceChip({
          
           size={mobileVariant ? 19 : 17}
           strokeWidth={1.6}
-          color={selected ? Skoun.color.primary : Skoun.color.inkMuted}
+          color={selected ? Studently.color.primary : Studently.color.inkMuted}
         />
       ) : null}
       <Text
@@ -178,7 +178,7 @@ export function PreferenceChip({
           {selected ? <Check size={11} color="white" strokeWidth={2.5} /> : null}
         </View>
       ) : selected && !tile && !mobileVariant ? (
-        <Check size={13} color={Skoun.color.primary} />
+        <Check size={13} color={Studently.color.primary} />
       ) : null}
     </Pressable>
   );
@@ -341,12 +341,12 @@ function LocationPicker({
             (hovered || pressed) && s.chipHover,
           ]}
         >
-          <MapPin size={20} color={Skoun.color.primary} />
+          <MapPin size={20} color={Studently.color.primary} />
           <View style={s.locationCopy}>
             <Text style={s.locationLabel}>{value.label}</Text>
             <Text style={s.caption}>Selected {value.kind} · Tap to change</Text>
           </View>
-          <Pencil size={15} color={Skoun.color.inkMuted} />
+          <Pencil size={15} color={Studently.color.inkMuted} />
         </Pressable>
       </View>
     );
@@ -355,7 +355,7 @@ function LocationPicker({
     <View style={s.locationPicker}>
       {segment}
       <View style={[s.searchField, fieldFocused && s.searchFieldFocused]}>
-        <Search size={17} color={Skoun.color.inkMuted} />
+        <Search size={17} color={Studently.color.inkMuted} />
         <TextInput
           ref={inputRef}
           accessibilityLabel={
@@ -364,7 +364,7 @@ function LocationPicker({
           placeholder={
             kind === "campus" ? "Search your university…" : "Search an area…"
           }
-          placeholderTextColor={Skoun.color.inkMuted}
+          placeholderTextColor={Studently.color.inkMuted}
           value={query}
           onChangeText={setQuery}
           onFocus={() => {
@@ -403,7 +403,7 @@ function LocationPicker({
         ) : null}
       </View>
       {kind === "campus" && universities.isLoading ? (
-        <ActivityIndicator style={s.loading} color={Skoun.color.primary} />
+        <ActivityIndicator style={s.loading} color={Studently.color.primary} />
       ) : kind === "campus" && universities.isError ? (
         <Pressable
           accessibilityRole="button"
@@ -439,7 +439,7 @@ function LocationPicker({
                 <Icon
                  
                   size={17}
-                  color={Skoun.color.inkMuted}
+                  color={Studently.color.inkMuted}
                 />
                 <Text style={s.locationResultText} numberOfLines={1}>
                   {location.label}
@@ -447,7 +447,7 @@ function LocationPicker({
                 <ArrowUpRight
                  
                   size={15}
-                  color={Skoun.color.inkMuted}
+                  color={Studently.color.inkMuted}
                 />
               </Pressable>
             );
@@ -608,9 +608,9 @@ function BudgetAmountField({
           selectTextOnFocus
           maxLength={6}
           placeholder={focused ? "" : "No limit"}
-          placeholderTextColor={Skoun.color.ink}
+          placeholderTextColor={Studently.color.ink}
           underlineColorAndroid="transparent"
-          selectionColor={Skoun.color.primary}
+          selectionColor={Studently.color.primary}
           style={[
             s.budgetAmount,
             s.budgetAmountInput,
@@ -620,7 +620,7 @@ function BudgetAmountField({
             Platform.OS === "web"
               ? ({
                   outlineStyle: "none",
-                  caretColor: Skoun.color.primary,
+                  caretColor: Studently.color.primary,
                   cursor: "text",
                   transitionProperty: "border-bottom-color",
                   transitionDuration: "150ms",
@@ -721,7 +721,7 @@ function MatcherControls({
                 (hovered || pressed) && s.softHover,
               ]}
             >
-              <Minus size={18} color={Skoun.color.ink} />
+              <Minus size={18} color={Studently.color.ink} />
             </Pressable>
             <BudgetAmountField
               mobile={mobile}
@@ -753,7 +753,7 @@ function MatcherControls({
                 (hovered || pressed) && s.softHover,
               ]}
             >
-              <Plus size={18} color={Skoun.color.ink} />
+              <Plus size={18} color={Studently.color.ink} />
             </Pressable>
           </View>
           <View style={[s.chips, s.budgetPresets, mobile && s.mobileBudgetPresets]}>
@@ -894,7 +894,7 @@ function UnderContinue({
           ]}
         >
           <Text style={s.partialText}>See matches so far</Text>
-          <ArrowUpRight size={12} color={Skoun.color.inkMuted} />
+          <ArrowUpRight size={12} color={Studently.color.inkMuted} />
         </Pressable>
       )}
     </>
@@ -1483,7 +1483,7 @@ function MatcherSession({
               max-width: none !important;
               min-width: 0 !important;
             }
-            .skoun-thinking {
+            .studently-thinking {
               position: relative;
               display: inline-block;
               color: rgba(18, 24, 38, 0.45);
@@ -1492,7 +1492,7 @@ function MatcherSession({
               line-height: 22px;
               letter-spacing: -0.2px;
             }
-            .skoun-thinking::before {
+            .studently-thinking::before {
               content: attr(data-text);
               position: absolute;
               inset: 0;
@@ -1511,15 +1511,15 @@ function MatcherSession({
               background-clip: text;
               color: transparent;
               -webkit-text-fill-color: transparent;
-              animation: skoun-thinking-shimmer 2000ms linear infinite;
+              animation: studently-thinking-shimmer 2000ms linear infinite;
             }
-            @keyframes skoun-thinking-shimmer {
+            @keyframes studently-thinking-shimmer {
               0% { background-position: 100% 0; }
               100% { background-position: 0% 0; }
             }
             @media (prefers-reduced-motion: reduce) {
               [data-testid="matcher-drawer"] * { transition: none !important; }
-              .skoun-thinking::before { animation: none !important; }
+              .studently-thinking::before { animation: none !important; }
             }
           `,
               )
@@ -1535,7 +1535,7 @@ function MatcherSession({
               <View style={s.headerCopy}>
                 <Text style={s.title}>Find my place</Text>
                 {!locationKeyboardOpen ? <Text style={s.headerSubtitle}>
-                  A little guidance from Skoun
+                  A little guidance from Studently
                 </Text> : null}
               </View>
               <Text
@@ -1559,7 +1559,7 @@ function MatcherSession({
               >
                 <RotateCcw
                   size={18}
-                  color={Skoun.color.ink}
+                  color={Studently.color.ink}
                   strokeWidth={1.6}
                 />
               </Pressable>
@@ -1574,7 +1574,7 @@ function MatcherSession({
               >
                 <X
                   size={21}
-                  color={Skoun.color.ink}
+                  color={Studently.color.ink}
                   strokeWidth={1.6}
                 />
               </Pressable>
@@ -1631,7 +1631,7 @@ function MatcherSession({
                   <View style={s.existing}>
                     <SlidersHorizontal
                       size={14}
-                      color={Skoun.color.inkMuted}
+                      color={Studently.color.inkMuted}
                     />
                     <Text style={s.caption}>
                       Keeping your filters: {existing.join(" · ")}
@@ -1646,10 +1646,10 @@ function MatcherSession({
                     </BotLine>
                     <ChatBubble
                       side="right"
-                      color={Skoun.color.primaryMist}
+                      color={Studently.color.primaryMist}
                       hoverColor="#DCE7F5"
                       stroke={
-                        editingStep === index ? Skoun.color.primary : undefined
+                        editingStep === index ? Studently.color.primary : undefined
                       }
                       tailed
                       onPress={() => beginEdit(index)}
@@ -1678,7 +1678,7 @@ function MatcherSession({
                       <Pencil
                        
                         size={13}
-                        color={Skoun.color.inkMuted}
+                        color={Studently.color.inkMuted}
                       />
                     </ChatBubble>
                   </View>
@@ -1720,7 +1720,7 @@ function MatcherSession({
                         <View style={s.readyRow}>
                           <Check
                             size={15}
-                            color={Skoun.color.primary}
+                            color={Studently.color.primary}
                           />
                           <Text style={s.readyText}>
                             {
@@ -1820,7 +1820,7 @@ function MatcherSession({
                           onPress={() => { Keyboard.dismiss(); goBack(); }}
                           style={({ pressed }) => [s.mobileBack, step === 0 && s.disabled, pressed && s.softHover]}
                         >
-                          <ArrowLeft size={19} color={Skoun.color.ink} />
+                          <ArrowLeft size={19} color={Studently.color.ink} />
                         </Pressable>
                         <Pressable
                           accessibilityRole="button"
@@ -1859,7 +1859,7 @@ function MatcherSession({
                       style={({ pressed }) => [s.mobilePartial, pressed && s.softHover]}
                     >
                       <Text style={s.partialText}>See matches so far</Text>
-                      <ArrowUpRight size={13} color={Skoun.color.inkMuted} />
+                      <ArrowUpRight size={13} color={Studently.color.inkMuted} />
                     </Pressable>
                   )}
                 </>
@@ -1894,7 +1894,7 @@ function MatcherSession({
                         >
                           <ArrowLeft
                             size={15}
-                            color={Skoun.color.inkMuted}
+                            color={Studently.color.inkMuted}
                           />
                         </Pressable>
                         <Pressable

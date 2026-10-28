@@ -1,7 +1,7 @@
 import { Platform, StyleSheet, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import { SkounMapPin } from "@/components/listings/SkounMapPin";
-import { Skoun } from "@/constants/theme";
+import { StudentlyMapPin } from "@/components/listings/StudentlyMapPin";
+import { Studently } from "@/constants/theme";
 import { regionFromZoom } from "@/lib/nativeMapCamera";
 
 type Props = {
@@ -46,7 +46,7 @@ export function ListingPinMap({
           anchor={{ x: 0.5, y: PIN_HEAD_CENTER_Y / MARKER_H }}
           tracksViewChanges={false}
         >
-          <SkounMapPin variant="listing" dropped={false} />
+          <StudentlyMapPin variant="listing" dropped={false} />
         </Marker>
       </MapView>
     </View>
@@ -57,6 +57,6 @@ const styles = StyleSheet.create({
   wrap: {
     width: "100%",
     overflow: "hidden",
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
 });

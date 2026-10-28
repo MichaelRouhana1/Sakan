@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 export function WebFooter() {
@@ -10,7 +10,7 @@ export function WebFooter() {
       <View style={styles.inner}>
         <View style={styles.brandCol}>
           <LText variant="subtitle" style={styles.brand}>
-            Skoun
+            Studently
           </LText>
           <LText variant="caption" tone="muted" style={styles.tagline}>
             Student housing classifieds for Lebanon — browse rooms, message
@@ -36,7 +36,7 @@ export function WebFooter() {
       </View>
       <View style={styles.bottom}>
         <LText variant="caption" tone="faint">
-          © {new Date().getFullYear()} Skoun · Lebanon
+          © {new Date().getFullYear()} Studently · Lebanon
         </LText>
       </View>
     </View>
@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 48,
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderTopColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
   },
   inner: {
     maxWidth: WEB_CONTENT_MAX,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   brand: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
     fontSize: 18,
   },
   tagline: {
@@ -80,12 +80,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   link: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
   },
   bottom: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
     paddingVertical: 16,
     paddingHorizontal: 24,
     alignItems: "center",

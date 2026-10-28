@@ -8,7 +8,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   institutionLogoSource,
   isCircularInstitutionSeal,
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   frame: {
     backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -106,6 +106,6 @@ const styles = StyleSheet.create({
   fallbackText: {
     fontSize: 10,
     fontWeight: "700",
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
 });

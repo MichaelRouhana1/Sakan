@@ -195,7 +195,7 @@ export default function PosterListingDetailScreen() {
                 variant="secondary"
                 onPress={() => {
                   void Share.share({
-                    message: `Check my Skoun listing in ${listing.area} — ${formatFreshUsd(listing.monthlyRentUsd)}`,
+                    message: `Check my Studently listing in ${listing.area} — ${formatFreshUsd(listing.monthlyRentUsd)}`,
                   });
                 }}
               />

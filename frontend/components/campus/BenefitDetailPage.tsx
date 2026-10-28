@@ -20,7 +20,7 @@ import { BenefitRedeemPanel } from "@/components/campus/BenefitRedeemPanel";
 import { BenefitRelated } from "@/components/campus/BenefitRelated";
 import { LText } from "@/components/lister/Typography";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { categoryMeta } from "@/features/benefits/categories";
@@ -80,8 +80,8 @@ function useEnter(order: number) {
     }
     const animation = Animated.timing(anim, {
       toValue: 1,
-      duration: Skoun.motion.enterMs,
-      delay: order * Skoun.motion.staggerMs,
+      duration: Studently.motion.enterMs,
+      delay: order * Studently.motion.staggerMs,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     });
@@ -104,7 +104,7 @@ function useEnter(order: number) {
 
 function shareUrlFor(id: string): string {
   if (IS_WEB && typeof window !== "undefined") return window.location.href;
-  return `https://skoun.app/campus/benefits/${id}`;
+  return `https://studently.app/campus/benefits/${id}`;
 }
 
 function SectionHead({ n, title }: { n: string; title: string }) {
@@ -153,7 +153,7 @@ function Fact({
       ]}
     >
       <View style={styles.factLabelRow}>
-        <Ionicons name={icon} size={13} color={Skoun.color.inkFaint} />
+        <Ionicons name={icon} size={13} color={Studently.color.inkFaint} />
         <LText variant="label" tone="muted" style={styles.factLabel}>
           {label}
         </LText>
@@ -170,7 +170,7 @@ function QualifyItem({ sentence }: { sentence: string }) {
   return (
     <View style={styles.qualifyRow} accessibilityRole="text">
       <View style={styles.qualifyMark}>
-        <Ionicons name="checkmark" size={13} color={Skoun.color.primary} />
+        <Ionicons name="checkmark" size={13} color={Studently.color.primary} />
       </View>
       {path ? (
         <View style={styles.pathWrap}>
@@ -194,7 +194,7 @@ function QualifyItem({ sentence }: { sentence: string }) {
                   <Ionicons
                     name="chevron-forward"
                     size={13}
-                    color={Skoun.color.inkFaint}
+                    color={Studently.color.inkFaint}
                   />
                 ) : null}
               </View>
@@ -234,7 +234,7 @@ function CampusNotice({
         <Ionicons
           name="checkmark-circle"
           size={18}
-          color={Skoun.color.primary}
+          color={Studently.color.primary}
         />
         <LText variant="body" style={styles.noticeText}>
           <LText variant="body" style={styles.noticeStrong}>
@@ -248,7 +248,7 @@ function CampusNotice({
 
   return (
     <View style={[styles.notice, styles.noticeWarn]}>
-      <Ionicons name="alert-circle" size={18} color={Skoun.color.warning} />
+      <Ionicons name="alert-circle" size={18} color={Studently.color.warning} />
       <View style={styles.noticeCopy}>
         <LText variant="body" style={styles.noticeText}>
           <LText variant="body" style={styles.noticeStrong}>
@@ -272,7 +272,7 @@ function CampusNotice({
           <LText variant="caption" style={styles.noticeLinkText}>
             See offers for {userUni}
           </LText>
-          <Ionicons name="arrow-forward" size={13} color={Skoun.color.warning} />
+          <Ionicons name="arrow-forward" size={13} color={Studently.color.warning} />
         </Pressable>
       </View>
     </View>
@@ -411,7 +411,7 @@ export function BenefitDetailPage({ id }: Props) {
         <Ionicons
           name="shield-checkmark-outline"
           size={18}
-          color={Skoun.color.primary}
+          color={Studently.color.primary}
         />
       </View>
       <View style={styles.sourceCopy}>
@@ -419,7 +419,7 @@ export function BenefitDetailPage({ id }: Props) {
           Listed from {hostOf(row.sourceUrl)}
         </LText>
         <LText variant="caption" tone="muted" style={styles.sourceBody}>
-          Skoun only lists offers documented by the partner or the university.
+          Studently only lists offers documented by the partner or the university.
           Terms can change on their side — check the source before you rely on
           it.
         </LText>
@@ -435,7 +435,7 @@ export function BenefitDetailPage({ id }: Props) {
           <LText variant="caption" style={styles.sourceLinkText}>
             Open the source
           </LText>
-          <Ionicons name="open-outline" size={13} color={Skoun.color.primary} />
+          <Ionicons name="open-outline" size={13} color={Studently.color.primary} />
         </Pressable>
       </View>
     </View>
@@ -455,7 +455,7 @@ export function BenefitDetailPage({ id }: Props) {
             >
               {({ hovered }) => (
                 <>
-                  <Ionicons name="arrow-back" size={15} color={Skoun.color.primary} />
+                  <Ionicons name="arrow-back" size={15} color={Studently.color.primary} />
                   <LText
                     variant="caption"
                     style={[styles.crumbText, hovered && styles.crumbTextHover]}
@@ -468,7 +468,7 @@ export function BenefitDetailPage({ id }: Props) {
             <Ionicons
               name="chevron-forward"
               size={13}
-              color={Skoun.color.inkFaint}
+              color={Studently.color.inkFaint}
             />
             <Pressable
               onPress={() =>
@@ -492,7 +492,7 @@ export function BenefitDetailPage({ id }: Props) {
                 <Ionicons
                   name="chevron-forward"
                   size={13}
-                  color={Skoun.color.inkFaint}
+                  color={Studently.color.inkFaint}
                 />
                 <LText
                   variant="caption"
@@ -523,7 +523,7 @@ export function BenefitDetailPage({ id }: Props) {
                         : "share-outline"
                   }
                   size={15}
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                 />
                 <LText
                   variant="caption"
@@ -600,7 +600,7 @@ export function BenefitDetailPage({ id }: Props) {
                       <Ionicons
                         name="information-circle-outline"
                         size={17}
-                        color={Skoun.color.inkMuted}
+                        color={Studently.color.inkMuted}
                         style={styles.noteIcon}
                       />
                       <LText variant="body" style={styles.noteText}>
@@ -682,15 +682,15 @@ const styles = StyleSheet.create({
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   crumbText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   crumbTextHover: {
     textDecorationLine: "underline",
-    textDecorationColor: Skoun.color.primary,
+    textDecorationColor: Studently.color.primary,
   },
   crumbCurrent: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     flexShrink: 1,
     marginLeft: 4,
   },
@@ -705,12 +705,12 @@ const styles = StyleSheet.create({
     ...(IS_WEB ? ({ cursor: "pointer" } as object) : null),
   },
   shareText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   shareTextHover: {
     textDecorationLine: "underline",
-    textDecorationColor: Skoun.color.primary,
+    textDecorationColor: Studently.color.primary,
   },
 
   factsBlock: {
@@ -758,8 +758,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   factValue: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     lineHeight: 21,
   },
@@ -770,15 +770,15 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
   },
   noticeOk: {
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderColor: "#C5D6F5",
   },
   noticeWarn: {
-    backgroundColor: Skoun.color.warningSoft,
+    backgroundColor: Studently.color.warningSoft,
     borderColor: "#F5DFA3",
   },
   noticeCopy: {
@@ -789,12 +789,12 @@ const styles = StyleSheet.create({
   noticeText: {
     flex: 1,
     minWidth: 0,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 22,
   },
   noticeStrong: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.ink,
   },
   noticeLink: {
     flexDirection: "row",
@@ -808,8 +808,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   noticeLinkText: {
-    color: Skoun.color.warning,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.warning,
+    fontFamily: Studently.type.bodySemi,
   },
 
   columns: {
@@ -854,17 +854,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionNumber: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodyBold,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodyBold,
     letterSpacing: 1,
     fontSize: 12,
   },
   sectionTitle: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 20,
     lineHeight: 26,
     letterSpacing: -0.3,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   sectionRule: {
     flex: 1,
@@ -875,7 +875,7 @@ const styles = StyleSheet.create({
   prose: {
     fontSize: 17,
     lineHeight: 28,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
 
   qualifyList: {
@@ -891,7 +891,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginTop: 1,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     borderWidth: 1,
     borderColor: "#C5D6F5",
     alignItems: "center",
@@ -903,7 +903,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: 16,
     lineHeight: 26,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   pathWrap: {
     flex: 1,
@@ -925,14 +925,14 @@ const styles = StyleSheet.create({
   pathStep: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.surface,
+    borderRadius: Studently.radius.sm,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   pathStepText: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodySemi,
   },
   pathSuffix: {
     lineHeight: 19,
@@ -941,8 +941,8 @@ const styles = StyleSheet.create({
   notes: {
     gap: 10,
     padding: 16,
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
   noteText: {
     flex: 1,
     minWidth: 0,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     lineHeight: 23,
   },
 
@@ -966,16 +966,16 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 14,
     padding: 18,
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
   },
   sourceIcon: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
@@ -986,8 +986,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sourceTitle: {
-    fontFamily: Skoun.type.bodyBold,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyBold,
+    color: Studently.color.ink,
     fontSize: 16,
   },
   sourceBody: {
@@ -1006,7 +1006,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   sourceLinkText: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
 });

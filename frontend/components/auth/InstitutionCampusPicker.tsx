@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import {
   POPULAR_INSTITUTION_SLUGS,
   useInstitutions,
@@ -71,7 +71,7 @@ export function InstitutionCampusPicker({
   if (catalog.isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={Skoun.color.primary} />
+        <ActivityIndicator color={Studently.color.primary} />
       </View>
     );
   }
@@ -107,7 +107,7 @@ export function InstitutionCampusPicker({
               <Ionicons
                 name="location-outline"
                 size={18}
-                color={on ? Skoun.color.primary : Skoun.color.ink}
+                color={on ? Studently.color.primary : Studently.color.ink}
               />
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{campus.name}</Text>
@@ -197,16 +197,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     marginBottom: 8,
   },
-  sub: { color: Skoun.color.inkMuted, marginBottom: 12 },
+  sub: { color: Studently.color.inkMuted, marginBottom: 12 },
   retryBtn: {
     marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   retryText: {
     color: "#FFFFFF",
@@ -220,12 +220,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: "600",
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     marginBottom: 8,
     textTransform: "uppercase",
   },
@@ -238,10 +238,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E4E4E7",
   },
-  rowOn: { backgroundColor: Skoun.color.primaryMist },
+  rowOn: { backgroundColor: Studently.color.primaryMist },
   rowText: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: "600", color: Skoun.color.ink },
-  rowMeta: { fontSize: 13, color: Skoun.color.inkMuted, marginTop: 2 },
+  rowTitle: { fontSize: 15, fontWeight: "600", color: Studently.color.ink },
+  rowMeta: { fontSize: 13, color: Studently.color.inkMuted, marginTop: 2 },
   back: { marginTop: 16, alignSelf: "flex-start" },
-  backText: { color: Skoun.color.primary, fontWeight: "600" },
+  backText: { color: Studently.color.primary, fontWeight: "600" },
 });

@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
@@ -53,7 +53,7 @@ export function ListingDetailNearbyRail({ listings }: Props) {
                     <Ionicons
                       name="home-outline"
                       size={22}
-                      color={Skoun.color.inkFaint}
+                      color={Studently.color.inkFaint}
                     />
                   </View>
                 )}
@@ -96,16 +96,16 @@ const styles = StyleSheet.create({
   },
   card: {
     width: CARD_W,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
+    backgroundColor: Studently.color.surface,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   pressed: { opacity: 0.92 },
   cover: {
     height: 128,
-    backgroundColor: Skoun.color.bgWash,
+    backgroundColor: Studently.color.bgWash,
   },
   coverFallback: {
     ...StyleSheet.absoluteFillObject,

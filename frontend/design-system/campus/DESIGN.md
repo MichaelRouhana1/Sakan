@@ -1,6 +1,6 @@
-# Skoun Campus — DESIGN.md
+# Studently Campus — DESIGN.md
 
-Campus uses the **same Skoun system as Housing** (`listerTheme` / `Skoun`). It is a student-tools product, not a second visual brand.
+Campus uses the **same Studently system as Housing** (`listerTheme` / `Studently`). It is a student-tools product, not a second visual brand.
 
 ## 1. Visual theme & atmosphere
 
@@ -12,7 +12,7 @@ Housing stays photo-heavy listings. Campus is the same bank-blue UI with forms a
 
 ## 2. Color palette & roles
 
-Use `Skoun` / `Lister` tokens. Do not introduce a second paper palette.
+Use `Studently` / `Lister` tokens. Do not introduce a second paper palette.
 
 | Role | Token | Hex |
 |------|--------|-----|
@@ -85,4 +85,4 @@ Light listing-card hover shadow on live tool cards (`#121826` at 10%). Ledger is
 
 ## 9. Agent prompt guide
 
-Skoun Campus. Same Ocean/navy/DM Sans system as Housing. White cards, mist selected chips, Ocean primary buttons. Honest sources. Separate product chrome — not a second brand.
+Studently Campus. Same Ocean/navy/DM Sans system as Housing. White cards, mist selected chips, Ocean primary buttons. Honest sources. Separate product chrome — not a second brand.

@@ -9,8 +9,8 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import { Skoun } from "@/constants/theme";
-import { skounShadow } from "@/lib/skounShadow";
+import { Studently } from "@/constants/theme";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const CIRCLE = 76;
@@ -189,13 +189,13 @@ function FabBody({
             boxSizing: "border-box",
             whiteSpace: "nowrap",
             transformOrigin: "right center",
-            backgroundColor: Skoun.color.surface,
+            backgroundColor: Studently.color.surface,
             border: "1px solid #E2E8F0",
             borderRadius: 16,
             padding: "10px 14px",
             boxShadow: "0px 6px 16px rgba(18, 24, 38, 0.12)",
-            color: Skoun.color.ink,
-            fontFamily: Skoun.type.bodySemi,
+            color: Studently.color.ink,
+            fontFamily: Studently.type.bodySemi,
             fontSize: 14,
             lineHeight: "20px",
           },
@@ -210,7 +210,7 @@ function FabBody({
             width: 12,
             height: 12,
             marginTop: -6,
-            backgroundColor: Skoun.color.surface,
+            backgroundColor: Studently.color.surface,
             borderTop: "1px solid #E2E8F0",
             borderRight: "1px solid #E2E8F0",
             transform: "rotate(45deg)",
@@ -262,16 +262,16 @@ const styles = StyleSheet.create({
     width: CIRCLE,
     height: CIRCLE,
     borderRadius: CIRCLE / 2,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
     borderColor: "#2F6FED",
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    ...skounShadow({ blur: 18, y: 6, opacity: 0.16, elevation: 4 }),
+    ...studentlyShadow({ blur: 18, y: 6, opacity: 0.16, elevation: 4 }),
   },
   circleFocused: {
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
     borderWidth: 2,
   },
 });

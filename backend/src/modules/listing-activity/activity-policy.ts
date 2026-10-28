@@ -17,7 +17,7 @@ export function activitySecret() {
   const secret = process.env.PROMOTION_ATTRIBUTION_SECRET || process.env.CLERK_SECRET_KEY;
   if (secret) return secret;
   if (process.env.NODE_ENV === 'production') throw new Error('PROMOTION_ATTRIBUTION_SECRET is required for activity tracking');
-  return 'skoun-local-activity-only-not-for-production';
+  return 'studently-local-activity-only-not-for-production';
 }
 export function actorKey(actor: ActivityActor, sessionId?: string) {
   const identity = actor.userId ? `user:${actor.userId}` : sessionId ? `session:${sessionId}` : `ip:${actor.ip || 'unknown'}`;

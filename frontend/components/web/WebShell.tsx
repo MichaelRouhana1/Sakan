@@ -24,11 +24,11 @@ export function WebShell({ children, showNavSearch = false, showFooter }: Props)
 
   return (
     <View
-      nativeID="skoun-web-shell"
+      nativeID="studently-web-shell"
       {...({
         className: lockScroll
-          ? "skoun-web-shell skoun-web-shell-locked"
-          : "skoun-web-shell",
+          ? "studently-web-shell studently-web-shell-locked"
+          : "studently-web-shell",
       } as object)}
       style={[styles.root, lockScroll && styles.rootLocked]}
     >

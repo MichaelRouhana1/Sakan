@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { SvgXml } from "react-native-svg";
 import { LText } from "@/components/lister/Typography";
-// TODO(photography): replace these original bundled illustrations with licensed Skoun seed-listing photos.
+// TODO(photography): replace these original bundled illustrations with licensed Studently seed-listing photos.
 const examples = [
   {
     label: "Good · Living room",

@@ -16,8 +16,8 @@ import * as WebBrowser from "expo-web-browser";
 
 import { api } from "@/lib/api";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
-import { Skoun } from "@/constants/theme";
-import { skounShadow } from "@/lib/skounShadow";
+import { Studently } from "@/constants/theme";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { UserApiError } from "@/features/auth/userApi";
 import {
@@ -272,11 +272,11 @@ function ClerkOAuthSection({
   );
 }
 
-export function SkounAuthModal({
+export function StudentlyAuthModal({
   visible,
   onClose,
   onSuccess,
-  title = "Sign in to Skoun",
+  title = "Sign in to Studently",
 }: Props) {
   const clerkEnabled = useClerkEnabled();
 
@@ -304,7 +304,7 @@ export function SkounAuthModal({
   }
 
   return (
-    <SkounAuthModalClerk
+    <StudentlyAuthModalClerk
       visible={visible}
       onClose={onClose}
       onSuccess={onSuccess}
@@ -313,11 +313,11 @@ export function SkounAuthModal({
   );
 }
 
-function SkounAuthModalClerk({
+function StudentlyAuthModalClerk({
   visible,
   onClose,
   onSuccess,
-  title = "Sign in to Skoun",
+  title = "Sign in to Studently",
 }: Props) {
   const clerk = useClerk();
   const { syncWithBackend } = useAuthSession();
@@ -407,7 +407,7 @@ function SkounAuthModalClerk({
     }
 
     if (!me) {
-      throw new Error("Could not load your Skoun account.");
+      throw new Error("Could not load your Studently account.");
     }
     onSuccess?.(me.id);
     handleClose();
@@ -1121,7 +1121,7 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    ...skounShadow({ color: "#000000", y: 10, blur: 30, opacity: 0.12, elevation: 14 }),
+    ...studentlyShadow({ color: "#000000", y: 10, blur: 30, opacity: 0.12, elevation: 14 }),
     overflow: "hidden",
     position: "relative",
     maxHeight: "92%",
@@ -1143,14 +1143,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 24,
     color: "#09090B",
     letterSpacing: -0.5,
     textAlign: "center",
   },
   subtitle: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "#71717A",
     textAlign: "center",
@@ -1177,7 +1177,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   socialBtnText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 14,
     color: "#18181B",
   },
@@ -1193,12 +1193,12 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   lastUsedText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 11,
     color: "#71717A",
   },
   lastUsedHint: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     color: "#A1A1AA",
     marginTop: -6,
@@ -1214,7 +1214,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E4E4E7",
   },
   dividerText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
     color: "#A1A1AA",
     paddingHorizontal: 16,
@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   inputLabel: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     color: "#09090B",
   },
@@ -1244,13 +1244,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   showHideText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     color: "#18181B",
     letterSpacing: 0.6,
   },
   input: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "#09090B",
     height: 44,
@@ -1261,17 +1261,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   inputError: {
-    borderColor: Skoun.color.danger,
+    borderColor: Studently.color.danger,
   },
   fieldErrorText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.danger,
+    color: Studently.color.danger,
   },
   errorText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 13,
-    color: Skoun.color.danger,
+    color: Studently.color.danger,
     marginTop: -2,
   },
   primaryBtn: {
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   primaryBtnText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
     color: "#FFFFFF",
   },
@@ -1307,7 +1307,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   backLink: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     color: "#71717A",
     textDecorationLine: "underline",
@@ -1321,12 +1321,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   footerText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "#71717A",
   },
   signUpLink: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     color: "#09090B",
     textDecorationLine: "underline",
   },

@@ -1,6 +1,6 @@
 import { createElement, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 export type HoverPoint = { x: number; y: number };
@@ -122,7 +122,7 @@ export function HoverCommitCursor({
         cy: CY,
         r: R,
         fill: "none",
-        stroke: Skoun.color.primary,
+        stroke: Studently.color.primary,
         strokeWidth: STROKE,
         strokeLinecap: "round",
         strokeDasharray: `${CIRC} ${CIRC}`,

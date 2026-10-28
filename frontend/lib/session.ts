@@ -2,10 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { UserRole } from "@/types/user";
 
 const KEYS = {
-  userId: "skoun.userId",
-  role: "skoun.role",
-  lastAuthProvider: "skoun.lastAuthProvider",
-  pendingAuthProvider: "skoun.pendingAuthProvider",
+  userId: "studently.userId",
+  role: "studently.role",
+  lastAuthProvider: "studently.lastAuthProvider",
+  pendingAuthProvider: "studently.pendingAuthProvider",
 } as const;
 
 export type Session = {

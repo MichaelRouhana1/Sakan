@@ -23,15 +23,15 @@ import {
   type LatLng,
 } from "@/lib/locationWkt";
 import {
-  createSkounMap,
-  destroySkounMap,
+  createStudentlyMap,
+  destroyStudentlyMap,
   listingPinHtml,
   loadMapbox,
   makeMarker,
   toLngLat,
   type MapboxMap,
   type Marker,
-} from "@/lib/skounMapbox.web";
+} from "@/lib/studentlyMapbox.web";
 
 export type ListingPin = {
   lng: number;
@@ -113,7 +113,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
         if (cancelled || !hostRef.current) return;
 
         const start = AREA_COORDINATES[area];
-        const map = createSkounMap(
+        const map = createStudentlyMap(
           mapboxgl,
           hostRef.current,
           { lat: start.lat, lng: start.lng },
@@ -178,7 +178,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
       cancelled = true;
       markerRef.current?.remove();
       markerRef.current = null;
-      destroySkounMap(mapRef.current);
+      destroyStudentlyMap(mapRef.current);
       mapRef.current = null;
       setMapReady(false);
     };
@@ -334,7 +334,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
         ) : null}
         <div
           ref={hostRef}
-          className="skoun-mapbox-map"
+          className="studently-mapbox-map"
           style={{ width: "100%", height: "100%" }}
         />
         <View style={[styles.mapChrome, { pointerEvents: "box-none" }]}>

@@ -20,7 +20,7 @@ import MapView, {
 } from "react-native-maps";
 import { LText } from "@/components/lister/Typography";
 import { PasteLocationLinkField } from "@/components/listings/PasteLocationLinkField";
-import { SkounMapPin } from "@/components/listings/SkounMapPin";
+import { StudentlyMapPin } from "@/components/listings/StudentlyMapPin";
 import { AREA_COORDINATES } from "@/constants/areaCoordinates";
 import type { LebanonArea } from "@/constants/areas";
 import { landmarksForArea } from "@/constants/landmarks";
@@ -294,7 +294,7 @@ export function LocationPicker({ area, value, onChange, invalid }: Props) {
             onDragEnd={onDragEnd}
             accessibilityLabel="Draggable listing pin"
           >
-            <SkounMapPin dropped={value.confirmed} />
+            <StudentlyMapPin dropped={value.confirmed} />
           </Marker>
         </MapView>
         <View style={styles.mapChrome} pointerEvents="box-none">
@@ -517,7 +517,7 @@ export function StaticPinMap({
           anchor={{ x: 0.5, y: 1 }}
           tracksViewChanges={false}
         >
-          <SkounMapPin dropped />
+          <StudentlyMapPin dropped />
         </Marker>
       </MapView>
     </View>

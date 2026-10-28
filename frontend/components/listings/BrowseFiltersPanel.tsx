@@ -21,7 +21,7 @@ import {
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
   GENDER_FILTER_OPTIONS,
@@ -422,7 +422,7 @@ export function BrowseFiltersPanel({
               hitSlop={12}
               style={styles.closeBtn}
             >
-              <Ionicons name="close" size={24} color={Skoun.color.ink} />
+              <Ionicons name="close" size={24} color={Studently.color.ink} />
             </Pressable>
             <LText variant="subtitle" style={styles.headerTitle}>
               Filters
@@ -536,7 +536,7 @@ export function BrowseFiltersPanel({
                     }}
                     keyboardType="number-pad"
                     placeholder="Any"
-                    placeholderTextColor={Skoun.color.inkFaint}
+                    placeholderTextColor={Studently.color.inkFaint}
                     accessibilityLabel="Minimum monthly rent"
                   />
                 </View>
@@ -553,7 +553,7 @@ export function BrowseFiltersPanel({
                     }}
                     keyboardType="number-pad"
                     placeholder="Any"
-                    placeholderTextColor={Skoun.color.inkFaint}
+                    placeholderTextColor={Studently.color.inkFaint}
                     accessibilityLabel="Maximum monthly rent"
                   />
                 </View>
@@ -689,7 +689,7 @@ export function BrowseFiltersPanel({
               <TextInput
                 style={styles.search}
                 placeholder="Search areas…"
-                placeholderTextColor={Skoun.color.inkFaint}
+                placeholderTextColor={Studently.color.inkFaint}
                 value={areaQuery}
                 onChangeText={setAreaQuery}
                 accessibilityLabel="Search areas"
@@ -816,7 +816,7 @@ export function BrowseFiltersPanel({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
   },
   backdropSheet: {
     justifyContent: "flex-end",
@@ -830,28 +830,28 @@ const styles = StyleSheet.create({
     left: 0,
     bottom: 0,
     width: "100%",
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
     borderRightWidth: 1,
-    borderRightColor: Skoun.color.border,
+    borderRightColor: Studently.color.border,
   },
   panelSheet: {
     height: "88%",
     maxHeight: "88%",
     width: "100%",
-    backgroundColor: Skoun.color.bg,
+    backgroundColor: Studently.color.bg,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Skoun.space.md,
-    paddingBottom: Skoun.space.sm,
+    paddingHorizontal: Studently.space.md,
+    paddingBottom: Studently.space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   closeBtn: {
     width: 40,
@@ -860,36 +860,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
-    fontFamily: Skoun.type.displayMedium,
+    fontFamily: Studently.type.displayMedium,
   },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingHorizontal: Skoun.space.lg,
-    paddingTop: Skoun.space.md,
-    paddingBottom: Skoun.space.xl,
+    paddingHorizontal: Studently.space.lg,
+    paddingTop: Studently.space.md,
+    paddingBottom: Studently.space.xl,
     gap: 6,
   },
   blockSection: {
-    marginTop: Skoun.space.lg,
+    marginTop: Studently.space.lg,
     gap: 6,
   },
   sectionLabel: {
-    marginTop: Skoun.space.sm,
+    marginTop: Studently.space.sm,
     marginBottom: 2,
   },
   sectionHint: {
     marginBottom: 8,
   },
   search: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    borderRadius: Skoun.radius.md,
+    borderColor: Studently.color.border,
+    borderRadius: Studently.radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     marginBottom: 8,
   },
   chipWrap: {
@@ -902,30 +902,30 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   areaGroupLabel: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 9,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.pill,
+    backgroundColor: Studently.color.surface,
+    borderRadius: Studently.radius.pill,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   chipOn: {
-    backgroundColor: Skoun.color.primary,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
+    borderColor: Studently.color.primary,
   },
   chipDisabled: {
     opacity: 0.45,
   },
   chipLabel: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
   },
   chipLabelOn: {
-    color: Skoun.color.surface,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.surface,
+    fontFamily: Studently.type.bodySemi,
   },
   rentRow: {
     flexDirection: "row",
@@ -936,15 +936,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   rentInput: {
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    borderRadius: Skoun.radius.md,
+    borderColor: Studently.color.border,
+    borderRadius: Studently.radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   rentError: {
     marginTop: 4,
@@ -959,41 +959,41 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.md,
+    backgroundColor: Studently.color.surface,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   toggleOn: {
-    borderColor: Skoun.color.primarySoft,
-    backgroundColor: Skoun.color.primaryMist,
+    borderColor: Studently.color.primarySoft,
+    backgroundColor: Studently.color.primaryMist,
   },
   toggleLabel: {
-    color: Skoun.color.ink,
-    fontFamily: Skoun.type.bodyMedium,
+    color: Studently.color.ink,
+    fontFamily: Studently.type.bodyMedium,
     flex: 1,
   },
   toggleLabelOn: {
-    color: Skoun.color.primaryDeep,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primaryDeep,
+    fontFamily: Studently.type.bodySemi,
     flex: 1,
   },
   switchTrack: {
     width: 44,
     height: 26,
     borderRadius: 13,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
     padding: 3,
     justifyContent: "center",
   },
   switchTrackOn: {
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
   },
   switchKnob: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   switchKnobOn: {
     alignSelf: "flex-end",
@@ -1002,11 +1002,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: Skoun.space.lg,
-    paddingTop: Skoun.space.md,
+    paddingHorizontal: Studently.space.lg,
+    paddingTop: Studently.space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Skoun.color.border,
-    backgroundColor: Skoun.color.bg,
+    borderTopColor: Studently.color.border,
+    backgroundColor: Studently.color.bg,
   },
   footerBtn: {
     flex: 0.4,
@@ -1016,19 +1016,19 @@ const styles = StyleSheet.create({
   },
   confirmLayer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: Skoun.space.lg,
+    paddingHorizontal: Studently.space.lg,
   },
   confirmCard: {
     width: "100%",
     maxWidth: 360,
-    backgroundColor: Skoun.color.surface,
-    borderRadius: Skoun.radius.lg,
+    backgroundColor: Studently.color.surface,
+    borderRadius: Studently.radius.lg,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    padding: Skoun.space.lg,
+    borderColor: Studently.color.border,
+    padding: Studently.space.lg,
     gap: 10,
   },
   confirmBody: {

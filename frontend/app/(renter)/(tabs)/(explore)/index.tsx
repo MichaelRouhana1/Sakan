@@ -20,15 +20,16 @@ import { router } from "expo-router";
 import Svg, { Path } from "react-native-svg";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { useHostingNavState } from "@/features/listings/useHostingNavState";
 import { api } from "@/lib/api";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 import type { User } from "@/types/user";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
@@ -299,7 +300,10 @@ export default function RenterNewHomeScreen() {
               <View style={styles.headerSpacer} />
 
               <View style={styles.brandRow}>
-                <Text style={styles.brandText}>skoun</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <StudentlyLogo size={32} />
+                  <Text style={styles.brandText}>studently</Text>
+                </View>
                 <View style={styles.brandActions}>
                   <ProductSwitchControl
                     variant="toCampus"
@@ -385,25 +389,25 @@ export default function RenterNewHomeScreen() {
         {/* COMPACT STATS ROW (No large card box shadows, pure minimalist columns like Amber) */}
         <View style={styles.compactStatsBand}>
           <View style={styles.statColumn}>
-            <Ionicons name="school-outline" size={24} color={Skoun.color.primary} />
+            <Ionicons name="school-outline" size={24} color={Studently.color.primary} />
             <Text style={styles.statColValue}>{CAMPUS_CATALOG.universities}</Text>
             <Text style={styles.statColLabel}>Universities</Text>
           </View>
           
           <View style={styles.statColumn}>
-            <Ionicons name="location-outline" size={24} color={Skoun.color.primary} />
+            <Ionicons name="location-outline" size={24} color={Studently.color.primary} />
             <Text style={styles.statColValue}>{CAMPUS_CATALOG.campuses}</Text>
             <Text style={styles.statColLabel}>Campuses</Text>
           </View>
           
           <View style={styles.statColumn}>
-            <Ionicons name="map-outline" size={24} color={Skoun.color.primary} />
+            <Ionicons name="map-outline" size={24} color={Studently.color.primary} />
             <Text style={styles.statColValue}>{CAMPUS_CATALOG.areas}</Text>
             <Text style={styles.statColLabel}>Areas</Text>
           </View>
           
           <View style={styles.statColumn}>
-            <Ionicons name="star-outline" size={24} color={Skoun.color.primary} />
+            <Ionicons name="star-outline" size={24} color={Studently.color.primary} />
             <Text style={styles.statColValue}>4.9/5</Text>
             <Text style={styles.statColLabel}>Trust Score</Text>
           </View>
@@ -639,7 +643,7 @@ export default function RenterNewHomeScreen() {
             {VALUE_PROPS.map((v) => (
               <View key={v.id} style={styles.valuePropItem}>
                 <View style={styles.valuePropIconBox}>
-                  <Ionicons name={v.icon} size={22} color={Skoun.color.primary} />
+                  <Ionicons name={v.icon} size={22} color={Studently.color.primary} />
                 </View>
                 <View style={styles.valuePropCopy}>
                   <LText variant="subtitle" style={styles.valuePropTitle}>
@@ -745,7 +749,7 @@ export default function RenterNewHomeScreen() {
                 onPress={() => handleSearchQuick(link)}
                 style={styles.directoryLinkItem}
               >
-                <Ionicons name="location-outline" size={14} color={Skoun.color.primary} />
+                <Ionicons name="location-outline" size={14} color={Studently.color.primary} />
                 <Text style={styles.directoryLinkText}>{link}</Text>
               </Pressable>
             ))}
@@ -769,7 +773,7 @@ export default function RenterNewHomeScreen() {
               style={styles.helpTile}
             >
               <View style={[styles.helpTileIconBox, { backgroundColor: "#E8EEF6" }]}>
-                <Ionicons name="chatbubbles-outline" size={20} color={Skoun.color.primary} />
+                <Ionicons name="chatbubbles-outline" size={20} color={Studently.color.primary} />
               </View>
               <Text style={styles.helpTileTitle}>Live Chat</Text>
               <Text style={styles.helpTileMeta}>In-app support</Text>
@@ -779,7 +783,7 @@ export default function RenterNewHomeScreen() {
               onPress={() =>
                 Linking.openURL(
                   "https://wa.me/?text=" +
-                    encodeURIComponent("Hi Skoun — I have a question about housing.")
+                    encodeURIComponent("Hi Studently — I have a question about housing.")
                 )
               }
               style={styles.helpTile}
@@ -792,33 +796,36 @@ export default function RenterNewHomeScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => Linking.openURL("mailto:hello@skoun.app")}
+              onPress={() => Linking.openURL("mailto:hello@studently.app")}
               style={styles.helpTile}
             >
               <View style={[styles.helpTileIconBox, { backgroundColor: "#FEF3C7" }]}>
                 <Ionicons name="mail-outline" size={20} color="#B45309" />
               </View>
               <Text style={styles.helpTileTitle}>Email Us</Text>
-              <Text style={styles.helpTileMeta}>hello@skoun.app</Text>
+              <Text style={styles.helpTileMeta}>hello@studently.app</Text>
             </Pressable>
           </View>
         </View>
 
         {/* CLEAN BRAND FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerLogo}>skoun</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <StudentlyLogo size={36} />
+            <Text style={styles.footerLogo}>studently</Text>
+          </View>
           <Text style={styles.footerText}>
             Lebanon student rental classifieds. Matchmaking only — we don’t hold deposits or write leases.
           </Text>
           <Text style={styles.footerCopyright}>
-            © {new Date().getFullYear()} Skoun. All rights reserved.
+            © {new Date().getFullYear()} Studently. All rights reserved.
           </Text>
         </View>
 
       </Animated.ScrollView>
       </HideIosTabScrollFade>
 
-      <SkounAuthModal
+      <StudentlyAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={() => setAuthModalOpen(false)}
@@ -893,9 +900,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   campusSkipText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   scroll: {
     flex: 1,
@@ -928,17 +935,21 @@ const styles = StyleSheet.create({
   },
   brandRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 10,
   },
   brandActions: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    flexShrink: 1,
     alignItems: "center",
     gap: 8,
   },
   brandText: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 28,
     color: "#ffffff",
     fontWeight: "800",
@@ -953,7 +964,7 @@ const styles = StyleSheet.create({
     borderColor: "#ffffff",
   },
   listBtnText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     color: "#ffffff",
     fontSize: 12,
     fontWeight: "600",
@@ -971,7 +982,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderColor: "transparent",
     paddingLeft: 16,
-    ...skounShadow({ color: "#000000", y: 6, blur: 12, opacity: 0.16, elevation: 8 }),
+    ...studentlyShadow({ color: "#000000", y: 6, blur: 12, opacity: 0.16, elevation: 8 }),
   },
   searchFieldMock: {
     flexDirection: "row",
@@ -979,13 +990,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchHintBold: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     color: "#1F2A37",
     fontWeight: "700",
   },
   searchHintMuted: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 14,
     color: "#9CA3AF",
   },
@@ -993,7 +1004,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1010,14 +1021,14 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   heroTitleText: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 22,
     color: "#ffffff",
     fontWeight: "800",
     lineHeight: 26,
   },
   heroSubtitleText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     color: "#ffffff",
     opacity: 0.9,
@@ -1035,7 +1046,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   lowestPriceText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     color: "#ffffff",
     fontSize: 12,
     fontWeight: "600",
@@ -1069,13 +1080,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statColValue: {
-    fontFamily: Skoun.type.displayMedium,
+    fontFamily: Studently.type.displayMedium,
     fontSize: 15,
     fontWeight: "700",
     color: "#111928",
   },
   statColLabel: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     color: "#6B7280",
   },
@@ -1090,7 +1101,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   sectionSub: {
     fontSize: 13,
@@ -1119,16 +1130,16 @@ const styles = StyleSheet.create({
   },
   govCircleActive: {
     borderWidth: 2,
-    borderColor: Skoun.color.primary,
+    borderColor: Studently.color.primary,
   },
   govLabelText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 11,
     color: "#6B7280",
     fontWeight: "600",
   },
   govLabelTextActive: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   pillsOuterScroll: {
     marginHorizontal: -20,
@@ -1146,13 +1157,13 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   regionPillActive: {
-    backgroundColor: Skoun.color.ink,
-    borderColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
+    borderColor: Studently.color.ink,
   },
   regionPillText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   regionPillTextActive: {
     color: "#ffffff",
@@ -1180,18 +1191,18 @@ const styles = StyleSheet.create({
     bottom: 12,
     left: 12,
     right: 12,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     color: "#ffffff",
     fontWeight: "600",
   },
   uniCityCard: {
-    borderRadius: Skoun.radius.lg,
+    borderRadius: Studently.radius.lg,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#D5DCE7",
-    backgroundColor: Skoun.color.surface,
-    ...skounShadow({ y: 3, blur: 10, opacity: 0.05 }),
+    backgroundColor: Studently.color.surface,
+    ...studentlyShadow({ y: 3, blur: 10, opacity: 0.05 }),
   },
   uniCityFill: {
     flex: 1,
@@ -1214,7 +1225,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   uniCityName: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     color: "#111928",
     fontWeight: "600",
@@ -1247,13 +1258,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     left: 10,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
   },
   listingTagText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 10,
     color: "#ffffff",
   },
@@ -1273,15 +1284,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   listingTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     fontWeight: "600",
   },
   listingArea: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   listingUtilRow: {
     flexDirection: "row",
@@ -1296,21 +1307,21 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   listingUtilBadgeText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 10,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   listingPrice: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 14,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "700",
     marginTop: 4,
   },
   listingPriceUnit: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     fontWeight: "400",
   },
   trustBand: {
@@ -1342,10 +1353,10 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   testimonialQuote: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 18,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     fontStyle: "italic",
   },
   testimonialMeta: {
@@ -1354,15 +1365,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   testimonialName: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     fontWeight: "600",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   testimonialPlace: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   valuePropsStack: {
     gap: 16,
@@ -1377,7 +1388,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: Skoun.color.primaryMist,
+    backgroundColor: Studently.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1411,16 +1422,16 @@ const styles = StyleSheet.create({
     borderColor: "#FBD5D5",
   },
   promoDeep: {
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
   },
   promoTitle: {
-    fontFamily: Skoun.type.displayMedium,
+    fontFamily: Studently.type.displayMedium,
     fontSize: 18,
     fontWeight: "700",
     color: "#9B2C2C",
   },
   promoBody: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
     color: "#771D1D",
@@ -1433,7 +1444,7 @@ const styles = StyleSheet.create({
   },
   promoBtn: {
     alignSelf: "flex-start",
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1443,13 +1454,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   promoBtnText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
     color: "#ffffff",
     fontWeight: "600",
   },
   promoBtnTextInverse: {
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   stepsStack: {
     gap: 0,
@@ -1467,20 +1478,20 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
   },
   stepBadgeText: {
     color: "#ffffff",
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 12,
     fontWeight: "700",
   },
   stepTimelineLine: {
     width: 2,
-    backgroundColor: Skoun.color.primarySoft,
+    backgroundColor: Studently.color.primarySoft,
     flex: 1,
     marginVertical: 4,
   },
@@ -1490,16 +1501,16 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stepTitleText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     fontWeight: "600",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   stepBodyText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 12,
     lineHeight: 16,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   directoryTabs: {
     flexDirection: "row",
@@ -1514,15 +1525,15 @@ const styles = StyleSheet.create({
   },
   directoryTabBtnActive: {
     borderBottomWidth: 2,
-    borderBottomColor: Skoun.color.primary,
+    borderBottomColor: Studently.color.primary,
   },
   directoryTabBtnText: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
     fontSize: 13,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   directoryTabBtnTextActive: {
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
     fontWeight: "600",
   },
   directoryLinksContainer: {
@@ -1543,9 +1554,9 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   directoryLinkText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
   },
   helpTilesGrid: {
     flexDirection: "row",
@@ -1571,36 +1582,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   helpTileTitle: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
     fontWeight: "600",
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   helpTileMeta: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 10,
-    color: Skoun.color.inkFaint,
+    color: Studently.color.inkFaint,
   },
   footer: {
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     paddingHorizontal: 20,
     paddingVertical: 32,
     marginTop: 40,
     gap: 12,
   },
   footerLogo: {
-    fontFamily: Skoun.type.display,
+    fontFamily: Studently.type.display,
     fontSize: 22,
     color: "#ffffff",
   },
   footerText: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 11,
     lineHeight: 16,
     color: "#D1D5DB",
   },
   footerCopyright: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 10,
     color: "#9CA3AF",
     marginTop: 8,

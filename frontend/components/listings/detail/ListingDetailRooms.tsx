@@ -7,7 +7,7 @@ import {
   listingDetailChrome as chrome,
   type ListingDetailVariant,
 } from "@/components/listings/detail/listingDetailChrome";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
@@ -213,7 +213,7 @@ function Feat({
 }) {
   return (
     <View style={styles.feat}>
-      <Ionicons name={icon} size={14} color={Skoun.color.inkMuted} />
+      <Ionicons name={icon} size={14} color={Studently.color.inkMuted} />
       <LText variant="caption" style={styles.featLabel} numberOfLines={1}>
         {label}
       </LText>
@@ -229,36 +229,36 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surface,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surface,
   },
   pillOn: {
-    backgroundColor: Skoun.color.primaryMist,
-    borderColor: Skoun.color.primary,
+    backgroundColor: Studently.color.primaryMist,
+    borderColor: Studently.color.primary,
   },
   pillText: {
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.ink,
   },
   pillTextOn: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
   catBlock: { gap: 8, marginTop: 4 },
   roomCard: {
     gap: 10,
     padding: 12,
-    borderRadius: Skoun.radius.md,
+    borderRadius: Studently.radius.md,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   thumbs: { flexDirection: "row", gap: 8 },
   thumb: {
     flex: 1,
     height: 88,
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.bgWash,
+    borderRadius: Studently.radius.sm,
+    backgroundColor: Studently.color.bgWash,
   },
   avail: {
     alignSelf: "flex-start",
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   availText: {
     color: "#065F46",
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
   },
   featGrid: {
     flexDirection: "row",
@@ -285,14 +285,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  featLabel: { flex: 1, color: Skoun.color.ink },
+  featLabel: { flex: 1, color: Studently.color.ink },
   book: {
     marginTop: 4,
-    backgroundColor: Skoun.color.primary,
-    borderRadius: Skoun.radius.md,
+    backgroundColor: Studently.color.primary,
+    borderRadius: Studently.radius.md,
     paddingVertical: 12,
     alignItems: "center",
   },
   bookOff: { opacity: 0.45 },
-  bookText: { color: Skoun.color.surface },
+  bookText: { color: Studently.color.surface },
 });

@@ -16,7 +16,7 @@ const entry=`import React,{useState} from 'react';import {createRoot} from 'reac
 import {ListingInventory} from './components/admin-neu/listings/ListingInventory';
 import {ADMIN_CSS} from './styles/adminCssText';
 const style=document.createElement('style');style.textContent=ADMIN_CSS;document.head.append(style);
-function App(){const [row,setRow]=useState(${JSON.stringify(fixture)});return <main className="skoun-admin" style={{maxWidth:440,margin:'32px auto'}}><ListingInventory key={row.inventoryVersion} listing={row} onSaved={setRow}/></main>};
+function App(){const [row,setRow]=useState(${JSON.stringify(fixture)});return <main className="studently-admin" style={{maxWidth:440,margin:'32px auto'}}><ListingInventory key={row.inventoryVersion} listing={row} onSaved={setRow}/></main>};
 createRoot(document.getElementById('root')).render(<App/>);`;
 const bundle=await build({stdin:{contents:entry,loader:'tsx',resolveDir:root},bundle:true,write:false,format:'iife',platform:'browser',jsx:'automatic',plugins:[{name:'local-api',setup(b){b.onResolve({filter:/^@\/lib\/api$/},()=>({path:'test-api',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:"import axios from 'axios';export const api=axios.create({baseURL:location.origin});",resolveDir:root}));}}]});
 let row={...fixture};let request;let fail=false;

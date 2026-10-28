@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { syncIdentityFromClerk } from "@/features/auth/userApi";
 import {
@@ -111,7 +111,7 @@ export function ProfileIdentityPanel({ stacked }: Props) {
     try {
       await syncIdentityFromClerk();
     } catch {
-      /* Clerk is already updated; Skoun copy can catch up on next load. */
+      /* Clerk is already updated; Studently copy can catch up on next load. */
     }
     await refreshUser();
   };
@@ -379,7 +379,7 @@ export function ProfileIdentityPanel({ stacked }: Props) {
             onPress={close}
             accessibilityLabel="Close"
           />
-          <View nativeID="skoun-profile-dialog" style={styles.dialog}>
+          <View nativeID="studently-profile-dialog" style={styles.dialog}>
             <View style={styles.dialogHead}>
               <LText variant="subtitle">{title}</LText>
               <Pressable
@@ -389,7 +389,7 @@ export function ProfileIdentityPanel({ stacked }: Props) {
                 accessibilityLabel="Close"
                 style={styles.dialogClose}
               >
-                <Ionicons name="close" size={20} color={Skoun.color.ink} />
+                <Ionicons name="close" size={20} color={Studently.color.ink} />
               </Pressable>
             </View>
             <ScrollView
@@ -588,7 +588,7 @@ function Field({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize ?? "words"}
         autoCorrect={false}
-        placeholderTextColor={Skoun.color.inkFaint}
+        placeholderTextColor={Studently.color.inkFaint}
         accessibilityLabel={label}
         style={styles.input}
       />
@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     gridTemplateColumns: "1fr 1fr",
     width: "100%",
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
   } as Record<string, unknown>,
   gridStacked: {
     gridTemplateColumns: "1fr",
@@ -671,25 +671,25 @@ const styles = StyleSheet.create({
   },
   ruleRight: {
     borderRightWidth: 1,
-    borderRightColor: Skoun.color.border,
+    borderRightColor: Studently.color.border,
   },
   ruleTop: {
     borderTopWidth: 1,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
   },
   ruleBottom: {
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   value: {
     fontSize: 16,
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
   },
   change: {
     marginTop: 4,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 13,
-    color: Skoun.color.primary,
+    color: Studently.color.primary,
   },
   dialogRoot: {
     flex: 1,
@@ -699,16 +699,16 @@ const styles = StyleSheet.create({
   },
   dialogBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Skoun.color.overlay,
+    backgroundColor: Studently.color.overlay,
   },
   dialog: {
     width: "100%",
     maxWidth: 440,
     maxHeight: 640,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     overflow: "hidden",
     zIndex: 2,
   },
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Skoun.color.border,
+    borderBottomColor: Studently.color.border,
   },
   dialogClose: {
     width: 36,
@@ -746,18 +746,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   input: {
-    fontFamily: Skoun.type.body,
+    fontFamily: Studently.type.body,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     height: 48,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     paddingHorizontal: 14,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
   },
   inputInvalid: {
-    borderColor: Skoun.color.danger,
+    borderColor: Studently.color.danger,
   },
   passwordLabel: {
     flexDirection: "row",
@@ -765,27 +765,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   showHide: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 12,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
     letterSpacing: 0.4,
   },
   save: {
     height: 48,
     borderRadius: 999,
-    backgroundColor: Skoun.color.ink,
+    backgroundColor: Studently.color.ink,
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
   },
   saveHover: {
-    backgroundColor: Skoun.color.primaryDeep,
+    backgroundColor: Studently.color.primaryDeep,
   },
   saveBusy: {
     opacity: 0.7,
   },
   saveText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
     color: "#FFFFFF",
   },

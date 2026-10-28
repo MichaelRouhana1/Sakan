@@ -11,7 +11,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 // Desktop's DOM/canvas effects cannot render in native. Keep the same soft
 // monochrome pulse and chrome treatment with native gradients and UI-thread motion.
@@ -205,11 +205,11 @@ const styles = StyleSheet.create({
     width: 36,
   },
   badgeText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 11,
     lineHeight: 13.2,
     letterSpacing: 0.4,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   ctaWrap: {
     marginTop: 8,
@@ -228,14 +228,14 @@ const styles = StyleSheet.create({
   },
   ctaPressed: {
     opacity: 0.92,
-    backgroundColor: Skoun.color.surfaceMuted,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   ctaDisabled: {
     opacity: 0.55,
   },
   ctaText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 14,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
 });

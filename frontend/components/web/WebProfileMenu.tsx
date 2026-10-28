@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { SkounAuthModal } from "@/components/auth/SkounAuthModal";
-import { Skoun } from "@/constants/theme";
+import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
+import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 
 type Props = {
@@ -115,7 +115,7 @@ export function WebProfileMenu({
           {initial ? (
             <Text style={styles.avatarLetterText}>{avatarInitial}</Text>
           ) : (
-            <Ionicons name="person-outline" size={18} color={Skoun.color.ink} />
+            <Ionicons name="person-outline" size={18} color={Studently.color.ink} />
           )}
         </Pressable>
 
@@ -217,7 +217,7 @@ export function WebProfileMenu({
         ) : null}
       </View>
 
-      <SkounAuthModal
+      <StudentlyAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={() => setAuthModalOpen(false)}
@@ -270,13 +270,13 @@ const styles = StyleSheet.create({
   loginBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: Skoun.radius.sm,
+    borderRadius: Studently.radius.sm,
     cursor: "pointer",
   },
   loginBtnText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 15,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   avatarIcon: {
     width: 40,
@@ -298,9 +298,9 @@ const styles = StyleSheet.create({
     cursor: "pointer",
   },
   avatarLetterText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontSize: 16,
-    color: Skoun.color.ink,
+    color: Studently.color.ink,
   },
   pressed: {
     opacity: 0.85,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   bannerText: {
-    fontFamily: Skoun.type.bodyBold,
+    fontFamily: Studently.type.bodyBold,
     fontStyle: "italic",
     fontSize: 15,
     color: "#2C3E50",
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     width: 22,
   },
   menuText: {
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     fontSize: 15,
     color: "#334155",
   },

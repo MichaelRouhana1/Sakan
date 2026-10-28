@@ -6,7 +6,7 @@ import {
   listingDetailChrome as chrome,
   type ListingDetailVariant,
 } from "@/components/listings/detail/listingDetailChrome";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 type Props = {
   houseRules?: string[] | null;
@@ -69,7 +69,7 @@ export function ListingDetailHouseRules({
             <Ionicons
               name="checkmark-circle-outline"
               size={18}
-              color={Skoun.color.primary}
+              color={Studently.color.primary}
             />
             <View style={{ flex: 1, gap: 4 }}>
               <LText variant="subtitle">{row.title}</LText>
@@ -107,10 +107,10 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Skoun.color.border,
+    borderTopColor: Studently.color.border,
   },
   more: {
-    color: Skoun.color.primary,
-    fontFamily: Skoun.type.bodySemi,
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
   },
 });

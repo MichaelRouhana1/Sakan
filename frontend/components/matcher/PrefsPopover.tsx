@@ -1,6 +1,6 @@
 import type { ReactNode, RefObject } from "react";
 import { View } from "react-native";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 /** Native keeps the list under the button. Web portals it above the cards. */
 export function PrefsPopover({
@@ -25,9 +25,9 @@ export function PrefsPopover({
         gap: 6,
         padding: 12,
         borderRadius: 12,
-        backgroundColor: Skoun.color.surface,
+        backgroundColor: Studently.color.surface,
         borderWidth: 1,
-        borderColor: Skoun.color.bgWash,
+        borderColor: Studently.color.bgWash,
       }}
     >
       {children}

@@ -39,7 +39,7 @@ import {
 } from "@/components/listings/SearchModeToggle";
 import { SEGMENTED_PILL_SLIDE_MS } from "@/components/listings/SegmentedPillTrack";
 import { appleTabScrollInset } from "@/components/ui/Glass";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useSearchListings } from "@/features/listings/useSearchListings";
 import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useUniversities } from "@/features/universities/useUniversities";
@@ -157,7 +157,7 @@ export default function RenterHomeScreen() {
       <Ionicons
         name="options-outline"
         size={20}
-        color={Skoun.color.primary}
+        color={Studently.color.primary}
       />
       <Animated.View
         pointerEvents="none"
@@ -213,7 +213,7 @@ export default function RenterHomeScreen() {
           <LText variant="label" tone="brass">
             Find a place
           </LText>
-          <LText variant="display">Skoun</LText>
+          <LText variant="display">Studently</LText>
           <LText variant="body" tone="muted">
             USD rentals with real Lebanese utilities.
           </LText>
@@ -307,8 +307,8 @@ export default function RenterHomeScreen() {
                   listingsQuery.isFetching && !listingsQuery.isLoading
                 }
                 onRefresh={() => void listingsQuery.refetch()}
-                tintColor={Skoun.color.primary}
-                colors={[Skoun.color.primary]}
+                tintColor={Studently.color.primary}
+                colors={[Studently.color.primary]}
               />
             }
             renderItem={({ item, index }) => (
@@ -331,7 +331,7 @@ export default function RenterHomeScreen() {
             ListEmptyComponent={
               listingsQuery.isLoading ? (
                 <ActivityIndicator
-                  color={Skoun.color.primary}
+                  color={Studently.color.primary}
                   style={{ marginTop: 40 }}
                 />
               ) : listingsQuery.isError ? (
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     display: "none",
   },
   listContent: {
-    paddingHorizontal: Skoun.space.lg,
+    paddingHorizontal: Studently.space.lg,
     paddingBottom: appleTabScrollInset,
     flexGrow: 1,
   },
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mapScrollContent: {
-    paddingHorizontal: Skoun.space.lg,
+    paddingHorizontal: Studently.space.lg,
     paddingBottom: appleTabScrollInset,
     flexGrow: 1,
   },
@@ -432,8 +432,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    paddingTop: Skoun.space.sm,
-    paddingBottom: Skoun.space.md,
+    paddingTop: Studently.space.sm,
+    paddingBottom: Studently.space.md,
     gap: 4,
   },
   chromeRow: {
@@ -451,10 +451,10 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: Skoun.radius.md,
-    backgroundColor: Skoun.color.surface,
+    borderRadius: Studently.radius.md,
+    backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
   },
   filtersBtnPressed: {
     opacity: 0.85,
@@ -466,17 +466,17 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     paddingHorizontal: 5,
-    borderRadius: Skoun.radius.pill,
-    backgroundColor: Skoun.color.primary,
+    borderRadius: Studently.radius.pill,
+    backgroundColor: Studently.color.primary,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
-    borderColor: Skoun.color.bg,
+    borderColor: Studently.color.bg,
   },
   badgeText: {
-    color: Skoun.color.surface,
+    color: Studently.color.surface,
     fontSize: 11,
-    fontFamily: Skoun.type.bodySemi,
+    fontFamily: Studently.type.bodySemi,
     lineHeight: 14,
   },
   hint: { marginTop: 10, marginBottom: 4 },
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
   },
   feedTitle: { marginBottom: 0, flex: 1 },
   feedTitleToggle: { flexShrink: 0 },
-  cardWrap: { marginBottom: Skoun.space.md },
+  cardWrap: { marginBottom: Studently.space.md },
   errorBox: {
     alignItems: "center",
     gap: 10,

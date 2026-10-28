@@ -11,7 +11,7 @@
  * - Apple Education Store hardware pricing — no Lebanon education store; US/SA programs do not ship here.
  * - Historic Hamra “show AUB ID” cafe lists (Roadster / Deek Duke / Burger King) —
  *   Beirut.com roundups, not currently confirmed by the brands.
- * - Clerk GitHub Pack Pro — omitted so it is not confused with Skoun’s Clerk auth.
+ * - Clerk GitHub Pack Pro — omitted so it is not confused with Studently’s Clerk auth.
  * - Headspace Student — SheerID countries are US/UK/AU/CA/FR/DE/PT/ES, not Lebanon.
  * - LinkedIn Premium Student / Grammarly individual student SKU — no self-serve offer found.
  * - NordVPN / Discord Nitro via UNiDAYS or Student Beans — Lebanon catalog not confirmed.

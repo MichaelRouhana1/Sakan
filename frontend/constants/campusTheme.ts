@@ -1,7 +1,7 @@
 import { Lister } from "./listerTheme";
 
 /**
- * Campus product tokens — same Skoun bank-blue system as Housing.
+ * Campus product tokens — same Studently bank-blue system as Housing.
  * Aliases (`paper`, `hairline`) keep existing Campus screens compiling
  * while mapping onto `bg` / `border`.
  */

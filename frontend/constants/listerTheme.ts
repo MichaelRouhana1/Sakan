@@ -1,5 +1,5 @@
 /**
- * Skoun Lister design system — calm hospitality, cool bank-blue.
+ * Studently Lister design system — calm hospitality, cool bank-blue.
  * Brand: Ocean / cerulean #2F6FED (from bank UI reference — not jade, not neon cyan).
  * Campus / secondary accent uses deep navy (no brass/gold). Typography: DM Sans.
  */

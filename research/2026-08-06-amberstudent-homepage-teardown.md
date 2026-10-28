@@ -60,7 +60,7 @@
 | City tile labels | inherit / system | 600 | — | 12px white on photo |
 | Tab labels (Hundreds of cities) | system | 600 | — | 14px |
 
-**Font files:** No `@font-face` in fetched homepage CSS chunks — **confirmed**. Branding uses **system fonts + CSS custom properties** for white-label overrides (`--whitelabel_body_font`, `--whitelabel_title_font`). For Skoun, do **not** copy the system-stack look blindly; pick distinctive fonts while keeping hierarchy/weight pattern.
+**Font files:** No `@font-face` in fetched homepage CSS chunks — **confirmed**. Branding uses **system fonts + CSS custom properties** for white-label overrides (`--whitelabel_body_font`, `--whitelabel_title_font`). For Studently, do **not** copy the system-stack look blindly; pick distinctive fonts while keeping hierarchy/weight pattern.
 
 ### Spacing System
 
@@ -249,7 +249,7 @@ SEO: large “hidden” country/city property blocks exist in DOM (`Thousands of
 - Referral cards on warm cream/gold backgrounds with CTAs Refer Now / Apply Now / Avail Now.  
 - Three steps numbered cards in a horizontal scroll on smaller widths.  
 - Partner / List With Us CTA banners.  
-- Help: Live Chat, WhatsApp (2 mins reply), Email, phone — WhatsApp is first-class (maps cleanly to Skoun).
+- Help: Live Chat, WhatsApp (2 mins reply), Email, phone — WhatsApp is first-class (maps cleanly to Studently).
 
 ### 7. Ripple + ticker (confirmed)
 
@@ -257,28 +257,28 @@ Material-like ripple overlay on clickable surfaces; ticker marquee for promo str
 
 ---
 
-## Assets Needed to Recreate (Skoun-ready)
+## Assets Needed to Recreate (Studently-ready)
 
 1. **Hero photograph** — Full-bleed student/housing lifestyle, ~1440px wide, right-weighted subject (Amber uses `object-position: right center`). Midjourney/stock: “Beirut apartment interior golden hour students, editorial photography, no logo”.  
 2. **Insight icons (3 SVGs)** — Beds / Universities / Cities equivalents (Amber: `homepage-beds.svg`, `homepage-universities.svg`, `homepage-cities.svg`).  
 3. **City tile photos** — Square crops for Lebanese areas (Achrafieh, Hamra, Jounieh, Tripoli, etc.), ~216–400px.  
 4. **Listing card photos** — Multiple images per listing for carousel (webp).  
 5. **Partner / press logos** — Optional; skip or use real local partners only.  
-6. **App store badges** — Only if Skoun has apps; else omit AppDownload section.  
+6. **App store badges** — Only if Studently has apps; else omit AppDownload section.  
 7. **UI icons** — Search, chevron, heart/shortlist, WhatsApp, chat, verified check — SVG inline.  
-8. **No grain/noise overlay** on Amber homepage — skip unless Skoun brand wants atmosphere elsewhere.
+8. **No grain/noise overlay** on Amber homepage — skip unless Studently brand wants atmosphere elsewhere.
 
 ---
 
 ## Build Plan
 
-### Recommended Stack (for Skoun web, Expo Router)
+### Recommended Stack (for Studently web, Expo Router)
 
 - **Framework:** Expo Router `index.web.tsx` + React web components (existing frontend).  
 - **Styling:** StyleSheet or CSS Modules / NativeWind — mirror tokens as CSS variables; do not port Amber class names.  
 - **Animation:** CSS/`react-native-reanimated` web where needed; prefer CSS keyframes for search cycle, shimmer, ripple.  
 - **Rails:** CSS overflow-x or a small carousel helper — no Swiper required.  
-- **Data:** Skoun listings/areas APIs; WhatsApp deep links per PRD.
+- **Data:** Studently listings/areas APIs; WhatsApp deep links per PRD.
 
 ### NPM Packages
 
@@ -295,22 +295,22 @@ Material-like ripple overlay on clickable surfaces; ticker marquee for promo str
 - CSS vars for red/neutrals/radii/spacing; page max-width behavior; 80px side padding desktop.
 
 **Section 2: Transparent header**
-- Logo (Skoun), primary nav, auth/list CTA; transparent over hero then solid on scroll (**inferred** Amber behavior — verify visually when building).
+- Logo (Studently), primary nav, auth/list CTA; transparent over hero then solid on scroll (**inferred** Amber behavior — verify visually when building).
 
 **Section 3: Hero**
-- 450px (or fluid clamp) full-bleed image, overlay, H2 brand line + H1, 3 trust chips with shine, pill search with cycling placeholder (City / University / Area for Skoun).
+- 450px (or fluid clamp) full-bleed image, overlay, H2 brand line + H1, 3 trust chips with shine, pill search with cycling placeholder (City / University / Area for Studently).
 
 **Section 4: Insights strip**
-- 3 stat cards + optional review widget (skip Trustpilot; use Skoun social proof or WhatsApp reply SLA).
+- 3 stat cards + optional review widget (skip Trustpilot; use Studently social proof or WhatsApp reply SLA).
 
 **Section 5: Popular areas**
-- Replace countries with Lebanon regions or University vs Area mode toggle (maps to Skoun dual search). City tiles → area tiles.
+- Replace countries with Lebanon regions or University vs Area mode toggle (maps to Studently dual search). City tiles → area tiles.
 
 **Section 6: Featured listings rail**
 - Horizontal cards with image carousel, save button, USD monthly price, utility badges (electricity/water/internet) instead of “Student's Choice”/week pricing.
 
 **Section 7: Value props**
-- 4 cards — adapt claims to classifieds truth (direct WhatsApp, verified utilities, local areas, student/university proximity) — **do not** claim Amber-style “book with us / paperwork on us / price match” if Skoun doesn’t fulfill them.
+- 4 cards — adapt claims to classifieds truth (direct WhatsApp, verified utilities, local areas, student/university proximity) — **do not** claim Amber-style “book with us / paperwork on us / price match” if Studently doesn’t fulfill them.
 
 **Section 8: How it works (3 steps)**
 - Discover → Contact on WhatsApp → Move in (match PRD; no paperwork-handled-by-platform).
@@ -327,20 +327,20 @@ Material-like ripple overlay on clickable surfaces; ticker marquee for promo str
 
 - **Desktop vs mobile:** This teardown is the **desktop SSR homepage**. Amber ships separate `*.desktop.*` assets; mobile may differ.  
 - **White-label hooks:** Many colors/fonts go through `--whitelabel_*` — Amber is built as a multi-brand shell.  
-- **Booking marketplace vs classifieds:** Amber is a booking intermediary (payments, guarantees, scholarships). Skoun is a **matchmaking classifieds** product — reuse layout/hierarchy/motion, rewrite claims and CTAs.  
-- **SEO DOM weight:** Huge hidden inventory blocks — for Skoun, prefer leaner SSR or paginated SEO pages.  
+- **Booking marketplace vs classifieds:** Amber is a booking intermediary (payments, guarantees, scholarships). Studently is a **matchmaking classifieds** product — reuse layout/hierarchy/motion, rewrite claims and CTAs.  
+- **SEO DOM weight:** Huge hidden inventory blocks — for Studently, prefer leaner SSR or paginated SEO pages.  
 - **JS analysis limits:** Full HomeDesktop JS graph not exhaustively decoded; carousel swipe physics and search modal open behavior are **partially inferred** from CSS/HTML.  
 - **Licensing:** Do not reuse Amber images, logos, Trustpilot business unit embeds, or copy verbatim.
 
 ---
 
-## Skoun Adaptation Notes
+## Studently Adaptation Notes
 
 ### Maps cleanly
 
-| Amber pattern | Skoun mapping |
+| Amber pattern | Studently mapping |
 |---|---|
-| Hero + search-first homepage | Keep; brand “Skoun” as hero-level signal |
+| Hero + search-first homepage | Keep; brand “Studently” as hero-level signal |
 | Pill search with cycling hints | Cycle: Area / University / Landmark (or “Near AUB”) |
 | Trust chips under headline | Verified utilities, WhatsApp contact, Student + renter focus |
 | Stats strip | Listings count, universities covered, areas covered |
@@ -354,17 +354,17 @@ Material-like ripple overlay on clickable surfaces; ticker marquee for promo str
 
 ### Should change for Lebanon housing
 
-| Amber | Skoun change |
+| Amber | Studently change |
 |---|---|
 | Global countries / 250+ cities | Lebanon-only; districts + universities |
 | “Book” / paperwork / price-match / scholarships | No booking escrow; no false guarantees |
 | Weekly £ pricing | Monthly USD + Lebanese utility badges |
 | Trustpilot-centric trust | Local proof: reply time, report-listing integrity, real photos |
 | App download + payment methods strip | Optional / omit until true |
-| Referral £50 / Ambscholar | Only if Skoun has real programs |
+| Referral £50 / Ambscholar | Only if Studently has real programs |
 | Partner property managers global | Local brokers/dorms; credit monetization |
-| System font stack | Distinctive Skoun typography (frontend-design skill) while keeping sizes/weights |
-| Red `#ed3a56` brand | Optional inspiration only — Skoun should own its palette (avoid cloning Amber red 1:1 if brand differs) |
+| System font stack | Distinctive Studently typography (frontend-design skill) while keeping sizes/weights |
+| Red `#ed3a56` brand | Optional inspiration only — Studently should own its palette (avoid cloning Amber red 1:1 if brand differs) |
 
 ### Product-truth constraints (from PRD)
 
@@ -378,7 +378,7 @@ Material-like ripple overlay on clickable surfaces; ticker marquee for promo str
 ## Session Scope Confirmation
 
 **Stopped after Amber homepage teardown only.**  
-No other Amber pages torn down. No Skoun homepage UI implementation started.
+No other Amber pages torn down. No Studently homepage UI implementation started.
 
 ### Natural “next pages” for later sessions (do not analyze yet)
 
@@ -390,4 +390,4 @@ No other Amber pages torn down. No Skoun homepage UI implementation started.
 6. https://amberstudent.com/help or https://amberstudent.com/contact  
 7. https://amberstudent.com/blog — content marketing (lower priority)
 
-Suggested next teardown when ready: **search results** (closest to Skoun renter browse), then **listing detail**.
+Suggested next teardown when ready: **search results** (closest to Studently renter browse), then **listing detail**.

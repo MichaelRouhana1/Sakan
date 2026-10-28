@@ -17,7 +17,7 @@ const U = {
     id: "u-06",
     firstName: "Hassan",
     lastName: "Fares",
-    email: "hassan.fares@skoun.dev",
+    email: "hassan.fares@studently.dev",
   },
   jad: {
     id: "u-10",

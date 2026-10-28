@@ -8,7 +8,7 @@ export default function RenterTabsWebLayout() {
   useMigrateLocalSaved();
   const pathname = usePathname();
 
-  // SkounHomePage provides its own full-bleed header & site chrome.
+  // StudentlyHomePage provides its own full-bleed header & site chrome.
   if (pathname === "/" || pathname === "") {
     return <Slot />;
   }

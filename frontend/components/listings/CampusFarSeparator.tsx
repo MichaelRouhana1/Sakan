@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 
 type Props = {
   label: string;
@@ -30,9 +30,9 @@ const styles = StyleSheet.create({
   },
   rule: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Skoun.color.border,
+    backgroundColor: Studently.color.border,
   },
   label: {
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
 });

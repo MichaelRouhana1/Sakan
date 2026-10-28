@@ -92,7 +92,7 @@ export function exportLogsInStore(
 ): { csv: string; event: AuditEvent; filename: string } {
   const csv = toCsv(rows);
   const day = new Date().toISOString().slice(0, 10);
-  const filename = `skoun-security-audit-${rangeLabel}-${day}.csv`;
+  const filename = `studently-security-audit-${rangeLabel}-${day}.csv`;
   const event = appendEventInStore({
     actor: DEMO_EXPORT_ACTOR,
     action: "logs.export",

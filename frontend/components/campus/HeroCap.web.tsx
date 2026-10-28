@@ -5,7 +5,7 @@ import {
   CAP_VIEWBOX,
   lineDelta,
 } from "@/components/campus/heroCapGeometry";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const RADIUS = 110;
@@ -134,7 +134,7 @@ export function HeroCap() {
       style={{ display: "block", pointerEvents: "none", touchAction: "pan-y" }}
     >
       <g
-        stroke={Skoun.color.primary}
+        stroke={Studently.color.primary}
         strokeWidth={1.4}
         strokeLinecap="round"
         fill="none"

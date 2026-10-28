@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import LottieView from "lottie-react-native";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { skounShadow } from "@/lib/skounShadow";
+import { studentlyShadow } from "@/lib/studentlyShadow";
 
 const BOT_LOTTIE = require("../../assets/lottie/find-place-bot.json");
 const STILL_FRAME = Math.floor((BOT_LOTTIE.op - BOT_LOTTIE.ip) * 0.55);
@@ -40,7 +40,7 @@ export function BotAvatar({
       style={{
         width: size,
         height: size,
-        ...skounShadow({ blur: 4, y: 3, opacity: 0.35 }),
+        ...studentlyShadow({ blur: 4, y: 3, opacity: 0.35 }),
       }}
     >
       <LottieView

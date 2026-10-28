@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import { labelElectricity, labelWater } from "@/lib/listingLabels";
 import type { Listing } from "@/types/listing";
 
@@ -30,7 +30,7 @@ function Badge({
 }) {
   return (
     <View style={styles.badge}>
-      <Ionicons name={icon} size={13} color={Skoun.color.primaryDeep} />
+      <Ionicons name={icon} size={13} color={Studently.color.primaryDeep} />
       <LText variant="caption" style={styles.label} numberOfLines={1}>
         {label}
       </LText>
@@ -99,14 +99,14 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 5,
-    borderRadius: Skoun.radius.sm,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderRadius: Studently.radius.sm,
+    backgroundColor: Studently.color.surfaceMuted,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     maxWidth: "100%",
   },
   label: {
-    fontFamily: Skoun.type.bodyMedium,
-    color: Skoun.color.ink,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.ink,
   },
 });

@@ -18,7 +18,7 @@ import {
   useLiveLebanonAreaGroups,
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
-import { Skoun } from "@/constants/theme";
+import { Studently } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
   GENDER_FILTER_OPTIONS,
@@ -127,7 +127,7 @@ export function FindFilterRail({
         <TextInput
           accessibilityLabel="Search areas"
           placeholder="Search areas…"
-          placeholderTextColor={Skoun.color.inkFaint}
+          placeholderTextColor={Studently.color.inkFaint}
           value={areaQuery}
           onChangeText={setAreaQuery}
           style={styles.input}
@@ -162,7 +162,7 @@ export function FindFilterRail({
           <TextInput
             accessibilityLabel="Minimum rent"
             placeholder="Min"
-            placeholderTextColor={Skoun.color.inkFaint}
+            placeholderTextColor={Studently.color.inkFaint}
             keyboardType="number-pad"
             value={value.minRentUsd != null ? String(value.minRentUsd) : ""}
             onChangeText={(t) => {
@@ -180,7 +180,7 @@ export function FindFilterRail({
           <TextInput
             accessibilityLabel="Maximum rent"
             placeholder="Max"
-            placeholderTextColor={Skoun.color.inkFaint}
+            placeholderTextColor={Studently.color.inkFaint}
             keyboardType="number-pad"
             value={value.maxRentUsd != null ? String(value.maxRentUsd) : ""}
             onChangeText={(t) => {
@@ -250,7 +250,7 @@ export function FindFilterRail({
             name={value.wifiIncluded ? "checkmark-circle" : "ellipse-outline"}
             size={18}
             color={
-              value.wifiIncluded ? Skoun.color.primary : Skoun.color.inkFaint
+              value.wifiIncluded ? Studently.color.primary : Studently.color.inkFaint
             }
           />
         </Pressable>
@@ -268,7 +268,7 @@ export function FindFilterRail({
             name={value.studentsOnly ? "checkmark-circle" : "ellipse-outline"}
             size={18}
             color={
-              value.studentsOnly ? Skoun.color.primary : Skoun.color.inkFaint
+              value.studentsOnly ? Studently.color.primary : Studently.color.inkFaint
             }
           />
         </Pressable>
@@ -337,10 +337,10 @@ const styles = StyleSheet.create({
   rail: {
     width: 280,
     flexShrink: 0,
-    backgroundColor: Skoun.color.surface,
+    backgroundColor: Studently.color.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     paddingTop: 16,
     maxHeight: "calc(100vh - 120px)" as unknown as number,
   },
@@ -385,42 +385,42 @@ const styles = StyleSheet.create({
   },
   areaGroupLabel: {
     fontSize: 11,
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
   chip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
-    backgroundColor: Skoun.color.surfaceMuted,
+    borderColor: Studently.color.border,
+    backgroundColor: Studently.color.surfaceMuted,
   },
   chipSelected: {
-    backgroundColor: Skoun.color.primaryMist,
-    borderColor: Skoun.color.primarySoft,
+    backgroundColor: Studently.color.primaryMist,
+    borderColor: Studently.color.primarySoft,
   },
   chipHover: {
-    borderColor: Skoun.color.borderStrong,
+    borderColor: Studently.color.borderStrong,
   },
   chipLabel: {
-    color: Skoun.color.inkMuted,
+    color: Studently.color.inkMuted,
     fontSize: 12,
   },
   chipLabelSelected: {
-    color: Skoun.color.primaryDeep,
+    color: Studently.color.primaryDeep,
     fontSize: 12,
-    fontFamily: Skoun.type.bodyMedium,
+    fontFamily: Studently.type.bodyMedium,
   },
   input: {
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
-    fontFamily: Skoun.type.body,
-    color: Skoun.color.ink,
-    backgroundColor: Skoun.color.surface,
+    fontFamily: Studently.type.body,
+    color: Studently.color.ink,
+    backgroundColor: Studently.color.surface,
     marginBottom: 8,
     outlineStyle: "none",
   } as Record<string, unknown>,
@@ -441,12 +441,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Skoun.color.border,
+    borderColor: Studently.color.border,
     marginTop: 4,
   },
   toggleRowOn: {
-    backgroundColor: Skoun.color.primaryMist,
-    borderColor: Skoun.color.primarySoft,
+    backgroundColor: Studently.color.primaryMist,
+    borderColor: Studently.color.primarySoft,
   },
   clearBtn: {
     alignSelf: "flex-start",
