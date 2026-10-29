@@ -8,6 +8,7 @@ export {
   isHighlightCardBadge,
   listingAmberPillGroups,
   listingAmberPills,
+  listingDisplayCardPills,
   listingCardPills,
 } from "@/lib/listingCardBadges";
 

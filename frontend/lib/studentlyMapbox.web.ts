@@ -7,6 +7,7 @@ import type { GeoJSONSource, Map as MapboxMap, Marker, Popup } from "mapbox-gl";
 import type { Listing } from "@/types/listing";
 import type { MapPinGroup } from "@/lib/mapPinGroups";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
+import { resolvedElectricityCardBadge } from "@/lib/listingCardBadges";
 import { CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 import { getMapboxStyle, getMapboxToken } from "@/lib/mapboxEnv";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
@@ -314,6 +315,12 @@ export function ensureMapboxCss(): void {
     }
     .studently-popup-price { font-size: 14px; font-weight: 800; color: #0F172A; margin-top: 4px; }
     .studently-popup-price .unit { font-size: 12px; font-weight: 400; color: #64748B; }
+    .studently-popup-electricity {
+      display: inline-flex; align-items: center; width: fit-content;
+      margin-top: 7px; padding: 3px 7px; border-radius: 999px;
+      background: #FFF3D6; color: #7A4B00;
+      font-size: 11px; font-weight: 700; line-height: 1.2;
+    }
     .studently-amber-popup-group { padding: 12px; width: 240px; }
     .studently-popup-group-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -333,6 +340,7 @@ export function ensureMapboxCss(): void {
       padding: 8px 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid #E2E8F0;
       text-decoration: none !important; color: inherit !important;
     }
+    .studently-popup-group-copy { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
     .studently-popup-group-item:hover { background: #F1F5F9; }
     .studently-popup-group-title {
       font-size: 12px; font-weight: 600; color: #0F172A;
@@ -948,6 +956,10 @@ export function createAmberPopupHtml(listing: Listing): string {
     resolveMediaUrl(listing.coverUrl || listing.photos?.[0]?.url) ||
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80";
   const url = `/listing/${listing.id}`;
+  const electricity = resolvedElectricityCardBadge(listing);
+  const electricityHtml = electricity
+    ? `<div class="studently-popup-electricity">${escapeHtml(electricity.label)}</div>`
+    : "";
 
   return `<div class="studently-amber-popup-card">
     <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="studently-popup-body-link" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
@@ -958,6 +970,7 @@ export function createAmberPopupHtml(listing: Listing): string {
         <div class="studently-popup-title">${title}</div>
         <div class="studently-popup-subtitle">${subtitle}</div>
         <div class="studently-popup-price"><strong>${price}</strong> <span class="unit">/ month</span></div>
+        ${electricityHtml}
       </div>
     </a>
     <button type="button" class="studently-popup-close-btn" aria-label="Close">✕</button>
@@ -970,8 +983,12 @@ export function createAmberGroupPopupHtml(group: MapPinGroup): string {
       const title = escapeHtml(listingCardTitle(listing));
       const price = `$${listing.monthlyRentUsd.toLocaleString("en-US")}`;
       const url = `/listing/${listing.id}`;
+      const electricity = resolvedElectricityCardBadge(listing);
+      const electricityHtml = electricity
+        ? `<span class="studently-popup-electricity">${escapeHtml(electricity.label)}</span>`
+        : "";
       return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="studently-popup-group-item" onclick="window.open('${escapeHtml(url)}', '_blank', 'noopener,noreferrer'); return false;">
-        <span class="studently-popup-group-title">${title}</span>
+        <span class="studently-popup-group-copy"><span class="studently-popup-group-title">${title}</span>${electricityHtml}</span>
         <span class="studently-popup-group-price">${price}/mo</span>
       </a>`;
     })

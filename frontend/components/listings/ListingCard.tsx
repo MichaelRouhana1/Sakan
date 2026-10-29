@@ -20,7 +20,7 @@ import {
   formatCampusWalkLine,
   isHighlightCardBadge,
   listingAmberPillGroups,
-  listingCardPills,
+  listingDisplayCardPills,
   listingCardSubtitle,
   listingCardTitle,
 } from "@/lib/listingCardMeta";
@@ -74,7 +74,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
     : null;
   const { highlights, amenities } = listingAmberPillGroups(listing);
   const customized = listing.cardBadges != null;
-  const orderedPills = listingCardPills(listing);
+  const orderedPills = listingDisplayCardPills(listing);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();
   const urls = photoUrls(listing);

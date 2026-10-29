@@ -485,6 +485,32 @@ export function listingCardPills(listing: Listing): ListingAmberPill[] {
   return listingAmberPills(listing);
 }
 
+const ELECTRICITY_BADGE_KEYS = new Set(["solar", "power_24", "cuts"]);
+
+/** The electricity pill derived from the listing_resolved electricity value. */
+export function resolvedElectricityCardBadge(
+  listing: Listing,
+): ListingAmberPill | null {
+  return (
+    listingAmberPills(listing).find((pill) =>
+      ELECTRICITY_BADGE_KEYS.has(pill.key),
+    ) ?? null
+  );
+}
+
+/**
+ * Public card badges always lead with effective electricity, even when a host's
+ * saved custom selection predates an override or a reset to the place value.
+ */
+export function listingDisplayCardPills(listing: Listing): ListingAmberPill[] {
+  const selected = listingCardPills(listing);
+  const electricity = resolvedElectricityCardBadge(listing);
+  if (!electricity || selected.some((pill) => pill.key === electricity.key)) {
+    return selected;
+  }
+  return [electricity, ...selected];
+}
+
 export function sameBadgeKeys(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((key, i) => key === b[i]);

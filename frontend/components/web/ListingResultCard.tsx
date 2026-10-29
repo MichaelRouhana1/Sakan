@@ -27,7 +27,7 @@ import {
   formatCampusWalkLine,
   isHighlightCardBadge,
   listingAmberPillGroups,
-  listingCardPills,
+  listingDisplayCardPills,
   listingCardSubtitle,
   listingCardTitle,
   type ListingAmberPill,
@@ -356,7 +356,7 @@ export function ListingResultCard({
   const highlights = groups.highlights.filter(allowedPill);
   const amenities = groups.amenities.filter(allowedPill);
   const customized = listing.cardBadges != null;
-  const orderedPills = listingCardPills(badgeListing).filter(allowedPill);
+  const orderedPills = listingDisplayCardPills(badgeListing).filter(allowedPill);
   const typeBadge = labelListingType(listing.listingType);
   const { data: isSaved = false } = useIsSaved(listing.id);
   const toggleSaved = useToggleSaved();

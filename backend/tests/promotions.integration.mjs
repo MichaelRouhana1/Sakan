@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
 
@@ -17,12 +17,14 @@ try {
   source.pathname = `/${name}`;
   process.env.DATABASE_URL = source.toString();
   database = postgres(source.toString(), { max: 1, onnotice: () => {} });
+  await database.unsafe('CREATE SCHEMA drizzle; CREATE TABLE drizzle.__drizzle_migrations(id serial primary key,hash text not null,created_at bigint)');
   const journal = JSON.parse(await readFile(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'));
   // Slice 5 is intentionally restricted to the named local dev database; this
   // isolated suite exercises runtime behavior on the immediately prior schema.
   for (const entry of journal.entries.filter(entry => entry.idx < 38)) {
     const migration = await readFile(new URL(`../drizzle/${entry.tag}.sql`, import.meta.url), 'utf8');
     for (const statement of migration.split('--> statement-breakpoint')) await database.unsafe(statement);
+    await database`INSERT INTO drizzle.__drizzle_migrations(hash,created_at) VALUES (${createHash('sha256').update(migration).digest('hex')},${entry.when})`;
   }
   await exposeCurrentRuntimeView(database);
   console.log('PASS all migrations on isolated database');
@@ -40,9 +42,10 @@ try {
   const { sql } = await import('drizzle-orm');
   const [owner] = await database`INSERT INTO users(role,boost_credits,boost_credit_units_version,legacy_boost_credit_unit_rate) VALUES ('poster',100000,1,1200) RETURNING id`;
   async function listing(area = 'Hamra', posterId = owner.id) {
-    const [l] = await database`INSERT INTO listings(poster_id,status,availability,listing_type,monthly_rent_usd,electricity,water,wifi_included,area,title,published_at,expires_at) VALUES (${posterId},'active','available','studio',500,'solar','state_well_24_7',true,${area},'Test home',now()-interval '20 days',now()+interval '30 days') RETURNING *`;
+    const [place] = await database`INSERT INTO places(owner_id,area,electricity,water,wifi_included) VALUES (${posterId},${area},'solar','state_well_24_7',true) RETURNING id`;
+    const [l] = await database`INSERT INTO listings(poster_id,place_id,unit_type,gender_rule,status,availability,space_type,property_type,monthly_rent_usd,title,published_at,expires_at) VALUES (${posterId},${place.id},'whole_apartment','any','active','available','entire_place','studio',500,'Test home',now()-interval '20 days',now()+interval '30 days') RETURNING *`;
     await database`INSERT INTO listing_photos(listing_id,url,sort_order) VALUES (${l.id},'https://example.com/1',0),(${l.id},'https://example.com/2',1),(${l.id},'https://example.com/3',2)`;
-    return l;
+    return {...l,area};
   }
   const buy = (l, productId = 'featured_7', mode = 'start', extra = {}) => service.createPromotion(owner.id, { listingId:l.id, productId, mode, marketKey:`area:${l.area}`, autoRenew:false, catalogVersion:config.version, idempotencyKey:randomUUID(), ...extra });
   const homes = await Promise.all(Array.from({ length: 5 }, () => listing()));
@@ -93,8 +96,8 @@ try {
     assert.equal((await activity.recordActivity(c.listingId,'featured_impression',{...input,placementToken:'forged',eventId:randomUUID()},actor,'web_viewable')).counted,false);
   });
   await check('under offer, rented, archived, expired and quality gates', async () => {
-    for(const change of ["availability='pending'","availability='rented'","status='archived'","expires_at=now()-interval '1 day'","electricity='generator_24_7',generator_amperes=NULL"]) {
-      const l=await listing('Gate');await database.unsafe(`UPDATE listings SET ${change} WHERE id=$1`,[l.id]);
+    for(const [table,change] of [["listings","availability='pending'"],["listings","availability='rented'"],["listings","status='archived'"],["listings","expires_at=now()-interval '1 day'"],["places","electricity='generator_24_7',generator_amperes=NULL"]]) {
+      const l=await listing('Gate');await database.unsafe(`UPDATE ${table} SET ${change} WHERE id=$1`,[table==='places'?l.place_id:l.id]);
       await assert.rejects(()=>buy(l));
     }
     const l=await listing('Gate');await database`DELETE FROM listing_photos WHERE listing_id=${l.id}`;await assert.rejects(()=>buy(l));

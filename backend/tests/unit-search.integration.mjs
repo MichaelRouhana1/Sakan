@@ -2,7 +2,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import postgres from 'postgres';
 import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
@@ -16,12 +16,14 @@ try {
   await admin.unsafe('CREATE DATABASE "' + name + '"');
   url.pathname = '/' + name; process.env.DATABASE_URL = url.toString();
   client = postgres(url.toString(), { max: 1, onnotice: () => {} });
+  await client.unsafe('CREATE SCHEMA drizzle; CREATE TABLE drizzle.__drizzle_migrations(id serial primary key,hash text not null,created_at bigint)');
   const journal = JSON.parse(await readFile(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'));
   // Slice 5 is intentionally restricted to the named local dev database; this
   // isolated suite exercises runtime behavior on the immediately prior schema.
   for (const entry of journal.entries.filter(entry => entry.idx < 38)) {
     const body = await readFile(new URL('../drizzle/' + entry.tag + '.sql', import.meta.url), 'utf8');
     for (const part of body.split('--> statement-breakpoint')) await client.unsafe(part);
+    await client`INSERT INTO drizzle.__drizzle_migrations(hash,created_at) VALUES (${createHash('sha256').update(body).digest('hex')},${entry.when})`;
   }
   await exposeCurrentRuntimeView(client);
   const { searchUnits } = await import('../dist/modules/search/unit-search.service.js');
@@ -40,14 +42,18 @@ try {
   const [campus] = await client`INSERT INTO universities(name,slug,active,location) VALUES ('Search campus','search-campus',true,ST_GeogFromText('POINT(35.48 33.89)')) RETURNING id`;
   const units = [];
   for (let i = 0; i < 31; i++) {
-    const place = i > 0 && i < 5 ? units[0].place_id : null;
-    const [row] = await client`INSERT INTO listings(poster_id,place_id,listing_type,status,availability,monthly_rent_usd,electricity,water,wifi_included,area,title,location,published_at,expires_at)
-      VALUES (${i === 5 ? other.id : owner.id},${place},'private_room','active','available',${100+i*10},'solar','state_well_24_7',true,'Hamra',${'Search unit '+i},ST_SetSRID(ST_MakePoint(${35.48+i*0.001},33.89),4326)::geography,now()-${i+' hours'}::interval,now()+interval '30 days') RETURNING *`;
+    const posterId = i === 5 ? other.id : owner.id;
+    let placeId = i > 0 && i < 5 ? units[0].place_id : null;
+    if (!placeId) {
+      const longitude = i === 5 ? 35.48 : 35.48 + i * 0.001;
+      const [place] = await client`INSERT INTO places(owner_id,area,location,electricity,water,wifi_included) VALUES (${posterId},'Hamra',ST_SetSRID(ST_MakePoint(${longitude},33.89),4326)::geography,'solar','state_well_24_7',true) RETURNING id`;
+      placeId = place.id;
+    }
+    const [row] = await client`INSERT INTO listings(poster_id,place_id,unit_type,gender_rule,space_type,property_type,status,availability,monthly_rent_usd,title,published_at,expires_at)
+      VALUES (${posterId},${placeId},'private_room','any','private_room','apartment','active','available',${100+i*10},${'Search unit '+i},now()-${i+' hours'}::interval,now()+interval '30 days') RETURNING *`;
     await client`INSERT INTO listing_photos(listing_id,url,sort_order) VALUES (${row.id},'/uploads/1.png',0),(${row.id},'/uploads/2.png',1),(${row.id},'/uploads/3.png',2)`;
     units.push(row);
   }
-  // Separate owners/places at exactly the same coordinates must stay separate.
-  await client`UPDATE listings SET location=(SELECT location FROM listings WHERE id=${units[0].id}) WHERE id=${units[5].id}`;
   const session = randomUUID();
   const search = (q = {}) => searchUnits(schema.parse({ areas: 'Hamra', ...q }), session);
   const ids = rows => rows.map(l => l.id);
@@ -139,7 +145,7 @@ try {
     await client`UPDATE listings SET expires_at=now()-interval '1 hour' WHERE id=${units[3].id}`;
     await client`UPDATE listings SET status='archived' WHERE id=${units[4].id}`;
     await client`UPDATE places SET hidden=true WHERE id=${units[5].place_id}`;
-    for (const i of [6,7]) await client`UPDATE listings SET listing_type='shared_dorm_bed',unit_type='shared_bed',beds=2,beds_total=2,beds_available=${i===6?null:0},inventory_needs_confirmation=${i===6} WHERE id=${units[i].id}`;
+    for (const i of [6,7]) await client`UPDATE listings SET space_type='shared_room',unit_type='shared_bed',beds=2,beds_total=2,beds_available=${i===6?null:0},inventory_needs_confirmation=${i===6} WHERE id=${units[i].id}`;
     for (const q of [{}, {campusId:campus.id}, {lat:'33.89',lng:'35.48',radiusKm:'20'}, {matcher:JSON.stringify({version:1,wifi:{value:true,importance:'prefer'}})}]) {
       const r = await search({...q,view:'map'});
       const found = new Set([...ids(r.data),...ids(r.featured)]);
