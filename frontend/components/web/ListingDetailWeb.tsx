@@ -1,4 +1,7 @@
 import { SharedPhotoGallery } from '@/components/listings/detail/SharedPhotoGallery';
+import { OtherPlaceUnits } from '@/components/listings/detail/OtherPlaceUnits';
+import { PlaceDetailSections, UnitPhotoLabel } from '@/components/listings/detail/PlaceDetailSections';
+import { detailLabels } from '@/lib/listingDetailOwnership';
 import { DETAIL_SIDE_WIDTH, DETAIL_HERO_HEIGHT, DETAIL_GALLERY_GAP, DETAIL_COLUMN_GAP, DETAIL_THUMBS_WIDTH } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
@@ -229,6 +232,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   );
   const hasPin = listing.lat != null && listing.lng != null;
   const siblings = nearby.data ?? [];
+  const multiUnit = listing.placeContext?.isMultiUnit === true;
 
   const elec =
     listing.infrastructure?.electricity.status ?? listing.electricity;
@@ -390,6 +394,7 @@ export function ListingDetailWeb({ listingId }: Props) {
 
       <View style={styles.columns}>
         <View style={styles.mainCol}>
+          {multiUnit ? <UnitPhotoLabel listing={listing}/> : null}
           <View style={styles.gallery}>
             <View style={styles.galleryMain}>
               <Pressable
@@ -510,7 +515,7 @@ export function ListingDetailWeb({ listingId }: Props) {
             ) : null}
           </View>
 
-          <SharedPhotoGallery listing={listing}/>
+          {!multiUnit ? <SharedPhotoGallery listing={listing}/> : null}
           <View style={styles.headerRow}>
             <View style={styles.headerCopy}>
               <View style={styles.titleRow}>
@@ -537,6 +542,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 {listingPlace(listing)}
               </LText>
               <ListingAvailabilityBadge availability={listing.availability} />
+              {multiUnit ? <LText variant="subtitle">{formatFreshUsd(listing.monthlyRentUsd)} / {detailLabels(listing).unit} / month</LText> : null}
               {session?.userId === listing.posterId &&
               listing.status === "active" ? (
                 <ListingAvailabilityControl
@@ -560,6 +566,10 @@ export function ListingDetailWeb({ listingId }: Props) {
             </View>
           </View>
 
+          {multiUnit ? <>
+            <View nativeID="listing-other-units" style={styles.anchor}><OtherPlaceUnits key={listing.id} listing={listing} siblings={siblings} loading={nearby.isLoading} error={nearby.isError} onRetry={() => { void nearby.refetch(); }}/></View>
+            <PlaceDetailSections listing={listing}/>
+          </> : <>
           <View style={styles.facts}>
             {facts.map((f, i) => (
               <View
@@ -697,6 +707,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               <CoincidentListingsSection listings={siblings} />
             </View>
           ) : null}
+          </>}
         </View>
 
         <View

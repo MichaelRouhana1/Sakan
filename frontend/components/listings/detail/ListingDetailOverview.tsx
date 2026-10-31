@@ -62,13 +62,13 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
         </View>
         <View style={styles.priceCol}>
           <LText variant="caption" tone="muted">
-            From
+            {listing.placeContext?.isMultiUnit ? 'Rent' : 'From'}
           </LText>
           <LText variant="display" style={[rentPriceType, styles.price]}>
             {formatFreshUsd(listing.monthlyRentUsd)}
           </LText>
           <LText variant="caption" tone="muted">
-            per month
+            {listing.placeContext?.isMultiUnit ? `per ${listing.unitType === 'shared_bed' ? 'bed' : listing.unitType === 'private_room' ? 'room' : 'apartment'} / month` : 'per month'}
           </LText>
           <ListingMoneyStack listing={listing} align="end" />
         </View>
@@ -142,7 +142,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
       </View>
       <UtilityBadges listing={listing} />
 
-      <View style={styles.infra}>
+      {!listing.placeContext?.isMultiUnit ? <View style={styles.infra}>
         <View style={styles.infraHead}>
           <Ionicons
             name="shield-checkmark-outline"
@@ -212,7 +212,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
           </View>
         </View>
         <RentInclusionLines listing={listing} />
-      </View>
+      </View> : null}
     </View>
   );
 }

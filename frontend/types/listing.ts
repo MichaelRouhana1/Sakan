@@ -99,6 +99,9 @@ export type StandardUnitSpecs = {
 };
 
 export type Listing = {
+  unitType?: 'whole_apartment' | 'private_room' | 'shared_bed';
+  bedsTotal?: number | null;
+  placeContext?: ListingPlaceContext;
   placeId?: string;
   placeKind?: 'apartment' | 'building';
   bathroomPrivacy?: 'private' | 'shared' | null;
@@ -211,6 +214,22 @@ export type Listing = {
   amenities?: string[];
   houseRules?: string[];
   cancellationPolicy?: string;
+};
+
+export type SharedDetailField =
+  | 'electricity' | 'electricityCutsStart' | 'electricityCutsEnd' | 'electricityHoursOn' | 'electricityCutWindows'
+  | 'water' | 'wifiIncluded' | 'routerUps' | 'elevator24_7' | 'hasElevator' | 'hasSolar'
+  | 'generatorAmperes' | 'generatorIncluded' | 'conciergeIncluded' | 'cookingGasIncluded'
+  | 'waterBillIncluded' | 'buildingFeesIncluded' | 'parkingIncludedInRent'
+  | 'smokingPolicy' | 'petsPolicy' | 'guestsPolicy' | 'quietHours' | 'targetAudience';
+
+export type ListingPlaceContext = {
+  isMultiUnit: boolean;
+  defaults: Partial<Pick<Listing, SharedDetailField | 'amenities'>>;
+  sources: Partial<Record<SharedDetailField, 'unit' | 'place'>>;
+  amenitySources: Record<string, 'unit' | 'place'>;
+  unitAmenities: string[];
+  amenityOverrides: Record<string, boolean>;
 };
 
 export type CampusMeta = {

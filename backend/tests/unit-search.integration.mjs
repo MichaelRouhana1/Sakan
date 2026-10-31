@@ -108,6 +108,46 @@ try {
     assert.ok(!ids(siblings).includes(units[5].id));
   });
   const buy = (unit, productId) => promo.createPromotion(owner.id, { listingId:unit.id, productId, marketKey:'area:Hamra', mode:'start', autoRenew:false, catalogVersion:config.version, idempotencyKey:randomUUID() });
+  await check('detail exposes shared ownership, resolved overrides and separate galleries', async () => {
+    const id = units[0].id, placeId = units[0].place_id;
+    await client`UPDATE places SET amenities='["parking","balcony"]',generator_amperes=10 WHERE id=${placeId}`;
+    await client`UPDATE listings SET place_overrides='{"electricity":"generator_24_7","wifi_included":false,"generator_amperes":null}',unit_amenities='["study_desk"]',amenity_overrides='{"parking":false}' WHERE id=${id}`;
+    const [photo] = await client`INSERT INTO place_photos(place_id,url,caption,sort_order) VALUES (${placeId},'/uploads/shared.png','Shared lounge',0) RETURNING id`;
+    const detail = await listingsService.getById(id);
+    assert.equal(detail.electricity, 'generator_24_7');
+    assert.equal(detail.placeContext.defaults.electricity, 'solar');
+    assert.equal(detail.placeContext.isMultiUnit, true);
+    assert.equal(detail.placeContext.sources.electricity, 'unit');
+    assert.equal(detail.placeContext.sources.water, 'place');
+    assert.equal(detail.wifiIncluded, false);
+    assert.equal(detail.generatorAmperes, null);
+    assert.equal(detail.placeContext.sources.generatorAmperes, 'unit');
+    assert.deepEqual(new Set(detail.amenities), new Set(['balcony', 'study_desk']));
+    assert.deepEqual(detail.placeContext.unitAmenities, ['study_desk']);
+    assert.equal(detail.placeContext.amenityOverrides.parking, false);
+    assert.equal(detail.placeContext.amenitySources.study_desk, 'unit');
+    assert.equal(detail.photos.length, 3);
+    assert.equal(detail.sharedPhotos.length, 1);
+    assert.equal(detail.sharedPhotos[0].id, photo.id);
+    assert.equal('ownerId' in detail.placeContext.defaults, false);
+    await client`UPDATE listings SET place_overrides='{}',unit_amenities='[]',amenity_overrides='{}' WHERE id=${id}`;
+    const reset = await listingsService.getById(id);
+    assert.equal(reset.electricity, 'solar');
+    assert.equal(reset.placeContext.sources.electricity, 'place');
+    assert.equal(reset.wifiIncluded, true);
+    await client`DELETE FROM place_photos WHERE id=${photo.id}`;
+    await client`UPDATE places SET amenities='[]',generator_amperes=null WHERE id=${placeId}`;
+  });
+  await check('multi-unit detection counts active unexpired same-place members independently of public sibling visibility', async () => {
+    assert.equal((await listingsService.getById(units[5].id)).placeContext.isMultiUnit, false);
+    await client`UPDATE listings SET hidden=true WHERE id=${units[1].id}`;
+    assert.equal((await listingsService.getById(units[0].id)).placeContext.isMultiUnit, true);
+    assert.ok(!(await listingsService.listNearby(units[0].id)).some(row => row.id === units[1].id));
+    await client`UPDATE listings SET hidden=false WHERE id=${units[1].id}`;
+    await client`UPDATE listings SET status='archived' WHERE id IN ${client(units.slice(1,5).map(row=>row.id))}`;
+    assert.equal((await listingsService.getById(units[0].id)).placeContext.isMultiUnit, false);
+    await client`UPDATE listings SET status='active' WHERE id IN ${client(units.slice(1,5).map(row=>row.id))}`;
+  });
   await check('Featured is separate, deduplicated across pages; sibling campaigns remain allowed', async () => {
     await buy(units[1], 'featured_7'); await buy(units[2], 'featured_7'); await buy(units[3], 'featured_7');
     const a = await search({ pageSize:'2' }), b = await search({ pageSize:'2', page:'2' });

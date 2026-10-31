@@ -10,6 +10,7 @@ import { labelPosterRole } from "@/lib/listingLabels";
 import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
 import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
+import { detailLabels } from '@/lib/listingDetailOwnership';
 
 type Props = {
   listing: Listing;
@@ -32,6 +33,11 @@ type Props = {
 const IS_WEB = Platform.OS === "web";
 
 function listingToc(listing: Listing, hasNearby: boolean): ListingTocItem[] {
+  if (listing.placeContext?.isMultiUnit) return [
+    { id: 'listing-other-units', icon: 'grid-outline', title: 'Other units' },
+    { id: 'listing-unit', icon: 'bed-outline', title: detailLabels(listing).unitTitle },
+    { id: 'listing-place', icon: 'business-outline', title: detailLabels(listing).placeTitle },
+  ];
   const items: ListingTocItem[] = [];
   items.push({
     id: "listing-utilities",

@@ -219,6 +219,9 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
   return {
     matchFacts: extractMatchFacts(row),
     id: String(row.id),
+    unitType: (row.unitType ?? row.unit_type) as Listing['unitType'],
+    bedsTotal: row.bedsTotal == null && row.beds_total == null ? null : Number(row.bedsTotal ?? row.beds_total),
+    placeContext: row.placeContext as Listing['placeContext'],
     placeKind: (row.placeKind ?? row.place_kind) as Listing['placeKind'],
     bathroomPrivacy: (row.bathroomPrivacy ?? row.bathroom_privacy ?? null) as Listing['bathroomPrivacy'],
     bedsAvailable: row.bedsAvailable == null && row.beds_available == null ? null : Number(row.bedsAvailable ?? row.beds_available),

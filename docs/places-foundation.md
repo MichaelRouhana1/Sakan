@@ -5,6 +5,69 @@ is on `main` at `6fdd3f7`. Slice 4 (wizard and dashboard) was implemented on
 2026-10-12. Slice 5 cleanup was applied to the guarded local `studently_dev`
 database on 2026-10-28. Earlier verification records below are historical.
 
+## Detail-page ownership follow-up (2026-10-29)
+
+Multi-unit details now separate the current apartment/room/bed from its shared
+apartment/building. The single-unit layout is retained. A place qualifies when
+it has at least two same-owner, active, unexpired listings; the other-unit selector
+still shows only publicly eligible siblings through the existing inventory rules.
+Vacant whole-apartment and room offers can coexist, while occupancy conflicts
+continue to hide alternatives. Search remains one card per unit.
+
+The existing detail endpoint adds `placeContext`: public shared defaults,
+camelCase per-field sources, amenity sources/additions/exclusions, and
+`isMultiUnit`. Existing resolved fields and `photos`/`sharedPhotos` remain intact.
+Frontend normalization retains canonical `unitType` and `bedsTotal`. No schema,
+data migration, room grouping, publish flow, or pricing changes are required.
+
+The selector sits beneath the hero/price and offers counted type chips, the
+stored available/pending statuses (pending is labeled “Under offer”), and one
+maximum-rent input. Counts represent other listing cards, not bed inventory.
+Whole-apartment alternatives use “Other apartments” only for building places;
+apartment-place and mixed alternatives use “Other units”. Shared-bed alternatives
+use the actual apartment/building scope, never an inferred shared room.
+
+Separate labeled galleries preserve photo ownership, order and captions. Unit
+utilities/rules show resolved values with “Specific to this room/apartment/bed”
+labels, including false/null values. Shared defaults identify fields that differ
+for this unit. Shared amenities excluded for the unit are marked unavailable;
+copied shared amenities are not represented as exclusive unit amenities.
+
+Verification commands from `frontend`:
+
+```sh
+node --test tests/listing-detail-ownership.test.mjs
+npm run build -- --output-dir .expo/detail-export
+node tests/listing-detail-ui.mjs
+node tests/listing-detail-live.mjs
+node tests/typecheck-baseline.mjs HEAD
+```
+
+The exported-route harness covers single-unit, multi-room apartment,
+multi-apartment building and shared-bed fixtures, including filters, navigation,
+source labels, shared galleries and failed sibling fetch/retry. The live harness
+requires a running local API connected to localhost `studently_dev`, blocks
+browser analytics writes and route-cache requests, and compares before/after
+listing/place/photo snapshots. It uses existing single-unit, multi-room and
+shared-bed records; multi-apartment building and multi-listing shared-bed cases
+are controlled fixtures, not new dev database rows. Screenshots and results are
+saved under `frontend/.expo/detail-ui/`. Backend detail contract checks are part
+of `node tests/unit-search.integration.mjs` after `npm run build` in `backend`.
+
+Final verification: all four detail scenarios pass at 1440, 1024, 768 and 375px,
+including overflow checks, section navigation, filters, shared galleries and
+utility reset behavior. Six live read-only checks pass at desktop and phone
+widths, with listing/place/photo snapshots unchanged. Backend unit/API/lifecycle
+tests (37), foundation (22), inventory (19), wizard (12), promotions (17) and
+search/detail (12) scenarios pass. Frontend pure tests pass (53); browser suites
+retain only the three known matcher failures (composer visibility, campus input
+focus, storage-error heading). TypeScript remains at its 122-diagnostic baseline
+with no new diagnostics. Production export succeeds for web (84 routes), iOS and
+Android. Existing hydration warnings remain in exported-route browser checks;
+native verification is compilation/export, not device interaction.
+
+This follow-up is left uncommitted for review. Unrelated local changes are retained.
+
 ## Slice 5 — cleanup completed (2026-10-28)
 
 The verified custom-format backup is

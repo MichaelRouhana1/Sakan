@@ -3,6 +3,8 @@ import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
 
 export type DetailSectionId =
+  | "unit"
+  | "place"
   | "description"
   | "amenities"
   | "rooms"

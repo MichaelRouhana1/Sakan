@@ -366,7 +366,27 @@ export class ListingsRepository {
     if (!withPhotos) return null;
     const sharedPhotos = await db.select({id:placePhotos.id,url:placePhotos.url,caption:placePhotos.caption,sortOrder:placePhotos.sortOrder})
       .from(placePhotos).where(eq(placePhotos.placeId,row.placeId)).orderBy(asc(placePhotos.sortOrder));
-    return {...withPhotos,sharedPhotos};
+    const [context] = await db.execute(sql`
+      SELECT p.*, r.effective_sources, r.unit_amenities, r.amenity_overrides,
+        (SELECT count(*) >= 2 FROM listings sibling
+         WHERE sibling.place_id=p.id AND sibling.poster_id=p.owner_id
+           AND sibling.status='active' AND sibling.expires_at > now()) AS is_multi_unit
+      FROM places p JOIN listing_resolved r ON r.place_id=p.id AND r.poster_id=p.owner_id
+      WHERE r.id=${id}::uuid`);
+    // Detail-only, explicitly whitelisted defaults. Never expose the owner-edit DTO.
+    const sources = context?.effective_sources as Record<string, unknown> | undefined;
+    const placeContext = context ? {
+      isMultiUnit: context.is_multi_unit === true,
+      defaults: {
+        ...Object.fromEntries(Object.entries(sharedFields).map(([key, column]) => [key, context[column]])),
+        amenities: context.amenities,
+      },
+      sources: Object.fromEntries(Object.entries(sharedFields).map(([key, column]) => [key, sources?.[column] ?? 'place'])),
+      amenitySources: sources?.amenities ?? {},
+      unitAmenities: context.unit_amenities,
+      amenityOverrides: context.amenity_overrides,
+    } : undefined;
+    return {...withPhotos,sharedPhotos,placeContext};
   }
 
   /** Public siblings are explicit place members, never proximity matches. */

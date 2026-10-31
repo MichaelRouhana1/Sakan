@@ -1,4 +1,7 @@
 import { SharedPhotoGallery } from './SharedPhotoGallery';
+import { OtherPlaceUnits } from './OtherPlaceUnits';
+import { PlaceDetailSections, UnitPhotoLabel } from './PlaceDetailSections';
+import { detailLabels } from '@/lib/listingDetailOwnership';
 import { mobileHeroHeight } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
@@ -107,9 +110,15 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   );
   const hasPin = listing?.lat != null && listing?.lng != null;
   const nearby = coincident.data ?? [];
+  const multiUnit = listing?.placeContext?.isMultiUnit === true;
 
   const tabs: DetailSectionTab[] = useMemo(() => {
     if (!listing) return [];
+    if (multiUnit) return [
+      { id: 'nearby', label: 'Other units' },
+      { id: 'unit', label: detailLabels(listing).unitTitle },
+      { id: 'place', label: detailLabels(listing).placeTitle },
+    ];
     const next: DetailSectionTab[] = [];
     if (description) next.push({ id: "description", label: "Description" });
     next.push({ id: "amenities", label: "Amenities" });
@@ -118,7 +127,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     if (hasPin) next.push({ id: "map", label: "Map" });
     if (nearby.length > 0) next.push({ id: "nearby", label: "Other units" });
     return next;
-  }, [listing, description, hasRooms, hasRules, hasPin, nearby.length]);
+  }, [listing, multiUnit, description, hasRooms, hasRules, hasPin, nearby.length]);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -182,7 +191,9 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
           contentContainerStyle={styles.content}
         >
           <View>
+            {multiUnit ? <View style={{ paddingHorizontal: 16 }}><UnitPhotoLabel listing={listing}/></View> : null}
             <ListingDetailGallery
+              key={listing.id}
               listing={listing}
               height={galleryH}
               saved={Boolean(saved.data)}
@@ -198,7 +209,8 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
                 hasPin
                   ? () => {
                       setGalleryMode("map");
-                      jumpTo("map");
+                      if (multiUnit) scrollRef.current?.scrollTo({ y: 0, animated: true });
+                      else jumpTo("map");
                     }
                   : undefined
               }
@@ -215,6 +227,10 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             </View>
           ) : null}
 
+          {multiUnit ? <>
+            <View style={styles.sectionPad} onLayout={onSectionLayout('nearby')}><OtherPlaceUnits key={listing.id} listing={listing} siblings={nearby} loading={coincident.isLoading} error={coincident.isError} onRetry={() => { void coincident.refetch(); }}/></View>
+            <PlaceDetailSections listing={listing} onSectionLayout={onSectionLayout}/>
+          </> : <>
           <View style={styles.sectionPad}><SharedPhotoGallery listing={listing}/></View>
           {description ? (
             <View
@@ -280,6 +296,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               <ListingDetailNearbyRail listings={nearby} />
             </View>
           ) : null}
+          </>}
         </ScrollView>
 
         <ListingDetailBottomBar
