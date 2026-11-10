@@ -1,15 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { ListingBrowseMap } from "@/components/listings/ListingBrowseMap";
+import { ListingBrowseMap } from "@/components/listings/ListingBrowseMap.web";
 import { Studently } from "@/constants/theme";
 import type { CampusMeta, Listing } from "@/types/listing";
+import { useBreakpoint } from "@/lib/breakpoints";
 
 type Props = {
   listings: Listing[];
   campuses: CampusMeta[];
   universityMode?: boolean;
   loading?: boolean;
+  mapLocationKey?: string;
   visible: boolean;
   onClose: () => void;
   /** Full-height split pane (map mode), not a fixed sidebar card. */
@@ -28,6 +30,7 @@ export function FindMapPane({
   campuses,
   universityMode,
   loading,
+  mapLocationKey,
   visible,
   onClose,
   fullHeight = false,
@@ -38,6 +41,7 @@ export function FindMapPane({
   focusPoint = null,
   onSelectCampus,
 }: Props) {
+  const compact = useBreakpoint() !== "desktop";
   return (
     <View
       style={[
@@ -76,6 +80,7 @@ export function FindMapPane({
           onPress={onClose}
           style={({ hovered }) => [
             styles.closeFloat,
+            compact && styles.closeFloatTouch,
             hovered && styles.closeFloatHover,
           ]}
         >
@@ -91,6 +96,7 @@ export function FindMapPane({
           campuses={campuses}
           universityMode={universityMode}
           loading={loading}
+          mapLocationKey={mapLocationKey}
           fillContainer={fullHeight}
           hoveredListingId={hoveredListingId}
           hoverFlyListingId={hoverFlyListingId}
@@ -180,6 +186,10 @@ const styles = StyleSheet.create({
   },
   closeFloatHover: {
     backgroundColor: "#F8FAFC",
+  },
+  closeFloatTouch: {
+    minHeight: 44,
+    minWidth: 44,
   },
   closeFloatLabel: {
     color: "#1E293B",

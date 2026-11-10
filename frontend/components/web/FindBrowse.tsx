@@ -50,6 +50,7 @@ import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useSearchListings } from "@/features/listings/useSearchListings";
+import { useStableWebMapListings, webMapIdentityKey } from "@/lib/webMapData.web";
 import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
@@ -152,6 +153,7 @@ export function FindBrowse() {
 
   const search = useSearchListings(listFilters, mapOpen || isDesktop);
   const { data, isLoading, isError, refetch, isFetching } = search;
+  const mapUpdating = search.mapLoading || isLoading;
   // First load only. A focus refetch has data already, so the results stay up.
   const loading = useDevSearchLoadingDelay(isLoading);
 
@@ -175,6 +177,21 @@ export function FindBrowse() {
       ),
     [data?.campuses, selectedInst],
   );
+  // A new query has no data until it completes. Keep the last successful web
+  // map snapshot (including campus pins) instead of publishing transient [].
+  const mapSnapshot = useRef<{ listings: Listing[]; campuses: CampusMeta[] }>({ listings: [], campuses: [] });
+  if ((mapOpen || isDesktop) && !mapUpdating && !search.mapError && !isError) {
+    mapSnapshot.current = { listings: search.mapListings, campuses };
+  }
+  const mapListings = useStableWebMapListings(mapSnapshot.current.listings);
+  // Camera intent describes geography, never matching result membership or
+  // property filters. Normalize set-valued filters so their order is irrelevant.
+  const mapLocationKey = JSON.stringify([
+    webMapIdentityKey(deferredFilters.areas),
+    webMapIdentityKey(deferredFilters.universitySlugs),
+    deferredFilters.campusId, deferredFilters.institutionSlug,
+    deferredFilters.q?.trim() || null, deferredFilters.radiusKm,
+  ]);
   const ranked = { listings: rawListings, matches: data?.matches ?? {} };
   const matching = deferredSort === "match" && !!deferredPrefs;
   const listings = rawListings;
@@ -525,21 +542,21 @@ export function FindBrowse() {
       />
 
       <View style={isMap ? styles.mapSplit : styles.browseBody}>
-      {isMap ? (
+      {isMap ? (isDesktop ? (
           <View style={[styles.mapListCol, isXl && styles.mapListColXl]}>
             <View style={styles.mapListContent}>
               {heading}
               {results}
             </View>
           </View>
-      ) : (
+      ) : null) : (
         <View style={styles.content}>
           {heading}
           <View style={styles.mainRow}>
             <View style={styles.resultsCol}>{results}</View>
             {isDesktop ? (
               <FindBrowseSidebar
-                listings={search.mapListings}
+                listings={mapListings}
                 onExploreMap={() => setMapOpen(true)}
               />
             ) : null}
@@ -579,10 +596,11 @@ export function FindBrowse() {
           ]}
         >
           <FindMapPane
-            listings={search.mapListings.map(l => ({ ...l, promotion: undefined }))}
-            campuses={campuses}
+            listings={mapListings}
+            campuses={mapSnapshot.current.campuses}
             universityMode={effectiveMode === "university"}
-            loading={search.mapLoading}
+            loading={mapUpdating}
+            mapLocationKey={mapLocationKey}
             visible={isMap}
             fullHeight
             hoveredListingId={hoveredListingId}
@@ -638,7 +656,7 @@ export function FindBrowse() {
           onApply={applyBrowseFilters}
         />
       )}
-      <FindMyPlaceFab onPress={openMatcher} hidden={browse.open} />
+      <FindMyPlaceFab onPress={openMatcher} hidden={browse.open || (isMap && !isDesktop)} />
     </View>
   );
 }

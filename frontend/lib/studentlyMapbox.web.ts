@@ -77,7 +77,7 @@ export function ensureMapboxCss(): void {
     .studently-marker-el { background: transparent; border: none; overflow: visible; cursor: pointer; }
     .studently-marker-el.inert { pointer-events: none; cursor: default; }
     .studently-teardrop, .studently-cluster-bubble { pointer-events: auto; }
-    .studently-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: auto; }
+    .studently-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: auto; transform-origin: 50% 100%; }
     .studently-price-pill {
       background: #fff; border: 1px solid #C5CDD8; border-radius: 8px;
       padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #121826;
@@ -86,6 +86,12 @@ export function ensureMapboxCss(): void {
     }
     .studently-price-pill.on { background: #121826; border-color: #121826; color: #fff; }
     .studently-price-stack.on { transform: scale(1.06); }
+    .studently-map-pin-keyboard { position: absolute; top: 68px; left: 12px; z-index: 1100; opacity: 0; pointer-events: none; }
+    .studently-map-pin-keyboard:focus-within { opacity: 1; pointer-events: auto; }
+    .studently-map-pin-keyboard select { max-width: 280px; padding: 10px; border: 2px solid #2F6FED; border-radius: 8px; background: #fff; color: #121826; font: 600 13px "DM Sans", system-ui, sans-serif; }
+    .studently-mapbox-map .studently-layer-popup { z-index: 1100; max-width: none !important; }
+    .studently-layer-popup .mapboxgl-popup-content { flex-shrink: 0; box-sizing: border-box; }
+    .studently-layer-popup .studently-amber-popup-card { width: 100%; box-sizing: border-box; }
     .studently-teardrop {
       width: 30px; height: 40px; position: relative; filter: drop-shadow(0 1px 2px rgba(18,24,38,0.28));
     }
@@ -835,6 +841,7 @@ function chromeExcludeRects(
     });
   };
   addEl(container.querySelector(".mapboxgl-ctrl-top-right"));
+  addEl(container.parentElement?.querySelector(".studently-mobile-map-card") ?? null);
   let root: Element | null = container;
   let closeEl: Element | null = null;
   while (root && !closeEl) {
@@ -1193,7 +1200,9 @@ function wireAmberPopup(
   onOpen?: (popup: Popup) => void,
   onClose?: () => void,
 ): void {
+  let opened = false;
   popup.on("open", () => {
+    opened = true;
     const prev = window._studentlyActivePopup;
     if (prev && prev !== popup) {
       replacingPopups.add(prev as Popup);
@@ -1206,6 +1215,11 @@ function wireAmberPopup(
     onOpen?.(popup);
   });
   popup.on("close", () => {
+    // Marker.addTo() calls remove() even for its never-opened bound popup.
+    // That close must not clear another pin's selection or active popup.
+    // Also ignore repeat closes after a real close or presentation detach.
+    if (!opened) return;
+    opened = false;
     // Keep popup in replacingPopups forever (WeakSet). Mapbox can fire
     // close twice (remove + setPopup); deleting on first close made the
     // second fire call onClose and wipe sheet/route while card stayed open.
@@ -1230,9 +1244,9 @@ export function dismissAmberPopupsOnMap(map: MapboxMap): void {
   });
 }
 
-export function bindAmberPopup(
+/** Standalone GL-pin popup; shares replacement and duplicate-close guards. */
+export function createAmberPopup(
   mapboxgl: MapboxGL,
-  marker: Marker,
   html: string,
   onOpen?: (popup: Popup) => void,
   onClose?: () => void,
@@ -1247,9 +1261,26 @@ export function bindAmberPopup(
     closeOnClick: false,
   }).setHTML(html);
 
-  marker.setPopup(popup);
   popupSide.set(popup, side);
   wireAmberPopup(popup, onOpen, onClose);
+  return popup;
+}
+
+export function setAmberPopupHtml(popup: Popup, html: string): void {
+  popup.setHTML(html);
+  if (popup.isOpen()) bindPopupCloseButton(popup);
+}
+
+export function bindAmberPopup(
+  mapboxgl: MapboxGL,
+  marker: Marker,
+  html: string,
+  onOpen?: (popup: Popup) => void,
+  onClose?: () => void,
+  side: AmberPopupSide = "n",
+): Popup {
+  const popup = createAmberPopup(mapboxgl, html, onOpen, onClose, side);
+  marker.setPopup(popup);
   return popup;
 }
 

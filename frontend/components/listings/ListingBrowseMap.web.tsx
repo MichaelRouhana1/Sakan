@@ -27,12 +27,18 @@ import {
 } from "@/lib/mapPinGroups";
 import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
 import { MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
+import { getWebMapPinRendererSelection, markWebMapPinRenderer } from "@/lib/webMapPinRenderer.web";
+import { WebMapLayerRenderer } from "@/lib/webMapLayers.web";
+import { WebMapCamera, type WebCameraIntent } from "@/lib/webMapCamera.web";
+import { highlightedPinPopupOffset } from "@/lib/webMapPinImages.web";
+import { useStableWebMapCampuses, useStableWebMapListings, webMapIdentityKey } from "@/lib/webMapData.web";
 import {
   amberPopupHtml,
   applyAmberPopupSide,
   bindAmberPopup,
   campusPinHtml,
   clusterBubbleHtml,
+  createAmberPopup,
   createStudentlyMap,
   destroyStudentlyMap,
   dismissAmberPopupsOnMap,
@@ -43,6 +49,7 @@ import {
   pricePinHtml,
   resolveUniPopupSide,
   setCampusRoute,
+  setAmberPopupHtml,
   toLngLat,
   type AmberPopupSide,
   type MapboxGL,
@@ -61,6 +68,8 @@ import {
   type OffscreenBeacon,
 } from "@/lib/offscreenBeacon";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { useBreakpoint } from "@/lib/breakpoints";
+import { MobileMapSelection } from "@/components/listings/MobileMapSelection.web";
 import type { CampusMeta, Listing } from "@/types/listing";
 
 type Props = {
@@ -68,6 +77,8 @@ type Props = {
   campuses: CampusMeta[];
   universityMode?: boolean;
   loading?: boolean;
+  /** Geographic search intent only; property filters/results cannot refit. */
+  mapLocationKey?: string;
   expanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
   fillContainer?: boolean;
@@ -216,17 +227,16 @@ function flyZoomOutPanIn(
   dest: [number, number],
   targetZoom: number,
   reduceMotion: boolean,
-  seq: number,
-  seqRef: { current: number },
+  intent: WebCameraIntent,
 ): void {
   if (!Number.isFinite(dest[0]) || !Number.isFinite(dest[1])) return;
   if (reduceMotion || !mapHasSize(map)) {
     try {
-      map.easeTo({
+      intent.run([(eventData) => map.easeTo({
         center: dest,
         zoom: targetZoom,
         duration: reduceMotion ? 0 : 420,
-      });
+      }, eventData)]);
     } catch {
       /* map not ready */
     }
@@ -235,25 +245,11 @@ function flyZoomOutPanIn(
   const outZoom = gl
     ? hoverOutZoom(map, gl, dest)
     : Math.max(HOVER_ZOOM_OUT_MIN, map.getZoom() - HOVER_ZOOM_OUT_DELTA);
-  const ifLive = (fn: () => void) => {
-    if (seqRef.current !== seq) return;
-    fn();
-  };
-  map.once("moveend", () => {
-    ifLive(() => {
-      map.once("moveend", () => {
-        ifLive(() => {
-          map.easeTo({
-            center: dest,
-            zoom: targetZoom,
-            duration: HOVER_ZOOM_IN_MS,
-          });
-        });
-      });
-      map.easeTo({ center: dest, duration: PIN_SELECT_PAN_MS });
-    });
-  });
-  map.easeTo({ zoom: outZoom, duration: HOVER_ZOOM_OUT_MS });
+  intent.run([
+    (data) => map.easeTo({ zoom: outZoom, duration: HOVER_ZOOM_OUT_MS }, data),
+    (data) => map.easeTo({ center: dest, duration: PIN_SELECT_PAN_MS }, data),
+    (data) => map.easeTo({ center: dest, zoom: targetZoom, duration: HOVER_ZOOM_IN_MS }, data),
+  ]);
 }
 
 function expandedMapHeight(): number {
@@ -271,10 +267,11 @@ function mapBBox(map: MapboxMap): MapBBox | null {
  * Web browse map — Mapbox GL loaded client-side only (Expo SSR safe).
  */
 export function ListingBrowseMap({
-  listings,
-  campuses,
+  listings: incomingListings,
+  campuses: incomingCampuses,
   universityMode = false,
   loading,
+  mapLocationKey = "initial",
   expanded = false,
   onExpandedChange,
   fillContainer = false,
@@ -287,8 +284,21 @@ export function ListingBrowseMap({
   active = true,
   onSelectCampus,
 }: Props) {
+  const listings = useStableWebMapListings(incomingListings);
+  const campuses = useStableWebMapCampuses(incomingCampuses);
+  const layerMode = useMemo(() => getWebMapPinRendererSelection().renderer === "layers", []);
+  const layerRendererRef = useRef<WebMapLayerRenderer | null>(null);
+  const layerActivateGroupRef = useRef<((id: string) => void) | null>(null);
+  const layerPopupRef = useRef<{ popup: Popup; groupId: string; html: string; side: AmberPopupSide } | null>(null);
+  const mobileWeb = useBreakpoint() !== "desktop";
+  const mobileWebRef = useRef(mobileWeb);
+  mobileWebRef.current = mobileWeb;
+  const changingPopupPresentation = useRef(false);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
+  const cameraRef = useRef<WebMapCamera | null>(null);
+  const focusIntentRef = useRef<{ key: string; intent: WebCameraIntent; started: boolean } | null>(null);
+  const fitIntentKeyRef = useRef<string | null>(null);
   const mapboxRef = useRef<MapboxGL | null>(null);
   const clusterIndexRef = useRef<PinClusterIndex | null>(null);
   const listingMarkersRef = useRef<Map<string, MarkerRec>>(new Map());
@@ -297,9 +307,6 @@ export function ListingBrowseMap({
   const ignoreNextMapClickUntil = useRef(0);
   const stickyPreviewListingIdRef = useRef<string | null>(null);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hoverCamSeqRef = useRef(0);
-  const campusFlySeqRef = useRef(0);
   const universityModeRef = useRef(universityMode);
   universityModeRef.current = universityMode;
   const campusesRef = useRef(campuses);
@@ -323,6 +330,7 @@ export function ListingBrowseMap({
   const heightAnim = useRef(new Animated.Value(MAP_HEIGHT_COLLAPSED)).current;
 
   const [sheet, setSheet] = useState<SheetState>({ kind: "none" });
+  const [mobileCardInset, setMobileCardInset] = useState(0);
   const [pendingCampusSlug, setPendingCampusSlug] = useState<string | null>(
     null,
   );
@@ -344,8 +352,10 @@ export function ListingBrowseMap({
   const fillContainerRef = useRef(fillContainer);
   fillContainerRef.current = fillContainer;
 
-  function dismissPreview() {
+  function dismissPreview(cancelCamera = true) {
+    if (cancelCamera) cameraRef.current?.cancel();
     const map = mapRef.current;
+    layerPopupRef.current = null;
     if (map) dismissAmberPopupsOnMap(map);
     stickyPreviewListingIdRef.current = null;
     uniCameraRanForListingRef.current = null;
@@ -378,15 +388,49 @@ export function ListingBrowseMap({
   }, [expanded, fillContainer, mapReady, reduceMotion, heightAnim]);
 
   useEffect(() => {
-    if (active) mapRef.current?.resize();
+    if (!active || !mapReady) return;
+    // Let the kept-alive pane's visible layout commit before measuring Mapbox.
+    const frame = requestAnimationFrame(() => mapRef.current?.resize());
+    return () => cancelAnimationFrame(frame);
+  }, [active, mapReady]);
+
+  useEffect(() => {
+    if (!active && mobileWeb) dismissPreview();
+    // Desktop keeps its existing preview behavior while parked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, mobileWeb]);
+
+  useEffect(() => {
+    if (!active) cameraRef.current?.cancel();
   }, [active]);
 
+  useEffect(() => {
+    if (!mobileWeb || !active || sheet.kind !== "preview") return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dismissPreview();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileWeb, active, sheet.kind]);
+
   const mappable = useMemo(() => listings.filter(hasCoords), [listings]);
+  const mappableRef = useRef(mappable);
+  mappableRef.current = mappable;
+  const hoveredIdRef = useRef(hoveredListingId);
+  hoveredIdRef.current = hoveredListingId;
+  const hoverFlyIdRef = useRef(hoverFlyListingId);
+  hoverFlyIdRef.current = hoverFlyListingId;
 
   const groups = useMemo(
     () => groupListingsByPlace(mappable),
     [mappable],
   );
+  const groupsRef = useRef(groups);
+  groupsRef.current = groups;
 
   const groupsById = useMemo(() => {
     const map = new Map<string, MapPinGroup>();
@@ -460,214 +504,102 @@ export function ListingBrowseMap({
   }, [sheet, groups, hoveredListingId, routeListingId]);
 
   const listingIdsKey = useMemo(
-    () => mappable.map((l) => l.id).join(","),
+    () => webMapIdentityKey(mappable.map((l) => l.id)),
     [mappable],
   );
 
   const campusesKey = useMemo(
-    () => campuses.map((c) => c.slug).join(","),
+    () => webMapIdentityKey(campuses.map((c) => c.slug)),
     [campuses],
   );
 
   useEffect(() => {
-    setSheet({ kind: "none" });
-    setRouteListingId(null);
-    stickyPreviewListingIdRef.current = null;
-    uniCameraRanForListingRef.current = null;
-    pathSideAppliedForRef.current = null;
+    cameraRef.current?.cancelKinds("hover", "selection", "cluster");
+    dismissPreview(false);
     walkingPathRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- membership reset only
   }, [listingIdsKey, campusesKey, universityMode]);
 
   const sheetOpen = sheet.kind !== "none";
+  const mobileGroup = mobileWeb && sheet.kind === "preview"
+    ? groups.find((group) => group.listings.some((listing) => listing.id === sheet.listingId)) ?? null
+    : null;
 
   useEffect(() => {
     onCarouselOpenChange?.(sheetOpen);
   }, [sheetOpen, onCarouselOpenChange]);
 
   useEffect(() => {
-    if (!mapReady) return;
-
-    if (universityMode) {
-      if (!hoverFlyListingId) return;
-      const listingId = hoverFlyListingId;
-      const seq = ++hoverCamSeqRef.current;
-      mapRef.current?.stop();
-
-      const runUniHover = () => {
-        if (hoverCamSeqRef.current !== seq) return;
-        const map = mapRef.current;
-        if (!map) return;
-        const listing = mappable.find((l) => l.id === listingId);
-        if (!listing) {
-          onHoverFlyCompleteRef.current?.();
-          return;
-        }
-
-        dismissPreview();
-
+    const camera = cameraRef.current;
+    const map = mapRef.current;
+    if (!mapReady || !active || !camera || !map) return;
+    const id = universityMode ? hoverFlyListingId : hoveredListingId;
+    // A new card must finish its own commit ring before starting a uni flight.
+    if (!id || (universityMode && id !== hoveredListingId)) return;
+    if (!universityMode && sheetKindRef.current === "preview") return;
+    const intent = camera.begin("hover", () => {
+      if (universityMode && hoveredIdRef.current === id && hoverFlyIdRef.current === id) onHoverFlyCompleteRef.current?.();
+    });
+    const run = () => {
+      const listing = mappableRef.current.find((item) => item.id === id);
+      if (!listing) { intent.cancel(); return; }
+      if (universityMode) {
+        dismissPreview(false);
         const campus = resolveNearestCampus(listing, campusesRef.current);
-        let targetZoom = PIN_SELECT_MIN_ZOOM;
-        if (campus && listing.lat != null && listing.lng != null) {
-          const distM =
-            listing.distanceMeters ??
-            calculateDistanceMeters(
-              campus.lat,
-              campus.lng,
-              listing.lat,
-              listing.lng,
-            );
-          targetZoom = pinSelectZoomForCampusDistance(distM);
-        }
-        const center = toLngLat(listing);
-
-        const finishFly = () => {
-          if (hoverCamSeqRef.current !== seq) return;
-          onHoverFlyCompleteRef.current?.();
-        };
-        const failsafe = setTimeout(
-          finishFly,
-          HOVER_ZOOM_OUT_MS + PIN_SELECT_PAN_MS + HOVER_ZOOM_IN_MS + 120,
-        );
-
-        if (reduceMotionRef.current) {
-          clearTimeout(failsafe);
-          map.easeTo({ center, zoom: targetZoom, duration: 0 });
-          finishFly();
-          return;
-        }
-
-        const gl = mapboxRef.current;
-        const outZoom = gl
-          ? hoverOutZoom(map, gl, center)
-          : Math.max(HOVER_ZOOM_OUT_MIN, map.getZoom() - HOVER_ZOOM_OUT_DELTA);
-
-        const ifLive = (fn: () => void) => {
-          if (hoverCamSeqRef.current !== seq) return;
-          fn();
-        };
-
-        map.once("moveend", () => {
-          ifLive(() => {
-            map.once("moveend", () => {
-              ifLive(() => {
-                map.once("moveend", finishFly);
-                map.easeTo({
-                  center,
-                  zoom: targetZoom,
-                  duration: HOVER_ZOOM_IN_MS,
-                });
-              });
-            });
-            map.easeTo({ center, duration: PIN_SELECT_PAN_MS });
-          });
-        });
-        map.easeTo({ zoom: outZoom, duration: HOVER_ZOOM_OUT_MS });
-      };
-
-      runUniHover();
-      return;
-    }
-
-    if (!hoveredListingId) return;
-    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-
-    const runHover = () => {
-      const map = mapRef.current;
-      if (!map) return;
+        const target = campus ? pinSelectZoomForCampusDistance(listing.distanceMeters ?? calculateDistanceMeters(campus.lat, campus.lng, listing.lat, listing.lng)) : PIN_SELECT_MIN_ZOOM;
+        flyZoomOutPanIn(map, mapboxRef.current, toLngLat(listing), target, reduceMotionRef.current, intent);
+        return;
+      }
+      if (sheetKindRef.current === "preview") { intent.cancel(); return; }
       const wait = hoverCamLockUntilRef.current - Date.now();
-      if (wait > 0) {
-        hoverTimerRef.current = setTimeout(runHover, wait);
-        return;
-      }
-      if (sheetKindRef.current === "preview") {
-        // Preview owns selection — don't dismiss on hover/zoom jitter.
-        return;
-      }
-      const listing = mappable.find((l) => l.id === hoveredListingId);
-      if (!listing) return;
-      const bounds = map.getBounds();
-      if (bounds && !bounds.contains(toLngLat(listing))) {
-        map.easeTo({
-          center: toLngLat(listing),
-          duration: reduceMotionRef.current ? 0 : 400,
-        });
-      }
+      if (wait > 0) { intent.after(wait, run); return; }
+      if (map.getBounds()?.contains(toLngLat(listing))) { intent.run([]); return; }
+      intent.run([(data) => map.easeTo({ center: toLngLat(listing), duration: reduceMotionRef.current ? 0 : 400 }, data)]);
     };
-
-    hoverTimerRef.current = setTimeout(runHover, 80);
-    return () => {
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
-    };
-  }, [hoveredListingId, hoverFlyListingId, mapReady, mappable, universityMode]);
+    if (universityMode) run();
+    else intent.after(80, run);
+    return () => intent.cancel();
+    // Camera requests follow hover identity, not refreshed listing objects.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoveredListingId, hoverFlyListingId, mapReady, universityMode, active]);
 
   const focusCampus = useMemo(
     () => campuses.find((c) => c.slug === focusCampusSlug) ?? null,
     [campuses, focusCampusSlug],
   );
-  const beaconCampus = universityMode
-    ? (focusCampus ?? campuses[0] ?? null)
-    : null;
-  const focusCampusKey = focusCampus
-    ? `${focusCampus.slug}:${focusCampus.lng}:${focusCampus.lat}`
-    : "";
+  const beaconCampus = universityMode ? (focusCampus ?? campuses[0] ?? null) : null;
+  const focusKey = universityMode && focusCampusSlug ? JSON.stringify([mapLocationKey, "campus", focusCampusSlug])
+    : !focusCampusSlug && focusPoint ? JSON.stringify([mapLocationKey, "point", focusPoint.lng, focusPoint.lat]) : null;
 
   useEffect(() => {
-    if (!mapReady || !universityMode || !focusCampus) return;
-    if (
-      !Number.isFinite(focusCampus.lat) ||
-      !Number.isFinite(focusCampus.lng)
-    ) {
-      return;
-    }
+    if (!focusKey) { focusIntentRef.current?.intent.cancel(); focusIntentRef.current = null; return; }
     const map = mapRef.current;
-    if (!map) return;
-    const seq = ++campusFlySeqRef.current;
-    try {
-      map.stop();
-      flyZoomOutPanIn(
-        map,
-        mapboxRef.current,
-        toLngLat(focusCampus),
-        PIN_SELECT_MIN_ZOOM,
-        reduceMotion,
-        seq,
-        campusFlySeqRef,
-      );
-    } catch {
-      /* Mapbox throws if the pane has no size yet */
+    const camera = cameraRef.current;
+    if (!mapReady || !active || !map || !camera) return;
+    let request = focusIntentRef.current;
+    if (!request || request.key !== focusKey) {
+      request = { key: focusKey, intent: camera.begin("focus"), started: false };
+      focusIntentRef.current = request;
     }
-  }, [mapReady, universityMode, focusCampusKey, reduceMotion]);
+    if (request.started || !request.intent.isCurrent()) return;
+    const dest: [number, number] | null = universityMode && focusCampus ? toLngLat(focusCampus)
+      : focusPoint ? [focusPoint.lng, focusPoint.lat] : null;
+    if (!dest || !dest.every(Number.isFinite)) return;
+    request.started = true;
+    flyZoomOutPanIn(map, mapboxRef.current, dest, universityMode ? PIN_SELECT_MIN_ZOOM : 13.5, reduceMotionRef.current, request.intent);
+    // A campus metadata/coordinate refresh is not another campus-pick intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapReady, active, focusKey, Boolean(focusCampus)]);
 
   useEffect(() => {
     setPendingCampusSlug(null);
   }, [focusCampusSlug, universityMode]);
 
   useEffect(() => {
-    if (!mapReady || !focusPoint || focusCampusSlug) return;
-    const map = mapRef.current;
-    if (!map) return;
-    const seq = ++campusFlySeqRef.current;
-    map.stop();
-    flyZoomOutPanIn(
-      map,
-      mapboxRef.current,
-      [focusPoint.lng, focusPoint.lat],
-      13.5,
-      reduceMotion,
-      seq,
-      campusFlySeqRef,
-    );
-  }, [
-    mapReady,
-    focusPoint?.lat,
-    focusPoint?.lng,
-    focusCampusSlug,
-    reduceMotion,
-  ]);
-
-  useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
+
+    markWebMapPinRenderer(el);
 
     let cancelled = false;
 
@@ -689,6 +621,9 @@ export function ListingBrowseMap({
           return;
         }
         mapRef.current = map;
+        cameraRef.current = new WebMapCamera(map);
+        focusIntentRef.current = null;
+        fitIntentKeyRef.current = null;
         mapboxRef.current = mapboxgl;
 
         map.on("click", (e) => {
@@ -699,6 +634,18 @@ export function ListingBrowseMap({
               ".studently-marker-el, .mapboxgl-ctrl, .studently-amber-popup-card, .studently-popup-close-btn",
             )
           ) {
+            return;
+          }
+          const layerHit = layerRendererRef.current?.pick(e.point, mobileWebRef.current ? 8 : 0);
+          if (layerHit) {
+            ignoreNextMapClickUntil.current = Date.now() + 250;
+            if (layerHit.kind === "cluster") {
+              const intent = cameraRef.current?.begin("cluster");
+              layerRendererRef.current?.expandCluster(layerHit, reduceMotionRef.current, (center, zoom) => {
+                intent?.run([(data) => map.easeTo({ center, zoom, duration: reduceMotionRef.current ? 0 : 450 }, data)]);
+              });
+            }
+            else layerActivateGroupRef.current?.(layerHit.groupId);
             return;
           }
           if (Date.now() < ignoreNextMapClickUntil.current) {
@@ -715,7 +662,7 @@ export function ListingBrowseMap({
             const path = walkingPathRef.current;
             const badge = overlayBadgeRef.current;
             if (m && path && path.coords.length >= 2 && badge) {
-              const recomputed = distanceBadgeOnPath(m, path.coords, "1.2 km");
+              const recomputed = distanceBadgeOnPath(m, path.coords, badge.getElement().textContent ?? "");
               if (recomputed) {
                 badge.setLngLat([recomputed.lng, recomputed.lat]);
               }
@@ -745,12 +692,17 @@ export function ListingBrowseMap({
 
     return () => {
       cancelled = true;
+      cameraRef.current?.destroy();
+      cameraRef.current = null;
       if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
-      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       for (const rec of listingMarkersRef.current.values()) rec.marker.remove();
       for (const rec of clusterMarkersRef.current.values()) rec.marker.remove();
       listingMarkersRef.current.clear();
       clusterMarkersRef.current.clear();
+      layerActivateGroupRef.current = null;
+      layerPopupRef.current = null;
+      layerRendererRef.current?.destroy();
+      layerRendererRef.current = null;
       overlayBadgeRef.current?.remove();
       overlayBadgeRef.current = null;
       destroyStudentlyMap(mapRef.current);
@@ -763,6 +715,34 @@ export function ListingBrowseMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- client init once
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!layerMode || !mapReady || !map) return;
+    const renderer = new WebMapLayerRenderer(map);
+    layerRendererRef.current = renderer;
+    const onMove = (event: { point: { x: number; y: number } }) => {
+      map.getCanvas().style.cursor = renderer.pick(event.point) ? "pointer" : "";
+    };
+    const onLeave = () => { map.getCanvas().style.cursor = ""; };
+    map.on("mousemove", onMove);
+    map.on("mouseout", onLeave);
+    return () => {
+      map.off("mousemove", onMove);
+      map.off("mouseout", onLeave);
+      renderer.destroy();
+      layerRendererRef.current = null;
+    };
+  }, [layerMode, mapReady]);
+
+  useEffect(() => {
+    layerRendererRef.current?.updateGroups(groups);
+  }, [groups, layerMode, mapReady]);
+
+  useEffect(() => {
+    // Highlight and ordinary suppression change state, never either source's data.
+    layerRendererRef.current?.setActiveGroup(activeGroupId);
+  }, [activeGroupId, layerMode, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -785,7 +765,10 @@ export function ListingBrowseMap({
         }
         const el = live.getContainer();
         const w = el.clientWidth;
-        const h = el.clientHeight;
+        // Pins behind the bottom card need an arrow above the card, too.
+        const h = mobileWeb && mobileCardInset > 0
+          ? Math.max(60, el.clientHeight - mobileCardInset - 12)
+          : el.clientHeight;
         const fill = fillContainerRef.current;
         const chromeAvoid: AvoidRect[] = fill
           ? [
@@ -862,6 +845,8 @@ export function ListingBrowseMap({
     selectedListing?.id,
     selectedListing?.lat,
     selectedListing?.lng,
+    mobileWeb,
+    mobileCardInset,
   ]);
 
   useEffect(() => {
@@ -902,11 +887,13 @@ export function ListingBrowseMap({
       feature: Extract<VisibleMapFeature, { kind: "cluster" }>,
     ) {
       ignoreNextMapClickUntil.current = Date.now() + 80;
-      mapRef.current?.easeTo({
+      const live = mapRef.current;
+      if (!live) return;
+      cameraRef.current?.begin("cluster").run([(data) => live.easeTo({
         center: [feature.lng, feature.lat],
         zoom: feature.expansionZoom,
         duration: reduceMotion ? 0 : 450,
-      });
+      }, data)]);
     }
 
     if (universityMode) {
@@ -1017,7 +1004,29 @@ export function ListingBrowseMap({
       }
     }
 
-    for (const feature of visibleFeatures) {
+    layerActivateGroupRef.current = layerMode ? (id) => {
+      cameraRef.current?.cancel();
+      const group = groupsById.get(id);
+      if (!group) return;
+      openGroup(group);
+      const listing = group.listings[0];
+      if (!listing) return;
+      const campus = universityModeRef.current ? resolveNearestCampus(listing, campusesRef.current) : null;
+      // Preserve the existing click camera rules. Popup/data effects never fly.
+      if (!mobileWebRef.current && (!campus || uniCameraRanForListingRef.current === listing.id)) return;
+      const currentZoom = hostMap.getZoom();
+      const targetZoom = campus ? pinSelectZoomForCampusDistance(listing.distanceMeters ?? calculateDistanceMeters(campus.lat, campus.lng, group.lat, group.lng)) : currentZoom;
+      const nextZoom = Math.max(currentZoom, targetZoom);
+      uniCameraRanForListingRef.current = listing.id;
+      hoverCamLockUntilRef.current = Date.now() + HOVER_CAM_LOCK_MS;
+      cameraRef.current?.begin("selection").run([(data) => hostMap.easeTo({
+        center: toLngLat(group), zoom: nextZoom,
+        ...(mobileWebRef.current ? { offset: [0, -hostMap.getContainer().clientHeight * 0.18] as [number, number] } : {}),
+        duration: reduceMotionRef.current ? 0 : mobileWebRef.current ? PIN_SELECT_PAN_MS : nextZoom > currentZoom ? PIN_SELECT_ZOOM_IN_MS : PIN_SELECT_PAN_MS,
+      }, data)]);
+    } : null;
+
+    for (const feature of layerMode ? [] : visibleFeatures) {
       if (feature.kind === "cluster") {
         seenClusters.add(feature.clusterId);
         const size = clusterBubbleSize(feature.pointCount);
@@ -1057,7 +1066,7 @@ export function ListingBrowseMap({
       upsertListingMarker(group);
     }
 
-    if (activeGroupId) {
+    if (!layerMode && activeGroupId) {
       const selectedGroup = groupsById.get(activeGroupId);
       if (selectedGroup) upsertListingMarker(selectedGroup);
     }
@@ -1084,7 +1093,7 @@ export function ListingBrowseMap({
         }
         const html = amberPopupHtml(group);
         if (existing.html !== html) {
-          existing.popup?.setHTML(html);
+          if (existing.popup) setAmberPopupHtml(existing.popup, html);
           existing.html = html;
         }
         return;
@@ -1095,6 +1104,7 @@ export function ListingBrowseMap({
       const html = amberPopupHtml(group);
       const rec: MarkerRec = { marker, key: iconKey, html, group };
       rec.popupOnClose = () => {
+        if (changingPopupPresentation.current) return;
         uniCameraRanForListingRef.current = null;
         pathSideAppliedForRef.current = null;
         // Do NOT clear sticky here — false closes during popup replace/zoom
@@ -1162,11 +1172,11 @@ export function ListingBrowseMap({
               : nextZoom > currentZoom
                 ? PIN_SELECT_ZOOM_IN_MS
                 : PIN_SELECT_PAN_MS;
-            liveMap.easeTo({
+            cameraRef.current?.begin("selection").run([(data) => liveMap.easeTo({
               center: toLngLat(listing),
               zoom: nextZoom,
               duration,
-            });
+            }, data)]);
             return;
           }
         }
@@ -1194,18 +1204,47 @@ export function ListingBrowseMap({
           bindSide = resolveUniPopupSide(bindMap, bindListing, campus, path);
         }
       }
-      rec.popup = bindAmberPopup(
-        gl,
-        marker,
-        html,
-        rec.popupOnOpen,
-        rec.popupOnClose,
-        bindSide,
-      );
+      if (!mobileWebRef.current) {
+        rec.popup = bindAmberPopup(
+          gl,
+          marker,
+          html,
+          rec.popupOnOpen,
+          rec.popupOnClose,
+          bindSide,
+        );
+      }
+      marker.getElement().addEventListener("keydown", (event) => {
+        if (!mobileWebRef.current || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        marker.getElement().click();
+      });
       marker.getElement().addEventListener("click", (e) => {
         e.stopPropagation();
+        cameraRef.current?.cancel();
         ignoreNextMapClickUntil.current = Date.now() + 250;
-        openGroup(group);
+        const next = rec.group;
+        if (!next) return;
+        openGroup(next);
+        if (mobileWebRef.current) {
+          const listing = next.listings[0];
+          const map = mapRef.current;
+          if (!listing || !map) return;
+          const campus = universityModeRef.current
+            ? resolveNearestCampus(listing, campusesRef.current)
+            : null;
+          const targetZoom = campus
+            ? pinSelectZoomForCampusDistance(listing.distanceMeters ?? calculateDistanceMeters(campus.lat, campus.lng, next.lat, next.lng))
+            : map.getZoom();
+          uniCameraRanForListingRef.current = listing.id;
+          cameraRef.current?.begin("selection").run([(data) => map.easeTo({
+            center: toLngLat(next),
+            zoom: Math.max(map.getZoom(), targetZoom),
+            offset: [0, -map.getContainer().clientHeight * 0.18],
+            duration: reduceMotionRef.current ? 0 : PIN_SELECT_PAN_MS,
+          }, data)]);
+          return;
+        }
         // Prefer marker's live popup — side-replace can stale `rec.popup`.
         const popup =
           (rec.marker.getPopup?.() as Popup | null | undefined) ?? rec.popup;
@@ -1241,7 +1280,42 @@ export function ListingBrowseMap({
     pendingCampusSlug,
     activeGroupId,
     reduceMotion,
+    layerMode,
   ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const gl = mapboxRef.current;
+    if (layerMode || !map || !gl || !mapReady) return;
+    for (const rec of listingMarkersRef.current.values()) {
+      if (!rec.group || !rec.html) continue;
+      const element = rec.marker.getElement();
+      if (mobileWeb) {
+        // A breakpoint change changes presentation, never the selection.
+        changingPopupPresentation.current = true;
+        try {
+          rec.marker.setPopup(null);
+          rec.popup = undefined;
+        } finally {
+          changingPopupPresentation.current = false;
+        }
+        element.setAttribute("role", "button");
+        element.setAttribute("aria-label", `Show ${rec.group.count} matching unit${rec.group.count === 1 ? "" : "s"} from ${shortPriceLabel(rec.group.displayPriceUsd)}`);
+        element.tabIndex = 0;
+      } else if (!rec.popup) {
+        const listing = rec.group.listings[0];
+        const campus = universityMode ? resolveNearestCampus(listing, campuses) : null;
+        const side = listing && campus
+          ? resolveUniPopupSide(map, listing, campus, walkingPathRef.current?.coords ?? null)
+          : "n";
+        rec.popup = bindAmberPopup(gl, rec.marker, rec.html, rec.popupOnOpen, rec.popupOnClose, side);
+        if (sheet.kind === "preview" && rec.group.listings.some((item) => item.id === sheet.listingId)) {
+          rec.popup.addTo(map);
+        }
+      }
+    }
+  }, [mobileWeb, mapReady, visibleFeatures, groupsById, sheet, campuses, universityMode, layerMode]);
+
 
   useEffect(() => {
     const hostMap = mapRef.current;
@@ -1318,10 +1392,13 @@ export function ListingBrowseMap({
     }
     if (overlayBadgeRef.current) {
       overlayBadgeRef.current.setLngLat([badgePos.lng, badgePos.lat]);
+      const html = distanceBadgeHtml(distLabel);
+      if (overlayBadgeRef.current.getElement().innerHTML !== html) overlayBadgeRef.current.getElement().innerHTML = html;
     } else {
       const badge = makeMarker(gl, distanceBadgeHtml(distLabel), badgePos, {
         anchor: "center",
         inert: true,
+        zIndex: 300,
       });
       badge.addTo(hostMap);
       overlayBadgeRef.current = badge;
@@ -1333,11 +1410,50 @@ export function ListingBrowseMap({
     walkingCampus,
     selectedListing,
     walkingRoute,
+    mobileCardInset,
   ]);
 
 
   useEffect(() => {
-    if (sheet.kind !== "preview" || !universityMode) return;
+    const map = mapRef.current;
+    const gl = mapboxRef.current;
+    if (!layerMode || !mapReady || !map || !gl) return;
+    if (!active) return; // Keep the parked desktop popup; resolve its side after showing.
+    const group = sheet.kind === "preview"
+      ? groups.find((item) => item.listings.some((listing) => listing.id === sheet.listingId)) : null;
+    const previous = layerPopupRef.current;
+    if (mobileWeb || !group) {
+      // A presentation handoff must not clear selection or its walking route.
+      changingPopupPresentation.current = true;
+      layerPopupRef.current = null;
+      try { previous?.popup.remove(); } finally { changingPopupPresentation.current = false; }
+      return;
+    }
+    const listing = group.listings[0];
+    const campus = universityMode ? resolveNearestCampus(listing, campuses) : null;
+    const path = walkingPathRef.current?.listingId === listing?.id ? walkingPathRef.current.coords : null;
+    const side = listing && campus ? resolveUniPopupSide(map, listing, campus, path) : "n";
+    const label = `${shortPriceLabel(group.displayPriceUsd)}${group.count > 1 ? ` · ${group.count}` : ""}`;
+    const offset = highlightedPinPopupOffset(label, side);
+    const html = amberPopupHtml(group);
+    if (previous?.groupId === group.id && previous.side === side) {
+      previous.popup.setLngLat(toLngLat(group)).setOffset(offset);
+      if (previous.html !== html) { setAmberPopupHtml(previous.popup, html); previous.html = html; }
+      return;
+    }
+    const popup = createAmberPopup(gl, html, undefined, () => {
+      if (changingPopupPresentation.current || layerPopupRef.current?.popup !== popup) return;
+      layerPopupRef.current = null;
+      dismissPreview();
+    }, side).setLngLat(toLngLat(group)).setOffset(offset).addClassName("studently-layer-popup");
+    // Publish before addTo: its open handler replaces the old popup under the
+    // same permanent replacement/duplicate-close guards as marker mode.
+    layerPopupRef.current = { popup, groupId: group.id, html, side };
+    popup.addTo(map);
+  }, [layerMode, mapReady, mobileWeb, sheet, groups, campuses, universityMode, walkingRoute, active]);
+
+  useEffect(() => {
+    if (layerMode || mobileWeb || sheet.kind !== "preview" || !universityMode) return;
     if (walkingRoute?.status !== "ok" || walkingRoute.coords.length < 2) return;
     const listing = selectedListing;
     if (!listing || listing.lat == null || listing.lng == null) return;
@@ -1376,67 +1492,47 @@ export function ListingBrowseMap({
     walkingCampus,
     selectedListing,
     sheet.kind,
+    mobileWeb,
+    layerMode,
   ]);
 
+  const fitKey = mapLocationKey;
   useEffect(() => {
+    if (focusCampusSlug || focusPoint) { fitIntentKeyRef.current = null; return; }
     const map = mapRef.current;
-    if (!map || !mapReady) return;
-    if (focusCampusSlug || focusPoint) return;
-    if (groups.length === 0 && !(universityMode && campuses.length > 0)) {
-      return;
-    }
-
-    const points: [number, number][] = groups.map((g) => toLngLat(g));
-    if (universityMode) {
-      for (const campus of campuses) {
-        if (Number.isFinite(campus.lat) && Number.isFinite(campus.lng)) {
-          points.push(toLngLat(campus));
-        }
+    const camera = cameraRef.current;
+    if (!mapReady || !active || loading || !map || !camera || fitIntentKeyRef.current === fitKey) return;
+    fitIntentKeyRef.current = fitKey;
+    // Consume an empty geographic result too: a later property filter must not
+    // unexpectedly fit after the user has panned an empty map.
+    if (!groupsRef.current.length && !(universityMode && campusesRef.current.length)) return;
+    const intent = camera.begin("fit");
+    intent.after(expanded ? 320 : 80, () => {
+      map.resize();
+      if (!mapHasSize(map)) { intent.cancel(); return; }
+      const points: [number, number][] = groupsRef.current.map((group) => toLngLat(group));
+      if (universityMode) for (const campus of campusesRef.current) {
+        if (Number.isFinite(campus.lat) && Number.isFinite(campus.lng)) points.push(toLngLat(campus));
       }
-    }
-    if (points.length === 0) return;
-
-    let west = points[0][0];
-    let south = points[0][1];
-    let east = points[0][0];
-    let north = points[0][1];
-    for (const [lng, lat] of points) {
-      west = Math.min(west, lng);
-      east = Math.max(east, lng);
-      south = Math.min(south, lat);
-      north = Math.max(north, lat);
-    }
-
-    const delay = expanded ? 320 : 80;
-    const t = setTimeout(() => {
-      try {
-        map.resize();
-        if (!mapHasSize(map)) return;
-        if (west === east || south === north) {
-          map.easeTo({
-            center: [west, south],
-            zoom: 15,
-            duration: reduceMotion ? 0 : 600,
-          });
-          return;
-        }
-        map.fitBounds(
-          [
-            [west, south],
-            [east, north],
-          ],
-          { padding: 48, maxZoom: 15, duration: reduceMotion ? 0 : 600 },
-        );
-      } catch {
-        /* Mapbox throws on zero-size containers / degenerate bounds */
+      if (!points.length) { intent.cancel(); return; }
+      let [west, south] = points[0];
+      let [east, north] = points[0];
+      for (const [lng, lat] of points) {
+        west = Math.min(west, lng); east = Math.max(east, lng);
+        south = Math.min(south, lat); north = Math.max(north, lat);
       }
-    }, delay);
-    return () => clearTimeout(t);
+      intent.run([(data) => {
+        if (west === east || south === north) map.easeTo({ center: [west, south], zoom: 15, duration: reduceMotionRef.current ? 0 : 600 }, data);
+        else map.fitBounds([[west, south], [east, north]], { padding: 48, maxZoom: 15, duration: reduceMotionRef.current ? 0 : 600 }, data);
+      }]);
+    });
+    return () => intent.cancel();
+    // Initial/geographic search intent only. Wait for its complete result snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, listingIdsKey, campusesKey, universityMode, expanded, focusCampusSlug, focusPoint?.lat, focusPoint?.lng]);
+  }, [mapReady, active, loading, fitKey, focusCampusSlug, focusPoint?.lat, focusPoint?.lng]);
 
   const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
-  const showLoading = (!mapReady && !tokenMissing) || loading;
+  const showLoading = !mapReady && !tokenMissing;
 
   return (
     <View
@@ -1457,8 +1553,16 @@ export function ListingBrowseMap({
             layout="stack"
             size={64}
             state="searching"
-            label={loading ? "Updating map…" : "Loading map…"}
+            label="Loading map…"
             style={styles.mapLoading}
+          />
+        ) : loading && !tokenMissing ? (
+          <GeneralLoadingBlock
+            layout="inline"
+            size={20}
+            state="searching"
+            label="Updating map…"
+            style={styles.mapUpdating}
           />
         ) : null}
         {tokenMissing ? (
@@ -1488,6 +1592,25 @@ export function ListingBrowseMap({
           }
           style={{ width: "100%", height: "100%" }}
         />
+        {active && mobileGroup ? (
+          <MobileMapSelection
+            group={mobileGroup}
+            onClose={dismissPreview}
+            onInsetChange={setMobileCardInset}
+          />
+        ) : null}
+        {layerMode && active && mapReady && groups.length > 0 ? (
+          <label className="studently-map-pin-keyboard">
+            <select aria-label="Choose a listing on the map" value="" onChange={(event) => {
+              if (event.target.value) layerActivateGroupRef.current?.(event.target.value);
+            }}>
+              <option value="">Choose a listing on the map</option>
+              {groups.map((group) => <option key={group.id} value={group.id}>
+                {group.listings[0]?.title ?? "Listing"} — {shortPriceLabel(group.displayPriceUsd)} · {group.count} matching unit{group.count === 1 ? "" : "s"}
+              </option>)}
+            </select>
+          </label>
+        ) : null}
         {canToggleExpand ? (
           <Pressable
             accessibilityRole="button"
@@ -1513,11 +1636,10 @@ export function ListingBrowseMap({
               const map = mapRef.current;
               const campus = beaconCampus;
               if (!map || !campus) return;
-              map.stop();
-              map.easeTo({
+              cameraRef.current?.begin("beacon").run([(data) => map.easeTo({
                 center: toLngLat(campus),
                 duration: reduceMotionRef.current ? 0 : 550,
-              });
+              }, data)]);
             }}
           />
         ) : null}
@@ -1536,11 +1658,10 @@ export function ListingBrowseMap({
               const map = mapRef.current;
               const listing = selectedListing;
               if (!map || listing.lat == null || listing.lng == null) return;
-              map.stop();
-              map.easeTo({
+              cameraRef.current?.begin("beacon").run([(data) => map.easeTo({
                 center: toLngLat(listing),
                 duration: reduceMotionRef.current ? 0 : 550,
-              });
+              }, data)]);
             }}
           />
         ) : null}
@@ -1605,12 +1726,23 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   mapLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     backgroundColor: Studently.color.primaryMist,
+  },
+  mapUpdating: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    zIndex: 400,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    pointerEvents: "none",
   },
   expandBtn: {
     position: "absolute",
@@ -1640,7 +1772,7 @@ const styles = StyleSheet.create({
     zIndex: 400,
   },
   emptyOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 300,
     alignItems: "center",
     justifyContent: "center",

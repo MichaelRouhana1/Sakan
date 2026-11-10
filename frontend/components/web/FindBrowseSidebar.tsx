@@ -24,6 +24,9 @@ import {
 } from "@/lib/studentlyMapbox.web";
 import type { Listing } from "@/types/listing";
 import { groupListingsByPlace } from "@/lib/mapPinGroups";
+import { getWebMapPinRendererSelection, markWebMapPinRenderer } from "@/lib/webMapPinRenderer.web";
+import { WebMapLayerRenderer } from "@/lib/webMapLayers.web";
+import { useStableWebMapListings } from "@/lib/webMapData.web";
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
 const STUDENTLY_BLUE = "#2F6FED";
@@ -76,13 +79,10 @@ function shortPrice(amount: number): string {
   return `$${amount.toLocaleString("en-US")}`;
 }
 
-function pinsFromListings(listings: Listing[]): PreviewPin[] {
+function groupsFromListings(listings: Listing[]) {
   return groupListingsByPlace(listings.filter(
     (item): item is Listing & { lat: number; lng: number } => item.lat != null && item.lng != null,
-  )).slice(0, 8).map(group => ({
-    lat: group.lat, lng: group.lng,
-    label: `${shortPrice(group.displayPriceUsd)} · ${group.count}`,
-  }));
+  )).slice(0, 8);
 }
 
 /** Live Standard-style preview — same chrome as browse map, no nav. */
@@ -91,16 +91,27 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
   const mapRef = useRef<MapboxMap | null>(null);
   const glRef = useRef<MapboxGL | null>(null);
   const markersRef = useRef<Marker[]>([]);
+  const layerRef = useRef<WebMapLayerRenderer | null>(null);
+  const fittedBoundsRef = useRef<string | null>(null);
+  const layerMode = useMemo(() => getWebMapPinRendererSelection().renderer === "layers", []);
   const [ready, setReady] = useState(false);
 
-  const pins = useMemo(() => {
-    const live = pinsFromListings(listings);
-    return live;
-  }, [listings]);
+  const stableListings = useStableWebMapListings(listings);
+  const groups = useMemo(() => groupsFromListings(stableListings), [stableListings]);
+  const pins = useMemo<PreviewPin[]>(() => groups.map(group => ({
+    lat: group.lat, lng: group.lng,
+    label: `${shortPrice(group.displayPriceUsd)} · ${group.count}`,
+  })), [groups]);
+  const bounds = useMemo<[number, number, number, number] | null>(() => pins.length ? [
+    Math.min(...pins.map(pin => pin.lng)), Math.min(...pins.map(pin => pin.lat)),
+    Math.max(...pins.map(pin => pin.lng)), Math.max(...pins.map(pin => pin.lat)),
+  ] : null, [pins]);
+  const boundsKey = JSON.stringify(bounds);
 
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
+    markWebMapPinRenderer(el);
     let cancelled = false;
 
     void (async () => {
@@ -111,6 +122,8 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
         if (!map) return;
         glRef.current = gl;
         mapRef.current = map;
+        fittedBoundsRef.current = null;
+        if (layerMode) layerRef.current = new WebMapLayerRenderer(map, { cluster: false, alwaysShowCount: true });
         if (!cancelled) setReady(true);
       } catch {
         // Wash background remains if Mapbox fails.
@@ -122,6 +135,8 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
       setReady(false);
       for (const marker of markersRef.current) marker.remove();
       markersRef.current = [];
+      layerRef.current?.destroy();
+      layerRef.current = null;
       destroyStudentlyMap(mapRef.current);
       mapRef.current = null;
       glRef.current = null;
@@ -134,29 +149,34 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
     if (!ready || !map || !gl) return;
 
     for (const marker of markersRef.current) marker.remove();
-    markersRef.current = pins.map((pin) =>
+    layerRef.current?.updateGroups(groups);
+    markersRef.current = layerMode ? [] : pins.map((pin) =>
       makeMarker(gl, pricePinHtml(pin.label, false), pin, {
         inert: true,
       }).addTo(map),
     );
 
-    if (pins.length < 2) return;
-    const first = pins[0]!;
-    const bounds = pins.reduce(
-      (acc, pin) => acc.extend([pin.lng, pin.lat]),
-      new gl.LngLatBounds(
-        [first.lng, first.lat],
-        [first.lng, first.lat],
-      ),
-    );
-    map.fitBounds(bounds, {
+  }, [pins, groups, ready, layerMode]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !bounds || fittedBoundsRef.current === boundsKey) return;
+    fittedBoundsRef.current = boundsKey;
+    const [west, south, east, north] = bounds;
+    if (west === east || south === north) {
+      map.easeTo({ center: [west, south], zoom: 14.2, duration: 0, pitch: 38, bearing: -18 });
+      return;
+    }
+    map.fitBounds([[west, south], [east, north]], {
       padding: 36,
       maxZoom: 14.2,
       duration: 0,
       pitch: 38,
       bearing: -18,
     });
-  }, [pins, ready]);
+    // Read-only preview: fit only when its geographic extent changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, boundsKey]);
 
   return (
     <div
@@ -293,12 +313,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 16,
   },
   mapScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(18, 24, 38, 0.04)",
     zIndex: 1,
   },
   mapCtaWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
     alignItems: "center",
     justifyContent: "center",
