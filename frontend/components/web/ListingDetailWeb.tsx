@@ -1,7 +1,6 @@
 import { SharedPhotoGallery } from '@/components/listings/detail/SharedPhotoGallery';
-import { OtherPlaceUnits } from '@/components/listings/detail/OtherPlaceUnits';
-import { PlaceDetailSections, UnitPhotoLabel } from '@/components/listings/detail/PlaceDetailSections';
-import { detailLabels } from '@/lib/listingDetailOwnership';
+import { PlaceListingIntro } from '@/components/listings/detail/PlaceDetailSections';
+import { elevatorStatus, placeExtras } from '@/lib/listingDetailDisplay';
 import { DETAIL_SIDE_WIDTH, DETAIL_HERO_HEIGHT, DETAIL_GALLERY_GAP, DETAIL_COLUMN_GAP, DETAIL_THUMBS_WIDTH } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
@@ -27,11 +26,15 @@ import { CoincidentListingsSection } from "@/components/listings/CoincidentListi
 import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBadge";
 import { ListingDetailAbout } from "@/components/listings/detail/ListingDetailAbout";
 import { RentInclusionLines } from "@/components/listings/detail/RentInclusionLines";
-import { ListingDetailAmenities } from "@/components/listings/detail/ListingDetailAmenities";
+import {
+  ListingDetailAmenities,
+  listingAmenityLabels,
+} from "@/components/listings/detail/ListingDetailAmenities";
 import { ListingDetailHouseRules } from "@/components/listings/detail/ListingDetailHouseRules";
 import { ListingDetailMapSection } from "@/components/listings/detail/ListingDetailMapSection";
 import { ListingNearbyCampuses } from "@/components/listings/detail/ListingNearbyCampuses";
 import { ListingDetailRooms } from "@/components/listings/detail/ListingDetailRooms";
+import { OtherPlaceUnits } from "@/components/listings/detail/OtherPlaceUnits";
 import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDetailUnitSpecs";
 import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
@@ -56,6 +59,8 @@ import {
   hasUsableWhatsAppPhone,
   listingAllowsWhatsApp,
 } from "@/lib/whatsapp";
+import { useUniversities } from "@/features/universities/useUniversities";
+import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
@@ -135,6 +140,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   const nearby = useNearbyListings(listingId, {
     enabled: Boolean(listing?.placeId),
   });
+  const universities = useUniversities();
 
   const [reportOpen, setReportOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -228,8 +234,11 @@ export function ListingDetailWeb({ listingId }: Props) {
   const description = listing.description?.trim() ?? "";
   const hasRules = Boolean(
     listing.cancellationPolicy?.trim() ||
-      (listing.houseRules && listing.houseRules.length > 0),
+      listing.houseRules?.some((rule) => rule.trim()),
   );
+  const hasAmenities = listingAmenityLabels(listing).length > 0;
+  const hasNearbyCampuses =
+    nearbyCampusesForListing(listing, universities.data ?? []).length > 0;
   const hasPin = listing.lat != null && listing.lng != null;
   const siblings = nearby.data ?? [];
   const multiUnit = listing.placeContext?.isMultiUnit === true;
@@ -394,7 +403,6 @@ export function ListingDetailWeb({ listingId }: Props) {
 
       <View style={styles.columns}>
         <View style={styles.mainCol}>
-          {multiUnit ? <UnitPhotoLabel listing={listing}/> : null}
           <View style={styles.gallery}>
             <View style={styles.galleryMain}>
               <Pressable
@@ -542,7 +550,6 @@ export function ListingDetailWeb({ listingId }: Props) {
                 {listingPlace(listing)}
               </LText>
               <ListingAvailabilityBadge availability={listing.availability} />
-              {multiUnit ? <LText variant="subtitle">{formatFreshUsd(listing.monthlyRentUsd)} / {detailLabels(listing).unit} / month</LText> : null}
               {session?.userId === listing.posterId &&
               listing.status === "active" ? (
                 <ListingAvailabilityControl
@@ -566,10 +573,6 @@ export function ListingDetailWeb({ listingId }: Props) {
             </View>
           </View>
 
-          {multiUnit ? <>
-            <View nativeID="listing-other-units" style={styles.anchor}><OtherPlaceUnits key={listing.id} listing={listing} siblings={siblings} loading={nearby.isLoading} error={nearby.isError} onRetry={() => { void nearby.refetch(); }}/></View>
-            <PlaceDetailSections listing={listing}/>
-          </> : <>
           <View style={styles.facts}>
             {facts.map((f, i) => (
               <View
@@ -591,7 +594,7 @@ export function ListingDetailWeb({ listingId }: Props) {
             ))}
           </View>
 
-          <View nativeID="listing-utilities" style={[styles.section, styles.anchor, styles.stack]}>
+          <View nativeID="listing-utilities" testID="listing-utilities" style={[styles.section, styles.anchor, styles.stack]}>
             <View style={styles.sectionHead}>
               <LText variant="label" style={styles.sectionNumber}>
                 01
@@ -602,8 +605,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               <View style={styles.sectionRule} />
             </View>
             <LText variant="caption" tone="muted" style={styles.sectionLead}>
-              Power, water, and internet — the three things that actually
-              decide whether a Beirut room is livable.
+              Power, water, internet, and elevator availability for this unit.
             </LText>
             <View style={styles.utilGrid}>
               <View style={[styles.utilCol, styles.utilColFirst]}>
@@ -636,7 +638,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 ) : null}
               </View>
               <View style={styles.utilRule} />
-              <View style={[styles.utilCol, styles.utilColLast]}>
+              <View style={styles.utilCol}>
                 <Ionicons name="wifi-outline" size={20} color="#0F766E" />
                 <LText variant="label" tone="muted">
                   Internet
@@ -648,18 +650,26 @@ export function ListingDetailWeb({ listingId }: Props) {
                   </LText>
                 ) : null}
               </View>
+              <View style={styles.utilRule} />
+              <View style={[styles.utilCol, styles.utilColLast]} testID="listing-elevator">
+                <Ionicons name="swap-vertical-outline" size={20} color={Studently.color.primary} />
+                <LText variant="label" tone="muted">Elevator</LText>
+                <LText variant="subtitle">{elevatorStatus(listing)}</LText>
+              </View>
             </View>
             <View style={styles.inclusion}>
               <RentInclusionLines listing={listing} />
             </View>
           </View>
 
-          <View nativeID="listing-campus" style={[styles.anchor, styles.stackRoomy]}>
-            <ListingNearbyCampuses
-              listing={listing}
-              onViewMap={hasPin ? jumpToMap : undefined}
-            />
-          </View>
+          {hasNearbyCampuses ? (
+            <View nativeID="listing-campus" style={[styles.anchor, styles.stackRoomy]}>
+              <ListingNearbyCampuses
+                listing={listing}
+                onViewMap={hasPin ? jumpToMap : undefined}
+              />
+            </View>
+          ) : null}
 
           {hasRooms ? (
             <View nativeID="listing-unit" style={[styles.anchor, styles.stackRoomy]}>
@@ -682,9 +692,15 @@ export function ListingDetailWeb({ listingId }: Props) {
             </View>
           ) : null}
 
-          <View nativeID="listing-amenities" style={[styles.anchor, styles.stackRoomy]}>
-            <ListingDetailAmenities listing={listing} variant="web" />
-          </View>
+          {placeExtras(listing).visible ? (
+            <PlaceListingIntro key={listing.id} listing={listing} />
+          ) : null}
+
+          {hasAmenities ? (
+            <View nativeID="listing-amenities" style={[styles.anchor, styles.stackRoomy]}>
+              <ListingDetailAmenities listing={listing} variant="web" />
+            </View>
+          ) : null}
 
           {hasRules ? (
             <View nativeID="listing-rules" style={[styles.anchor, styles.stackRoomy]}>
@@ -696,18 +712,30 @@ export function ListingDetailWeb({ listingId }: Props) {
             </View>
           ) : null}
 
+          {multiUnit ? (
+            <View nativeID="listing-other-units" collapsable={false} style={[styles.anchor, styles.stackRoomy]}>
+              <OtherPlaceUnits
+                key={listing.id}
+                listing={listing}
+                siblings={siblings}
+                loading={nearby.isLoading}
+                error={nearby.isError}
+                onRetry={() => { void nearby.refetch(); }}
+              />
+            </View>
+          ) : null}
+
           {hasPin ? (
             <View nativeID="listing-map" style={[styles.anchor, styles.stackRoomy]}>
               <ListingDetailMapSection listing={listing} variant="web" />
             </View>
           ) : null}
 
-          {siblings.length > 0 ? (
+          {!multiUnit && siblings.length > 0 ? (
             <View style={styles.stackRoomy}>
               <CoincidentListingsSection listings={siblings} />
             </View>
           ) : null}
-          </>}
         </View>
 
         <View

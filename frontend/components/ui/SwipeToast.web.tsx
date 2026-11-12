@@ -42,7 +42,7 @@ type SwipeToastProps = {
   pauseOnHover?: boolean;
   inline?: boolean;
   dismissible?: boolean;
-  placement?: "default" | "above-footer";
+  placement?: "default" | "above-footer" | "top";
   stack?: number;
   layer?: number;
   className?: string;
@@ -217,12 +217,17 @@ export function SwipeToast({
     };
   }, []);
 
+  const fromTop = placement === "top";
+  const fromTopRef = useRef(fromTop);
+  fromTopRef.current = fromTop;
+
   const swipeOut = (dy: number, velocity: number) => {
     anim.current?.pause();
     leaving.current = true;
     pendingClose.current = null;
     if (!reduce && cardRef.current) {
-      animate(y, dy + cardRef.current.offsetHeight, {
+      const edge = fromTopRef.current ? -1 : 1;
+      animate(y, dy + edge * cardRef.current.offsetHeight, {
         type: "spring",
         duration: 0.3,
         bounce: 0,
@@ -272,7 +277,13 @@ export function SwipeToast({
       if (cardRef.current) cardRef.current.dataset.swiping = "";
     }
     const raw = event.clientY - current.grab;
-    const next = raw >= 0 ? raw : rubberband(raw, RESIST_PX);
+    const next = fromTopRef.current
+      ? raw <= 0
+        ? raw
+        : rubberband(raw, RESIST_PX)
+      : raw >= 0
+        ? raw
+        : rubberband(raw, RESIST_PX);
     y.set(next);
     current.moved = true;
     current.hist.push([performance.now(), next]);
@@ -292,7 +303,11 @@ export function SwipeToast({
     flags.current.interacting = false;
     const dy = y.get();
     const velocity = velocityOf(current.hist);
-    if (dy > 0 && (velocity > FLICK || (dy >= swipeDistance && velocity >= 0))) {
+    const flung = fromTopRef.current
+      ? dy < 0 &&
+        (velocity < -FLICK || (dy <= -swipeDistance && velocity <= 0))
+      : dy > 0 && (velocity > FLICK || (dy >= swipeDistance && velocity >= 0));
+    if (flung) {
       swipeOut(dy, velocity);
       return;
     }

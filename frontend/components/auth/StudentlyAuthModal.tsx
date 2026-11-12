@@ -53,7 +53,7 @@ type Props = {
 };
 
 type AuthMode = "signIn" | "signUp";
-type SignUpStep = "email" | "verify" | "password";
+type SignUpStep = "email" | "verify";
 type SignInStep = "credentials" | "verify";
 type SignInCodeFactor = "first" | "second";
 
@@ -104,16 +104,78 @@ async function prepareSignInEmailCode(signIn: {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const CODE_WRONG =
+  "That code doesn't match the latest email. Use the newest message, or tap Resend code.";
+const CODE_LOCKED =
+  "Too many tries. This code is no longer valid — tap Resend code and use only that email.";
+const CODE_EXPIRED = "That code expired. Tap Resend code and use the new email.";
+const CODE_RATE =
+  "Too many attempts right now. Wait a minute, then tap Resend code.";
+
+type ClerkAPIErrorLike = {
+  code?: string;
+  message?: string;
+  longMessage?: string;
+  long_message?: string;
+};
+
+function clerkErrors(err: unknown): ClerkAPIErrorLike[] {
+  const anyErr = err as { errors?: ClerkAPIErrorLike[]; message?: string; code?: string };
+  if (Array.isArray(anyErr?.errors) && anyErr.errors.length > 0) return anyErr.errors;
+  if (anyErr?.code || anyErr?.message) return [anyErr];
+  return [];
+}
+
+function clerkErrorCode(err: unknown): string {
+  return clerkErrors(err)[0]?.code ?? "";
+}
+
 function clerkErrorMessage(err: unknown, fallback: string): string {
-  const anyErr = err as {
-    errors?: { message?: string; code?: string }[];
-    message?: string;
+  const first = clerkErrors(err)[0];
+  const long = first?.longMessage || first?.long_message;
+  if (long?.trim()) return long.trim();
+  const short = first?.message?.trim();
+  // Clerk's short message is a fragment ("is incorrect", "failed") meant to follow a field label.
+  if (short && !/^(is incorrect|incorrect|failed)$/i.test(short)) return short;
+  return fallback;
+}
+
+function verificationAttemptError(err: unknown): { message: string; lock: boolean } {
+  const first = clerkErrors(err)[0];
+  const code = first?.code ?? "";
+  const short = first?.message?.trim() ?? "";
+  const long = clerkErrorMessage(err, "");
+  if (
+    code === "verification_failed" ||
+    /^failed$/i.test(short) ||
+    /too many failed attempts/i.test(long)
+  ) {
+    return { message: CODE_LOCKED, lock: true };
+  }
+  if (code === "verification_expired" || /expired/i.test(long) || /expired/i.test(short)) {
+    return { message: CODE_EXPIRED, lock: true };
+  }
+  if (code === "too_many_requests" || code === "rate_limit_exceeded") {
+    return { message: CODE_RATE, lock: true };
+  }
+  if (
+    code === "form_code_incorrect" ||
+    /^is incorrect$/i.test(short) ||
+    /incorrect/i.test(long)
+  ) {
+    return { message: CODE_WRONG, lock: false };
+  }
+  return {
+    message: long || "That code was not accepted. Tap Resend code and try the newest email.",
+    lock: false,
   };
-  return anyErr?.errors?.[0]?.message || anyErr?.message || fallback;
 }
 
 function isClerkMinLengthError(err: unknown): boolean {
-  return /15 characters or more/i.test(clerkErrorMessage(err, ""));
+  return (
+    clerkErrorCode(err) === "form_password_length_too_short" ||
+    /15 characters or more/i.test(clerkErrorMessage(err, ""))
+  );
 }
 
 function ClerkOAuthSection({
@@ -332,6 +394,9 @@ function StudentlyAuthModalClerk({
   const [signInStep, setSignInStep] = useState<SignInStep>("credentials");
   const [signInFactor, setSignInFactor] = useState<SignInCodeFactor>("second");
   const [codeNotice, setCodeNotice] = useState<string | null>(null);
+  const [rejectedCode, setRejectedCode] = useState<string | null>(null);
+  const [codeLocked, setCodeLocked] = useState(false);
+  const [passwordDeferred, setPasswordDeferred] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -357,6 +422,9 @@ function StudentlyAuthModalClerk({
     setPassword("");
     setPasswordConfirm("");
     setVerificationCode("");
+    setRejectedCode(null);
+    setCodeLocked(false);
+    setPasswordDeferred(false);
     setShowPassword(false);
     setAuthMode("signIn");
     setSignUpStep("email");
@@ -373,10 +441,14 @@ function StudentlyAuthModalClerk({
       setError("Sign-in could not be completed. Try again.");
       return false;
     }
+    setAuthMode("signIn");
     setSignInFactor(factor);
     setVerificationCode("");
+    setRejectedCode(null);
+    setCodeLocked(false);
     setSignInStep("verify");
-    setCodeNotice(`Enter the code sent to ${email.trim().toLowerCase()}`);
+    setCodeNotice(null);
+    setFieldErrors({});
     setError(null);
     return true;
   };
@@ -427,19 +499,13 @@ function StudentlyAuthModalClerk({
     }
   };
 
-  const validateEmailOnly = () => {
+  const validateSignUpDetails = () => {
     const next: Record<string, string> = {};
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) next.email = "Email is required.";
     else if (!EMAIL_RE.test(trimmedEmail)) {
       next.email = "Enter a valid email address.";
     }
-    setFieldErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const validatePasswordStep = () => {
-    const next: Record<string, string> = {};
     if (!passwordMeetsPolicy(password)) {
       next.password =
         "Use 8+ characters with upper, lower, number, and a special character.";
@@ -450,6 +516,19 @@ function StudentlyAuthModalClerk({
     }
     setFieldErrors(next);
     return Object.keys(next).length === 0;
+  };
+
+  const createSignUpAttempt = async () => {
+    const emailAddress = email.trim().toLowerCase();
+    const signUp = clerk.client!.signUp;
+    try {
+      await signUp.create({ emailAddress, password });
+      return false;
+    } catch (err) {
+      if (!isClerkMinLengthError(err)) throw err;
+    }
+    await signUp.create({ emailAddress });
+    return true;
   };
 
   const validateEmailPassword = () => {
@@ -510,12 +589,33 @@ function StudentlyAuthModalClerk({
       setFieldErrors({ code: "Enter the 6-digit verification code." });
       return;
     }
+    if (codeLocked) {
+      setFieldErrors({ code: CODE_LOCKED });
+      return;
+    }
+    if (rejectedCode === code) {
+      setFieldErrors({ code: CODE_WRONG });
+      return;
+    }
+    const signIn = clerk.client.signIn;
+    const factorVerification = (
+      signIn as {
+        firstFactorVerification?: { status?: string | null };
+        secondFactorVerification?: { status?: string | null };
+      }
+    )[signInFactor === "first" ? "firstFactorVerification" : "secondFactorVerification"];
+    if (factorVerification?.status === "failed" || factorVerification?.status === "expired") {
+      setCodeLocked(true);
+      setFieldErrors({
+        code: factorVerification.status === "expired" ? CODE_EXPIRED : CODE_LOCKED,
+      });
+      return;
+    }
     setLoading(true);
     setError(null);
     setCodeNotice(null);
     setFieldErrors({});
     try {
-      const signIn = clerk.client.signIn;
       const result =
         signInFactor === "first"
           ? await signIn.attemptFirstFactor({ strategy: "email_code", code })
@@ -535,7 +635,14 @@ function StudentlyAuthModalClerk({
           return;
         }
       }
-      setError(clerkErrorMessage(err, "That code was not accepted."));
+      const attempt = verificationAttemptError(err);
+      if (attempt.lock) {
+        setCodeLocked(true);
+        setRejectedCode(null);
+      } else if (attempt.message === CODE_WRONG) {
+        setRejectedCode(code);
+      }
+      setFieldErrors({ code: attempt.message });
     } finally {
       setLoading(false);
     }
@@ -552,9 +659,20 @@ function StudentlyAuthModalClerk({
         return;
       }
       setSignInFactor(factor);
-      setCodeNotice(`We sent a new code to ${email.trim().toLowerCase()}`);
+      setVerificationCode("");
+      setRejectedCode(null);
+      setCodeLocked(false);
+      setFieldErrors({});
+      setCodeNotice(
+        `We sent a new code to ${email.trim().toLowerCase()}. Earlier codes no longer work.`,
+      );
     } catch (err) {
-      setError(clerkErrorMessage(err, "Could not resend the code."));
+      const attempt = verificationAttemptError(err);
+      if (attempt.lock || clerkErrorCode(err) === "too_many_requests") {
+        setFieldErrors({ code: attempt.message });
+      } else {
+        setError(clerkErrorMessage(err, "Could not resend the code."));
+      }
     } finally {
       setLoading(false);
     }
@@ -562,17 +680,20 @@ function StudentlyAuthModalClerk({
 
   const handleEmailSignUp = async () => {
     if (loading || !clerk.loaded || !clerk.client?.signUp) return;
-    if (!validateEmailOnly()) return;
+    if (!validateSignUpDetails()) return;
 
     setLoading(true);
     setError(null);
     try {
-      await clerk.client.signUp.create({
-        emailAddress: email.trim().toLowerCase(),
-      });
+      const deferred = await createSignUpAttempt();
       await clerk.client.signUp.prepareEmailAddressVerification({
         strategy: "email_code",
       });
+      setPasswordDeferred(deferred);
+      setVerificationCode("");
+      setRejectedCode(null);
+      setCodeLocked(false);
+      setCodeNotice(null);
       setSignUpStep("verify");
     } catch (err) {
       setError(clerkErrorMessage(err, "Could not start sign-up."));
@@ -586,6 +707,28 @@ function StudentlyAuthModalClerk({
     const code = verificationCode.trim();
     if (!/^\d{6}$/.test(code)) {
       setFieldErrors({ code: "Enter the 6-digit verification code." });
+      return;
+    }
+
+    if (codeLocked) {
+      setFieldErrors({ code: CODE_LOCKED });
+      return;
+    }
+    if (rejectedCode === code) {
+      setFieldErrors({ code: CODE_WRONG });
+      return;
+    }
+    const emailStatus =
+      (
+        clerk.client.signUp as {
+          verifications?: { emailAddress?: { status?: string | null } };
+        }
+      ).verifications?.emailAddress?.status ?? "";
+    if (emailStatus === "failed" || emailStatus === "expired") {
+      setCodeLocked(true);
+      setFieldErrors({
+        code: emailStatus === "expired" ? CODE_EXPIRED : CODE_LOCKED,
+      });
       return;
     }
 
@@ -607,9 +750,13 @@ function StudentlyAuthModalClerk({
         await finishAuth("email");
         return;
       }
-      setPassword("");
-      setPasswordConfirm("");
-      setSignUpStep("password");
+      const missing =
+        (result as { missingFields?: string[] }).missingFields ?? [];
+      if (passwordDeferred || missing.includes("password")) {
+        await applyDeferredPassword();
+        return;
+      }
+      setError("Sign-up is not complete. Try again.");
     } catch (err) {
       if (isAlreadySignedInError(err)) {
         try {
@@ -627,45 +774,91 @@ function StudentlyAuthModalClerk({
       if (err instanceof UserApiError) {
         setError(err.message);
       } else {
-        setError(
-          clerkErrorMessage(err, "Incorrect verification code or account sync failed."),
-        );
+        const attempt = verificationAttemptError(err);
+        if (attempt.lock) {
+          setCodeLocked(true);
+          setRejectedCode(null);
+        } else if (attempt.message === CODE_WRONG) {
+          setRejectedCode(code);
+        }
+        setFieldErrors({ code: attempt.message });
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSetPassword = async () => {
-    if (loading || !clerk.loaded || !clerk.client?.signUp) return;
-    if (!validatePasswordStep()) return;
+  const applyDeferredPassword = async () => {
+    if (!clerk.loaded || !clerk.client?.signUp) {
+      setError("Could not finish sign-up. Try again.");
+      return;
+    }
 
-    setLoading(true);
-    setError(null);
+    const signUp = clerk.client.signUp as {
+      update?: (args: { password: string }) => Promise<{
+        status?: string;
+        createdSessionId?: string | null;
+      }>;
+    };
+
     try {
-      const signUp = clerk.client.signUp as {
-        update?: (args: { password: string }) => Promise<{
-          status?: string;
-          createdSessionId?: string | null;
-        }>;
-      };
-      if (!signUp.update) {
-        setError("Could not set password. Try again.");
+      if (signUp.update) {
+        try {
+          const result = await signUp.update({ password });
+          const sessionId = result.createdSessionId;
+          if ((result.status === "complete" || sessionId) && sessionId) {
+            await activateClerkSession(clerk, sessionId);
+            await finishAuth("email");
+            return;
+          }
+          if (result.status === "complete") {
+            await activateClerkSession(clerk);
+            await finishAuth("email");
+            return;
+          }
+        } catch (err) {
+          if (isAlreadySignedInError(err)) {
+            await finishExistingSession("email");
+            return;
+          }
+          if (!isClerkMinLengthError(err)) throw err;
+        }
+      }
+
+      try {
+        await api.post("/api/auth/dev-set-password", {
+          email: email.trim().toLowerCase(),
+          password,
+        });
+      } catch (inner) {
+        const axiosErr = inner as {
+          response?: { data?: { error?: { message?: string } } };
+        };
+        const message = axiosErr.response?.data?.error?.message || "";
+        if (!/already set/i.test(message)) {
+          setError(
+            message ||
+              clerkErrorMessage(
+                inner,
+                "Could not set password. Restart the API if this persists.",
+              ),
+          );
+          return;
+        }
+      }
+
+      if (!clerk.client?.signIn) {
+        setAuthMode("signIn");
+        setSignInStep("credentials");
+        setSignUpStep("email");
+        setError("Account created. Sign in with your email and password.");
         return;
       }
-      const result = await signUp.update({ password });
-      const sessionId = result.createdSessionId;
-      if ((result.status === "complete" || sessionId) && sessionId) {
-        await activateClerkSession(clerk, sessionId);
-        await finishAuth("email");
-        return;
-      }
-      if (result.status === "complete") {
-        await activateClerkSession(clerk);
-        await finishAuth("email");
-        return;
-      }
-      setError("Password saved, but sign-up is not complete. Try again.");
+      const signedIn = await clerk.client.signIn.create({
+        identifier: email.trim().toLowerCase(),
+        password,
+      });
+      await completeSignInAttempt(signedIn);
     } catch (err) {
       if (isAlreadySignedInError(err)) {
         try {
@@ -680,39 +873,7 @@ function StudentlyAuthModalClerk({
           return;
         }
       }
-      if (isClerkMinLengthError(err)) {
-        try {
-          await api.post("/api/auth/dev-set-password", {
-            email: email.trim().toLowerCase(),
-            password,
-          });
-          if (!clerk.client?.signIn) {
-            setError("Password saved. Sign in with your new password.");
-            return;
-          }
-          const signedIn = await clerk.client.signIn.create({
-            identifier: email.trim().toLowerCase(),
-            password,
-          });
-          await completeSignInAttempt(signedIn);
-          return;
-        } catch (inner) {
-          const axiosErr = inner as {
-            response?: { data?: { error?: { message?: string } } };
-          };
-          setError(
-            axiosErr.response?.data?.error?.message ||
-              clerkErrorMessage(
-                inner,
-                "Could not set password. Restart the API if this persists.",
-              ),
-          );
-          return;
-        }
-      }
       setError(clerkErrorMessage(err, "Could not set password."));
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -721,11 +882,50 @@ function StudentlyAuthModalClerk({
     setLoading(true);
     setError(null);
     try {
-      await clerk.client.signUp.prepareEmailAddressVerification({
-        strategy: "email_code",
-      });
+      const signUp = clerk.client.signUp;
+      const signupStatus = (signUp as { status?: string | null }).status;
+      if (!signUp.id || signupStatus === "abandoned") {
+        setPasswordDeferred(await createSignUpAttempt());
+      }
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      setVerificationCode("");
+      setRejectedCode(null);
+      setCodeLocked(false);
+      setFieldErrors({});
+      setCodeNotice(
+        `We sent a new code to ${email.trim().toLowerCase()}. Earlier codes no longer work.`,
+      );
     } catch (err) {
-      setError(clerkErrorMessage(err, "Could not resend code."));
+      const code = clerkErrorCode(err);
+      if (
+        code === "resource_not_found" ||
+        code === "sign_up_forbidden_access" ||
+        /abandoned/i.test(clerkErrorMessage(err, ""))
+      ) {
+        try {
+          setPasswordDeferred(await createSignUpAttempt());
+          await clerk.client.signUp.prepareEmailAddressVerification({
+            strategy: "email_code",
+          });
+          setVerificationCode("");
+          setRejectedCode(null);
+          setCodeLocked(false);
+          setFieldErrors({});
+          setCodeNotice(
+            `We sent a new code to ${email.trim().toLowerCase()}. Earlier codes no longer work.`,
+          );
+          return;
+        } catch (inner) {
+          setError(clerkErrorMessage(inner, "Could not resend code."));
+          return;
+        }
+      }
+      const attempt = verificationAttemptError(err);
+      if (code === "too_many_requests" || code === "rate_limit_exceeded" || attempt.lock) {
+        setFieldErrors({ code: attempt.message });
+      } else {
+        setError(clerkErrorMessage(err, "Could not resend code."));
+      }
     } finally {
       setLoading(false);
     }
@@ -741,9 +941,7 @@ function StudentlyAuthModalClerk({
     : authMode === "signUp"
       ? signUpStep === "verify"
         ? "Verify your email"
-        : signUpStep === "password"
-          ? "Create a password"
-          : "Create your account"
+        : "Create your account"
       : title;
 
   const modalSubtitle = verifyingSignIn
@@ -751,9 +949,7 @@ function StudentlyAuthModalClerk({
     : authMode === "signUp"
       ? signUpStep === "verify"
         ? `Enter the code sent to ${email.trim().toLowerCase()}`
-        : signUpStep === "password"
-          ? "Choose a strong password to finish signing up"
-          : "Enter your email, then verify it"
+        : "Enter your email and a password. We'll send a code next."
       : "Welcome back! Sign in to continue";
 
   const showOAuth =
@@ -768,21 +964,25 @@ function StudentlyAuthModalClerk({
     (authMode === "signIn" &&
       signInStep === "credentials" &&
       (!email.trim() || !password)) ||
-    (verifyingSignIn && verificationCode.length < 6) ||
-    (authMode === "signUp" && signUpStep === "email" && !email.trim()) ||
+    (verifyingSignIn &&
+      (codeLocked ||
+        verificationCode.length < 6 ||
+        verificationCode.trim() === rejectedCode)) ||
+    (authMode === "signUp" &&
+      signUpStep === "email" &&
+      (!email.trim() || !passwordReady)) ||
     (authMode === "signUp" &&
       signUpStep === "verify" &&
-      verificationCode.length < 6) ||
-    (authMode === "signUp" && signUpStep === "password" && !passwordReady);
+      (codeLocked ||
+        verificationCode.length < 6 ||
+        verificationCode.trim() === rejectedCode));
 
   const primaryLabel = verifyingSignIn
     ? "Verify email"
     : authMode === "signUp"
       ? signUpStep === "verify"
         ? "Verify email"
-        : signUpStep === "password"
-          ? "Create account"
-          : "Continue"
+        : "Continue"
       : "Sign in";
 
   return (
@@ -849,73 +1049,6 @@ function StudentlyAuthModalClerk({
                   </View>
                 ) : null}
 
-                {authMode === "signUp" && signUpStep === "password" ? (
-                  <>
-                    <View style={styles.inputGroup}>
-                      <View style={styles.passwordLabelRow}>
-                        <Text style={styles.inputLabel}>Password</Text>
-                        <Pressable
-                          onPress={() => setShowPassword((v) => !v)}
-                          hitSlop={8}
-                        >
-                          <Text style={styles.showHideText}>
-                            {showPassword ? "HIDE" : "SHOW"}
-                          </Text>
-                        </Pressable>
-                      </View>
-                      <TextInput
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder="Create a password"
-                        placeholderTextColor="#A1A1AA"
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        textContentType="newPassword"
-                        style={[
-                          styles.input,
-                          fieldErrors.password ? styles.inputError : null,
-                        ]}
-                      />
-                      <PasswordStrengthMeter password={password} />
-                      {fieldErrors.password ? (
-                        <Text style={styles.fieldErrorText}>
-                          {fieldErrors.password}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.inputLabel}>Confirm password</Text>
-                      <TextInput
-                        value={passwordConfirm}
-                        onChangeText={setPasswordConfirm}
-                        placeholder="Re-enter your password"
-                        placeholderTextColor="#A1A1AA"
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        textContentType="newPassword"
-                        style={[
-                          styles.input,
-                          fieldErrors.passwordConfirm ||
-                          passwordMismatch(password, passwordConfirm)
-                            ? styles.inputError
-                            : null,
-                        ]}
-                      />
-                      {fieldErrors.passwordConfirm ? (
-                        <Text style={styles.fieldErrorText}>
-                          {fieldErrors.passwordConfirm}
-                        </Text>
-                      ) : passwordMismatch(password, passwordConfirm) ? (
-                        <Text style={styles.fieldErrorText}>
-                          Passwords do not match.
-                        </Text>
-                      ) : null}
-                    </View>
-                  </>
-                ) : null}
-
                 {(authMode === "signIn" && signInStep === "credentials") ||
                 (authMode === "signUp" && signUpStep === "email") ? (
                   <>
@@ -975,12 +1108,76 @@ function StudentlyAuthModalClerk({
                         ) : null}
                       </View>
                     ) : (
-                      <View
-                        nativeID="clerk-captcha"
-                        accessibilityElementsHidden
-                        importantForAccessibility="no-hide-descendants"
-                        style={styles.captchaMount}
-                      />
+                      <>
+                        <View style={styles.inputGroup}>
+                          <View style={styles.passwordLabelRow}>
+                            <Text style={styles.inputLabel}>Password</Text>
+                            <Pressable
+                              onPress={() => setShowPassword((v) => !v)}
+                              hitSlop={8}
+                            >
+                              <Text style={styles.showHideText}>
+                                {showPassword ? "HIDE" : "SHOW"}
+                              </Text>
+                            </Pressable>
+                          </View>
+                          <TextInput
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="Create a password"
+                            placeholderTextColor="#A1A1AA"
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            textContentType="newPassword"
+                            style={[
+                              styles.input,
+                              fieldErrors.password ? styles.inputError : null,
+                            ]}
+                          />
+                          <PasswordStrengthMeter password={password} />
+                          {fieldErrors.password ? (
+                            <Text style={styles.fieldErrorText}>
+                              {fieldErrors.password}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <View style={styles.inputGroup}>
+                          <Text style={styles.inputLabel}>Confirm password</Text>
+                          <TextInput
+                            value={passwordConfirm}
+                            onChangeText={setPasswordConfirm}
+                            placeholder="Re-enter your password"
+                            placeholderTextColor="#A1A1AA"
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            textContentType="newPassword"
+                            style={[
+                              styles.input,
+                              fieldErrors.passwordConfirm ||
+                              passwordMismatch(password, passwordConfirm)
+                                ? styles.inputError
+                                : null,
+                            ]}
+                          />
+                          {fieldErrors.passwordConfirm ? (
+                            <Text style={styles.fieldErrorText}>
+                              {fieldErrors.passwordConfirm}
+                            </Text>
+                          ) : passwordMismatch(password, passwordConfirm) ? (
+                            <Text style={styles.fieldErrorText}>
+                              Passwords do not match.
+                            </Text>
+                          ) : null}
+                        </View>
+                        <View
+                          nativeID="clerk-captcha"
+                          accessibilityElementsHidden
+                          importantForAccessibility="no-hide-descendants"
+                          style={styles.captchaMount}
+                        />
+                      </>
                     )}
                   </>
                 ) : null}
@@ -1005,10 +1202,6 @@ function StudentlyAuthModalClerk({
                     }
                     if (authMode === "signUp" && signUpStep === "verify") {
                       void handleVerifySignUp();
-                      return;
-                    }
-                    if (authMode === "signUp" && signUpStep === "password") {
-                      void handleSetPassword();
                       return;
                     }
                     if (authMode === "signUp") {
@@ -1040,14 +1233,19 @@ function StudentlyAuthModalClerk({
                       onPress={() => void handleResendSignInCode()}
                       style={styles.backLinkWrap}
                     >
-                      <Text style={styles.backLink}>Resend code</Text>
+                      <Text style={[styles.backLink, codeLocked && styles.backLinkEmphasis]}>
+                        Resend code
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => {
                         setSignInStep("credentials");
                         setVerificationCode("");
+                        setRejectedCode(null);
+                        setCodeLocked(false);
                         setCodeNotice(null);
                         setError(null);
+                        setFieldErrors({});
                       }}
                       style={styles.backLinkWrap}
                     >
@@ -1062,17 +1260,22 @@ function StudentlyAuthModalClerk({
                       onPress={() => void handleResendCode()}
                       style={styles.backLinkWrap}
                     >
-                      <Text style={styles.backLink}>Resend code</Text>
+                      <Text style={[styles.backLink, codeLocked && styles.backLinkEmphasis]}>
+                        Resend code
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => {
                         setSignUpStep("email");
                         setVerificationCode("");
+                        setRejectedCode(null);
+                        setCodeLocked(false);
                         setError(null);
+                        setFieldErrors({});
                       }}
                       style={styles.backLinkWrap}
                     >
-                      <Text style={styles.backLink}>Back to email</Text>
+                      <Text style={styles.backLink}>Back</Text>
                     </Pressable>
                   </>
                 ) : null}
@@ -1094,7 +1297,9 @@ function StudentlyAuthModalClerk({
                     setPassword("");
                     setPasswordConfirm("");
                     setVerificationCode("");
+                    setPasswordDeferred(false);
                     setSignUpStep("email");
+                    setSignInStep("credentials");
                   }}
                 >
                   {authMode === "signUp" ? "Sign in" : "Sign up"}
@@ -1311,6 +1516,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#71717A",
     textDecorationLine: "underline",
+  },
+  backLinkEmphasis: {
+    fontFamily: Studently.type.bodyBold,
+    color: "#09090B",
   },
   footerCard: {
     backgroundColor: "#FAFAFA",

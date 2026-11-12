@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: Studently.color.primaryMist,
   },
   mediaFallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

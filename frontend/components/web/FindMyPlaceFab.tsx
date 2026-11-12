@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     borderRadius: CIRCLE / 2,
     backgroundColor: Studently.color.surface,
     borderWidth: 1,
-    borderColor: "#2F6FED",
+    borderColor: Studently.color.primary,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",

@@ -1,4 +1,5 @@
 import type { Ionicons } from "@expo/vector-icons";
+import { Studently } from "@/constants/theme";
 import type { BenefitCategory } from "./types";
 
 type CategoryMeta = {
@@ -18,8 +19,8 @@ export const BENEFIT_CATEGORIES: Record<BenefitCategory, CategoryMeta> = {
   tech: {
     label: "Tech",
     icon: "hardware-chip-outline",
-    accent: "#2F6FED",
-    tint: "#E8EEF6",
+    accent: Studently.color.primary,
+    tint: Studently.color.primaryMist,
   },
   food: {
     label: "Food",

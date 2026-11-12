@@ -233,7 +233,7 @@ export const matcherStyles = StyleSheet.create({
     color: c.ink,
     flexShrink: 1,
   },
-  chipTextSelected: { color: "#245AC0", fontFamily: t.bodySemi },
+  chipTextSelected: { color: c.primary, fontFamily: t.bodySemi },
   importance: {
     alignItems: "flex-end",
     gap: 3,

@@ -26,6 +26,11 @@ import { ADMIN_CSS } from "@/styles/adminCssText";
 import { H } from "./h";
 import { NeuIconButton } from "./NeuPrimitives";
 import {
+  applyBrandPalette,
+  readStoredBrandPalette,
+  type BrandPaletteId,
+} from "@/constants/brandPalette";
+import {
   readStoredTheme,
   storeTheme,
   type AdminTheme,
@@ -51,6 +56,7 @@ type Props = { children?: ReactNode };
 export function AdminNeuShell({ children }: Props) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<AdminTheme>(() => readStoredTheme());
+  const [palette, setPalette] = useState<BrandPaletteId>(() => readStoredBrandPalette());
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
@@ -110,6 +116,12 @@ export function AdminNeuShell({ children }: Props) {
     });
   }
 
+  function togglePalette() {
+    const next: BrandPaletteId = palette === "madder" ? "ocean" : "madder";
+    applyBrandPalette(next);
+    setPalette(next);
+  }
+
   return (
     <View
       nativeID="studently-admin-shell"
@@ -155,6 +167,7 @@ export function AdminNeuShell({ children }: Props) {
               </H>
             </H>
             <H className="flex items-center gap-2">
+              <PaletteToggle palette={palette} onToggle={togglePalette} />
               <ThemeToggle theme={theme} onToggle={toggleTheme} />
               <H className="lg:hidden">
                 <NeuIconButton
@@ -188,6 +201,7 @@ export function AdminNeuShell({ children }: Props) {
             <H as="p" className="flex-1 font-display text-base font-semibold">
               Studently Ops
             </H>
+            <PaletteToggle palette={palette} onToggle={togglePalette} />
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </H>
           <H
@@ -383,6 +397,28 @@ function ScrollHint({
           <ChevronDown size={16} strokeWidth={2} />
         )}
       </H>
+    </H>
+  );
+}
+
+function PaletteToggle({
+  palette,
+  onToggle,
+}: {
+  palette: BrandPaletteId;
+  onToggle: () => void;
+}) {
+  const next = palette === "madder" ? "ocean" : "madder";
+  return (
+    <H
+      as="button"
+      type="button"
+      aria-pressed={palette === "ocean"}
+      aria-label={`Switch to ${next} colors`}
+      onClick={onToggle}
+      className="h-9 shrink-0 cursor-pointer rounded-full bg-clay-100 px-3 font-display text-[11px] font-semibold uppercase tracking-wider text-clay-900 shadow-neu-in-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss"
+    >
+      {palette === "madder" ? "Madder" : "Ocean"}
     </H>
   );
 }

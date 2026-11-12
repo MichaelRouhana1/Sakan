@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     backgroundColor: Lister.color.bgWash,
   },
   thumbFallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Lister.color.primaryMist,

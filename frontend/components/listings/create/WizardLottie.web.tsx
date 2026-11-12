@@ -1,7 +1,13 @@
 import lottie, { type AnimationItem } from "lottie-web";
-import { createElement, useEffect, useRef } from "react";
-import { Image, View } from "react-native";
+import { createElement, useEffect, useRef, useState } from "react";
+import { Image, Platform, View } from "react-native";
+import {
+  BRAND_PALETTE_EVENT,
+  readStoredBrandPalette,
+  type BrandPaletteId,
+} from "@/constants/brandPalette";
 import { WIZARD_LOTTIE_MODULES } from "@/lib/wizardLottieSources";
+import { tintWizardLottie } from "@/lib/wizardLottieTint";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import type { WizardLottieAssetId } from "@/lib/wizardLottieFrame";
 
@@ -61,6 +67,16 @@ function loadAnimationData(id: WizardLottieAssetId): Promise<object> {
 export function WizardLottie({ assetId, width, height }: Props) {
   const reduce = useReducedMotion();
   const host = useRef<HTMLDivElement | null>(null);
+  const [palette, setPalette] = useState<BrandPaletteId>(() =>
+    Platform.OS === "web" ? readStoredBrandPalette() : "madder",
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => setPalette(readStoredBrandPalette());
+    window.addEventListener(BRAND_PALETTE_EVENT, sync);
+    return () => window.removeEventListener(BRAND_PALETTE_EVENT, sync);
+  }, []);
 
   useEffect(() => {
     const el = host.current;
@@ -78,7 +94,7 @@ export function WizardLottie({ assetId, width, height }: Props) {
             renderer: "svg",
             loop: !reduce,
             autoplay: !reduce,
-            animationData,
+            animationData: tintWizardLottie(animationData, palette, assetId),
             rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
           });
           if (reduce) {
@@ -96,7 +112,7 @@ export function WizardLottie({ assetId, width, height }: Props) {
       cancelled = true;
       anim?.destroy();
     };
-  }, [assetId, reduce]);
+  }, [assetId, palette, reduce]);
 
   return (
     <View

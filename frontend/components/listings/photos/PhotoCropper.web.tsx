@@ -10,7 +10,7 @@ export function PhotoCropper({ source, onCrop, disabled }: CropperProps) {
   const button = {
     minWidth: 44,
     minHeight: 44,
-    border: "1px solid #C5CDD8",
+    border: "1px solid var(--sk-border)",
     borderRadius: 10,
     background: "transparent",
     color: "inherit",
@@ -84,7 +84,7 @@ export function PhotoCropper({ source, onCrop, disabled }: CropperProps) {
           value={zoom}
           disabled={disabled}
           onChange={(e) => setZoom(Number(e.target.value))}
-          style={{ flex: 1, minWidth: 80, accentColor: "#2F6FED" }}
+          style={{ flex: 1, minWidth: 80, accentColor: "var(--sk-primary)" }}
         />
         <button
           type="button"

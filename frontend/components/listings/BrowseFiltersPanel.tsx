@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   confirmLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Studently.color.overlay,
     alignItems: "center",
     justifyContent: "center",

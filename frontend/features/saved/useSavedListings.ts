@@ -13,6 +13,7 @@ import type { Listing } from "@/types/listing";
 import { normalizeListing } from "@/features/listings/normalizeListing";
 import { savedKeys } from "./keys";
 import { requestSaveAuth } from "./saveAuthPrompt";
+import { publishSavedToast } from "./savedToast";
 
 type ListResponse = { data: unknown };
 type ToggleResponse = { data: { saved: boolean; listingId: string } };
@@ -148,6 +149,13 @@ export function useToggleSaved() {
       return { seq };
     },
     onError: (error, vars) => {
+      if (vars.wantSaved) {
+        publishSavedToast({
+          kind: "clear",
+          listingId: vars.listing.id,
+          seq: vars.seq,
+        });
+      }
       if (vars.seq !== toggleEpoch) return;
       queryClient.setQueryData(savedKeys.list(), confirmedList ?? []);
       if (isAuthStatusError(error)) requestSaveAuth();
@@ -178,6 +186,11 @@ export function useToggleSaved() {
     const seq = ++toggleEpoch;
     queryClient.setQueryData<Listing[]>(savedKeys.list(), (prev) =>
       applySavedToggle(prev ?? [], listing, wantSaved),
+    );
+    publishSavedToast(
+      wantSaved
+        ? { kind: "added", listing, seq }
+        : { kind: "clear", listingId: listing.id },
     );
     mutation.mutate({ listing, wantSaved, seq });
   };

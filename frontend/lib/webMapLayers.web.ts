@@ -1,5 +1,6 @@
 import type { FeatureCollection, Point } from "geojson";
 import type { GeoJSONSource, LayerSpecification, Map as MapboxMap } from "mapbox-gl";
+import { BRAND_PALETTE_EVENT } from "@/constants/brandPalette";
 import { CLUSTER_MAX_ZOOM, CLUSTER_RADIUS_PX } from "@/lib/mapClusters";
 import type { MapPinGroup } from "@/lib/mapPinGroups";
 import {
@@ -49,6 +50,7 @@ export class WebMapLayerRenderer {
     map.on("load", this.install);
     map.on("styleimagemissing", this.onMissingImage);
     map.on("idle", this.onIdle);
+    window.addEventListener(BRAND_PALETTE_EVENT, this.repaintPins);
     void Promise.all([
       document.fonts?.load('600 12px "DM Sans"'),
       document.fonts?.load('700 15px "DM Sans"'),
@@ -118,12 +120,25 @@ export class WebMapLayerRenderer {
     }
   }
 
-  private addPriceImages(): void {
+  private repaintPins = (): void => {
+    if (this.disposed || !this.fontsReady) return;
+    this.addPriceImages(true);
+  };
+
+  private addPriceImages(refresh = false): void {
     for (const feature of this.data.features) {
       const { image, activeImage, label } = feature.properties;
-      if (!this.map.hasImage(image)) this.map.addImage(image, makePricePinImage(label), { pixelRatio: PIN_IMAGE_RATIO });
-      if (this.options.cluster !== false && !this.map.hasImage(activeImage)) this.map.addImage(activeImage, makePricePinImage(label, true), { pixelRatio: PIN_IMAGE_RATIO });
+      this.putPinImage(image, makePricePinImage(label), refresh);
+      if (this.options.cluster !== false) this.putPinImage(activeImage, makePricePinImage(label, true), refresh);
     }
+  }
+
+  private putPinImage(id: string, image: ImageData, refresh: boolean): void {
+    if (!this.map.hasImage(id)) {
+      this.map.addImage(id, image, { pixelRatio: PIN_IMAGE_RATIO });
+      return;
+    }
+    if (refresh) this.map.updateImage(id, image);
   }
 
   private onMissingImage = (event: { id: string }): void => {
@@ -146,6 +161,7 @@ export class WebMapLayerRenderer {
       type: "geojson", data: this.data, promoteId: "groupId",
       cluster: this.options.cluster !== false, clusterRadius: CLUSTER_RADIUS_PX,
       clusterMaxZoom: CLUSTER_MAX_ZOOM, clusterMinPoints: 2,
+      clusterProperties: { listingCount: ["+", ["get", "memberCount"]] },
     });
     // Mirror only on real data edits. Selection/hover change feature state on
     // both sources, never their data, so a highlight survives any cluster zoom.
@@ -154,7 +170,7 @@ export class WebMapLayerRenderer {
     });
     const specs: LayerSpecification[] = [
       {
-        id: WEB_PIN_LAYER, type: "symbol", slot: "top", source: WEB_PIN_SOURCE, filter: ["!", ["has", "point_count"]],
+        id: WEB_PIN_LAYER, type: "symbol", source: WEB_PIN_SOURCE, filter: ["!", ["has", "point_count"]],
         layout: {
           "icon-image": ["get", "image"], "icon-anchor": "bottom", "icon-offset": [0, 4],
           "icon-allow-overlap": true, "icon-ignore-placement": true,
@@ -163,25 +179,25 @@ export class WebMapLayerRenderer {
         paint: { "icon-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0, 1], "icon-opacity-transition": { duration: 0 }, "icon-occlusion-opacity": 1 },
       },
       {
-        id: WEB_CLUSTER_SHADOW, type: "circle", slot: "top", source: WEB_PIN_SOURCE, filter: ["has", "point_count"],
+        id: WEB_CLUSTER_SHADOW, type: "circle", source: WEB_PIN_SOURCE, filter: ["has", "point_count"],
         paint: {
-          "circle-radius": ["step", ["get", "point_count"], 21, 5, 24, 10, 27, 20, 30],
+          "circle-radius": ["step", ["get", "listingCount"], 24, 10, 34, 50, 44],
           "circle-color": "#121826", "circle-opacity": 0.2, "circle-blur": 0.5, "circle-translate": [0, 2],
           "circle-pitch-alignment": "viewport", "circle-pitch-scale": "viewport",
         },
       },
       {
-        id: WEB_CLUSTER_LAYER, type: "circle", slot: "top", source: WEB_PIN_SOURCE, filter: ["has", "point_count"],
+        id: WEB_CLUSTER_LAYER, type: "circle", source: WEB_PIN_SOURCE, filter: ["has", "point_count"],
         paint: {
-          "circle-radius": ["step", ["get", "point_count"], 17, 5, 20, 10, 23, 20, 26],
-          "circle-color": "#C23B2E", "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 2.5,
+          "circle-radius": ["step", ["get", "listingCount"], 20, 10, 30, 50, 40],
+          "circle-color": "#ea3f4a", "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 1,
           "circle-pitch-alignment": "viewport", "circle-pitch-scale": "viewport",
         },
       },
       {
-        id: WEB_CLUSTER_COUNT, type: "symbol", slot: "top", source: WEB_PIN_SOURCE, filter: ["has", "point_count"],
+        id: WEB_CLUSTER_COUNT, type: "symbol", source: WEB_PIN_SOURCE, filter: ["has", "point_count"],
         layout: {
-          "icon-image": ["concat", CLUSTER_IMAGE_PREFIX, ["to-string", ["get", "point_count"]]],
+          "icon-image": ["concat", CLUSTER_IMAGE_PREFIX, ["to-string", ["get", "listingCount"]]],
           "icon-allow-overlap": true, "icon-ignore-placement": true,
           "icon-pitch-alignment": "viewport", "icon-rotation-alignment": "viewport",
         },
@@ -192,7 +208,7 @@ export class WebMapLayerRenderer {
         paint: { "icon-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0, 1], "icon-opacity-transition": { duration: 0 }, "icon-occlusion-opacity": 1 },
       },
       {
-        id: WEB_ACTIVE_LAYER, type: "symbol", slot: "top", source: WEB_ACTIVE_SOURCE,
+        id: WEB_ACTIVE_LAYER, type: "symbol", source: WEB_ACTIVE_SOURCE,
         layout: {
           "icon-image": ["get", "activeImage"], "icon-anchor": "bottom", "icon-offset": [0, 4], "icon-size": 1.06,
           "icon-allow-overlap": true, "icon-ignore-placement": true,
@@ -205,22 +221,31 @@ export class WebMapLayerRenderer {
       if (this.options.cluster === false && spec.id !== WEB_PIN_LAYER) continue;
       if (!this.map.getLayer(spec.id)) this.map.addLayer(spec);
     }
-    this.keepRouteBelowPins();
+    this.keepPinsAboveBasemap();
     this.restoreActive();
   };
 
-  private keepRouteBelowPins(): void {
-    // Standard can defer the existing route's insertion until a later idle.
+  private keepPinsAboveBasemap(): void {
+    // Standard's "top" slot is BELOW place/transit labels. Unslotted layers
+    // render above its imported basemap; moving within "top" cannot fix that.
     const layers = this.map.getStyle().layers ?? [];
-    const route = layers.findIndex((layer) => layer.id === "studently-campus-line-layer");
-    const pins = layers.findIndex((layer) => layer.id === WEB_PIN_LAYER);
-    if (route >= 0 && pins >= 0 && route > pins) this.map.moveLayer("studently-campus-line-layer", WEB_PIN_LAYER);
+    const pins = WEB_PIN_LAYERS.filter(id => this.map.getLayer(id));
+    for (const id of pins) {
+      if (this.map.getSlot(id)) this.map.setSlot(id, null);
+    }
+    // Append the whole group, preserving its order and leaving routes below
+    // it, even if a route or root-style label was inserted after installation.
+    // Do nothing once ordered: unconditional moves would cause an idle loop.
+    const tail = layers.slice(-pins.length);
+    if (pins.some((id, index) => tail[index]?.id !== id)) {
+      for (const id of pins) this.map.moveLayer(id);
+    }
   }
 
   private onIdle = (): void => {
     if (this.disposed || !this.fontsReady) return;
     if (!this.map.getSource(WEB_PIN_SOURCE)) { this.install(); return; }
-    this.keepRouteBelowPins();
+    this.keepPinsAboveBasemap();
     // Wait for source workers to finish before retiring old price sprites.
     for (const id of this.map.listImages()) {
       if (id.startsWith(PIN_IMAGE_PREFIX) && !this.priceImages.has(id)) this.map.removeImage(id);
@@ -234,6 +259,7 @@ export class WebMapLayerRenderer {
     this.map.off("load", this.install);
     this.map.off("styleimagemissing", this.onMissingImage);
     this.map.off("idle", this.onIdle);
+    window.removeEventListener(BRAND_PALETTE_EVENT, this.repaintPins);
     if (!this.map.isStyleLoaded()) return; // The owning map is being destroyed too.
     for (const id of [...WEB_PIN_LAYERS].reverse()) if (this.map.getLayer(id)) this.map.removeLayer(id);
     if (this.map.getSource(WEB_PIN_SOURCE)) this.map.removeSource(WEB_PIN_SOURCE);

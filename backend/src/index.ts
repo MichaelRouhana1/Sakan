@@ -6,7 +6,10 @@ import { resolveWhishMode } from "./modules/credits/whish.service.js";
 const env = loadEnv();
 const app = createApp();
 
-app.listen(env.PORT, "0.0.0.0", () => {
+// exclusive: another dev server (Next defaults to 3001 when 3000 is taken)
+// must not share this port. On Windows a shared bind accepts connections
+// that never reach this API, and the browser times out.
+const server = app.listen({ port: env.PORT, host: "0.0.0.0", exclusive: true }, () => {
   console.log(`API listening on http://0.0.0.0:${env.PORT}`);
   console.log(`Whish Pay: ${resolveWhishMode(env)}`);
   if (env.PUBLIC_BASE_URL) {
@@ -23,4 +26,15 @@ app.listen(env.PORT, "0.0.0.0", () => {
       "MAPBOX_ACCESS_TOKEN is unset — walking routes will fall back to a straight line and will not be cached.",
     );
   }
+});
+
+server.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `Port ${env.PORT} is already in use. Stop the other process before starting the API.`,
+    );
+  } else {
+    console.error(err);
+  }
+  process.exit(1);
 });

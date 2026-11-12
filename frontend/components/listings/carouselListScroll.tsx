@@ -17,14 +17,6 @@ export function useCarouselListScroll() {
   return useContext(CarouselListScrollContext);
 }
 
-function nativeScrollOf(list: FlatList | null) {
-  const anyList = list as FlatList & {
-    getNativeScrollRef?: () => { setNativeProps?: (p: object) => void };
-    getScrollResponder?: () => { setNativeProps?: (p: object) => void };
-  };
-  return anyList?.getNativeScrollRef?.() ?? anyList?.getScrollResponder?.();
-}
-
 /**
  * Parent list owns this. Attach `listRef` to FlatList.
  * Toggles native `scrollEnabled` via setNativeProps so a React re-render
@@ -35,7 +27,12 @@ export function useCarouselListScrollController() {
   const hold = useRef(0);
 
   const apply = useCallback((enabled: boolean) => {
-    nativeScrollOf(listRef.current)?.setNativeProps?.({ scrollEnabled: enabled });
+    const list = listRef.current as
+      | (FlatList & {
+          setNativeProps?: (props: { scrollEnabled: boolean }) => void;
+        })
+      | null;
+    list?.setNativeProps?.({ scrollEnabled: enabled });
   }, []);
 
   const lockListScroll = useCallback(() => {

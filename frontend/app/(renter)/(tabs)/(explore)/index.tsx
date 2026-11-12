@@ -672,7 +672,7 @@ export default function RenterNewHomeScreen() {
                   ]}
                   onPress={() => {
                     if (p.action === "list") {
-                      handleListPlace();
+                      openCreateListing(router);
                     } else {
                       pushSearch();
                     }
@@ -921,10 +921,10 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   heroImg: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   headerSpacer: {
     height: Platform.OS === "ios" ? 48 : 20,
@@ -1184,7 +1184,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   cityOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   cityName: {
     position: "absolute",

@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   missing: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
     alignItems: "center",
     justifyContent: "center",

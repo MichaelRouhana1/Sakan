@@ -11,6 +11,8 @@ import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
 import { rentPriceType } from "@/lib/rentPriceType";
 import type { Listing } from "@/types/listing";
 import { detailLabels } from '@/lib/listingDetailOwnership';
+import { placeExtras } from '@/lib/listingDetailDisplay';
+import { listingAmenityLabels } from '@/components/listings/detail/ListingDetailAmenities';
 
 type Props = {
   listing: Listing;
@@ -33,12 +35,8 @@ type Props = {
 const IS_WEB = Platform.OS === "web";
 
 function listingToc(listing: Listing, hasNearby: boolean): ListingTocItem[] {
-  if (listing.placeContext?.isMultiUnit) return [
-    { id: 'listing-other-units', icon: 'grid-outline', title: 'Other units' },
-    { id: 'listing-unit', icon: 'bed-outline', title: detailLabels(listing).unitTitle },
-    { id: 'listing-place', icon: 'business-outline', title: detailLabels(listing).placeTitle },
-  ];
   const items: ListingTocItem[] = [];
+  const multiUnit = listing.placeContext?.isMultiUnit === true;
   items.push({
     id: "listing-utilities",
     icon: "flash-outline",
@@ -64,11 +62,16 @@ function listingToc(listing: Listing, hasNearby: boolean): ListingTocItem[] {
       title: "About",
     });
   }
-  items.push({
-    id: "listing-amenities",
-    icon: "grid-outline",
-    title: "Amenities",
-  });
+  if (placeExtras(listing).visible) {
+    items.push({ id: 'listing-place', icon: 'business-outline', title: detailLabels(listing).placeTitle });
+  }
+  if (listingAmenityLabels(listing).length > 0) {
+    items.push({
+      id: "listing-amenities",
+      icon: "grid-outline",
+      title: "Amenities",
+    });
+  }
   if (
     listing.cancellationPolicy?.trim() ||
     listing.houseRules?.some((rule) => rule.trim())
@@ -78,6 +81,9 @@ function listingToc(listing: Listing, hasNearby: boolean): ListingTocItem[] {
       icon: "shield-checkmark-outline",
       title: "House rules",
     });
+  }
+  if (multiUnit) {
+    items.push({ id: 'listing-other-units', icon: 'layers-outline', title: 'Other units' });
   }
   if (listing.lat != null && listing.lng != null) {
     items.push({
@@ -417,7 +423,7 @@ const styles = StyleSheet.create({
         } as object)
       : null),
   },
-  solidHover: { backgroundColor: "#1E5BD6" },
+  solidHover: { backgroundColor: Studently.color.primaryPressed },
   solidText: {
     color: "#fff",
     fontFamily: Studently.type.bodySemi,
@@ -441,9 +447,7 @@ const styles = StyleSheet.create({
         } as object)
       : null),
   },
-  outlineHover: {
-    borderColor: "#1E5BD6",
-  },
+  outlineHover: { borderColor: Studently.color.primaryPressed },
   outlineText: {
     color: Studently.color.primary,
     fontFamily: Studently.type.bodySemi,

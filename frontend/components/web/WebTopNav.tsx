@@ -189,11 +189,6 @@ export function WebTopNav({ showSearch = false }: Props) {
     }
   }, [onBrowse, router]);
 
-  const handleLoginClick = () => {
-    setMenuOpen(false);
-    setAuthModalOpen(true);
-  };
-
   const handleProfileTriggerClick = () => {
     setMenuOpen((prev) => !prev);
   };
@@ -258,7 +253,7 @@ export function WebTopNav({ showSearch = false }: Props) {
           <ProductSwitchControl variant="toCampus" />
           <DownloadAppButton />
 
-          {showBecomeAHost ? (
+          {!isSignedIn || showBecomeAHost ? (
             <Pressable
               onPress={handleBecomeAHostClick}
               accessibilityRole="button"
@@ -286,17 +281,6 @@ export function WebTopNav({ showSearch = false }: Props) {
 
           {/* PROFILE & LOGIN HEADER CONTAINER */}
           <View style={styles.profileNavWrap}>
-            {!isSignedIn ? (
-              <Pressable
-                onPress={handleLoginClick}
-                style={styles.loginBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Login"
-              >
-                <Text style={styles.loginBtnText}>Login</Text>
-              </Pressable>
-            ) : null}
-
             <Pressable
               onPress={handleProfileTriggerClick}
               style={({ pressed }) => [
@@ -336,7 +320,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                       }}
                     >
                       <Text style={styles.loginToContinueText}>
-                        Login to Continue
+                        Login or sign up
                       </Text>
                     </Pressable>
                   ) : (
@@ -534,16 +518,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginLeft: 4,
-  },
-  loginBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: Studently.radius.sm,
-  },
-  loginBtnText: {
-    fontFamily: Studently.type.bodyBold,
-    fontSize: 15,
-    color: Studently.color.ink,
   },
   profileAvatarTrigger: {
     width: 40,

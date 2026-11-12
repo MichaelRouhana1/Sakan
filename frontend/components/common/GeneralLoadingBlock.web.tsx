@@ -5,11 +5,11 @@ import { LText } from "@/components/lister/Typography";
 import type { GeneralLoadingBlockProps } from "@/components/common/GeneralLoadingBlock.types";
 
 /**
- * Flatten every grey/white canvas pixel to black, then recolor to Studently ocean
- * `#2F6FED`. Hue-rotate alone cannot tint near-white cores, so they stayed grey.
+ * Flatten every grey/white canvas pixel to black, then recolor with the active
+ * brand. Hue-rotate alone cannot tint near-white cores, so they stayed grey.
+ * `--sk-orb-tint` swaps with the palette.
  */
-const OCEAN_TINT =
-  "brightness(0) invert(48%) sepia(25.5%) saturate(2500%) hue-rotate(181.4deg) brightness(77.1%) contrast(77.3%)";
+const ORB_TINT = "var(--sk-orb-tint)";
 
 /** `thinking-orbs` only ships 64 and 20 presets; 32 uses the 64 design at 32px. */
 function orbPresetSize(size: NonNullable<GeneralLoadingBlockProps["size"]>): OrbSize {
@@ -45,7 +45,7 @@ export function GeneralLoadingBlock({
         size={orbSize}
         theme={orbTheme}
         aria-label={label}
-        style={{ filter: OCEAN_TINT, width: size, height: size }}
+        style={{ filter: ORB_TINT, width: size, height: size }}
       />
       {label && showLabel ? (
         <LText

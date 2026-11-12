@@ -1,4 +1,4 @@
-import type { Router } from "expo-router";
+import type { ImperativeRouter } from "expo-router";
 import { api } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { getSession, setSession } from "@/lib/session";
@@ -37,7 +37,7 @@ export async function switchToRole(role: UserRole): Promise<User> {
 }
 
 /** Open listing wizard — resumes this account's main draft if one exists. */
-export function openCreateListing(router: Pick<Router, "push">): void {
+export function openCreateListing(router: Pick<ImperativeRouter, "push">): void {
   router.push({
     pathname: "/(poster)/create",
     params: { new: undefined, working: undefined },
@@ -45,7 +45,7 @@ export function openCreateListing(router: Pick<Router, "push">): void {
 }
 
 /** Open listing wizard from step 0 without loading an existing local checkpoint. */
-export function openNewCreateListing(router: Pick<Router, "push">): void {
+export function openNewCreateListing(router: Pick<ImperativeRouter, "push">): void {
   router.push({
     pathname: "/(poster)/create",
     params: { new: "1", working: undefined },
@@ -53,7 +53,7 @@ export function openNewCreateListing(router: Pick<Router, "push">): void {
 }
 
 /** Resume the in-progress "new listing" working draft. */
-export function openWorkingCreateListing(router: Pick<Router, "push">): void {
+export function openWorkingCreateListing(router: Pick<ImperativeRouter, "push">): void {
   router.push({
     pathname: "/(poster)/create",
     params: { new: undefined, working: "1" },

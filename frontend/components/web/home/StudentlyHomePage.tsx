@@ -17,6 +17,7 @@ import {
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
+import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 import { Studently } from "@/constants/theme";
@@ -26,7 +27,6 @@ import { openCreateListing } from "@/features/auth/useEnsureSession";
 import { useHostingNavState } from "@/features/listings/useHostingNavState";
 import {
   AREA_REGIONS,
-  DEMO_LISTINGS,
   DIRECTORY_AREAS,
   DIRECTORY_UNIS,
   HERO,
@@ -40,16 +40,17 @@ import {
   TESTIMONIALS,
   VALUE_PROPS,
   areaTileImage,
-  type DemoListing,
   type HomeDiscoverTabId,
 } from "./homeData";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { useHomePopular } from "@/features/listings/useHomePopular";
+import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
 import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
 import { InsightsMarquee } from "./InsightsMarquee";
+import type { Listing } from "@/types/listing";
 
 const IS_WEB = Platform.OS === "web";
 const PAD_X = 80;
@@ -67,6 +68,8 @@ function fitCityTileSize(
   );
 }
 
+/** Area/uni tiles stay card-sized. Filling the row is only for a full set. */
+const CITY_TILE_MAX = 300;
 const LISTING_CARD_GAP = 12;
 const LISTING_CARD_IDEAL = 240;
 /** Floor so 5–6 desktop cards still fit; narrower viewports scroll instead. */
@@ -224,11 +227,6 @@ function HomeNav({
       "Account"
     : "Account";
 
-  const handleLoginClick = () => {
-    setMenuOpen(false);
-    onRequestAuth();
-  };
-
   const handleProfileClick = () => {
     setMenuOpen((prev) => !prev);
   };
@@ -283,7 +281,7 @@ function HomeNav({
           />
           <DownloadAppButton isDarkNav={!solid} />
 
-          {showBecomeAHost ? (
+          {!isSignedIn || showBecomeAHost ? (
             <Pressable
               onPress={handleBecomeAHostClick}
               accessibilityRole="button"
@@ -319,14 +317,6 @@ function HomeNav({
             </Pressable>
           ) : null}
 
-          {!isSignedIn ? (
-            <Pressable onPress={handleLoginClick} accessibilityRole="button" style={styles.homeLoginTextBtn}>
-              <Text style={[styles.navLink, solid && styles.navLinkSolid, { fontFamily: Studently.type.bodyBold }]}>
-                Login
-              </Text>
-            </Pressable>
-          ) : null}
-
           <View style={{ position: "relative" }}>
             <Pressable
               onPress={handleProfileClick}
@@ -356,7 +346,7 @@ function HomeNav({
                       }}
                     >
                       <Text style={styles.homeLoginBannerText}>
-                        Login to Continue
+                        Login or sign up
                       </Text>
                     </Pressable>
                   ) : (
@@ -466,66 +456,14 @@ function SearchPill() {
 function ListingCard({
   item,
   width = LISTING_CARD_IDEAL,
-  onRequestAuth,
 }: {
-  item: DemoListing;
+  item: Listing;
   width?: number;
-  onRequestAuth: () => void;
 }) {
-  const [slide, setSlide] = useState(0);
-  const img = item.images[slide] ?? item.images[0];
-
   return (
-    <Pressable
-      style={[styles.card, { width }]}
-      onPress={() => goBrowse({ areas: [item.area] })}
-      accessibilityRole="link"
-      accessibilityLabel={`${item.title} in ${item.area}`}
-    >
-      <View style={styles.cardMedia}>
-        <Image source={{ uri: img }} style={styles.cardImg} resizeMode="cover" />
-        {item.tag ? (
-          <View style={styles.cardTag}>
-            <Text style={styles.cardTagText}>{item.tag}</Text>
-          </View>
-        ) : null}
-        <Pressable
-          style={styles.heart}
-          onPress={onRequestAuth}
-          accessibilityLabel="Save"
-        >
-          <Ionicons name="heart-outline" size={18} color="#fff" />
-        </Pressable>
-        {item.images.length > 1 ? (
-          <View style={styles.dots}>
-            {item.images.map((_, i) => (
-              <Pressable
-                key={i}
-                onPress={() => setSlide(i)}
-                style={[styles.dot, i === slide && styles.dotActive]}
-              />
-            ))}
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.cardTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-        <Text style={styles.cardArea}>{item.area}, LB</Text>
-        <View style={styles.utilRow}>
-          {item.utilities.slice(0, 3).map((u) => (
-            <View key={u} style={styles.utilChip}>
-              <Text style={styles.utilChipText}>{u}</Text>
-            </View>
-          ))}
-        </View>
-        <Text style={styles.cardPrice}>
-          From ${item.priceUsd}
-          <Text style={styles.cardPriceUnit}> / month</Text>
-        </Text>
-      </View>
-    </Pressable>
+    <View testID={`home-listing-${item.id}`} style={{ width, flexShrink: 0 }}>
+      <ListingResultCard listing={item} badgeLimit={3} />
+    </View>
   );
 }
 
@@ -534,10 +472,15 @@ export function StudentlyHomePage() {
   const [navSolid, setNavSolid] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
-  const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
+  const [railPill, setRailPill] = useState<string>("All areas");
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
   const homePopular = useHomePopular();
   const universities = useUniversities();
+  const homeListings = useListings({
+    sort: "newest",
+    pageSize: 6,
+    areas: railPill === "All areas" ? undefined : [railPill],
+  });
 
   const openAuth = () => setAuthModalOpen(true);
 
@@ -625,17 +568,33 @@ export function StudentlyHomePage() {
 
   const discoverTiles = discoverTab === "areas" ? areaTiles : uniTiles;
 
-  /** 2-row column-flow → columns = ceil(n / 2); size so every column fits. */
-  const cityCols = Math.max(1, Math.ceil(Math.max(discoverTiles.length, 1) / 2));
-  const tileSize = fitCityTileSize(innerW, cityCols, cityGap);
+  /**
+   * Two rows once there are enough tiles to stay near card size.
+   * A short list used to be one column of full-width squares (two areas
+   * became a 1240px photo stacked on the next photo).
+   */
+  const cityCount = Math.max(discoverTiles.length, 1);
+  const cityRows = cityCount <= 3 ? 1 : 2;
+  const cityCols = Math.ceil(cityCount / cityRows);
+  const fittedTile = fitCityTileSize(innerW, cityCols, cityGap);
+  const tileSize = Math.min(CITY_TILE_MAX, fittedTile);
+  const cityFill = fittedTile <= CITY_TILE_MAX;
 
+  const railPills = ["All areas", ...(homePopular.data?.areas.length
+    ? homePopular.data.areas.map(area => area.name)
+    : RAIL_PILLS)];
   const railListings = useMemo(() => {
-    const match = DEMO_LISTINGS.filter((l) => l.area === railPill);
-    const rest = DEMO_LISTINGS.filter((l) => l.area !== railPill);
-    return [...match, ...rest].slice(0, 6);
-  }, [railPill]);
+    const seen = new Set<string>();
+    return [...(homeListings.data?.featured ?? []), ...(homeListings.data?.listings ?? [])]
+      .filter(listing => {
+        if (seen.has(listing.id)) return false;
+        seen.add(listing.id);
+        return true;
+      })
+      .slice(0, 6);
+  }, [homeListings.data]);
 
-  /** Fit all demo cards in one row when possible (same idea as city tiles). */
+  /** Keep short rows card-sized; fit a full row when space allows. */
   const listingCount = railListings.length;
   const listingFitAll =
     listingCount > 0 &&
@@ -643,7 +602,7 @@ export function StudentlyHomePage() {
       (listingCount - 1) * LISTING_CARD_GAP <=
       innerW;
   const listingCardW = listingFitAll
-    ? fitCityTileSize(innerW, listingCount, LISTING_CARD_GAP)
+    ? Math.min(LISTING_CARD_IDEAL, fitCityTileSize(innerW, listingCount, LISTING_CARD_GAP))
     : Math.min(
         LISTING_CARD_IDEAL,
         Math.max(LISTING_CARD_MIN, Math.floor(innerW * 0.72)),
@@ -759,11 +718,15 @@ export function StudentlyHomePage() {
                   styles.citiesGrid,
                   {
                     display: "grid",
-                    gridTemplateColumns: `repeat(${cityCols}, minmax(0, 1fr))`,
-                    gridTemplateRows: `repeat(2, ${tileSize}px)`,
+                    gridTemplateColumns: cityFill
+                      ? `repeat(${cityCols}, minmax(0, 1fr))`
+                      : `repeat(${cityCols}, ${tileSize}px)`,
+                    gridTemplateRows: `repeat(${cityRows}, ${tileSize}px)`,
                     gridAutoFlow: "column",
+                    justifyContent: "start",
                     gap: cityGap,
-                    width: "100%",
+                    width: cityFill ? "100%" : "max-content",
+                    maxWidth: "100%",
                     overflow: "hidden",
                   } as object,
                 ]}
@@ -845,12 +808,14 @@ export function StudentlyHomePage() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pillRow}
           >
-            {RAIL_PILLS.map((p) => {
+            {railPills.map((p) => {
               const active = p === railPill;
               return (
                 <Pressable
                   key={p}
                   onPress={() => setRailPill(p)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                   style={[styles.railPill, active && styles.railPillActive]}
                 >
                   <Text
@@ -865,7 +830,18 @@ export function StudentlyHomePage() {
               );
             })}
           </ScrollView>
-          {listingFitAll ? (
+          {homeListings.isLoading ? (
+            <Text style={styles.sectionSub} accessibilityLiveRegion="polite">Loading places…</Text>
+          ) : homeListings.isError ? (
+            <View style={{ gap: 8, alignItems: "flex-start" }}>
+              <Text style={styles.sectionSub} accessibilityRole="alert">Places could not be loaded.</Text>
+              <Pressable accessibilityRole="button" onPress={() => { void homeListings.refetch(); }} style={styles.railPill}>
+                <Text style={styles.railPillText}>Try again</Text>
+              </Pressable>
+            </View>
+          ) : railListings.length === 0 ? (
+            <Text style={styles.sectionSub}>No live listings in this area yet.</Text>
+          ) : listingFitAll ? (
             <View
               style={[
                 styles.cardRailFit,
@@ -877,7 +853,6 @@ export function StudentlyHomePage() {
                   key={item.id}
                   item={item}
                   width={listingCardW}
-                  onRequestAuth={openAuth}
                 />
               ))}
             </View>
@@ -895,7 +870,6 @@ export function StudentlyHomePage() {
                   key={item.id}
                   item={item}
                   width={listingCardW}
-                  onRequestAuth={openAuth}
                 />
               ))}
             </ScrollView>
@@ -1040,7 +1014,7 @@ export function StudentlyHomePage() {
               source={{
                 uri: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=70",
               }}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               resizeMode="cover"
             />
             <View style={styles.bannerOverlay} />
@@ -1299,19 +1273,19 @@ const styles = StyleSheet.create({
   },
   heroNarrow: { minHeight: 560 },
   heroMedia: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
     pointerEvents: "none",
   },
   heroImg: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: "100%",
     height: "100%",
     // @ts-expect-error web object-position
     objectPosition: "right center",
   },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.2)",
   },
   heroContent: {
@@ -1571,13 +1545,13 @@ const styles = StyleSheet.create({
     display: "flex",
   },
   tileImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: "100%" as unknown as number,
     height: "100%" as unknown as number,
     zIndex: 0,
   },
   tileOverlayHost: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 1,
     pointerEvents: "none",
   },
@@ -1874,7 +1848,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   bannerOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(18,24,38,0.55)",
   },
   bannerTitle: {
@@ -2011,11 +1985,6 @@ const styles = StyleSheet.create({
     color: Studently.color.inkFaint,
   },
 
-  homeLoginTextBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    justifyContent: "center",
-  },
   homeBackdrop: {
     position: "fixed" as unknown as "absolute",
     top: 0,

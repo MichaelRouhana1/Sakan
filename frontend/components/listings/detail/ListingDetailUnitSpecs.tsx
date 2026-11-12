@@ -68,6 +68,13 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
       icon: "resize-outline",
     });
   }
+  if (listing.bedsAvailable != null && listing.bedsTotal != null) {
+    rows.push({
+      label: "Beds open",
+      value: `${listing.bedsAvailable} of ${listing.bedsTotal} available`,
+      icon: "people-outline",
+    });
+  }
   if (floor != null && String(floor).length > 0) {
     rows.push({ label: "Floor", value: String(floor), icon: "layers-outline" });
   }

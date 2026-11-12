@@ -1,27 +1,21 @@
 import type { ReactNode } from "react";
+import { brandPaletteCss } from "@/constants/brandPalette";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 import { CAMPUS_CSS } from "@/styles/campusCssText";
 import { PROFILE_CSS } from "@/styles/profileCssText";
 
 const BG = "#F9FAFB";
 
+/** Applies the stored palette before first paint. Key matches brandPalette.ts. */
+const BRAND_PALETTE_BOOT = `(function(){try{if(localStorage.getItem("studently-brand-palette")==="ocean")document.documentElement.setAttribute("data-palette","ocean");}catch(e){}})();`;
+
 /** Homepage motion + tokens — kept in +html so Expo Router does not treat it as a route module. */
 const STUDENTLY_HOME_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 
+${brandPaletteCss}
+
 :root {
-  --sk-primary: #2F6FED;
-  --sk-primary-deep: #121826;
-  --sk-primary-soft: #A8C4F0;
-  --sk-primary-mist: #E8EEF6;
-  --sk-bg: #F9FAFB;
-  --sk-bg-wash: #E2E8F0;
-  --sk-surface: #FFFFFF;
-  --sk-ink: #121826;
-  --sk-muted: #5B6570;
-  --sk-faint: #8B95A1;
-  --sk-border: #C5CDD8;
-  --sk-danger: #B42318;
   --sk-radius: 8px;
   --sk-radius-pill: 999px;
   --sk-pad-x: clamp(16px, 5vw, 80px);
@@ -94,7 +88,7 @@ const STUDENTLY_HOME_CSS = `
 .sk-skel-shine {
   position: relative;
   overflow: hidden;
-  background-color: #E2E8F0;
+  background-color: var(--sk-bg-wash);
 }
 .sk-skel-shine::after,
 .sk-skel-sweep {
@@ -209,7 +203,8 @@ export default function Root({ children }: { children: ReactNode }) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <meta name="theme-color" content="#121826" />
+        <meta name="theme-color" content="#1A1A1A" />
+        <script dangerouslySetInnerHTML={{ __html: BRAND_PALETTE_BOOT }} />
         <meta
           name="description"
           content="Studently — Lebanon rental classifieds. Find rooms and apartments by area or university, then connect on WhatsApp."

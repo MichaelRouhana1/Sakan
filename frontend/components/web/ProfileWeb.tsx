@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     marginLeft: 0,
   },
   shotFallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Studently.color.primaryMist,
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   dialogBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Studently.color.overlay,
   },
   dialog: {
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   dialogBusy: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(255,255,255,0.6)",
     alignItems: "center",
     justifyContent: "center",

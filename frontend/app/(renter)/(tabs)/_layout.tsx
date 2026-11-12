@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { DynamicColorIOS, Platform } from "react-native";
 import { router, useSegments } from "expo-router";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import { Studently } from "@/constants/theme";
 import { useMigrateLocalSaved } from "@/features/saved/useSavedListings";
 

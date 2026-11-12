@@ -57,9 +57,6 @@ export class CreditsService {
     if (!user) {
       throw new NotFoundError("User not found");
     }
-    if (user.role !== "poster") {
-      throw new ForbiddenError("Only hosts can purchase credits");
-    }
     if (user.accountStatus === "restricted" || user.accountStatus === "banned") {
       throw new ForbiddenError("This account cannot purchase credits");
     }

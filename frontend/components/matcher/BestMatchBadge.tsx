@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   badgeFocus: {
     borderColor: Studently.color.primary,
-    boxShadow: "0 0 0 2px #FFFFFF, 0 0 0 4px #2F6FED",
+    boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 4px ${Studently.color.primary}`,
   },
   label: {
     fontFamily: Studently.type.bodySemi,

@@ -49,8 +49,8 @@ export function MenuCubes() {
         }
         .matcher-cubes-cell {
           box-sizing: border-box;
-          border: 0.5px solid #D5DCE7;
-          background: rgba(47, 111, 237, 0.1);
+          border: 0.5px solid var(--sk-border);
+          background: color-mix(in srgb, var(--sk-primary) 10%, transparent);
           opacity: 0.4;
           pointer-events: none;
         }

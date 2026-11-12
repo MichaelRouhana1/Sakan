@@ -1,46 +1,14 @@
 /**
- * Studently Lister design system — calm hospitality, cool bank-blue.
- * Brand: Ocean / cerulean #2F6FED (from bank UI reference — not jade, not neon cyan).
- * Campus / secondary accent uses deep navy (no brass/gold). Typography: DM Sans.
+ * Studently Lister design system.
+ * Native ships the madder palette. Web resolves the same keys through
+ * `--sk-*` so the admin switch can restore `oceanPalette`.
  */
+import { madderPalette } from "./brandPalette";
+
+export { madderPalette, oceanPalette } from "./brandPalette";
+
 export const Lister = {
-  color: {
-    /** Ocean / cerulean — primary brand (links, icons, interactive accents) */
-    primary: "#2F6FED",
-    /** Deep navy — headers, strong nav mark, high-contrast text-on-light */
-    primaryDeep: "#121826",
-    /** Soft blue frost — mid washes / soft chip fills */
-    primarySoft: "#A8C4F0",
-    /** Misty blue diluted — light accents, calm selected washes */
-    primaryMist: "#E8EEF6",
-    /**
-     * Secondary accent (campus marks, draft chips). Cool navy — not brass/gold.
-     * Kept as `brass` key for call-site compatibility.
-     */
-    brass: "#121826",
-    brassSoft: "#E8EEF6",
-    /** Charcoal-navy ink (tuned for contrast on cool wash) */
-    ink: "#121826",
-    inkMuted: "#5B6570",
-    inkFaint: "#8B95A1",
-    /** Pale cool gray — calm screen ground */
-    bg: "#F9FAFB",
-    bgWash: "#E2E8F0",
-    surface: "#FFFFFF",
-    surfaceMuted: "#F5F7FA",
-    border: "#C5CDD8",
-    borderStrong: "#9AA6B5",
-    active: "#2F6FED",
-    draft: "#5B6570",
-    archived: "#6B7280",
-    removed: "#9B2C2C",
-    danger: "#B42318",
-    dangerSoft: "#FEE4E2",
-    success: "#2F6FED",
-    warning: "#B45309",
-    warningSoft: "#FEF3C7",
-    overlay: "rgba(18, 24, 38, 0.45)",
-  },
+  color: madderPalette,
   space: {
     xs: 4,
     sm: 8,

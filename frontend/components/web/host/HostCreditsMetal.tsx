@@ -140,15 +140,19 @@ export function WhishPayButton({
   disabled,
   onPress,
   active = true,
+  pulseWhileDisabled = false,
 }: {
   label: string;
   disabled: boolean;
   onPress: () => void;
   active?: boolean;
+  /** Keep the $15-style glow at full strength while the button cannot be bought yet. */
+  pulseWhileDisabled?: boolean;
 }) {
+  const dim = disabled && !pulseWhileDisabled;
   return (
-    <View style={[styles.ctaWrap, disabled && styles.ctaDisabled]}>
-      <Pulse active={active && !disabled} outside />
+    <View style={[styles.ctaWrap, dim && styles.ctaDisabled]}>
+      <Pulse active={active && !dim} outside />
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled, busy: disabled }}

@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: Studently.color.bgWash,
   },
   thumbFallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: Studently.color.primaryMist,

@@ -471,9 +471,6 @@ export function ListingResultCard({
               {rentLabel}
               <Text style={styles.priceUnit}> / month</Text>
             </Text>
-            <View style={styles.cta}>
-              <Text style={styles.ctaText}>View Listing</Text>
-            </View>
           </View>
         </View>
       </>
@@ -815,19 +812,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Studently.type.bodyMedium,
     color: Studently.color.inkMuted,
-  },
-  cta: {
-    marginTop: 10,
-    backgroundColor: Studently.color.primary,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  ctaText: {
-    fontFamily: Studently.type.bodyBold,
-    fontSize: 13,
-    color: "#FFFFFF",
   },
 
   // Grid — Amber density (~40% image, tight body, compact pills)

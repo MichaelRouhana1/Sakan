@@ -13,12 +13,14 @@ type Props = {
     | "wifiIncluded"
     | "routerUps"
     | "elevator24_7"
+    | "hasElevator"
     | "waterBillIncluded"
     | "buildingFeesIncluded"
     | "parkingIncludedInRent"
     | "amenities"
   >;
   compact?: boolean;
+  variant?: "default" | "detail";
 };
 
 function Badge({
@@ -38,7 +40,7 @@ function Badge({
   );
 }
 
-export function UtilityBadges({ listing, compact }: Props) {
+export function UtilityBadges({ listing, compact, variant = "default" }: Props) {
   const items: {
     icon: keyof typeof Ionicons.glyphMap;
     label: string;
@@ -69,14 +71,32 @@ export function UtilityBadges({ listing, compact }: Props) {
     items.push({ icon: "car-outline", label: "Parking in rent" });
   }
 
-  const shown = compact ? items.slice(0, 3) : items;
+  const detailItems: typeof items = [];
+  if (listing.electricity === "generator_24_7") {
+    detailItems.push({ icon: "flash-outline", label: "24/7 power" });
+  }
+  if (listing.wifiIncluded) {
+    detailItems.push({ icon: "wifi-outline", label: "Wi-Fi included" });
+  }
+  if (listing.water === "state_well_24_7") {
+    detailItems.push({ icon: "water-outline", label: "24/7 water" });
+  }
+  if (listing.hasElevator !== false && listing.elevator24_7) {
+    detailItems.push({ icon: "swap-vertical-outline", label: "24/7 elevator" });
+  }
+  if (listing.routerUps) {
+    detailItems.push({ icon: "battery-charging-outline", label: "Router backup" });
+  }
+  const detail = variant === "detail";
+  const shown = detail ? detailItems.slice(0, 3) : compact ? items.slice(0, 3) : items;
+  if (!shown.length) return null;
 
   return (
-    <View style={styles.row}>
+    <View style={styles.row} testID={detail ? "detail-utility-badges" : undefined}>
       {shown.map((item) => (
         <Badge key={item.label} icon={item.icon} label={item.label} />
       ))}
-      {compact && items.length > 3 ? (
+      {!detail && compact && items.length > 3 ? (
         <View style={styles.badge}>
           <LText variant="caption" tone="muted">
             +{items.length - 3}

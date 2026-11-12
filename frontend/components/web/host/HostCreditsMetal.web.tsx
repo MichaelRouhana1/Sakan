@@ -177,12 +177,16 @@ export function WhishPayButton({
   disabled,
   onPress,
   active = true,
+  pulseWhileDisabled = false,
 }: {
   label: string;
   disabled: boolean;
   onPress: () => void;
   active?: boolean;
+  /** Keep the $15-style glow at full strength while the button cannot be bought yet. */
+  pulseWhileDisabled?: boolean;
 }) {
+  const dim = disabled && !pulseWhileDisabled;
   return (
     <>
       <style>{CTA_BEAM_CSS}</style>
@@ -202,7 +206,7 @@ export function WhishPayButton({
           onClick={onPress}
           style={{
             ...CTA,
-            opacity: disabled ? 0.55 : 1,
+            opacity: dim ? 0.55 : 1,
             cursor: disabled ? "default" : "pointer",
           }}
         >

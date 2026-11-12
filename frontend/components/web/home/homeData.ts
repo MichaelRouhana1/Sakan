@@ -480,16 +480,23 @@ export const VALUE_PROPS = [
   },
 ] as const;
 
-export const PROMO_CARDS = [
+export const PROMO_CARDS: {
+  id: string;
+  title: string;
+  body: string;
+  cta: string;
+  tone: "deep" | "warm";
+  action: "browse" | "list";
+}[] = [
   {
     id: "browse",
     title: "Browse near campus",
     body: `Pick among ${CAMPUS_CATALOG.universities} universities and ${CAMPUS_CATALOG.campuses} campuses, then sort by distance to the gate.`,
     cta: "Open university hub",
-    tone: "deep" as const,
-    action: "browse" as const,
+    tone: "deep",
+    action: "browse",
   },
-] as const;
+];
 
 export const STEPS = [
   {

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { housingFixtures, sharedDefaults } from '../../src/db/seeds/housing-fixtures.mjs';
 import { seedTarget, assertSeedMarker } from './seed-guard.mjs';
+import { ensureClerkAdmin, seedAdminUser } from './seed-admin.mjs';
 // Frozen ID namespace, not branding. Fixture IDs derive from this string and are what
 // studently_ops.housing_seed_manifest, seed idempotency and manifest-only deletion match on.
 // Changing it would make a re-seed create a second demo set and orphan the first.
@@ -25,6 +26,7 @@ export async function seedHousing(client,raw=process.env){
  for(const asset of assets)await copyFile(fileURLToPath(new URL('../../src/db/seeds/assets/'+asset+'.png',import.meta.url)),path.join(destination,asset+'.png'));
  const base=(raw.PUBLIC_BASE_URL??'http://localhost:'+(raw.PORT??'3001')).replace(/\/$/,'');
  const photo=asset=>base+'/uploads/housing-demo-v1/'+asset+'.png';
+ const clerk=await ensureClerkAdmin(raw);
  return client.begin(async tx=>{
   await assertSeedMarker(tx,target);
   await tx`select pg_advisory_xact_lock(183710,2)`;
@@ -43,6 +45,7 @@ export async function seedHousing(client,raw=process.env){
    return true;
   }
   await insert('user','users',{id:ownerId,role:'poster',first_name:'Housing',last_name:'Demo',post_credits:99,boost_credits:0,boost_credit_units_version:1,legacy_boost_credit_unit_rate:1200,free_credit_claimed:true});
+  result.admin=await seedAdminUser(tx,fixtureId('admin'),clerk.clerkId);
   const now=new Date(); const future=new Date(now.getTime()+30*86400000); const past=new Date(now.getTime()-86400000);
   for(const fixture of housingFixtures){
    const [campus]=await tx`select id from universities where slug=${fixture.campus}`;

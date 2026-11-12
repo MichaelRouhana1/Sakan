@@ -21,7 +21,7 @@ for (const platform of ['android', 'ios']) {
     sha256: createHash('sha256').update(source).digest('hex'),
   })).sort((a, b) => a.file.localeCompare(b.file));
   assert.ok(local.some(module => module.file === 'components/listings/ListingBrowseMap.tsx'), `${platform} did not select the native map.`);
-  assert.ok(!local.some(module => /ListingBrowseMap\.web|FindBrowseSidebar|MobileMapSelection\.web|webMapData\.web|webMapPinRenderer\.web|webMapLayers\.web|webMapPinImages\.web|webMapCamera\.web|browseMapLayers\.web/.test(module.file)), `${platform} imported the web renderer.`);
+  assert.ok(!local.some(module => /ListingBrowseMap\.web|FindBrowseSidebar|MobileMapSelection\.web|webMapData\.web|webMapPinRenderer\.web|webMapLayers\.web|webMapPinImages\.web|webMapCamera\.web|webMapDisplayGroups\.web|webMapPopup\.web|browseMapLayers\.web/.test(module.file)), `${platform} imported the web renderer.`);
   graphs[platform] = { moduleCount: modules.length, local };
 }
 await mkdir(output, { recursive: true });

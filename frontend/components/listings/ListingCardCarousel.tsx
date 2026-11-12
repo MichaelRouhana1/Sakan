@@ -222,7 +222,7 @@ export function ListingCardCarousel({
           showsHorizontalScrollIndicator={false}
           overScrollMode="never"
           keyboardShouldPersistTaps="handled"
-          style={[StyleSheet.absoluteFillObject, styles.scroller]}
+          style={[StyleSheet.absoluteFill, styles.scroller]}
           contentContainerStyle={
             count > 1 ? styles.track : styles.singleContent
           }
@@ -272,13 +272,13 @@ export function ListingCardCarousel({
           ))}
         </ScrollView>
       ) : count > 0 ? (
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onPressCard}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onPressCard}>
           <Image
             source={{ uri: photos[0] }}
             style={[
               cardWidth > 0 && cardHeight > 0
                 ? { width: cardWidth, height: cardHeight }
-                : StyleSheet.absoluteFillObject,
+                : StyleSheet.absoluteFill,
               { pointerEvents: "none" },
             ]}
             contentFit="cover"
@@ -286,7 +286,7 @@ export function ListingCardCarousel({
         </Pressable>
       ) : (
         <View
-          style={[StyleSheet.absoluteFillObject, styles.fallback, { pointerEvents: "none" }]}
+          style={[StyleSheet.absoluteFill, styles.fallback, { pointerEvents: "none" }]}
         />
       )}
 
@@ -381,10 +381,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   fill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   viewport: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: "hidden",
     ...(Platform.OS === "web"
       ? ({
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
   },
   arrow: {

@@ -78,8 +78,36 @@ async function mapState(page, action = 'read', argument, selector = '.studently-
     if (action === 'reloadStyle') map.setStyle({ version: 8, sources: {}, layers: [
       { id: 'baseline-background', type: 'background', paint: { 'background-color': '#e8eef4' } },
     ] }, { diff: false });
+    if (action === 'reloadBasemapStyle') {
+      // Reproduce Standard's imported top slot BELOW place/transit labels.
+      // Empty label data avoids a remote glyph dependency in this order test.
+      const basemap = { version: 8, glyphs: 'mapbox://fonts/mapbox/{fontstack}/{range}.pbf', sources: { 'basemap-labels': { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } }, layers: [
+        { id: 'baseline-background', type: 'background', paint: { 'background-color': '#e8eef4' } },
+        { id: 'basemap-buildings', type: 'fill-extrusion', source: 'basemap-labels', paint: { 'fill-extrusion-height': 10 } },
+        { id: 'top', type: 'slot' },
+        { id: 'basemap-city-label', type: 'symbol', source: 'basemap-labels', layout: { 'text-field': 'Beirut' } },
+        { id: 'basemap-transit-label', type: 'symbol', source: 'basemap-labels', layout: { 'text-field': 'Transit' } },
+      ] };
+      map.setStyle(argument === 'imported'
+        ? { version: 8, imports: [{ id: 'basemap', data: basemap }], sources: {}, layers: [] }
+        : { ...basemap, layers: basemap.layers.filter(layer => layer.type !== 'slot') }, { diff: false });
+    }
+    if (action === 'lateBasemapLabel') {
+      const canvas = document.createElement('canvas'); canvas.width = 180; canvas.height = 48;
+      const context = canvas.getContext('2d');
+      context.font = 'bold 36px Arial'; context.fillStyle = '#111'; context.textAlign = 'center'; context.textBaseline = 'middle';
+      context.fillText('Beirut', 90, 24);
+      map.addImage('test-city-label', context.getImageData(0, 0, 180, 48));
+      map.addSource('late-basemap-label', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Point', coordinates: [35.48, 33.899] }, properties: {} } });
+      map.addLayer({ id: 'late-basemap-label', type: 'symbol', source: 'late-basemap-label', layout: { 'icon-image': 'test-city-label', 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+    }
     const source = map.getSource('studently-listing-points');
     const activeSource = map.getSource('studently-active-listing-points');
+    if (action === 'clusterWeights' && source) {
+      const data = structuredClone(source.serialize().data);
+      data.features.forEach((feature, index) => { feature.properties.memberCount = argument[index]; });
+      source.setData(data);
+    }
     if (action === 'delayClusterZoom' && source) {
       const getZoom = source.getClusterExpansionZoom.bind(source);
       source.getClusterExpansionZoom = (id, callback) => getZoom(id, (...result) => { map.__releaseClusterZoom = () => callback(...result); });
@@ -121,6 +149,12 @@ async function mapState(page, action = 'read', argument, selector = '.studently-
       center: [center.lng, center.lat], zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing(), moving: map.isMoving(),
       canvasWidth: canvas.clientWidth, canvasHeight: canvas.clientHeight,
       layers: layers.map(layer => layer.id),
+      // getStyle().layers excludes imported basemap labels. Audit Mapbox's
+      // effective draw order (including imports/slots), only in the test harness.
+      layerStack: map.isStyleLoaded() ? map.style.order.map(id => {
+        const layer = map.style.getLayer(id);
+        return { id, type: layer.type, slot: layer.slot ?? null };
+      }) : [],
       styleLoaded: map.isStyleLoaded(),
       loaded: map.loaded(),
       sourceLoaded: source ? map.isSourceLoaded('studently-listing-points') : false,
@@ -137,6 +171,17 @@ async function mapState(page, action = 'read', argument, selector = '.studently-
       layerImages: map.isStyleLoaded() ? map.listImages().filter(id => id.startsWith('studently-price-image:') || id.startsWith('studently-cluster-count:')) : [],
       layerPins: [...new Map(rendered.filter(feature => feature.layer.id === 'studently-listing-pins').map(feature => [feature.properties.groupId, feature.properties])).values()],
       layerClusters: [...new Map(rendered.filter(feature => feature.layer.id === 'studently-listing-clusters').map(feature => [feature.properties.cluster_id, { ...feature.properties, coordinates: feature.geometry.coordinates }])).values()],
+      clusterRadii: rendered.filter(feature => feature.layer.id === 'studently-listing-clusters').map(feature => ({
+        listingCount: feature.properties.listingCount,
+        radius: map.style.getLayer('studently-listing-clusters').paint.get('circle-radius').evaluate({ type: 1, properties: feature.properties }, {}),
+      })),
+      clusterStyle: map.getLayer('studently-listing-clusters') ? {
+        fill: map.getPaintProperty('studently-listing-clusters', 'circle-color'),
+        stroke: map.getPaintProperty('studently-listing-clusters', 'circle-stroke-color'),
+        strokeWidth: map.getPaintProperty('studently-listing-clusters', 'circle-stroke-width'),
+      } : null,
+      clusterSource: source ? { radius: source.serialize().clusterRadius, maxZoom: source.serialize().clusterMaxZoom,
+        properties: source.serialize().clusterProperties } : null,
       projected: argument?.coordinates ? map.project(argument.coordinates) : null,
       featureState: source && argument?.groupId ? map.getFeatureState({ source: 'studently-listing-points', id: argument.groupId }) : null,
       activeFeatureState: activeSource && argument?.groupId ? map.getFeatureState({ source: 'studently-active-listing-points', id: argument.groupId }) : null,
@@ -181,7 +226,7 @@ test.beforeEach(async ({ page }) => {
         state.mapRequestPending = true;
         await state.mapGate;
       }
-      let matches = state.many ? [...units, ...Array.from({ length: 18 }, (_, index) => unit(`extra-${index}`, 'shared', 800 + index, 33.899, 35.48))] : units;
+      let matches = state.units ?? (state.many ? [...units, ...Array.from({ length: 18 }, (_, index) => unit(`extra-${index}`, 'shared', 800 + index, 33.899, 35.48))] : units);
       if (state.distinct) matches = [...matches, ...Array.from({ length: 48 }, (_, index) => unit(`spread-${index}`, `spread-${index}`, 400 + index,
         33.899 + Math.sin(index * 2.4) * 0.003 * (index + 1), 35.48 + Math.cos(index * 2.4) * 0.003 * (index + 1)))];
       if (state.onlyShared) matches = matches.filter(listing => listing.placeId === 'shared');
@@ -685,6 +730,199 @@ async function settleMapCapture(page) {
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
+function ownerUnits(coincident = true, places = 2, members = null) {
+  return Array.from({ length: places }, (_, place) => Array.from({ length: members ?? (place === 0 ? 3 : 2) }, (_, index) => ({
+    ...unit(place === 0 && index === 0 ? 'room-a' : `owner-${place}-unit-${index}`, `owner-place-${place}`,
+      place === 1 ? 300 + index * 20 : 400 + index * 20, 33.899, 35.48 + (coincident ? 0 : place * 0.0001)),
+    posterId: `owner-${place}`, contactName: place === 0 ? 'Amina Public' : place === 1 ? 'Rami Public' : `Public Host ${place}`,
+    buildingName: place === 0 ? 'Cedar House' : place === 1 ? 'Garden House' : `Separate Place ${place}`,
+    contactPhone: '+961-private-phone', whatsappNumber: '+961-private-whatsapp',
+    contactNumbers: [{ e164: '+961-hidden-contact' }],
+  }))).flat();
+}
+
+for (const basemap of ['imported', 'classic']) test(`browse pins stay above basemap labels after reload and 3D toggle (${basemap})`, async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile-web';
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await openMap(page, '?mapPins=layers&universitySlugs=aub');
+  await page.getByRole('combobox', { name: 'Choose a listing on the map' }).selectOption('place:shared');
+  await expect(cardHost(page, mobile).locator('.studently-amber-popup-group')).toBeVisible();
+  const own = ['studently-listing-pins', 'studently-listing-cluster-shadow', 'studently-listing-clusters',
+    'studently-listing-cluster-count', 'studently-active-listing-pin'];
+  const ordered = async () => {
+    const state = await mapState(page);
+    const stack = state.layerStack;
+    const symbols = stack.filter(layer => layer.type === 'symbol' && !own.includes(layer.id));
+    if (symbols.length < 2 || !own.every(id => stack.some(layer => layer.id === id))) return false;
+    const lastBasemapSymbol = Math.max(...symbols.map(layer => stack.indexOf(layer)));
+    const pins = stack.filter(layer => own.includes(layer.id));
+    return pins.every(layer => stack.indexOf(layer) > lastBasemapSymbol && layer.slot === null)
+      && pins.map(layer => layer.id).join() === own.join()
+      && stack.findIndex(layer => layer.id === 'studently-campus-line-layer') >= 0
+      && stack.findIndex(layer => layer.id === 'studently-campus-line-layer') < stack.findIndex(layer => layer.id === own[0]);
+  };
+  if (liveStyle) {
+    await expect.poll(ordered, { timeout: 45_000 }).toBe(true);
+    await writeFile(path.join(output, `${info.project.name}-live-label-order.json`), JSON.stringify(await mapState(page), null, 2));
+  }
+  await mapState(page, 'reloadBasemapStyle', basemap);
+  await expect.poll(async () => (await mapState(page)).layerStack.filter(layer => layer.type === 'symbol' && !own.includes(layer.id)).length,
+    { timeout: 15_000 }).toBe(2);
+  await expect.poll(async () => {
+    const ids = (await mapState(page)).layerStack.map(layer => layer.id);
+    return own.every(id => ids.includes(id));
+  }, { timeout: 15_000 }).toBe(true);
+  await expect.poll(ordered, { timeout: 15_000 }).toBe(true);
+  // Adding an unslotted label after installation must not steal the top of the
+  // stack. The idle repair also handles a route inserted later by Standard.
+  await mapState(page, 'lateBasemapLabel');
+  await expect.poll(ordered).toBe(true);
+  await mapState(page, 'jump', { center: [35.48, 33.899], zoom: 12 });
+  await expect.poll(async () => (await mapState(page)).layerClusters.length).toBeGreaterThan(0);
+  await expect.poll(async () => (await mapState(page)).activePins.map(pin => pin.groupId)).toEqual(['place:shared']);
+  await settleMapCapture(page);
+  await page.screenshot({ path: path.join(output, `${info.project.name}-${basemap}-labels-below-pins.png`) });
+  for (const pitch of [60, 0]) {
+    await activate(mapHost(page).getByRole('button', { name: pitch ? 'Switch to 3D map' : 'Switch to 2D map' }), mobile);
+    await expect.poll(async () => (await mapState(page)).pitch).toBe(pitch);
+    await expect.poll(ordered).toBe(true);
+    await expect(cardHost(page, mobile).locator('.studently-amber-popup-group')).toBeVisible();
+  }
+  // A second full replacement must rebuild the same ordering and highlight.
+  await mapState(page, 'reloadBasemapStyle', basemap);
+  await expect.poll(ordered, { timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => (await mapState(page)).activePins.map(pin => pin.groupId)).toEqual(['place:shared']);
+  expect(errors).toEqual([]);
+  await writeFile(path.join(output, `${info.project.name}-${basemap}-label-order.json`), JSON.stringify(await mapState(page), null, 2));
+});
+
+test('listing-count clusters aggregate 3+2=5, use the size tiers, and retain expansion/style recovery', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile-web';
+  fixtureState.get(page).units = ownerUnits(false);
+  await openMap(page, '?mapPins=layers');
+  await mapState(page, 'jump', { center: [35.48, 33.899], zoom: 15 });
+  await expect.poll(async () => (await mapState(page)).layerClusters.some(cluster => cluster.point_count === 2 && cluster.listingCount === 5)).toBe(true);
+  await expect.poll(async () => (await mapState(page)).layerImages.includes('studently-cluster-count:5')).toBe(true);
+  expect((await mapState(page)).clusterSource).toEqual({ radius: 52, maxZoom: 16, properties: { listingCount: ['+', ['get', 'memberCount']] } });
+  const tiers = [];
+  for (const [count, radius] of [[2, 20], [9, 20], [10, 30], [49, 30], [50, 40], [1250, 40]]) {
+    await mapState(page, 'clusterWeights', [1, count - 1]);
+    await expect.poll(async () => (await mapState(page)).clusterRadii.some(item => item.listingCount === count && item.radius === radius)).toBe(true);
+    await expect.poll(async () => (await mapState(page)).layerImages.includes(`studently-cluster-count:${count}`)).toBe(true);
+    await settleMapCapture(page);
+    const state = await mapState(page);
+    expect(state.clusterStyle).toEqual({ fill: '#ea3f4a', stroke: '#FFFFFF', strokeWidth: 1 });
+    tiers.push({ count, radius, clusters: state.layerClusters });
+    if ([9, 10, 50, 1250].includes(count)) await page.screenshot({ path: path.join(output, `${info.project.name}-listing-count-${count}.png`) });
+  }
+  await mapState(page, 'reloadStyle');
+  await expect.poll(async () => (await mapState(page)).layerClusters.some(cluster => cluster.listingCount === 5)).toBe(true);
+  await expect.poll(async () => (await mapState(page)).layerImages.includes('studently-cluster-count:5')).toBe(true);
+  const cluster = (await mapState(page)).layerClusters.find(cluster => cluster.listingCount === 5);
+  await clickMapPoint(page, cluster.coordinates, mobile);
+  await expect.poll(async () => (await mapState(page)).zoom).toBeGreaterThan(16);
+  await writeFile(path.join(output, `${info.project.name}-listing-count-tiers.json`), JSON.stringify(tiers, null, 2));
+});
+
+test('same-location owners keep separate places in one five-listing pin and weighted nearby clusters', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile-web';
+  await page.clock.install();
+  const fixtures = fixtureState.get(page);
+  fixtures.units = ownerUnits();
+  await openMap(page, '?mapPins=layers&universitySlugs=aub');
+  await expect.poll(async () => (await mapState(page)).layerData?.features.length).toBe(1);
+  const feature = (await mapState(page)).layerData.features[0];
+  expect(feature.properties.label).toBe('$300 · 5');
+  await mapState(page, 'jump', { center: feature.geometry.coordinates, zoom: 18 });
+  await clickMapPoint(page, feature.geometry.coordinates, mobile, -54);
+  const card = cardHost(page, mobile).locator('.studently-amber-popup-composite');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.studently-popup-place-group')).toHaveCount(2);
+  await expect(card.locator('.studently-popup-group-item')).toHaveCount(5);
+  await expect(card.locator('.studently-popup-place-title')).toHaveText(['Cedar House', 'Garden House']);
+  await expect(card.locator('.studently-popup-place-contact')).toHaveText(['Listed by Amina Public', 'Listed by Rami Public']);
+  await expect(card.locator('.studently-popup-place-count')).toHaveText(['3 listings', '2 listings']);
+  expect(await card.innerHTML()).not.toMatch(/private-phone|private-whatsapp|hidden-contact|posterId|owner-0["<]/);
+  const links = await card.locator('.studently-popup-group-item').evaluateAll(nodes => nodes.map(node => node.getAttribute('href')));
+  expect(links.sort()).toEqual(fixtures.units.map(listing => `/listing/${listing.id}`).sort());
+  await mapState(page, 'observeLayerData');
+  fixtures.reversed = true;
+  await page.clock.fastForward(61_000);
+  await page.clock.fastForward(1_000);
+  expect((await mapState(page)).layerWrites).toBe(0);
+  await expect(card).toBeVisible();
+  for (const zoom of [10, 16, 17, 22]) {
+    await mapState(page, 'jump', { center: feature.geometry.coordinates, zoom });
+    await settleMapCapture(page);
+    expect((await mapState(page)).layerClusters).toEqual([]);
+    await expect(card).toBeVisible();
+  }
+  await mapState(page, 'jump', { center: feature.geometry.coordinates, zoom: 18 });
+  await settleMapCapture(page);
+  await page.screenshot({ path: path.join(output, `${info.project.name}-same-location-owners.png`) });
+  await card.locator('.studently-popup-place-title').last().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(output, `${info.project.name}-same-location-second-place.png`) });
+  await activate(cardHost(page, mobile).getByRole('button', { name: 'Close', exact: true }), mobile);
+  fixtures.units = [...fixtures.units, { ...unit('nearby-owner', 'nearby-owner', 700, 33.8991, 35.4801), posterId: 'third-owner' }];
+  await page.clock.fastForward(61_000);
+  await expect.poll(async () => (await mapState(page)).layerData.features.length).toBe(2);
+  await mapState(page, 'jump', { center: feature.geometry.coordinates, zoom: 15 });
+  await expect.poll(async () => (await mapState(page)).layerClusters.some(cluster => cluster.point_count === 2 && cluster.listingCount === 6)).toBe(true);
+});
+
+test('many coincident places scroll inside capped desktop popup or mobile bottom card', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile-web';
+  fixtureState.get(page).units = ownerUnits(true, 10, 6);
+  await openMap(page, '?mapPins=layers');
+  await expect.poll(async () => (await mapState(page)).layerData?.features.length).toBe(1);
+  const feature = (await mapState(page)).layerData.features[0];
+  await mapState(page, 'jump', { center: feature.geometry.coordinates, zoom: 18 });
+  await clickMapPoint(page, feature.geometry.coordinates, mobile, -54);
+  const card = cardHost(page, mobile).locator('.studently-amber-popup-composite');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.studently-popup-place-group')).toHaveCount(10);
+  await expect(card.locator('.studently-popup-group-item')).toHaveCount(60);
+  const scroller = mobile ? page.locator('.studently-mobile-map-card-content') : card.locator('.studently-popup-group-list');
+  const dimensions = await scroller.evaluate(node => ({ height: node.clientHeight, content: node.scrollHeight, overflow: getComputedStyle(node).overflowY }));
+  expect(dimensions.content).toBeGreaterThan(dimensions.height);
+  expect(dimensions.overflow).toBe('auto');
+  const box = await (mobile ? page.getByTestId('mobile-map-selection') : card).boundingBox();
+  expect(box.height).toBeLessThanOrEqual(mobile ? (await mapState(page)).canvasHeight * 0.45 + 1 : 380);
+  await settleMapCapture(page);
+  const beforeScroll = await mapState(page);
+  const scrollBox = await scroller.boundingBox();
+  if (mobile) {
+    await touchDrag(page, [{ x: scrollBox.x + scrollBox.width / 2, y: scrollBox.y + scrollBox.height - 15, id: 0 }],
+      [{ x: scrollBox.x + scrollBox.width / 2, y: scrollBox.y + 10, id: 0 }]);
+  } else {
+    await page.mouse.move(scrollBox.x + scrollBox.width / 2, scrollBox.y + scrollBox.height / 2);
+    await page.mouse.wheel(0, 250);
+  }
+  await expect.poll(() => scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+  expect((await mapState(page)).center).toEqual(beforeScroll.center);
+  expect((await mapState(page)).zoom).toBe(beforeScroll.zoom);
+  await scroller.evaluate(node => { node.scrollTop = node.scrollHeight; });
+  await expect(card.locator('.studently-popup-group-item').last()).toBeInViewport();
+  expect(await scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+  await page.screenshot({ path: path.join(output, `${info.project.name}-many-places-scroll.png`) });
+});
+
+test('same-location grouping leaves the marker rollback unchanged', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile-web';
+  fixtureState.get(page).units = ownerUnits();
+  await openMarkerMap(page);
+  await mapState(page, 'jump', { center: [35.48, 33.899], zoom: 18 });
+  await expect(mapHost(page).locator('.studently-price-stack')).toHaveCount(2);
+  expect((await mapState(page)).layerData).toBeNull();
+  // Existing HTML popups remain place-scoped even at identical coordinates.
+  // The rollback deliberately retains coincident DOM markers; use the one
+  // painted last rather than trying to click through it to the covered marker.
+  const topmost = mapHost(page).locator('.studently-price-stack').last();
+  await activate(topmost, mobile);
+  await expect(cardHost(page, mobile).locator('.studently-popup-place-group')).toHaveCount(0);
+});
+
 test('GL places and cluster counts render without ordinary HTML pins and expand on click', async ({ page }, info) => {
   const mobile = info.project.name === 'mobile-web';
   await openMap(page, '?mapPins=layers');
@@ -702,7 +940,7 @@ test('GL places and cluster counts render without ordinary HTML pins and expand 
   await mapState(page, 'pan');
   await mapState(page, 'jump', { center: [35.48, 33.899], zoom: 12 });
   await expect.poll(async () => (await mapState(page)).layerClusters.some(cluster => cluster.point_count === 2)).toBe(true);
-  await expect.poll(async () => (await mapState(page)).layerImages.includes('studently-cluster-count:2')).toBe(true);
+  await expect.poll(async () => (await mapState(page)).layerImages.includes('studently-cluster-count:3')).toBe(true);
   const cluster = (await mapState(page)).layerClusters.find(cluster => cluster.point_count === 2);
   await clickMapPoint(page, cluster.coordinates, mobile);
   await expect.poll(async () => (await mapState(page)).zoom).toBeGreaterThan(16);
@@ -995,7 +1233,7 @@ test('GL zoom sweep across cluster boundaries has no render or hit-test errors',
     await expect.poll(async () => (await mapState(page)).layerClusters.length).toBeGreaterThan(0);
     await expect.poll(async () => {
       const state = await mapState(page);
-      return state.layerClusters.every(cluster => state.layerImages.includes(`studently-cluster-count:${cluster.point_count}`));
+      return state.layerClusters.every(cluster => state.layerImages.includes(`studently-cluster-count:${cluster.listingCount}`));
     }).toBe(true);
     await page.waitForTimeout(500);
     await Promise.all(captures);

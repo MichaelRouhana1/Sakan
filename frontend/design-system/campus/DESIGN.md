@@ -4,11 +4,11 @@ Campus uses the **same Studently system as Housing** (`listerTheme` / `Studently
 
 ## 1. Visual theme & atmosphere
 
-Calm hospitality on cool gray `#EEF1F6`, white surfaces, Ocean `#2F6FED`, navy ink `#121826`, DM Sans. Same chrome as Find: white nav, `#E2E8F0` hairline, underlined text CTAs.
+Calm hospitality on `#F9FAFB`, white surfaces, madder `#EA3F4A`, ink `#1A1A1A`, DM Sans. Same chrome as Find: white nav, neutral hairline, underlined text CTAs. The previous ocean palette stays in `oceanPalette` and can be restored in this browser from admin.
 
-The memorable moment is a **large DM Sans USD total** on a white rounded ledger card — Ocean selected chips, not inverted black.
+The memorable moment is a **large DM Sans USD total** on a white rounded ledger card — madder selected chips, not inverted black.
 
-Housing stays photo-heavy listings. Campus is the same bank-blue UI with forms and a cost card instead of listing photos.
+Housing stays photo-heavy listings. Campus is the same madder UI with forms and a cost card instead of listing photos.
 
 ## 2. Color palette & roles
 
@@ -16,18 +16,18 @@ Use `Studently` / `Lister` tokens. Do not introduce a second paper palette.
 
 | Role | Token | Hex |
 |------|--------|-----|
-| Page ground | `bg` | `#EEF1F6` |
-| Wash / soon chips | `bgWash` | `#E2E8F0` |
+| Page ground | `bg` | `#F9FAFB` |
+| Wash / soon chips | `bgWash` | `#E8EAED` |
 | Surfaces | `surface` | `#FFFFFF` |
-| Muted card | `surfaceMuted` | `#F5F7FA` |
-| Ink | `ink` | `#121826` |
-| Muted / faint | `inkMuted` / `inkFaint` | `#5B6570` / `#8B95A1` |
-| Border | `border` | `#C5CDD8` |
-| Ocean | `primary` | `#2F6FED` |
-| Selected wash | `primaryMist` | `#E8EEF6` |
-| Nav hairline | — | `#E2E8F0` |
+| Muted card | `surfaceMuted` | `#F3F4F6` |
+| Ink | `ink` | `#1A1A1A` |
+| Muted / faint | `inkMuted` / `inkFaint` | `#5E5A55` / `#8A847C` |
+| Border | `border` | `#D9DDE3` |
+| Madder | `primary` | `#EA3F4A` |
+| Selected wash | `primaryMist` | `#FDECEE` |
+| Nav hairline | `bgWash` | `#E8EAED` |
 
-No pink CTAs, purple gradients, Playfair, or paper-cream grounds.
+Ocean (`#2F6FED`, ink `#121826`) remains `oceanPalette` for the admin switch. No purple gradients, Playfair, or a second paper ground.
 
 ## 3. Typography
 
@@ -41,11 +41,11 @@ No Inter, Roboto, Space Grotesk, or Playfair on Campus screens.
 
 ## 4. Component stylings
 
-- **Nav:** Same as `WebTopNav` — white bar, Ocean wordmark, pill `Campus` mark on `primaryMist`. Text links. `Find a place` is the Housing switch (underline, not a filled pill).
-- **Buttons:** Primary = Ocean fill, white type (`LButton`). Secondary = hairline / mist. Clickable elements `cursor: pointer` on web.
+- **Nav:** Same as `WebTopNav` — white bar, ink wordmark, pill `Campus` mark on `primaryMist`. Text links. `Find a place` is the Housing switch (underline, not a filled pill).
+- **Buttons:** Primary = madder fill, white type (`LButton`). Secondary = hairline / mist. Clickable elements `cursor: pointer` on web.
 - **Inputs:** Visible labels. Never placeholder-only.
-- **Calculator form:** Stacked `CampusFormSelect` dropdowns (university → faculty → program → campus) on one white form card. Selected control uses Ocean border + `primaryMist`.
-- **Cards:** Soft Ocean mist gradients (`expo-linear-gradient`), `radius.lg`, light shadow. Icon in a white rounded square. Live tools show an arrow affordance — no “Available now” / “Coming” pills. Upcoming tools stay muted without status tags.
+- **Calculator form:** Stacked `CampusFormSelect` dropdowns (university → faculty → program → campus) on one white form card. Selected control uses madder border + `primaryMist`.
+- **Cards:** Soft madder mist gradients (`expo-linear-gradient`), `radius.lg`, light shadow. Icon in a white rounded square. Live tools show an arrow affordance — no “Available now” / “Coming” pills. Upcoming tools stay muted without status tags.
 - **Home grid:** Two columns from ~900px; single column below. Balanced 2×2, not a lonely fourth card.
 - **Term toggle:** `SegmentedPillTrack` (same as Find).
 - **Icons:** Ionicons only. No emoji as icons.
@@ -53,7 +53,7 @@ No Inter, Roboto, Space Grotesk, or Playfair on Campus screens.
 ## 5. Layout principles
 
 - Max content width follows `WEB_CONTENT_MAX` (1520) with `WEB_CONTENT_PAD_X`.
-- Calculator desktop: full shell width, left-aligned form column + sticky ledger (Ocean mist card surfaces).
+- Calculator desktop: full shell width, left-aligned form column + sticky ledger (madder mist card surfaces).
 - Native: stack form then ledger.
 
 ## 6. Depth & elevation
@@ -85,4 +85,4 @@ Light listing-card hover shadow on live tool cards (`#121826` at 10%). Ledger is
 
 ## 9. Agent prompt guide
 
-Studently Campus. Same Ocean/navy/DM Sans system as Housing. White cards, mist selected chips, Ocean primary buttons. Honest sources. Separate product chrome — not a second brand.
+Studently Campus. Same madder/ink/DM Sans system as Housing. White cards, mist selected chips, madder primary buttons. Honest sources. Separate product chrome — not a second brand.

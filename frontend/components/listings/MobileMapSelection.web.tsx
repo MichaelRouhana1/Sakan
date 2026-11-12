@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { MapPinGroup } from "@/lib/mapPinGroups";
 import { amberPopupHtml } from "@/lib/studentlyMapbox.web";
+import { webMapPopupHtml } from "@/lib/webMapPopup.web";
 
 /** One nonmodal card. Map gestures stay available outside its scrollable body. */
 export function MobileMapSelection({
   group,
+  layerMode = false,
   onClose,
   onInsetChange,
 }: {
   group: MapPinGroup;
+  layerMode?: boolean;
   onClose: () => void;
   onInsetChange: (height: number) => void;
 }) {
   const host = useRef<HTMLElement | null>(null);
   // Reuse the existing escaped listing markup and its detail-link behavior.
-  const html = useMemo(() => amberPopupHtml(group), [group]);
+  const html = useMemo(() => layerMode ? webMapPopupHtml(group) : amberPopupHtml(group), [group, layerMode]);
 
   useEffect(() => {
     const node = host.current;
@@ -63,7 +66,7 @@ export function MobileMapSelection({
           touch-action: manipulation;
         }
         .studently-mobile-map-card a:focus-visible,
-        .studently-mobile-map-card button:focus-visible { outline: 2px solid #2F6FED; outline-offset: -3px; }
+        .studently-mobile-map-card button:focus-visible { outline: 2px solid var(--sk-primary); outline-offset: -3px; }
         .studently-mobile-map-card-content {
           min-height: 0; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
         }
@@ -78,12 +81,13 @@ export function MobileMapSelection({
         .studently-mobile-map-card .studently-popup-title,
         .studently-mobile-map-card .studently-popup-subtitle { white-space: normal; overflow-wrap: anywhere; }
         .studently-mobile-map-card .studently-popup-group-list { max-height: none; overflow: visible; }
+        .studently-mobile-map-card .studently-amber-popup-composite { max-height: none; overflow: visible; }
         .studently-mobile-map-card .studently-popup-group-item { min-height: 52px; gap: 12px; }
         .studently-mobile-map-card .studently-popup-group-title { max-width: none; white-space: normal; overflow-wrap: anywhere; }
         .studently-mobile-map-card .studently-popup-group-price { flex-shrink: 0; }
       `}</style>
       <header>
-        <span>{group.count > 1 ? `${group.count} matching units at this pin` : "Selected accommodation"}</span>
+        <span>{group.count > 1 ? `${group.count} ${layerMode ? "listings" : "matching units"} at this pin` : "Selected accommodation"}</span>
         <button type="button" aria-label="Close" onClick={onClose}>×</button>
       </header>
       <div className="studently-mobile-map-card-content" dangerouslySetInnerHTML={{ __html: html }} />

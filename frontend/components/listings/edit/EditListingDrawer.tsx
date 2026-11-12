@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     pointerEvents: "box-none",
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(18, 24, 38, 0.18)",
     cursor: "pointer",
   },

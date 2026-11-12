@@ -4,14 +4,14 @@
 export const PROFILE_CSS = `
 #studently-profile {
   font-family: 'DM Sans', system-ui, sans-serif;
-  color: #121826;
+  color: var(--sk-ink);
   -webkit-font-smoothing: antialiased;
 }
 #studently-profile [role="button"],
 #studently-profile [role="link"] { cursor: pointer; }
 #studently-profile [role="button"]:focus-visible,
 #studently-profile [role="link"]:focus-visible {
-  outline: 2px solid #2F6FED;
+  outline: 2px solid var(--sk-primary);
   outline-offset: 3px;
 }
 

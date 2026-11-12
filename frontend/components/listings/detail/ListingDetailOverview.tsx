@@ -16,6 +16,7 @@ import {
 } from "@/lib/listingLabels";
 import { formatWindowsSummary } from "@/lib/electricityCuts";
 import { rentPriceType } from "@/lib/rentPriceType";
+import { elevatorStatus } from "@/lib/listingDetailDisplay";
 import type { Listing } from "@/types/listing";
 
 type Props = {
@@ -140,9 +141,9 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
           </View>
         ) : null}
       </View>
-      <UtilityBadges listing={listing} />
+      <UtilityBadges listing={listing} variant="detail" />
 
-      {!listing.placeContext?.isMultiUnit ? <View style={styles.infra}>
+      <View testID="listing-utilities" style={styles.infra}>
         <View style={styles.infraHead}>
           <Ionicons
             name="shield-checkmark-outline"
@@ -210,9 +211,16 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
               ) : null}
             </View>
           </View>
+          <View style={styles.infraBox} testID="listing-elevator">
+            <Ionicons name="swap-vertical-outline" size={18} color={Studently.color.primary} />
+            <View style={{ flex: 1 }}>
+              <LText variant="caption" tone="muted">Elevator</LText>
+              <LText variant="subtitle">{elevatorStatus(listing)}</LText>
+            </View>
+          </View>
         </View>
         <RentInclusionLines listing={listing} />
-      </View> : null}
+      </View>
     </View>
   );
 }

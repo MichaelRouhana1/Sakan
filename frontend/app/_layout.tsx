@@ -12,6 +12,7 @@ import "react-native-reanimated";
 
 WebBrowser.maybeCompleteAuthSession();
 
+import { installBrandPalette } from "@/constants/installBrandPalette";
 import { useColorScheme } from "@/components/useColorScheme";
 import { AuthSessionProvider } from "@/features/auth/AuthSessionProvider";
 import {
@@ -22,11 +23,12 @@ import {
 import { queryClient } from "@/lib/queryClient";
 import { NotificationBootstrap } from "@/features/notifications/NotificationBootstrap";
 import { SaveAuthPrompt } from "@/features/saved/saveAuthPrompt";
+import { SavedListingToast } from "@/features/saved/SavedListingToast";
 
 export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  initialRouteName: "index",
+  anchor: "index",
 };
 
 const tokenCache = {
@@ -56,6 +58,7 @@ const tokenCache = {
 };
 
 SplashScreen.preventAutoHideAsync();
+installBrandPalette();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -89,7 +92,13 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+    <ClerkProvider
+      publishableKey={CLERK_PUBLISHABLE_KEY}
+      tokenCache={tokenCache}
+      // Headless auth only. Prefetching @clerk/ui throws failed_to_load_clerk_ui
+      // and Expo's web error overlay blocks the app.
+      prefetchUI={false}
+    >
       {tree}
     </ClerkProvider>
   );
@@ -112,6 +121,7 @@ function RootLayoutNav() {
           <Stack.Screen name="admin" />
         </Stack>
       </ThemeProvider>
+      <SavedListingToast />
     </QueryClientProvider>
   );
 }

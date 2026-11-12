@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
+import { Studently } from "@/constants/theme";
 import { useColorScheme } from "@/components/useColorScheme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import {
@@ -268,7 +269,7 @@ export function PhotoCropModal({
               </View>
             ) : (
               <View style={{ minHeight: 240, justifyContent: "center" }}>
-                <ActivityIndicator color="#2F6FED" />
+                <ActivityIndicator color={Studently.color.primary} />
                 <LText style={{ textAlign: "center", color: ink }}>
                   Reading photo…
                 </LText>
@@ -309,7 +310,7 @@ export function PhotoCropModal({
               style={[
                 styles.button,
                 {
-                  backgroundColor: "#2F6FED",
+                  backgroundColor: Studently.color.primary,
                   paddingHorizontal: 24,
                   opacity: state.phase === "cropping" ? 1 : 0.6,
                 },

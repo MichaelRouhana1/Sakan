@@ -72,8 +72,8 @@ const C = {
   mist: Studently.color.primaryMist,
   soft: Studently.color.primarySoft,
   surface: Studently.color.surface,
-  border: "#D5DCE7",
-  hair: "#E8EDF4",
+  border: Studently.color.border,
+  hair: Studently.color.bgWash,
   holiday: Studently.color.danger,
   holidaySoft: Studently.color.dangerSoft,
   tbc: "#3D4F73",
@@ -1558,7 +1558,7 @@ const styles = StyleSheet.create({
   },
   dayToday: web
     ? ({
-        boxShadow: "inset 0 0 0 2px #2F6FED",
+        boxShadow: `inset 0 0 0 2px ${C.primary}`,
       } as object)
     : {
         borderWidth: 2,

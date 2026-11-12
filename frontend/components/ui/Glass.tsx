@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   wash: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   content: {
     position: "relative",

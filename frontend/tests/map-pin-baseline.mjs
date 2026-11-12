@@ -1,5 +1,5 @@
 // Capture the working checkout, including unrelated uncommitted native changes.
-// Usage: node frontend/tests/map-pin-baseline.mjs capture|verify [1|2|3|4|4-zoom|5|6|6-filters|7]
+// Usage: node frontend/tests/map-pin-baseline.mjs capture|verify [1|2|3|4|4-zoom|5|6|6-filters|7|listing-counts|label-order]
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
@@ -8,10 +8,19 @@ import ts from 'typescript';
 
 const root = path.resolve(import.meta.dirname, '..');
 const step = process.argv[3] ?? '1';
-assert.ok(['1', '2', '3', '4', '4-zoom', '5', '6', '6-filters', '7'].includes(step), 'Expected a supported web map baseline step');
+assert.ok(['1', '2', '3', '4', '4-zoom', '5', '6', '6-filters', '7', 'listing-counts', 'label-order'].includes(step), 'Expected a supported web map baseline step');
 const output = path.join(root, '.expo/map-pin-baseline', ...(step !== '1' ? [`step${step}-checkout`] : []));
 const baselinePath = path.join(output, 'checkout-before.json');
-const allowed = new Set(step === '7' ? [
+const allowed = new Set(step === 'label-order' ? ['lib/webMapLayers.web.ts'] : step === 'listing-counts' ? [
+  'components/listings/ListingBrowseMap.web.tsx',
+  'components/listings/MobileMapSelection.web.tsx',
+  'components/web/FindBrowseSidebar.tsx',
+  'lib/webMapDisplayGroups.web.ts',
+  'lib/webMapPopup.web.ts',
+  'lib/webMapLayers.web.ts',
+  'lib/webMapPinImages.web.ts',
+  'lib/studentlyMapbox.web.ts',
+] : step === '7' ? [
   'lib/webMapPinRenderer.web.ts',
   '.env.example',
 ] : step === '6-filters' ? [

@@ -1,11 +1,11 @@
 diff --git a/node_modules/expo-server/build/cjs/vendor/http.js b/node_modules/expo-server/build/cjs/vendor/http.js
-index 8e26daf..fcc9cc4 100644
+index 5fe6e1c..09e9b66 100644
 --- a/node_modules/expo-server/build/cjs/vendor/http.js
 +++ b/node_modules/expo-server/build/cjs/vendor/http.js
-@@ -47,12 +47,25 @@ function createRequestHandler(params, setup) {
-             await respond(res, response, { signal: request.signal });
-         }
-         catch (error) {
+@@ -77,12 +77,22 @@ function createRequestHandler(params, setup) {
+                 signal: request.signal
+             });
+         } catch (error) {
 +            if (res.destroyed || isClientDisconnect(error)) {
 +                return;
 +            }
@@ -20,22 +20,19 @@ index 8e26daf..fcc9cc4 100644
 +        return false;
 +    }
 +    const code = error.code;
-+    return code === 'ERR_STREAM_PREMATURE_CLOSE'
-+        || code === 'ERR_STREAM_UNABLE_TO_PIPE'
-+        || code === 'ECONNRESET'
-+        || code === 'EPIPE';
++    return code === 'ERR_STREAM_PREMATURE_CLOSE' || code === 'ERR_STREAM_UNABLE_TO_PIPE' || code === 'ECONNRESET' || code === 'EPIPE';
 +}
  function convertRawHeaders(requestHeaders) {
      const headers = new Headers();
-     for (let index = 0; index < requestHeaders.length; index += 2) {
+     for(let index = 0; index < requestHeaders.length; index += 2){
 diff --git a/node_modules/expo-server/build/mjs/vendor/http.js b/node_modules/expo-server/build/mjs/vendor/http.js
-index 53a1f20..011f78a 100644
+index 83c2890..6d7b089 100644
 --- a/node_modules/expo-server/build/mjs/vendor/http.js
 +++ b/node_modules/expo-server/build/mjs/vendor/http.js
-@@ -40,12 +40,25 @@ export function createRequestHandler(params, setup) {
-             await respond(res, response, { signal: request.signal });
-         }
-         catch (error) {
+@@ -38,12 +38,22 @@ const STORE = new AsyncLocalStorage();
+                 signal: request.signal
+             });
+         } catch (error) {
 +            if (res.destroyed || isClientDisconnect(error)) {
 +                return;
 +            }
@@ -50,11 +47,8 @@ index 53a1f20..011f78a 100644
 +        return false;
 +    }
 +    const code = error.code;
-+    return code === 'ERR_STREAM_PREMATURE_CLOSE'
-+        || code === 'ERR_STREAM_UNABLE_TO_PIPE'
-+        || code === 'ECONNRESET'
-+        || code === 'EPIPE';
++    return code === 'ERR_STREAM_PREMATURE_CLOSE' || code === 'ERR_STREAM_UNABLE_TO_PIPE' || code === 'ECONNRESET' || code === 'EPIPE';
 +}
  function convertRawHeaders(requestHeaders) {
      const headers = new Headers();
-     for (let index = 0; index < requestHeaders.length; index += 2) {
+     for(let index = 0; index < requestHeaders.length; index += 2){

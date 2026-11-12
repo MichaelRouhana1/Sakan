@@ -55,8 +55,8 @@ try {
       await page.goto(base + '/listing/' + row.id);
       await expect(page.getByTestId('detail-hero-image').first()).toBeVisible({ timeout: 30000 });
       if (row.placeContext.isMultiUnit) {
-        await expect(page.getByTestId('unit-utilities')).toContainText('24/7 Generator');
-        await expect(page.getByTestId('place-utilities')).toContainText('Solar');
+        await expect(page.locator('[data-testid="listing-utilities"]:visible')).toContainText('24/7 Generator');
+        await expect(page.locator('[data-testid="place-extras"]:visible')).toContainText('Solar backup');
         await page.getByTestId('other-place-units').scrollIntoViewIfNeeded();
       } else await expect(page.getByTestId('other-place-units')).toHaveCount(0);
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));

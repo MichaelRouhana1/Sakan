@@ -1,7 +1,7 @@
 import { SharedPhotoGallery } from './SharedPhotoGallery';
-import { OtherPlaceUnits } from './OtherPlaceUnits';
-import { PlaceDetailSections, UnitPhotoLabel } from './PlaceDetailSections';
+import { PlaceListingIntro } from './PlaceDetailSections';
 import { detailLabels } from '@/lib/listingDetailOwnership';
+import { placeExtras } from '@/lib/listingDetailDisplay';
 import { mobileHeroHeight } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
@@ -20,7 +20,10 @@ import { LButton } from "@/components/lister/Button";
 import { ListerScreen } from "@/components/lister/Screen";
 import { LText } from "@/components/lister/Typography";
 import { ListingDetailAbout } from "@/components/listings/detail/ListingDetailAbout";
-import { ListingDetailAmenities } from "@/components/listings/detail/ListingDetailAmenities";
+import {
+  ListingDetailAmenities,
+  listingAmenityLabels,
+} from "@/components/listings/detail/ListingDetailAmenities";
 import { ListingDetailBottomBar } from "@/components/listings/detail/ListingDetailBottomBar";
 import {
   ListingDetailGallery,
@@ -37,6 +40,7 @@ import {
   type DetailSectionTab,
 } from "@/components/listings/detail/ListingDetailSectionTabs";
 import { ListingDetailUnitSpecs } from "@/components/listings/detail/ListingDetailUnitSpecs";
+import { OtherPlaceUnits } from "@/components/listings/detail/OtherPlaceUnits";
 import { ReportListingSheet } from "@/components/listings/ReportListingSheet";
 import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -49,6 +53,7 @@ import {
   useToggleSaved,
 } from "@/features/saved/useSavedListings";
 import { safeBack } from "@/lib/safeBack";
+import { scrollToListingSection } from "@/lib/scrollToListingSection";
 
 /** When listing APIs expose poster phone, pass it here. */
 function listingWhatsApp(listing: {
@@ -106,28 +111,28 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   const description = listing?.description?.trim() ?? "";
   const hasRules = Boolean(
     listing?.cancellationPolicy?.trim() ||
-      (listing?.houseRules && listing.houseRules.length > 0),
+      listing?.houseRules?.some((rule) => rule.trim()),
   );
+  const hasAmenities = listing ? listingAmenityLabels(listing).length > 0 : false;
   const hasPin = listing?.lat != null && listing?.lng != null;
   const nearby = coincident.data ?? [];
   const multiUnit = listing?.placeContext?.isMultiUnit === true;
+  const hasPlace = listing ? placeExtras(listing).visible : false;
 
   const tabs: DetailSectionTab[] = useMemo(() => {
     if (!listing) return [];
-    if (multiUnit) return [
-      { id: 'nearby', label: 'Other units' },
-      { id: 'unit', label: detailLabels(listing).unitTitle },
-      { id: 'place', label: detailLabels(listing).placeTitle },
-    ];
     const next: DetailSectionTab[] = [];
-    if (description) next.push({ id: "description", label: "Description" });
-    next.push({ id: "amenities", label: "Amenities" });
     if (hasRooms) next.push({ id: "rooms", label: "Room types" });
+    else if (!isPbsa) next.push({ id: "unit", label: "The unit" });
+    if (description) next.push({ id: "description", label: "Description" });
+    if (hasPlace) next.push({ id: 'place', label: detailLabels(listing).placeTitle });
+    if (hasAmenities) next.push({ id: "amenities", label: "Amenities" });
     if (hasRules) next.push({ id: "rules", label: "House rules" });
+    if (multiUnit) next.push({ id: 'nearby', label: 'Other units' });
     if (hasPin) next.push({ id: "map", label: "Map" });
-    if (nearby.length > 0) next.push({ id: "nearby", label: "Other units" });
+    if (!multiUnit && nearby.length > 0) next.push({ id: "nearby", label: "Other units" });
     return next;
-  }, [listing, multiUnit, description, hasRooms, hasRules, hasPin, nearby.length]);
+  }, [listing, multiUnit, hasPlace, description, hasAmenities, hasRooms, isPbsa, hasRules, hasPin, nearby.length]);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -141,6 +146,10 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
 
   const jumpTo = (id: DetailSectionId) => {
     setActiveTab(id);
+    if (Platform.OS === "web" && multiUnit && (id === "nearby" || id === "place")) {
+      scrollToListingSection(id === "nearby" ? "listing-other-units" : "listing-place");
+      return;
+    }
     const y = offsets.current[id];
     if (y == null) return;
     scrollRef.current?.scrollTo({
@@ -191,7 +200,6 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
           contentContainerStyle={styles.content}
         >
           <View>
-            {multiUnit ? <View style={{ paddingHorizontal: 16 }}><UnitPhotoLabel listing={listing}/></View> : null}
             <ListingDetailGallery
               key={listing.id}
               listing={listing}
@@ -209,8 +217,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
                 hasPin
                   ? () => {
                       setGalleryMode("map");
-                      if (multiUnit) scrollRef.current?.scrollTo({ y: 0, animated: true });
-                      else jumpTo("map");
+                      jumpTo("map");
                     }
                   : undefined
               }
@@ -227,29 +234,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             </View>
           ) : null}
 
-          {multiUnit ? <>
-            <View style={styles.sectionPad} onLayout={onSectionLayout('nearby')}><OtherPlaceUnits key={listing.id} listing={listing} siblings={nearby} loading={coincident.isLoading} error={coincident.isError} onRetry={() => { void coincident.refetch(); }}/></View>
-            <PlaceDetailSections listing={listing} onSectionLayout={onSectionLayout}/>
-          </> : <>
-          <View style={styles.sectionPad}><SharedPhotoGallery listing={listing}/></View>
-          {description ? (
-            <View
-              collapsable={false}
-              style={styles.sectionPad}
-              onLayout={onSectionLayout("description")}
-            >
-              <ListingDetailAbout description={description} />
-            </View>
-          ) : null}
-
-          <View
-            collapsable={false}
-            style={styles.sectionPad}
-            onLayout={onSectionLayout("amenities")}
-          >
-            <ListingDetailAmenities listing={listing} />
-          </View>
-
+          {!multiUnit ? <View style={styles.sectionPad}><SharedPhotoGallery listing={listing}/></View> : null}
           {hasRooms ? (
             <View
               collapsable={false}
@@ -259,8 +244,39 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               <ListingDetailRooms listing={listing} posterPhone={posterPhone} onWhatsApp={inquiry.open} />
             </View>
           ) : !isPbsa ? (
-            <View style={styles.sectionPad}>
+            <View testID="listing-unit" collapsable={false} style={styles.sectionPad} onLayout={onSectionLayout("unit")}>
               <ListingDetailUnitSpecs listing={listing} />
+            </View>
+          ) : null}
+
+          {description ? (
+            <View
+              testID="listing-about"
+              collapsable={false}
+              style={styles.sectionPad}
+              onLayout={onSectionLayout("description")}
+            >
+              <ListingDetailAbout description={description} />
+            </View>
+          ) : null}
+
+          {hasPlace ? (
+            <PlaceListingIntro
+              key={listing.id}
+              listing={listing}
+              onSectionLayout={onSectionLayout}
+              style={styles.intro}
+            />
+          ) : null}
+
+          {hasAmenities ? (
+            <View
+              testID="listing-amenities"
+              collapsable={false}
+              style={styles.sectionPad}
+              onLayout={onSectionLayout("amenities")}
+            >
+              <ListingDetailAmenities listing={listing} />
             </View>
           ) : null}
 
@@ -277,6 +293,24 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             </View>
           ) : null}
 
+          {multiUnit ? (
+            <View
+              nativeID="listing-other-units"
+              collapsable={false}
+              style={styles.otherUnits}
+              onLayout={onSectionLayout("nearby")}
+            >
+              <OtherPlaceUnits
+                key={listing.id}
+                listing={listing}
+                siblings={nearby}
+                loading={coincident.isLoading}
+                error={coincident.isError}
+                onRetry={() => { void coincident.refetch(); }}
+              />
+            </View>
+          ) : null}
+
           {hasPin ? (
             <View
               collapsable={false}
@@ -287,7 +321,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             </View>
           ) : null}
 
-          {nearby.length > 0 ? (
+          {!multiUnit && nearby.length > 0 ? (
             <View
               collapsable={false}
               style={styles.nearbyPad}
@@ -296,7 +330,6 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               <ListingDetailNearbyRail listings={nearby} />
             </View>
           ) : null}
-          </>}
         </ScrollView>
 
         <ListingDetailBottomBar
@@ -335,9 +368,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: Studently.space.lg,
   },
+  intro: {
+    marginHorizontal: 16,
+    marginTop: 8,
+  },
   sectionPad: {
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  otherUnits: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    ...(Platform.OS === "web" ? ({ scrollMarginTop: 90 } as object) : null),
   },
   nearbyPad: {
     paddingTop: 16,

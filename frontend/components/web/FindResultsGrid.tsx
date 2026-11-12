@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   boneFill: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 0,
   },
   boneTitle: {

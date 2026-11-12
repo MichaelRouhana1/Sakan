@@ -1,5 +1,5 @@
 import { DynamicColorIOS, Platform } from "react-native";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import { Lister } from "@/constants/listerTheme";
 
 const tint =

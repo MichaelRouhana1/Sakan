@@ -38,6 +38,28 @@
   --st-bottom: 104px;
 }
 
+.swipe-toast[data-inline="false"][data-placement="top"] {
+  top: calc(env(safe-area-inset-top, 0px) + 8px + var(--st-stack, 0px));
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: calc(100vw - 32px);
+  margin-inline: auto;
+  transition: top 200ms var(--st-ease-out);
+}
+
+.swipe-toast[data-placement="top"][data-mounted="false"] .swipe-toast__lift,
+.swipe-toast[data-placement="top"][data-phase="closing"] .swipe-toast__lift,
+.swipe-toast[data-placement="top"][data-phase="gone"] .swipe-toast__lift {
+  transform: translateY(-100%);
+}
+
+@starting-style {
+  .swipe-toast[data-placement="top"] .swipe-toast__lift {
+    transform: translateY(-100%);
+  }
+}
+
 @media (max-width: 1023px) {
   .swipe-toast[data-inline="false"] {
     --st-offset: 16px;

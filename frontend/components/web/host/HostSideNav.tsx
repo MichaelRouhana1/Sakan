@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   drawerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Studently.color.overlay,
   },
   drawerPanel: {

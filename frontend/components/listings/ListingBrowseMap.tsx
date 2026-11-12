@@ -188,8 +188,8 @@ function PriceMarker({
       ? `${shortPriceLabel(amount)} · ${count}`
       : shortPriceLabel(amount);
   // Static views only — StudentlyMapPin's Animated.View blanks on iOS MapKit markers.
-  const fill = selected ? "#C23B2E" : "#2F6FED";
-  const deep = selected ? "#8E241A" : "#121826";
+  const fill = selected ? "#C23B2E" : Studently.color.primary;
+  const deep = selected ? "#8E241A" : Studently.color.ink;
 
   return (
     <View
@@ -1543,7 +1543,7 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "hidden",
   },
-  map: { ...StyleSheet.absoluteFillObject },
+  map: { ...StyleSheet.absoluteFill },
   expandBtn: {
     position: "absolute",
     top: 10,
@@ -1751,7 +1751,7 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   mapLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 200,
     alignItems: "center",
     justifyContent: "center",
@@ -1759,7 +1759,7 @@ const styles = StyleSheet.create({
     backgroundColor: Studently.color.primaryMist,
   },
   emptyOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 300,
     alignItems: "center",
     justifyContent: "center",

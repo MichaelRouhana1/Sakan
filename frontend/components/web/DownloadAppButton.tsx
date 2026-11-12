@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   Modal,
   Platform,
@@ -7,12 +7,35 @@ import {
   Text,
   View,
 } from "react-native";
+import { BRAND_PALETTE_EVENT } from "@/constants/brandPalette";
 import { Studently } from "@/constants/theme";
 
 const DARK_ICON_GIF =
   "https://prod-static-assets.amberstudent.com/images/App_Download_Black_Nav_bar.gif?w=80";
 const LIGHT_ICON_GIF =
   "https://prod-static-assets.amberstudent.com/images/App_Download_White_Nav_bar_2.gif?w=80";
+
+/** GIF arrow is already the madder red. Ocean rotates that accent to brand blue. */
+const OCEAN_ACCENT_FILTER = "hue-rotate(200deg) saturate(1.3)";
+
+function accentFilter(): string {
+  if (typeof document === "undefined") return "none";
+  return document.documentElement.getAttribute("data-palette") === "ocean"
+    ? OCEAN_ACCENT_FILTER
+    : "none";
+}
+
+function useAccentFilter(): string {
+  const [filter, setFilter] = useState(accentFilter);
+  useLayoutEffect(() => {
+    if (Platform.OS !== "web") return;
+    const sync = () => setFilter(accentFilter());
+    sync();
+    window.addEventListener(BRAND_PALETTE_EVENT, sync);
+    return () => window.removeEventListener(BRAND_PALETTE_EVENT, sync);
+  }, []);
+  return filter;
+}
 
 type Props = {
   /** Switch to white GIF icon when rendered inside dark/transparent navigation bars. Default: false */
@@ -22,7 +45,7 @@ type Props = {
 export function DownloadAppButton({ isDarkNav = false }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-
+  const gifFilter = useAccentFilter();
   const gifSrc = isDarkNav ? LIGHT_ICON_GIF : DARK_ICON_GIF;
 
   return (
@@ -41,8 +64,6 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
       >
         <View style={styles.iconSlot}>
           {Platform.OS === "web" ? (
-            // Standard <img> element with CSS hue filter to shift pink accent to Studently brand blue
-            // line-art monochrome remains unaffected
             <img
               src={gifSrc}
               width={20}
@@ -52,7 +73,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
                 width: 20,
                 height: 20,
                 display: "block",
-                filter: "hue-rotate(200deg) saturate(1.3)",
+                filter: gifFilter,
                 objectFit: "contain",
               }}
             />
@@ -110,7 +131,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
                     style={{
                       width: 32,
                       height: 32,
-                      filter: "hue-rotate(200deg) saturate(1.3)",
+                      filter: gifFilter,
                     }}
                   />
                 ) : null}

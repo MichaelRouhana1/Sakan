@@ -1,3 +1,4 @@
+import { madderPalette } from "@/constants/brandPalette";
 import { gsap } from "gsap";
 import { InertiaPlugin } from "gsap/InertiaPlugin";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -87,11 +88,11 @@ const MOVE_THROTTLE_MS = 16;
 export function HeroDotGrid({
   dotSize = 4,
   gap = 10,
-  baseColor = "#C5CDD8",
-  activeColor = "#2F6FED",
+  baseColor = madderPalette.border,
+  activeColor = madderPalette.primary,
   capFrame = null,
-  capColor = "#2F6FED",
-  capActiveColor = "#121826",
+  capColor = madderPalette.primary,
+  capActiveColor = madderPalette.ink,
   proximity = 120,
   speedTrigger = 100,
   shockRadius = 220,

@@ -24,11 +24,12 @@ import {
 import { queryClient } from "@/lib/queryClient";
 import { NotificationBootstrap } from "@/features/notifications/NotificationBootstrap";
 import { SaveAuthPrompt } from "@/features/saved/saveAuthPrompt";
+import { SavedListingToast } from "@/features/saved/SavedListingToast";
 
 export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  initialRouteName: "index",
+  anchor: "index",
 };
 
 const tokenCache = {
@@ -115,6 +116,7 @@ function RootLayoutNav() {
             <Stack.Screen name="admin" />
           </Stack>
         </ThemeProvider>
+        <SavedListingToast />
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

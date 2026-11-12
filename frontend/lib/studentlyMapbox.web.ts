@@ -62,7 +62,7 @@ export function ensureMapboxCss(): void {
     document.head.appendChild(style);
   }
   style.textContent = `
-    .studently-mapbox-map { width: 100%; height: 100%; position: relative; z-index: 0; background: #E2E8F0; overflow: hidden; }
+    .studently-mapbox-map { width: 100%; height: 100%; position: relative; z-index: 0; background: var(--sk-bg-wash); overflow: hidden; }
     .studently-mapbox-map .mapboxgl-map { width: 100%; height: 100%; }
     .studently-mapbox-map .mapboxgl-ctrl-attrib { font-size: 10px; }
     .studently-mapbox-map--chrome-offset .mapboxgl-ctrl-top-right {
@@ -71,7 +71,7 @@ export function ensureMapboxCss(): void {
     }
     .studently-pitch-toggle {
       font: 700 11px/1 "DM Sans", system-ui, sans-serif !important;
-      color: #121826 !important;
+      color: var(--sk-ink) !important;
       letter-spacing: 0.02em;
     }
     .studently-marker-el { background: transparent; border: none; overflow: visible; cursor: pointer; }
@@ -79,16 +79,16 @@ export function ensureMapboxCss(): void {
     .studently-teardrop, .studently-cluster-bubble { pointer-events: auto; }
     .studently-price-stack { display: flex; flex-direction: column; align-items: center; gap: 3px; pointer-events: auto; transform-origin: 50% 100%; }
     .studently-price-pill {
-      background: #fff; border: 1px solid #C5CDD8; border-radius: 8px;
-      padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: #121826;
+      background: #fff; border: 1px solid var(--sk-border); border-radius: 8px;
+      padding: 3px 8px; font: 600 12px "DM Sans", system-ui, sans-serif; color: var(--sk-ink);
       box-shadow: 0 1px 3px rgba(18,24,38,0.12); white-space: nowrap;
       pointer-events: auto; transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
     }
-    .studently-price-pill.on { background: #121826; border-color: #121826; color: #fff; }
+    .studently-price-pill.on { background: var(--sk-ink); border-color: var(--sk-ink); color: #fff; }
     .studently-price-stack.on { transform: scale(1.06); }
     .studently-map-pin-keyboard { position: absolute; top: 68px; left: 12px; z-index: 1100; opacity: 0; pointer-events: none; }
     .studently-map-pin-keyboard:focus-within { opacity: 1; pointer-events: auto; }
-    .studently-map-pin-keyboard select { max-width: 280px; padding: 10px; border: 2px solid #2F6FED; border-radius: 8px; background: #fff; color: #121826; font: 600 13px "DM Sans", system-ui, sans-serif; }
+    .studently-map-pin-keyboard select { max-width: 280px; padding: 10px; border: 2px solid var(--sk-primary); border-radius: 8px; background: #fff; color: var(--sk-ink); font: 600 13px "DM Sans", system-ui, sans-serif; }
     .studently-mapbox-map .studently-layer-popup { z-index: 1100; max-width: none !important; }
     .studently-layer-popup .mapboxgl-popup-content { flex-shrink: 0; box-sizing: border-box; }
     .studently-layer-popup .studently-amber-popup-card { width: 100%; box-sizing: border-box; }
@@ -98,7 +98,7 @@ export function ensureMapboxCss(): void {
     .studently-teardrop .head {
       width: 30px; height: 30px; border-radius: 50%; position: relative; overflow: hidden;
     }
-    .studently-teardrop.listing .head { background: #2F6FED; }
+    .studently-teardrop.listing .head { background: var(--sk-primary); }
     .studently-teardrop.listing.selected .head { background: #C23B2E; }
     .studently-teardrop .cutout {
       position: absolute; left: 50%; top: 50%; width: 10px; height: 10px;
@@ -107,7 +107,7 @@ export function ensureMapboxCss(): void {
     .studently-teardrop .tip {
       width: 0; height: 0; margin: -5px auto 0;
       border-left: 9px solid transparent; border-right: 9px solid transparent;
-      border-top: 14px solid #121826;
+      border-top: 14px solid var(--sk-ink);
     }
     .studently-teardrop.listing.selected .tip { border-top-color: #8E241A; }
     .studently-campus-pin {
@@ -118,20 +118,20 @@ export function ensureMapboxCss(): void {
     .studently-campus-pin * { box-sizing: border-box; }
     .studently-campus-pin .ring {
       width: 42px; height: 42px; border-radius: 50%;
-      border: 2px solid #E8EEF6;
-      background: #121826;
+      border: 2px solid var(--sk-primary-mist);
+      background: var(--sk-ink);
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 0 1.5px #121826;
+      box-shadow: 0 0 0 1.5px var(--sk-ink);
     }
     .studently-campus-pin .disc {
-      width: 38px; height: 38px; border-radius: 50%; background: #121826;
+      width: 38px; height: 38px; border-radius: 50%; background: var(--sk-ink);
       display: flex; align-items: center; justify-content: center;
     }
     .studently-campus-pin .stem {
-      width: 4px; height: 10px; background: #121826; border-radius: 2px; margin-top: -1px;
+      width: 4px; height: 10px; background: var(--sk-ink); border-radius: 2px; margin-top: -1px;
     }
     .studently-campus-pin .base {
-      width: 14px; height: 4px; border-radius: 2px; background: #121826; margin-top: -1px;
+      width: 14px; height: 4px; border-radius: 2px; background: var(--sk-ink); margin-top: -1px;
     }
     .studently-campus-stack {
       position: relative;
@@ -159,7 +159,7 @@ export function ensureMapboxCss(): void {
       -webkit-font-smoothing: antialiased;
     }
     .studently-campus-stack.selected .studently-campus-label {
-      background: #121826; color: #fff;
+      background: var(--sk-ink); color: #fff;
     }
     .studently-campus-pin-slot {
       position: relative;
@@ -178,7 +178,7 @@ export function ensureMapboxCss(): void {
       padding: 3px 3px 3px 8px;
       border-radius: 999px;
       background: #FFFFFF;
-      border: 1.5px solid #121826;
+      border: 1.5px solid var(--sk-ink);
       box-shadow: 0 6px 18px rgba(18,24,38,0.2);
       pointer-events: auto;
       white-space: nowrap;
@@ -192,7 +192,7 @@ export function ensureMapboxCss(): void {
       justify-content: center;
       width: 18px;
       height: 18px;
-      color: #121826;
+      color: var(--sk-ink);
       flex-shrink: 0;
     }
     .studently-campus-switch-btn {
@@ -209,17 +209,17 @@ export function ensureMapboxCss(): void {
       transition: background 160ms ease, transform 160ms ease;
     }
     .studently-campus-switch-btn.yes {
-      background: #121826;
+      background: var(--sk-ink);
       color: #FFFFFF;
     }
     .studently-campus-switch-btn.no {
       background: #EEF1F6;
-      color: #121826;
+      color: var(--sk-ink);
     }
-    .studently-campus-switch-btn.yes:hover { background: #2F6FED; }
-    .studently-campus-switch-btn.no:hover { background: #E2E8F0; }
+    .studently-campus-switch-btn.yes:hover { background: var(--sk-primary); }
+    .studently-campus-switch-btn.no:hover { background: var(--sk-bg-wash); }
     .studently-campus-switch-btn:focus-visible {
-      outline: 2px solid #2F6FED;
+      outline: 2px solid var(--sk-primary);
       outline-offset: 2px;
     }
     .studently-campus-switch-btn:active { transform: scale(0.94); }
@@ -255,7 +255,7 @@ export function ensureMapboxCss(): void {
       padding: 0 !important;
       border-radius: 16px !important;
       box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04) !important;
-      border: 1px solid #E2E8F0 !important;
+      border: 1px solid var(--sk-bg-wash) !important;
       overflow: hidden !important;
       background: #ffffff !important;
       width: 240px;
@@ -331,7 +331,7 @@ export function ensureMapboxCss(): void {
     .studently-popup-group-header {
       display: flex; align-items: center; justify-content: space-between;
       font-size: 13px; font-weight: 700; color: #0F172A;
-      margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #E2E8F0;
+      margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--sk-bg-wash);
     }
     .studently-popup-group-header .studently-popup-close-btn {
       position: static;
@@ -343,7 +343,7 @@ export function ensureMapboxCss(): void {
     }
     .studently-popup-group-item {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid #E2E8F0;
+      padding: 8px 10px; border-radius: 8px; background: #F8FAFC; border: 1px solid var(--sk-bg-wash);
       text-decoration: none !important; color: inherit !important;
     }
     .studently-popup-group-copy { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
@@ -352,7 +352,14 @@ export function ensureMapboxCss(): void {
       font-size: 12px; font-weight: 600; color: #0F172A;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;
     }
-    .studently-popup-group-price { font-size: 12px; font-weight: 700; color: #2F6FED; }
+    .studently-popup-group-price { font-size: 12px; font-weight: 700; color: var(--sk-primary); }
+    .studently-amber-popup-composite { max-height: min(380px, calc(100dvh - 100px)); display: flex; flex-direction: column; overflow: hidden; }
+    .studently-amber-popup-composite .studently-popup-group-header { flex-shrink: 0; }
+    .studently-amber-popup-composite .studently-popup-group-list { min-height: 0; max-height: 300px; overscroll-behavior: contain; }
+    .studently-popup-place-group { display: flex; flex-direction: column; flex-shrink: 0; gap: 6px; padding-bottom: 10px; }
+    .studently-popup-place-group + .studently-popup-place-group { border-top: 1px solid var(--sk-bg-wash); padding-top: 10px; }
+    .studently-popup-place-title { margin: 0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+    .studently-popup-place-contact, .studently-popup-place-count { font-size: 12px; overflow-wrap: anywhere; }
   `;
 }
 
@@ -984,8 +991,8 @@ export function createAmberPopupHtml(listing: Listing): string {
   </div>`;
 }
 
-export function createAmberGroupPopupHtml(group: MapPinGroup): string {
-  const itemsHtml = group.listings
+export function createAmberGroupItemsHtml(listings: readonly Listing[]): string {
+  return listings
     .map((listing) => {
       const title = escapeHtml(listingCardTitle(listing));
       const price = `$${listing.monthlyRentUsd.toLocaleString("en-US")}`;
@@ -1000,10 +1007,14 @@ export function createAmberGroupPopupHtml(group: MapPinGroup): string {
       </a>`;
     })
     .join("");
+}
+
+export function createAmberGroupPopupHtml(group: MapPinGroup, countLabel = "places"): string {
+  const itemsHtml = createAmberGroupItemsHtml(group.listings);
 
   return `<div class="studently-amber-popup-card studently-amber-popup-group">
     <div class="studently-popup-group-header">
-      <span>${group.count} places at this pin</span>
+      <span>${group.count} ${escapeHtml(countLabel)} at this pin</span>
       <button type="button" class="studently-popup-close-btn" aria-label="Close">✕</button>
     </div>
     <div class="studently-popup-group-list">${itemsHtml}</div>

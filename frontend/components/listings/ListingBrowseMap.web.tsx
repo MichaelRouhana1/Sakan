@@ -29,6 +29,8 @@ import { useWalkingRoute } from "@/features/listings/useWalkingRoute";
 import { MAP_TOKEN_MISSING_COPY } from "@/lib/mapboxEnv";
 import { getWebMapPinRendererSelection, markWebMapPinRenderer } from "@/lib/webMapPinRenderer.web";
 import { WebMapLayerRenderer } from "@/lib/webMapLayers.web";
+import { webMapDisplayGroups } from "@/lib/webMapDisplayGroups.web";
+import { webMapPopupHtml } from "@/lib/webMapPopup.web";
 import { WebMapCamera, type WebCameraIntent } from "@/lib/webMapCamera.web";
 import { highlightedPinPopupOffset } from "@/lib/webMapPinImages.web";
 import { useStableWebMapCampuses, useStableWebMapListings, webMapIdentityKey } from "@/lib/webMapData.web";
@@ -426,8 +428,11 @@ export function ListingBrowseMap({
   hoverFlyIdRef.current = hoverFlyListingId;
 
   const groups = useMemo(
-    () => groupListingsByPlace(mappable),
-    [mappable],
+    () => {
+      const places = groupListingsByPlace(mappable);
+      return layerMode ? webMapDisplayGroups(places) : places;
+    },
+    [mappable, layerMode],
   );
   const groupsRef = useRef(groups);
   groupsRef.current = groups;
@@ -1429,13 +1434,13 @@ export function ListingBrowseMap({
       try { previous?.popup.remove(); } finally { changingPopupPresentation.current = false; }
       return;
     }
-    const listing = group.listings[0];
+    const listing = group.listings.find(item => item.id === (sheet.kind === "preview" ? sheet.listingId : null)) ?? group.listings[0];
     const campus = universityMode ? resolveNearestCampus(listing, campuses) : null;
     const path = walkingPathRef.current?.listingId === listing?.id ? walkingPathRef.current.coords : null;
     const side = listing && campus ? resolveUniPopupSide(map, listing, campus, path) : "n";
     const label = `${shortPriceLabel(group.displayPriceUsd)}${group.count > 1 ? ` · ${group.count}` : ""}`;
     const offset = highlightedPinPopupOffset(label, side);
-    const html = amberPopupHtml(group);
+    const html = webMapPopupHtml(group);
     if (previous?.groupId === group.id && previous.side === side) {
       previous.popup.setLngLat(toLngLat(group)).setOffset(offset);
       if (previous.html !== html) { setAmberPopupHtml(previous.popup, html); previous.html = html; }
@@ -1595,6 +1600,7 @@ export function ListingBrowseMap({
         {active && mobileGroup ? (
           <MobileMapSelection
             group={mobileGroup}
+            layerMode={layerMode}
             onClose={dismissPreview}
             onInsetChange={setMobileCardInset}
           />
@@ -1606,7 +1612,7 @@ export function ListingBrowseMap({
             }}>
               <option value="">Choose a listing on the map</option>
               {groups.map((group) => <option key={group.id} value={group.id}>
-                {group.listings[0]?.title ?? "Listing"} — {shortPriceLabel(group.displayPriceUsd)} · {group.count} matching unit{group.count === 1 ? "" : "s"}
+                {group.listings[0]?.title ?? "Listing"} — {shortPriceLabel(group.displayPriceUsd)} · {group.count} listing{group.count === 1 ? "" : "s"}
               </option>)}
             </select>
           </label>

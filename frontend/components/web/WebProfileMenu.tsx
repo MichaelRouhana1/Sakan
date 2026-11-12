@@ -11,13 +11,11 @@ type Props = {
   /** User initial for letter avatar; omit for generic person icon */
   initial?: string;
   avatarBackgroundColor?: string;
-  showLoginButton?: boolean;
 };
 
 export function WebProfileMenu({
   initial,
   avatarBackgroundColor = "#F1F5F9",
-  showLoginButton = true,
 }: Props) {
   const router = useRouter();
   const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
@@ -39,11 +37,6 @@ export function WebProfileMenu({
     (user?.firstName?.charAt(0)?.toUpperCase() ||
       user?.email?.charAt(0)?.toUpperCase() ||
       "S");
-
-  const handleLoginClick = () => {
-    setMenuOpen(false);
-    setAuthModalOpen(true);
-  };
 
   const handleProfileTriggerClick = () => {
     setMenuOpen((prev) => {
@@ -91,17 +84,6 @@ export function WebProfileMenu({
   return (
     <>
       <View ref={anchorRef} style={styles.wrap}>
-        {showLoginButton && !isSignedIn ? (
-          <Pressable
-            onPress={handleLoginClick}
-            style={styles.loginBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Login"
-          >
-            <Text style={styles.loginBtnText}>Login</Text>
-          </Pressable>
-        ) : null}
-
         <Pressable
           onPress={handleProfileTriggerClick}
           style={({ pressed }) => [
@@ -135,7 +117,7 @@ export function WebProfileMenu({
                     setAuthModalOpen(true);
                   }}
                 >
-                  <Text style={styles.bannerText}>Login to Continue</Text>
+                  <Text style={styles.bannerText}>Login or sign up</Text>
                 </Pressable>
               ) : (
                 <View style={styles.banner}>
@@ -266,17 +248,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-  },
-  loginBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: Studently.radius.sm,
-    cursor: "pointer",
-  },
-  loginBtnText: {
-    fontFamily: Studently.type.bodyBold,
-    fontSize: 15,
-    color: Studently.color.ink,
   },
   avatarIcon: {
     width: 40,

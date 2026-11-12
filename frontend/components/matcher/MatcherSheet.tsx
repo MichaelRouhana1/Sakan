@@ -1466,7 +1466,7 @@ function MatcherSession({
                 null,
                 `
             [data-testid="matcher-drawer"] [role="button"]:focus-visible {
-              outline: 2px solid #2F6FED;
+              outline: 2px solid var(--sk-primary);
               outline-offset: 2px;
             }
             [data-testid="matcher-drawer"] input:focus-visible {

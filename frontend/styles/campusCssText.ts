@@ -38,8 +38,8 @@ export const CAMPUS_CSS = `
 }
 .campus-ripple-cell {
   box-sizing: border-box;
-  border: 0.5px solid #D5DCE7;
-  background: rgba(47, 111, 237, 0.1);
+  border: 0.5px solid var(--sk-border);
+  background: color-mix(in srgb, var(--sk-primary) 10%, transparent);
   opacity: 0.4;
   cursor: pointer;
   will-change: opacity, background-color;
@@ -47,7 +47,7 @@ export const CAMPUS_CSS = `
 @media (hover: hover) and (pointer: fine) {
   .campus-ripple-cell:hover {
     opacity: 0.8;
-    background: rgba(47, 111, 237, 0.18);
+    background: color-mix(in srgb, var(--sk-primary) 18%, transparent);
     transition: opacity 150ms ease, background-color 150ms ease;
   }
 }
@@ -60,9 +60,9 @@ export const CAMPUS_CSS = `
   animation-fill-mode: none;
 }
 @keyframes campus-cell-ripple {
-  0% { opacity: 0.4; background: rgba(47, 111, 237, 0.1); }
-  50% { opacity: 1; background: rgba(47, 111, 237, 0.28); }
-  100% { opacity: 0.4; background: rgba(47, 111, 237, 0.1); }
+  0% { opacity: 0.4; background: color-mix(in srgb, var(--sk-primary) 10%, transparent); }
+  50% { opacity: 1; background: color-mix(in srgb, var(--sk-primary) 28%, transparent); }
+  100% { opacity: 0.4; background: color-mix(in srgb, var(--sk-primary) 10%, transparent); }
 }
 .campus-cal-hero { animation: sk-campus-in 420ms ease-out both; }
 .campus-cal-ticket { animation: sk-campus-in 480ms 70ms ease-out both; }
@@ -83,7 +83,7 @@ export const CAMPUS_CSS = `
 .campus-cal-day:focus-visible,
 .campus-cal-chip:focus-visible,
 .campus-cal-month:focus-visible {
-  outline: 2px solid #2F6FED;
+  outline: 2px solid var(--sk-primary);
   outline-offset: 2px;
   z-index: 2;
 }

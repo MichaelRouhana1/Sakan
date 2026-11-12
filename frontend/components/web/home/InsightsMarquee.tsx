@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   diamond: {
     width: 5,
     height: 5,
-    backgroundColor: "#2F6FED",
+    backgroundColor: Studently.color.primary,
     transform: [{ rotate: "45deg" }],
     flexShrink: 0,
   },

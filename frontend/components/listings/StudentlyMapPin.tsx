@@ -18,8 +18,8 @@ type Props = {
 };
 
 const LISTING = {
-  fill: "#2F6FED",
-  deep: "#121826",
+  fill: Studently.color.primary,
+  deep: Studently.color.ink,
   highlight: "rgba(255,255,255,0.28)",
   shade: "rgba(18,24,38,0.35)",
 };

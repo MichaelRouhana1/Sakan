@@ -26,11 +26,12 @@ import type { Listing } from "@/types/listing";
 import { groupListingsByPlace } from "@/lib/mapPinGroups";
 import { getWebMapPinRendererSelection, markWebMapPinRenderer } from "@/lib/webMapPinRenderer.web";
 import { WebMapLayerRenderer } from "@/lib/webMapLayers.web";
+import { webMapDisplayGroups } from "@/lib/webMapDisplayGroups.web";
 import { useStableWebMapListings } from "@/lib/webMapData.web";
 
 const BEIRUT = { lat: 33.8938, lng: 35.5018 };
-const STUDENTLY_BLUE = "#2F6FED";
-const CARD_BORDER = "#E2E8F0";
+const STUDENTLY_BLUE = Studently.color.primary;
+const CARD_BORDER = Studently.color.bgWash;
 const ROW_BORDER = "#F1F5F9";
 
 const webTransition =
@@ -97,7 +98,10 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
   const [ready, setReady] = useState(false);
 
   const stableListings = useStableWebMapListings(listings);
-  const groups = useMemo(() => groupsFromListings(stableListings), [stableListings]);
+  const groups = useMemo(() => {
+    const places = groupsFromListings(stableListings);
+    return layerMode ? webMapDisplayGroups(places) : places;
+  }, [stableListings, layerMode]);
   const pins = useMemo<PreviewPin[]>(() => groups.map(group => ({
     lat: group.lat, lng: group.lng,
     label: `${shortPrice(group.displayPriceUsd)} · ${group.count}`,
@@ -251,7 +255,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
                       <Ionicons
                         name={item.icon}
                         size={15}
-                        color="#2F6FED"
+                        color={Studently.color.primary}
                       />
                     </View>
                     <LText variant="label" style={styles.uspTitle as StyleProp<TextStyle>}>
@@ -332,19 +336,19 @@ const styles = StyleSheet.create({
     borderRadius: 999, // rounded-full
     backgroundColor: "#FFFFFF", // bg-white
     borderWidth: 2,
-    borderColor: "#2F6FED", // border-[#2F6FED]
+    borderColor: Studently.color.primary,
     boxShadow: "0 3px 8px rgba(18, 24, 38, 0.12)",
     ...webTransition,
   },
   mapBtnHover: {
-    backgroundColor: "#EFF6FF", // hover:bg-blue-50
+    backgroundColor: Studently.color.primaryMist,
     transform: [{ scale: 1.02 }],
   },
   mapBtnPressed: {
     transform: [{ scale: 0.98 }],
   },
   mapBtnLabel: {
-    color: "#2F6FED", // text-[#2F6FED]
+    color: Studently.color.primary,
     fontWeight: "700", // font-bold
     fontSize: 12, // text-xs
   },
@@ -378,7 +382,7 @@ const styles = StyleSheet.create({
     width: 28, // w-7 (28px)
     height: 28, // h-7 (28px)
     borderRadius: 999, // rounded-full
-    backgroundColor: "#EFF6FF", // bg-blue-50
+    backgroundColor: Studently.color.primaryMist,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10, // mr-2.5 (10px)

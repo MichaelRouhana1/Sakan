@@ -552,9 +552,9 @@ const styles = StyleSheet.create({
     borderColor: Lister.color.danger,
     backgroundColor: Lister.color.dangerSoft,
   },
-  map: { ...StyleSheet.absoluteFillObject },
+  map: { ...StyleSheet.absoluteFill },
   mapLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
     alignItems: "center",
     justifyContent: "center",

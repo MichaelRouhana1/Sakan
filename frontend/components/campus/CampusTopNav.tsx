@@ -94,7 +94,7 @@ export function CampusTopNav() {
 
         {compact ? (
           <View style={styles.compactActions}>
-            <WebProfileMenu showLoginButton={false} />
+            <WebProfileMenu />
             <Pressable
               onPress={() => setDrawerOpen(true)}
               accessibilityRole="button"
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   drawerBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(18, 24, 38, 0.42)",
   },
   drawerPanel: {

@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   mapLoading: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 2,
     alignItems: "center",
     justifyContent: "center",

@@ -40,12 +40,14 @@ function iconFor(label: string): keyof typeof Ionicons.glyphMap {
   return "checkmark-circle-outline";
 }
 
+export function listingAmenityLabels(listing: Pick<Listing, "amenities">): string[] {
+  return (listing.amenities ?? [])
+    .map((slug) => amenityLabel(slug).trim())
+    .filter(Boolean);
+}
+
 export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
-  const all = useMemo(() => {
-    return (listing.amenities ?? [])
-      .map((s) => amenityLabel(s).trim())
-      .filter(Boolean);
-  }, [listing]);
+  const all = useMemo(() => listingAmenityLabels(listing), [listing]);
   const [open, setOpen] = useState(false);
   const shown = open || all.length <= PREVIEW ? all : all.slice(0, PREVIEW);
   const web = variant === "web";

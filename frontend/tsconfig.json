@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "resolveJsonModule": true,
+    "customConditions": ["react-native-legacy-deep-imports", "react-native"],
     "paths": {
       "@/*": [
         "./*"

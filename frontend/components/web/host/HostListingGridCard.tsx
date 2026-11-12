@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   mediaPress: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
   },
   noPointer: {

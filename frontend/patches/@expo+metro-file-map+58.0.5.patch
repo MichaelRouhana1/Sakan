@@ -1,8 +1,8 @@
 diff --git a/node_modules/@expo/metro-file-map/build/crawlers/node/fallback.js b/node_modules/@expo/metro-file-map/build/crawlers/node/fallback.js
-index 9df7d39..8f67b86 100644
+index d2e3531..a464fe4 100644
 --- a/node_modules/@expo/metro-file-map/build/crawlers/node/fallback.js
 +++ b/node_modules/@expo/metro-file-map/build/crawlers/node/fallback.js
-@@ -66,7 +66,25 @@ function createFallbackFilesystem(opts) {
+@@ -90,7 +90,24 @@ function createFallbackFilesystem(opts) {
              if (ignore(childAbsolutePath)) {
                  continue;
              }
@@ -14,47 +14,48 @@ index 9df7d39..8f67b86 100644
 +            let isFile = entry.isFile();
 +            if (isSymbolicLink || (!isDirectory && !isFile)) {
 +                try {
-+                    const st = fs_1.default.lstatSync(childAbsolutePath);
++                    const st = _fs().default.lstatSync(childAbsolutePath);
 +                    if (!st.isSymbolicLink()) {
 +                        isSymbolicLink = false;
 +                        isDirectory = st.isDirectory();
 +                        isFile = st.isFile();
 +                    }
-+                }
-+                catch {
-+                    // Keep the Dirent classification when lstat fails.
++                } catch  {
++                // Keep the Dirent classification when lstat fails.
 +                }
 +            }
 +            if (isDirectory) {
                  // NOTE(@kitten): ".git" and ".hg" check replace the VCS_DIRECTORIES ignore pattern
                  // NOTE(@kitten): `.cxx` is ephemeral and should always be safe to ignore
                  if (!result.has(name) && name !== '.git' && name !== '.hg' && name !== '.cxx') {
-@@ -75,13 +93,13 @@ function createFallbackFilesystem(opts) {
+@@ -98,7 +115,7 @@ function createFallbackFilesystem(opts) {
+                     markDir(childDir, 0);
                      result.set(name, childDir);
                  }
-             }
--            else if (entry.isSymbolicLink()) {
-+            else if (isSymbolicLink) {
+-            } else if (entry.isSymbolicLink()) {
++            } else if (isSymbolicLink) {
                  // We can skip reading the symlink target here, since it'll be read lazily
                  if (includeSymlinks && !result.has(name)) {
-                     result.set(name, [null, 0, 0, null, 1, null]);
+                     result.set(name, [
+@@ -110,7 +127,7 @@ function createFallbackFilesystem(opts) {
+                         null
+                     ]);
                  }
-             }
--            else if (entry.isFile()) {
-+            else if (isFile) {
-                 const ext = path_1.default.extname(name).slice(1);
+-            } else if (entry.isFile()) {
++            } else if (isFile) {
+                 const ext = _path().default.extname(name).slice(1);
                  if (exts[ext] && !result.has(name)) {
-                     result.set(name, [null, 0, 0, null, 0, null]);
+                     result.set(name, [
 diff --git a/node_modules/@expo/metro-file-map/build/crawlers/node/index.js b/node_modules/@expo/metro-file-map/build/crawlers/node/index.js
-index 5b3b945..a5039a7 100644
+index a2c3c70..463fd80 100644
 --- a/node_modules/@expo/metro-file-map/build/crawlers/node/index.js
 +++ b/node_modules/@expo/metro-file-map/build/crawlers/node/index.js
-@@ -71,12 +71,28 @@ function find(roots, extensions, ignore, includeSymlinks, rootDir, console, prev
+@@ -97,12 +97,27 @@ function find(roots, extensions, ignore, includeSymlinks, rootDir, console, prev
                      const name = entry.name;
                      // NOTE(@kitten): This replaces the VCS_DIRECTORIES ignore pattern
                      // NOTE(@kitten): `.cxx` is ephemeral and should always be safe to ignore
 -                    const isDirectory = entry.isDirectory();
-+                    const file = directory + path.sep + name;
++                    const file = directory + _path().sep + name;
 +                    // Windows Dirent.isSymbolicLink() is true for OneDrive reparse
 +                    // points. lstat still reports those as ordinary files or
 +                    // directories. Trusting the Dirent stores a directory as a
@@ -63,21 +64,20 @@ index 5b3b945..a5039a7 100644
 +                    let isSymbolicLink = entry.isSymbolicLink();
 +                    if (isSymbolicLink || (!isDirectory && !entry.isFile())) {
 +                        try {
-+                            const st = fs.lstatSync(file);
++                            const st = _fs().lstatSync(file);
 +                            if (!st.isSymbolicLink()) {
 +                                isSymbolicLink = false;
 +                                isDirectory = st.isDirectory();
 +                            }
-+                        }
-+                        catch {
-+                            // Keep the Dirent classification when lstat fails.
++                        } catch  {
++                        // Keep the Dirent classification when lstat fails.
 +                        }
 +                    }
                      if (isDirectory && (name === '.git' || name === '.hg' || name === '.cxx')) {
                          continue;
                      }
--                    const file = directory + path.sep + name;
+-                    const file = directory + _path().sep + name;
 -                    const isSymbolicLink = entry.isSymbolicLink();
-                     if (ignore(file) || (!includeSymlinks && isSymbolicLink)) {
+                     if (ignore(file) || !includeSymlinks && isSymbolicLink) {
                          continue;
                      }

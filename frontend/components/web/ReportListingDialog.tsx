@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Studently.color.overlay,
     ...(IS_WEB
       ? ({

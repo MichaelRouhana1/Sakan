@@ -1,6 +1,6 @@
 # Studently app logo
 
-The approved glossy blue pin and black S-arrow is now the app's shared logo. The white and pale-blue shaded interior stays opaque, matching the approved reference. Only the exterior is transparent.
+The glossy pin and black S-arrow use the new coral brand color `#EA3F4A`. The white, softly shaded interior stays opaque. Only the exterior is transparent.
 
 - `frontend/assets/images/logo.png`: transparent 512px logo used by `StudentlyLogo` on web and native.
 - `frontend/public/logo.png`: same logo for public URLs.
@@ -12,13 +12,19 @@ The approved glossy blue pin and black S-arrow is now the app's shared logo. The
 
 The shared component is used in website, campus and host navigation, native home branding, home/campus footers, and admin navigation. Map pins remain functional listing/campus markers.
 
-The export and check scripts (`export-app-assets.cjs`, `check-logo.cjs`) are kept locally and are not tracked; the committed source is `pin-arrow-filled-interior.png`. With Node and `sharp` available, `export-app-assets.cjs` reproduces the exports. `check-logo.cjs` renders the actual shared component through React Native Web at 16–128px for inspection. App icons and native splash updates require a new native build.
+The current source is `pin-arrow-madder.png`; `pin-arrow-filled-interior.png` preserves the previous blue artwork. The local `export-madder-assets.cjs` script uses Playwright and Chrome to reproduce the coral exports at their existing dimensions and launcher safe zones. `check-logo.cjs` renders the actual shared component through React Native Web at 16–128px for inspection. Working scripts stay local under the repository's brand-file policy. App icons and native splash updates require a new native build.
 
 ## Validation
 
-Checked image dimensions, alpha channels, opaque app icon, identical public/bundled logo bytes, and successful rendering of the shared React component. TypeScript reports existing errors in unrelated logic and React Native API usage; no new logo-component errors. Full Expo export did not progress beyond bundler startup and was stopped; no successful full production build is claimed.
+Checked image dimensions, exterior transparency, opaque interior and app icon, identical public/bundled logo bytes, and rendering of the shared React component at 16–128px on light and dark backgrounds. This is an asset replacement; no application code changed.
 
-## Transparent source
+## Coral recolor
+
+Created with the built-in image generation tool, editing the existing app logo. Palette: `#EA3F4A` (RGB 234, 63, 74), with warm coral highlights and deeper red shadows. Final prompt:
+
+> Use case: precise-object-edit. Edit target: the attached existing Studently glossy location pin / S-arrow logo. Make a strict color-palette replacement only: replace ALL blue and cyan materials, glowing traces, highlights and blue edge pixels with warm coral red / pink shades anchored at the exact new brand color #EA3F4A (RGB 234,63,74), with pale warm coral specular highlights and deeper red shadows. Preserve the original silhouette, S-shaped winding black channel with tiny luminous dots, downward arrow, glossy 3D surface, soft white inner areas, geometry, proportions, composition, framing and transparent background. No new objects or text, no redesign, no blue/cyan remaining. Keep the logo centered, square canvas, same relative size and padding as the original. Output a clean production PNG with genuine alpha transparency. This image is for replacing the existing app logo.
+
+## Previous blue source
 
 `pin-arrow-filled-interior.png` is the corrected source, created with the built-in image generation tool from the user's supplied reference. It supersedes `pin-arrow-transparent.png`, which incorrectly removed the interior. Prompt:
 

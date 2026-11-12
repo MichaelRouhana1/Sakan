@@ -1,3 +1,4 @@
+import type { LoadedClerk } from "@clerk/shared/types";
 import { Platform } from "react-native";
 
 declare global {
@@ -10,50 +11,14 @@ if (typeof window !== "undefined" && !window.__STUDENTLY_OAUTH_HREF) {
   window.__STUDENTLY_OAUTH_HREF = window.location.href;
 }
 
-type ClerkSessionLike = {
-  id?: string;
+type ClerkLike = LoadedClerk;
+type TokenSession = {
+  getToken?: (options?: { skipCache?: boolean }) => Promise<string | null>;
   user?: unknown;
   reload?: () => Promise<unknown>;
-  getToken?: (opts?: { skipCache?: boolean }) => Promise<string | null>;
 };
 
-type ClerkLike = {
-  loaded?: boolean;
-  session?: ClerkSessionLike | null;
-  setActive?: (args: { session: string }) => Promise<unknown>;
-  handleRedirectCallback?: (
-    params?: Record<string, unknown>,
-    customNavigate?: (to: string) => Promise<unknown> | unknown,
-  ) => Promise<unknown>;
-  client?: {
-    signIn?: {
-      create?: (args: {
-        strategy: string;
-        redirectUrl: string;
-        actionCompleteRedirectUrl?: string;
-      }) => Promise<unknown>;
-      authenticateWithRedirect?: (args: {
-        strategy: string;
-        redirectUrl: string;
-        redirectUrlComplete: string;
-        continueSignUp?: boolean;
-        continueSignIn?: boolean;
-      }) => Promise<void>;
-      reload?: (args?: { rotatingTokenNonce?: string }) => Promise<unknown>;
-      status?: string;
-      createdSessionId?: string | null;
-      firstFactorVerification?: {
-        status?: string | null;
-        externalVerificationRedirectURL?: { toString: () => string } | string | null;
-      };
-    } | null;
-    signUp?: {
-      create?: (args: { transfer: boolean }) => Promise<{ createdSessionId?: string | null }>;
-      createdSessionId?: string | null;
-    } | null;
-    sessions?: { id: string }[];
-  };
-};
+type OAuthProvider = "oauth_google" | "oauth_facebook" | "oauth_apple";
 
 export function isAlreadySignedInError(err: unknown): boolean {
   const anyErr = err as {
@@ -113,7 +78,7 @@ function describeToken(token: string | null): string {
 }
 
 async function readSessionToken(
-  session: ClerkSessionLike,
+  session: TokenSession,
   skipCache: boolean,
 ): Promise<{ token: string | null; detail: string }> {
   if (!session.getToken) {
@@ -129,7 +94,7 @@ async function readSessionToken(
 }
 
 export async function getFreshClerkToken(
-  session: ClerkSessionLike | null | undefined,
+  session: TokenSession | null | undefined,
   forceRefresh = false,
 ): Promise<string | null> {
   if (!session?.getToken) {
@@ -186,13 +151,9 @@ export async function activateClerkSession(
 
 type OAuthFlowResult = {
   createdSessionId?: string | null;
-  setActive?: (args: { session: string }) => Promise<unknown>;
-  signIn?: ClerkLike["client"] extends { signIn?: infer S } ? S : never;
-  signUp?: {
-    create?: (args: { transfer: boolean }) => Promise<{ createdSessionId?: string | null }>;
-    createdSessionId?: string | null;
-    status?: string;
-  };
+  setActive?: LoadedClerk["setActive"];
+  signIn?: NonNullable<LoadedClerk["client"]>["signIn"];
+  signUp?: NonNullable<LoadedClerk["client"]>["signUp"];
 };
 
 export async function completeOAuthSession(
@@ -335,7 +296,7 @@ function restoreOAuthCallbackUrlIfNeeded(): void {
  */
 export async function startWebOAuthRedirect(
   clerk: ClerkLike,
-  strategy: "oauth_google" | "oauth_facebook" | "oauth_apple",
+  strategy: OAuthProvider,
   redirectUrl: string,
 ): Promise<void> {
   if (typeof window === "undefined") {
@@ -371,7 +332,7 @@ export async function startWebOAuthRedirect(
 }
 
 function withAccountPicker(
-  strategy: "oauth_google" | "oauth_facebook" | "oauth_apple",
+  strategy: OAuthProvider,
   oauthUrl: string,
 ): string {
   if (strategy !== "oauth_google") return oauthUrl;
@@ -425,6 +386,7 @@ export async function completeOAuthRedirectIfPresent(
         (to: string) => {
           navigated = true;
           navigateAfterOAuth(to);
+          return Promise.resolve();
         },
       );
       if (navigated) return true;

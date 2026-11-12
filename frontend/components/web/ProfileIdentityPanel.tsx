@@ -217,7 +217,7 @@ export function ProfileIdentityPanel({ stacked }: Props) {
       );
       const target =
         existing ?? (await clerkUser.createPhoneNumber({ phoneNumber: e164 }));
-      await target.prepareVerification({ strategy: "phone_code" });
+      await target.prepareVerification();
       setVerify("phone");
     } catch (err) {
       setError(clerkMessage(err, "Could not send a verification code."));
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   dialogBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Studently.color.overlay,
   },
   dialog: {

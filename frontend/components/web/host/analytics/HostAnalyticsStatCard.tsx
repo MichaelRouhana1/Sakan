@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(180,83,9,0.22)",
   },
   glassSheenClip: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 12,
     overflow: "hidden",
   },

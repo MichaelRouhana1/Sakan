@@ -26,5 +26,6 @@ brand/pin-arrow/
 brand/pin-arrow-glossy/*
 !brand/pin-arrow-glossy/APP-ASSETS.md
 !brand/pin-arrow-glossy/pin-arrow-filled-interior.png
+!brand/pin-arrow-glossy/pin-arrow-madder.png
 __pycache__/
 *.pyc

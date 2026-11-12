@@ -4,6 +4,8 @@ import { build } from '../../backend/node_modules/esbuild/lib/main.js';
 import path from 'node:path';
 const bundle = await build({ entryPoints: [path.resolve(import.meta.dirname, '../lib/listingDetailOwnership.ts')], bundle: true, write: false, platform: 'node', format: 'esm' });
 const { detailLabels, siblingHeading, filterSiblingUnits, scopedAmenities, scopedFields, utilityFields } = await import('data:text/javascript;base64,' + Buffer.from(bundle.outputFiles[0].text).toString('base64'));
+const displayBundle = await build({ entryPoints: [path.resolve(import.meta.dirname, '../lib/listingDetailDisplay.ts')], bundle: true, write: false, platform: 'node', format: 'esm' });
+const { elevatorStatus, placeExtras } = await import('data:text/javascript;base64,' + Buffer.from(displayBundle.outputFiles[0].text).toString('base64'));
 const room = { id: 'a', unitType: 'private_room', placeKind: 'apartment', monthlyRentUsd: 300, availability: 'available' };
 test('headings cover all unit/place combinations without inventing room membership', () => {
   for (const placeKind of ['apartment', 'building']) for (const [unitType, noun] of [['private_room', 'room'], ['shared_bed', 'bed'], ['whole_apartment', 'apartment']]) {
@@ -35,4 +37,33 @@ test('solar place / generator unit and reset show the effective value in its cor
 test('shared additions, copied amenities and exclusions do not claim exclusive or unavailable access', () => {
   const unit = { ...room, amenities: ['balcony', 'study_desk'], placeContext: { defaults: { amenities: ['balcony', 'parking'] }, unitAmenities: ['balcony', 'study_desk'], amenityOverrides: { parking: false } } };
   assert.deepEqual(scopedAmenities(unit), { unit: ['study_desk'], shared: [{ key: 'balcony', available: true }, { key: 'parking', available: false }] });
+});
+
+test('building visibility ignores removed details and retains each independent extra', () => {
+  const unit = { ...room, amenities: ['balcony'], placeContext: { isMultiUnit: true,
+    defaults: { electricity: 'solar', wifiIncluded: true, quietHours: true, amenities: ['balcony'], hasSolar: false, conciergeIncluded: false },
+    amenityOverrides: {} } };
+  assert.equal(placeExtras(unit).visible, false);
+  assert.equal(placeExtras({ ...unit, buildingName: '  ' }).visible, false);
+  for (const details of [{ buildingName: 'Bliss House' }, { addressLine: '24 Bliss Street' }, { sharedPhotos: [{ url: '/shared.png' }] }]) {
+    assert.equal(placeExtras({ ...unit, ...details }).visible, true);
+  }
+  for (const defaults of [{ hasSolar: true }, { conciergeIncluded: true }, { amenities: ['balcony', 'parking'] }]) {
+    assert.equal(placeExtras({ ...unit, placeContext: { ...unit.placeContext, defaults } }).visible, true);
+  }
+  for (const defaults of [{ hasElevator: false }, { hasElevator: true }, { hasElevator: true, elevator24_7: true }]) {
+    assert.equal(placeExtras({ ...unit, placeContext: { ...unit.placeContext, defaults } }).visible, false);
+  }
+  assert.deepEqual(placeExtras({ ...unit, placeContext: { ...unit.placeContext, defaults: { amenities: ['balcony', 'parking', 'parking'] } } }).unavailableAmenities, ['parking']);
+});
+
+test('elevator uses effective availability and cannot create a building section', () => {
+  assert.equal(elevatorStatus({ hasElevator: false, elevator24_7: true }), 'Not available');
+  assert.equal(elevatorStatus({ hasElevator: true, elevator24_7: false }), 'Available');
+  assert.equal(elevatorStatus({ hasElevator: true, elevator24_7: true }), 'Available 24/7');
+  const unit = { ...room, hasElevator: false, elevator24_7: false, placeContext: { isMultiUnit: true,
+    defaults: { hasElevator: true, elevator24_7: true }, amenityOverrides: {} } };
+  assert.equal(elevatorStatus(unit), 'Not available');
+  assert.equal(placeExtras(unit).visible, false);
+  assert.equal('elevator' in placeExtras(unit), false);
 });
