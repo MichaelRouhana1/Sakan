@@ -18,8 +18,8 @@ async function main() {
   await copy('png/studently-knockout-white-512.png',path.join(brand,'knockout-white.png'));
   for(const tone of ['color','knockout-white'])for(const size of [16,64])
     await copy(`png/studently-small-${tone}-${size}.png`,path.join(brand,`small-${tone}-${size}.png`));
-  await copy('png/studently-small-color-16.png',path.join(pub,'favicon-16.png'));
-  await copy('png/studently-full-color-32.png',path.join(pub,'favicon-32.png'));
+  await copy('png/studently-small-knockout-red-16.png',path.join(pub,'favicon-16.png'));
+  await copy('png/studently-knockout-red-32.png',path.join(pub,'favicon-32.png'));
   for(const [file,size] of [['apple-touch-icon.png',180],['pwa-icon-192.png',192],['pwa-icon-512.png',512]])
     await sharp(path.join(images,'icon.png')).resize(size,size).png().toFile(path.join(pub,file));
   // Explicitly named obsolete runtime assets only; design archives remain untouched.

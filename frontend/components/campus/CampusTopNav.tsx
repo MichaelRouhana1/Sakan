@@ -75,11 +75,11 @@ export function CampusTopNav() {
           { paddingHorizontal: compact ? 16 : WEB_CONTENT_PAD_X },
         ]}
       >
-        <Link href={"/campus" as Href} asChild>
+        <Link href={"/" as Href} asChild>
           <Pressable
-            onPress={() => router.push("/campus" as never)}
+            onPress={() => router.push("/" as never)}
             accessibilityRole="link"
-            accessibilityLabel="Studently Campus home"
+            accessibilityLabel="Studently home"
             style={styles.brandHit}
           >
             <StudentlyLogo size={compact ? 36 : 40} />
