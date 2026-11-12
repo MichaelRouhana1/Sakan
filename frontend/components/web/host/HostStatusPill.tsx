@@ -17,10 +17,11 @@ type Props = {
 
 export function HostStatusPill({ label, tone = "muted" }: Props) {
   const colors = TONES[tone];
+  const expiring = label.startsWith('Expiring in');
   return (
-    <View style={styles.pill}>
-      <View style={[styles.dot, { backgroundColor: colors.dot }]} />
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+    <View style={[styles.pill, expiring && { backgroundColor: '#FFFBEB' }]}>
+      <View style={[styles.dot, { backgroundColor: expiring ? '#D97706' : colors.dot }]} />
+      <Text style={[styles.label, { color: expiring ? '#92400E' : colors.text }]}>{label}</Text>
     </View>
   );
 }

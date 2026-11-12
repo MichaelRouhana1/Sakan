@@ -19,6 +19,7 @@ import {
 } from "../../db/schema/index.js";
 
 export type NotificationKind =
+  | "renewal_credit_needed" | "renewal_beds_needed" | "renewal_succeeded" | "renewal_failed"
   | "pre_expiry"
   | "expiry_prompt"
   | "admin_escalation";
@@ -88,7 +89,7 @@ const candidateColumns = {
 
 export class ExpiryNotificationsRepository {
   async preExpiryCandidates(now: Date) {
-    const upper = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const upper = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
     const rows = await db
       .select(candidateColumns)
       .from(listings)
@@ -97,8 +98,9 @@ export class ExpiryNotificationsRepository {
       .where(
         and(
           eq(listings.status, "active"),
+          sql`${listings.availability} <> 'rented'`,
           lte(listings.expiresAt, upper),
-          sql`${listings.expiresAt} > ${now}`,
+          sql`${listings.expiresAt} > ${now.toISOString()}::timestamptz`,
         ),
       );
     return rows
@@ -121,6 +123,17 @@ export class ExpiryNotificationsRepository {
     return rows
       .filter((row) => row.cycleExpiresAt != null)
       .map((row) => ({ ...row, cycleExpiresAt: row.cycleExpiresAt! }));
+  }
+
+  async automaticRenewalNotifications() {
+    const rows = await db.select({ ...candidateColumns, cycleExpiresAt: listingLifecycleEvents.cycleExpiresAt })
+      .from(listingLifecycleEvents)
+      .innerJoin(listings, eq(listings.id, listingLifecycleEvents.listingId))
+      .innerJoin(places, eq(places.id, listings.placeId))
+      .innerJoin(users, eq(users.id, listings.posterId))
+      .where(and(eq(listingLifecycleEvents.eventType, 'renewed'), eq(listingLifecycleEvents.source, 'system')));
+    return rows.filter(row => row.cycleExpiresAt != null)
+      .map(row => ({ ...row, cycleExpiresAt: row.cycleExpiresAt! }));
   }
 
   async ensureExpired(candidate: ExpiryCandidate) {
@@ -182,6 +195,7 @@ export class ExpiryNotificationsRepository {
       })
       .from(listingLifecycleEvents)
       .innerJoin(listings, eq(listings.id, listingLifecycleEvents.listingId))
+      .innerJoin(places, eq(places.id, listings.placeId))
       .innerJoin(users, eq(users.id, listings.posterId))
       .where(eq(listingLifecycleEvents.eventType, "expired"));
     return rows
@@ -217,7 +231,7 @@ export class ExpiryNotificationsRepository {
         ORDER BY e.created_at DESC
         LIMIT 1
       ) latest
-      WHERE ${now} >= GREATEST(c.cycle_expires_at, latest.created_at) + interval '24 hours'
+      WHERE ${now.toISOString()}::timestamptz >= GREATEST(c.cycle_expires_at, latest.created_at) + interval '24 hours'
         AND NOT EXISTS (
           SELECT 1 FROM listing_lifecycle_events f
           WHERE f.listing_id = c.listing_id

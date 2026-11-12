@@ -6,6 +6,7 @@ import { HostListingGridCard } from './HostListingGridCard';
 import { HostListingListView } from './HostListingListView';
 import { openListingEdit } from '@/features/listings/edit/openListingEdit';
 import { PlaceEditor } from '@/components/listings/edit/PlaceEditor';
+import { isPastExpiry } from './hostListingStatus';
 import { Lister } from '@/constants/listerTheme';
 
 export function groupHostUnits(listings:Listing[]){
@@ -30,7 +31,7 @@ export function HostPlaceGroups({listings,layout,compact,onPress}:{listings:List
     {layout==='list'?<HostListingListView rows={units.map(listing=>({kind:'listing' as const,listing}))} compact={compact}
      onDraftPress={row=>{if(row.kind==='listing')onPress(row.listing);}} onListingPress={onPress} onEditListing={l=>openListingEdit(router,l.id)}/>
      :<View style={{flexDirection:'row',flexWrap:'wrap',gap:16}}>{units.map(unit=><View key={unit.id} style={{width:compact?'100%':240,gap:8}}>
-      <HostListingGridCard listing={unit} onPress={()=>onPress(unit)} onEdit={unit.status==='active'?()=>openListingEdit(router,unit.id):undefined}/>
+      <HostListingGridCard listing={unit} onPress={()=>onPress(unit)} onEdit={unit.status==='active' && !isPastExpiry(unit.expiresAt)?()=>openListingEdit(router,unit.id):undefined}/>
       <Text style={{fontFamily:Lister.type.body,fontSize:13,color:Lister.color.inkMuted}}>{unit.viewCount??0} views · {unit.contactTapCount??0} contact taps</Text>
      </View>)}</View>}
    </View>;

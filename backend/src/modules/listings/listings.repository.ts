@@ -56,6 +56,7 @@ export type ListingWithPhotos = Record<string, unknown> & {
 /** Explicit listing columns — never select raw geography/location. */
 export const listingPublicColumns = {
   id: listingResolved.id,
+  autoRenew: sql<boolean>`(SELECT auto_renew FROM listings ar WHERE ar.id = listing_resolved.id)`,
   contactTapCount: listingResolved.contactTapCount,
   placeId: listingResolved.placeId,
   unitType: listingResolved.unitType,

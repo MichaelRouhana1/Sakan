@@ -36,6 +36,7 @@ export function HostInventoryControl({listingId}: {listingId: string}) {
   function refreshRelated() {
     void client.invalidateQueries({queryKey: ['host-inventory']});
     void client.invalidateQueries({queryKey: ['listings']});
+    void client.invalidateQueries({queryKey: ['unit-auto-renew']});
     void client.invalidateQueries({queryKey: ['promotions']});
   }
   async function save(change: InventoryChange, source = row) {

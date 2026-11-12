@@ -160,6 +160,7 @@ export const listingOutcomeSourceEnum = pgEnum("listing_outcome_source", [
 ]);
 
 export const notificationKindEnum = pgEnum("notification_kind", [
+  "renewal_credit_needed", "renewal_beds_needed", "renewal_succeeded", "renewal_failed",
   "pre_expiry",
   "expiry_prompt",
   "admin_escalation",

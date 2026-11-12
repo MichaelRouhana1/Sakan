@@ -15,6 +15,7 @@ export const promotionCampaigns = pgTable("promotion_campaigns", {
   listingIdSnapshot: uuid("listing_id_snapshot").notNull(),
   listingTitle: text("listing_title").notNull(),
   listingPublishedAt: timestamp("listing_published_at", { withTimezone: true }),
+  listingCycleExpiresAt: timestamp("listing_cycle_expires_at", { withTimezone: true }),
   type: text("type").$type<"featured" | "bump">().notNull(),
   productId: text("product_id").notNull(),
   catalogVersion: text("catalog_version").notNull(),

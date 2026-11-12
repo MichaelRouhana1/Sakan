@@ -87,6 +87,7 @@ async function activate(tx:Tx,c:Row,now:Date) {
   if(process.env.PROMOTION_PLACEMENT_ENABLED!=='true' || !getPromotionCatalog().salesEnabled) return false;
   const legacy = await tx.execute(sql`SELECT id FROM listings WHERE boosted_until>now() LIMIT 1`);
   if (legacy.length) throw new ConflictError('Promotion setup is being completed. Please try again later.');
+  if(c.listing_cycle_expires_at && new Date(c.listing_cycle_expires_at)<=now) { await stopCampaign(tx,c,'listing_expired',new Date(c.listing_cycle_expires_at)); return false; }
   const l=c.listing_id?await ownedListing(tx,c.listing_id):undefined;
   const reasons=eligibilityReasons(l,now);
   if(reasons.length || (l&&!listingMarkets(l).some(m=>m.key===c.market_key))) {
@@ -122,6 +123,7 @@ async function activate(tx:Tx,c:Row,now:Date) {
 async function reconcile(tx:Tx,now:Date) {
   const rows=await tx.execute(sql`SELECT * FROM promotion_campaigns WHERE status IN ('active','queued','paused','action_needed') ORDER BY created_at FOR UPDATE`);
   for(const c of rows as Row[]) {
+    if(c.listing_cycle_expires_at && new Date(c.listing_cycle_expires_at)<=now) { await stopCampaign(tx,c,'listing_expired',new Date(c.listing_cycle_expires_at)); continue; }
     const l=c.listing_id?await ownedListing(tx,c.listing_id):undefined;
     const expired=l?.expires_at && new Date(l.expires_at)<=now;
     if(eligibilityReasons(l,now).length || (l&&!listingMarkets(l).some(m=>m.key===c.market_key))) {
@@ -260,9 +262,21 @@ export async function readPromotion(ownerId:string,id:string) {
 }
 export async function getListingPromotions(ids:string[]) {
   if(!ids.length || process.env.PROMOTION_PLACEMENT_ENABLED!=='true') return [];
-  const rows=await db.execute(sql`SELECT c.* FROM promotion_campaigns c JOIN listings l ON l.id=c.listing_id JOIN users u ON u.id=c.owner_id WHERE c.listing_id IN (${sql.join(ids.map(id=>sql`${id}::uuid`),sql`,`)}) AND c.status='active' AND c.ends_at>now() AND l.status='active' AND unit_hidden_reason(l) IS NULL AND l.availability='available' AND l.expires_at>now() AND u.account_status NOT IN ('restricted','banned')`);
+  const rows=await db.execute(sql`SELECT c.* FROM promotion_campaigns c JOIN listings l ON l.id=c.listing_id JOIN users u ON u.id=c.owner_id WHERE c.listing_id IN (${sql.join(ids.map(id=>sql`${id}::uuid`),sql`,`)}) AND c.status='active' AND c.ends_at>now() AND (c.listing_cycle_expires_at IS NULL OR c.listing_cycle_expires_at>now()) AND l.status='active' AND unit_hidden_reason(l) IS NULL AND l.availability='available' AND l.expires_at>now() AND u.account_status NOT IN ('restricted','banned')`);
   return rows.map(c=>({campaignId:String(c.id),listingId:String(c.listing_id),type:String(c.type) as 'featured'|'bump',marketKey:String(c.market_key),startedAt:iso(c.started_at),endsAt:iso(c.ends_at)!,lastBumpedAt:iso(c.last_bumped_at)}));
 }
 export async function promotionNotices(ownerId:string) {
   return db.execute(sql`SELECT id,campaign_id AS "campaignId",kind,message,created_at AS "createdAt" FROM promotion_notifications WHERE owner_id=${ownerId}::uuid ORDER BY created_at DESC LIMIT 30`);
+}
+
+/** Settle the original promotion boundary even if its listing renewed early. */
+export async function settleExpiredPromotionCycles(now=new Date(),listingIds?:string[]) {
+ return db.transaction(async tx=>{
+  await promotionLock(tx);
+  const rows=await tx.execute(sql`SELECT * FROM promotion_campaigns WHERE status IN ('active','queued','paused','action_needed')
+    AND listing_cycle_expires_at<=${iso(now)}::timestamptz
+    ${listingIds ? sql`AND listing_id IN (${sql.join(listingIds.map(id=>sql`${id}::uuid`),sql`,`)})` : sql``} FOR UPDATE`);
+  for(const c of rows as Row[]) await stopCampaign(tx,c,'listing_expired',new Date(c.listing_cycle_expires_at));
+  return rows.length;
+ });
 }

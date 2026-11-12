@@ -27,6 +27,8 @@ import { ListingAvailabilityControl } from "@/components/listings/ListingAvailab
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
 import {
   hostListingStatus,
+  isExpiringSoon,
+  isPastExpiry,
   type HostListingStatusTone,
 } from "@/components/web/host/hostListingStatus";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
@@ -79,11 +81,13 @@ export function HostListingAnalyticsPage({ listingId }: Props) {
   const isLoading = isPending && fetchStatus !== "idle";
   const daysLeft = data?.daysLeft ?? null;
   const isLive = data?.status === "active";
-  const endingSoon =
-    isLive && daysLeft != null && daysLeft >= 0 && daysLeft <= 7;
-  const showDaysCard = Boolean(isLive && daysLeft != null);
+  const endingSoon = data ? isExpiringSoon(data.expiresAt) : false;
+  const showDaysCard = Boolean(isLive && data?.expiresAt);
   const canViewPublic =
-    data != null && data.status !== "archived" && data.status !== "removed";
+    data != null &&
+    data.status !== "archived" &&
+    data.status !== "removed" &&
+    !isPastExpiry(data.expiresAt);
 
   const analyticsHome =
     Platform.OS === "web" ? HOST_ANALYTICS_PATH : POSTER_ANALYTICS_TAB;
@@ -338,6 +342,7 @@ function NumbersColumn({
   statusTone: HostListingStatusTone;
   viewCta: ReactNode;
 }) {
+  const expired = isPastExpiry(listing.expiresAt);
   return (
     <View style={[styles.numbers, compact && styles.numbersCompact]}>
       <View style={[styles.stats, compact && styles.statsCompact]}>
@@ -377,10 +382,10 @@ function NumbersColumn({
             ]}
           >
             <HostAnalyticsStatCard
-              label={endingSoon ? "Expires soon" : "Days left"}
-              icon={endingSoon ? "alarm-outline" : "time-outline"}
-              value={formatAnalyticsDaysLeft(daysLeft)}
-              tone={endingSoon ? "warning" : "default"}
+              label={expired ? "Expired" : endingSoon ? "Expires soon" : "Days left"}
+              icon={expired || endingSoon ? "alarm-outline" : "time-outline"}
+              value={expired ? "Expired" : formatAnalyticsDaysLeft(daysLeft)}
+              tone={expired || endingSoon ? "warning" : "default"}
               dense={compact}
               fill
               glass
@@ -434,7 +439,7 @@ function NumbersColumn({
         <View style={styles.statusRow}>
           <HostStatusPill label={statusLabel} tone={statusTone} />
           <Text style={styles.daysLeft}>
-            {formatAnalyticsDaysLeft(listing.daysLeft)}
+            {isPastExpiry(listing.expiresAt) ? "Expired" : formatAnalyticsDaysLeft(listing.daysLeft)}
           </Text>
         </View>
         {listing.status === "active" && cardListing ? (

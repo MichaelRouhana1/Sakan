@@ -274,6 +274,13 @@
       "when": 1793175300000,
       "tag": "0038_places_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794480000000,
+      "tag": "0039_unit_auto_renew",
+      "breakpoints": true
     }
   ]
 }

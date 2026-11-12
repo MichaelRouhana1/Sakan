@@ -192,6 +192,17 @@ export type Listing = {
   reviewCount?: number | null;
   publishedAt: string | null;
   expiresAt: string | null;
+  autoRenew?: boolean;
+  autoRenewState?: {
+    enabled: boolean;
+    expiresAt: string | null;
+    status: ListingStatus;
+    blocked: 'beds' | 'credits' | 'unavailable' | 'account' | null;
+  };
+  hidden?: boolean;
+  hiddenReason?: string | null;
+  inventoryNeedsConfirmation?: boolean;
+  inventoryVersion?: number;
   boostedUntil: string | null;
   promotion?: {campaignId:string;type:'featured'|'bump';position:number;marketKey:string;endsAt:string;lastBumpedAt:string|null;token:string;sessionId:string};
   createdAt: string;

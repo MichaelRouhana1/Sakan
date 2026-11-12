@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { processUnitAutoRenewals } from "../modules/listings/unit-auto-renew.service.js";
+import { settleExpiredPromotionCycles } from "../modules/promotions/promotions.service.js";
 import { expiryNotificationsRepository } from "../modules/listings/expiry-notifications.repository.js";
 import { expiryNotificationsService } from "../modules/listings/expiry-notifications.service.js";
 import { listingExpiryRepository } from "../modules/listings/listing-expiry.repository.js";
@@ -13,7 +15,20 @@ export async function processListingLifecycle(now = new Date()) {
     skipped: 0,
     failed: 0,
     receiptsChecked: 0,
+    autoRenewed: 0,
+    autoRenewBlocked: 0,
   };
+
+  await settleExpiredPromotionCycles(now);
+  const automatic = await processUnitAutoRenewals(now);
+  summary.autoRenewed = automatic.filter(result => result.state === 'renewed').length;
+  summary.autoRenewBlocked = automatic.length - summary.autoRenewed;
+  for (const candidate of await expiryNotificationsRepository.automaticRenewalNotifications()) {
+    const result = await expiryNotificationsService.sendHost(candidate, 'renewal_succeeded');
+    summary.sent += result.sent;
+    summary.skipped += result.skipped;
+    summary.failed += result.failed;
+  }
 
   for (const candidate of await expiryNotificationsRepository.preExpiryCandidates(now)) {
     const result = await expiryNotificationsService.sendHost(candidate, "pre_expiry");

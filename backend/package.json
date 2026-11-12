@@ -19,6 +19,7 @@
     "job:archive-expired": "tsx src/jobs/archive-expired-listings.ts",
     "job:listing-lifecycle": "tsx src/jobs/process-listing-lifecycle.ts",
     "test:lifecycle": "npm run build && node --test tests/listing-lifecycle.test.mjs && node --import tsx --test tests/listing-update-audit.test.ts",
+    "test:renewal": "npm run build && node tests/unit-auto-renew.integration.mjs && node --import tsx --test ../frontend/tests/listing-time.test.ts",
     "test:listing-audit": "node --import tsx --test tests/listing-update-audit.test.ts",
     "job:promotions": "tsx src/jobs/process-promotions.ts",
     "job:promotion-cutover": "tsx src/jobs/cutover-legacy-promotions.ts",

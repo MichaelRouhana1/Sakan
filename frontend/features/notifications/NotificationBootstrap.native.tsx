@@ -43,6 +43,10 @@ export function NotificationBootstrap() {
     }
     let cancelled = false;
     void (async () => {
+      await Notifications.setNotificationCategoryAsync('listing-availability', [
+        { identifier: 'still_available', buttonTitle: 'Yes, still available', options: { opensAppToForeground: true } },
+        { identifier: 'rented', buttonTitle: 'Rented', options: { opensAppToForeground: true } },
+      ]);
       if (!Constants.isDevice) return;
       const current = await Notifications.getPermissionsAsync();
       const permission =
@@ -92,7 +96,11 @@ export function NotificationBootstrap() {
       );
       if (!path) return;
       lastResponseId.current = id;
-      router.push(path as never);
+      const choice = response.actionIdentifier;
+      const cycle = response.notification.request.content.data?.cycleExpiresAt;
+      const suffix = ['still_available','rented'].includes(choice) && typeof cycle === 'string'
+        ? `?choice=${choice}&cycle=${encodeURIComponent(cycle)}` : '';
+      router.push(`${path}${suffix}` as never);
     }
 
     void Notifications.getLastNotificationResponseAsync().then(open);

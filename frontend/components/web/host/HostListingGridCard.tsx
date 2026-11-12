@@ -1,3 +1,4 @@
+import { UnitRenewalControls, useListingClock } from "./UnitRenewalControls";
 import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -5,7 +6,7 @@ import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ListingAvailabilityControl } from "@/components/listings/ListingAvailabilityControl";
 import { HostStatusPill } from "@/components/web/host/HostStatusPill";
-import { hostListingStatus } from "@/components/web/host/hostListingStatus";
+import { hostListingStatus, isPastExpiry } from "@/components/web/host/hostListingStatus";
 import {
   hostListingAnalyticsPath,
   posterListingAnalyticsPath,
@@ -20,20 +21,18 @@ type Props = {
   onEdit?: () => void;
 };
 
-function listingStatus(listing: Listing) {
-  return hostListingStatus(listing);
-}
-
 export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
   const router = useRouter();
   const cover = resolveMediaUrl(
     listing.coverUrl ?? listing.photos[0]?.url ?? null,
   );
-  const status = listingStatus(listing);
+  const now = useListingClock();
+  const status = hostListingStatus(listing, now);
   const title = listing.title?.trim() || listing.area;
   const subtitle = `Home in ${listing.area}`;
 
-  const showEdit = Boolean(onEdit) && listing.status === "active";
+  const expired = isPastExpiry(listing.expiresAt);
+  const showEdit = Boolean(onEdit) && listing.status === "active" && !expired;
 
   function openAnalytics() {
     const href =
@@ -44,7 +43,7 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
   }
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card} testID="host-unit-card">
       <View style={styles.media}>
         <Pressable
           accessibilityRole="button"
@@ -55,7 +54,8 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
         {cover ? (
           <Image
             source={{ uri: cover }}
-            style={[StyleSheet.absoluteFill, styles.noPointer]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
             contentFit="cover"
             transition={200}
           />
@@ -102,6 +102,7 @@ export function HostListingGridCard({ listing, onPress, onEdit }: Props) {
         </Text>
       </Pressable>
       {listing.status !== 'draft' ? <ListingAvailabilityControl listingId={listing.id}/> : null}
+      <UnitRenewalControls listing={listing} />
       <PromotionAction listingId={listing.id} />
     </View>
   );

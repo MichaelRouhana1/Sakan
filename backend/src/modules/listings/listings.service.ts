@@ -120,6 +120,10 @@ export class ListingsService {
     if (status === "archived" || status === "removed" || listing.hiddenReason) {
       throw new NotFoundError("Listing not found");
     }
+    const expiresAt = (listing as { expiresAt?: Date | string | null }).expiresAt;
+    if (expiresAt && new Date(expiresAt).getTime() <= Date.now()) {
+      throw new NotFoundError("Listing not found");
+    }
     return listing;
   }
 

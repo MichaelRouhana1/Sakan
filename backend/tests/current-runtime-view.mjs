@@ -6,6 +6,9 @@ import { createHash } from 'node:crypto';
 export async function exposeCurrentRuntimeView(client) {
   const [column] = await client`select 1 from information_schema.columns
     where table_schema='public' and table_name='listing_resolved' and column_name='hidden_reason'`;
+  const latest = await readFile(new URL('../drizzle/0039_unit_auto_renew.sql', import.meta.url), 'utf8');
+  const [applied] = await client`select 1 from information_schema.columns where table_name='listings' and column_name='auto_renew'`;
+  if (!applied) for (const statement of latest.split('--> statement-breakpoint')) await client.unsafe(statement);
   if (column) return;
   const journal = JSON.parse(await readFile(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'));
   for (const entry of journal.entries.filter(item => item.idx >= 34 && item.idx < 38)) {

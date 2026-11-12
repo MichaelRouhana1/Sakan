@@ -56,11 +56,18 @@ function candidateWhatsapp(candidate: ExpiryCandidate): string | null {
 }
 
 function hostCopy(kind: Exclude<NotificationKind, "admin_escalation">) {
+  const notices = {
+    renewal_credit_needed: { subject: 'Add credits for auto-renew', title: 'Auto-renew needs credits', body: 'Add post credits before expiry. Each unit renewal uses 1 credit; otherwise the unit will expire.' },
+    renewal_beds_needed: { subject: 'Confirm beds for auto-renew', title: 'Confirm available beds', body: 'Confirm a positive available-bed count before expiry. This unit cannot auto-renew until then.' },
+    renewal_succeeded: { subject: 'Your unit renewed', title: 'Renewed for 30 more days', body: 'Auto-renew used 1 post credit and added 30 days to the previous expiry.' },
+    renewal_failed: { subject: 'Your unit could not auto-renew', title: 'Auto-renew needs attention', body: 'Automatic renewal could not complete. Check your unit and renew manually; otherwise it expires at its scheduled time.' },
+  };
+  if (kind in notices) return notices[kind as keyof typeof notices];
   if (kind === "pre_expiry") {
     return {
-      subject: "Your listing expires soon",
+      subject: "Still available?",
       title: "Your listing expires soon. Still available?",
-      body: "Review it now so renters see accurate information.",
+      body: "Your unit expires soon. Is it still available? Yes confirms availability without spending a credit. Auto-renew, if enabled and eligible, runs in the final hour.",
     };
   }
   return {
@@ -114,7 +121,7 @@ export class ExpiryNotificationsService {
 
   async sendHost(
     candidate: ExpiryCandidate,
-    kind: "pre_expiry" | "expiry_prompt",
+    kind: Exclude<NotificationKind, "admin_escalation">,
   ): Promise<DeliveryStats> {
     const stats: DeliveryStats = { sent: 0, skipped: 0, failed: 0 };
     const copy = hostCopy(kind);
@@ -151,7 +158,8 @@ export class ExpiryNotificationsService {
               title: copy.title,
               body: copy.body,
               channelId: "listing-expiry",
-              data: { path: route, listingId: candidate.listingId },
+              categoryId: kind === "pre_expiry" ? "listing-availability" : undefined,
+              data: { path: route, listingId: candidate.listingId, cycleExpiresAt: candidate.cycleExpiresAt.toISOString() },
             },
           ]);
           if (!ticket || ticket.status === "error") {
@@ -198,11 +206,14 @@ export class ExpiryNotificationsService {
         try {
           const base = loadEnv().FRONTEND_PUBLIC_URL ?? "http://localhost:8081";
           const url = new URL(route, base).toString();
+          const actions = kind === 'pre_expiry'
+            ? `<a href="${escapeHtml(url)}?choice=still_available&amp;cycle=${encodeURIComponent(candidate.cycleExpiresAt.toISOString())}">Yes, still available</a> · <a href="${escapeHtml(url)}?choice=rented&amp;cycle=${encodeURIComponent(candidate.cycleExpiresAt.toISOString())}">Rented</a>`
+            : `<a href="${escapeHtml(url)}">View unit</a>`;
           const result = await sendResendEmail({
             to: email,
             subject: copy.subject,
             idempotencyKey: `listing-${candidate.listingId}-${candidate.cycleExpiresAt.toISOString()}-${kind}`,
-            html: `<p>Hi ${escapeHtml(hostName(candidate))},</p><p>${escapeHtml(copy.body)}</p><p><strong>${escapeHtml(candidate.title)}</strong> · ${escapeHtml(candidate.area)}</p><p><a href="${escapeHtml(url)}">Review listing status</a></p>`,
+            html: `<p>Hi ${escapeHtml(hostName(candidate))},</p><p>${escapeHtml(copy.body)}</p><p><strong>${escapeHtml(candidate.title)}</strong> · ${escapeHtml(candidate.area)}</p><p>${actions}</p>`,
           });
           await expiryNotificationsRepository.finishDelivery(delivery.id, {
             status: result.skipped ? "skipped" : "sent",

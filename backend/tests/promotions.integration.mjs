@@ -219,6 +219,9 @@ try {
     const l=await listing('DST');const c=await buy(l,'bump_3');
     const start=new Date('2027-03-27T10:00:00Z');
     await database`UPDATE listings SET expires_at='2028-01-01' WHERE id=${l.id}`;
+    // This scenario moves the whole fixture into 2027, including the campaign's
+    // captured listing cycle. An actual listing renewal must not move this cap.
+    await database`UPDATE promotion_campaigns SET listing_cycle_expires_at='2028-01-01' WHERE id=${c.id}`;
     await database`UPDATE promotion_campaigns SET started_at=${start},active_since=${start},ends_at=${new Date(start.getTime()+3*86400000)},next_bump_at=((${start}::timestamptz AT TIME ZONE 'Asia/Beirut')+interval '1 day') AT TIME ZONE 'Asia/Beirut' WHERE id=${c.id}`;
     await database`DELETE FROM promotion_bump_executions WHERE campaign_id=${c.id}`;
     await database`INSERT INTO promotion_bump_executions(campaign_id,local_date,executed_at) VALUES (${c.id},'2027-03-27',${start})`;

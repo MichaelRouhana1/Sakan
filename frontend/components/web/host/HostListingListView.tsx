@@ -1,3 +1,4 @@
+import { UnitRenewalControls, useListingClock } from "./UnitRenewalControls";
 import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -20,7 +21,7 @@ import { labelListingType } from "@/lib/listingLabels";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { Studently } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
-import { hostListingStatus } from "@/components/web/host/hostListingStatus";
+import { hostListingStatus, isPastExpiry } from "@/components/web/host/hostListingStatus";
 
 export type HostListRow =
   | {
@@ -46,6 +47,7 @@ export function HostListingListView({
   onListingPress,
   onEditListing,
 }: Props) {
+  const now = useListingClock();
   return (
     <View style={styles.table}>
       {!compact ? (
@@ -141,7 +143,7 @@ export function HostListingListView({
         const cover = resolveMediaUrl(
           listing.coverUrl ?? listing.photos[0]?.url ?? null,
         );
-        const status = hostListingStatus(listing);
+        const status = hostListingStatus(listing, now);
         const title =
           listing.title?.trim() ||
           `Your listing started ${new Date(listing.createdAt).toLocaleDateString(
@@ -232,7 +234,8 @@ export function HostListingListView({
                   availability={listing.availability}
                 />
               ) : null}
-              {onEditListing && listing.status === "active" ? (
+              <UnitRenewalControls listing={listing} />
+              {onEditListing && listing.status === "active" && !isPastExpiry(listing.expiresAt) ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Edit listing"

@@ -1,3 +1,5 @@
+import { hostListingStatus } from "@/components/web/host/hostListingStatus";
+import { UnitRenewalControls, useListingClock } from "@/components/web/host/UnitRenewalControls";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,8 +25,9 @@ type Props = {
 };
 
 export function PosterListingCard({ listing, onPress }: Props) {
-  const days = daysUntil(listing.expiresAt);
-  const urgent = days != null && days >= 0 && days <= 5;
+  const now = useListingClock();
+  const timedStatus = hostListingStatus(listing, now);
+  const urgent = timedStatus.tone === "action";
   const cover = resolveMediaUrl(
     listing.coverUrl ?? listing.photos[0]?.url ?? null,
   );
@@ -102,7 +105,7 @@ export function PosterListingCard({ listing, onPress }: Props) {
                   fontFamily: Lister.type.bodyMedium,
                 }}
               >
-                {formatExpiry(listing.expiresAt)}
+                {timedStatus.label}
               </LText>
             </View>
             <Ionicons
@@ -113,6 +116,7 @@ export function PosterListingCard({ listing, onPress }: Props) {
           </View>
         </View>
       </View>
+      <View style={{ paddingHorizontal: 16 }}><UnitRenewalControls listing={listing} /></View>
     </Pressable>
   );
 }

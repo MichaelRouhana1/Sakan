@@ -1,4 +1,5 @@
 import { editPlace, editPlaceSchema } from './place-edit.service.js';
+import { unitAutoRenew } from "./unit-auto-renew.service.js";
 import { listingsRepository } from './listings.repository.js';
 import { db } from '../../db/index.js';
 import { sql } from 'drizzle-orm';
@@ -136,6 +137,12 @@ listingsRouter.post(
   (req, res, next) => listingsController.decideExpiry(req, res, next),
 );
 
+listingsRouter.patch('/:id/auto-renew', requireAuth, validate(z.object({ enabled: z.boolean() }).strict()), async (req,res,next) => {
+ try { res.json({ data: await unitAutoRenew.set(req.user!.id,z.uuid().parse(req.params.id),req.body.enabled) }); } catch(e) { next(e); }
+});
+listingsRouter.get('/:id/auto-renew', requireAuth, async (req,res,next) => {
+ try { res.json({ data: await unitAutoRenew.view(req.user!.id,z.uuid().parse(req.params.id)) }); } catch(e) { next(e); }
+});
 listingsRouter.post(
   "/:id/renew",
   requireAuth,

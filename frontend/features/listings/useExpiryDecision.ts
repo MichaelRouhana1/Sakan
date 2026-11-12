@@ -37,7 +37,7 @@ export type ExpiryDecisionView = {
 
 const key = (id: string) => ["listings", id, "expiry-decision"] as const;
 
-export function useExpiryDecision(id: string) {
+export function useExpiryDecision(id: string, enabled = true) {
   return useQuery({
     queryKey: key(id),
     queryFn: async () => {
@@ -46,7 +46,8 @@ export function useExpiryDecision(id: string) {
       );
       return data.data;
     },
-    enabled: Boolean(id),
+    enabled: Boolean(id) && enabled,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -65,7 +66,8 @@ export function useSubmitExpiryDecision(id: string) {
     },
     onSuccess: (data) => {
       client.setQueryData(key(id), data);
-      void client.invalidateQueries({ queryKey: ["listings", "mine"] });
+      void client.invalidateQueries({ queryKey: ["listings"] });
+      void client.invalidateQueries({ queryKey: ["unit-auto-renew"] });
     },
   });
 }
@@ -82,7 +84,8 @@ export function useRenewListing(id: string) {
     },
     onSuccess: (data) => {
       client.setQueryData(key(id), data);
-      void client.invalidateQueries({ queryKey: ["listings", "mine"] });
+      void client.invalidateQueries({ queryKey: ["listings"] });
+      void client.invalidateQueries({ queryKey: ["unit-auto-renew"] });
       void client.invalidateQueries({ queryKey: ["credits"] });
       void client.invalidateQueries({ queryKey: ["credits", "me"] });
     },

@@ -46,6 +46,7 @@ export const listings = pgTable("listings", {
   posterId: uuid("poster_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  autoRenew: boolean("auto_renew").notNull().default(false),
   status: listingStatusEnum("status").notNull().default("draft"),
   /** Offer state while the listing is live. Rented leaves public search immediately. */
   availability: listingAvailabilityEnum("availability")

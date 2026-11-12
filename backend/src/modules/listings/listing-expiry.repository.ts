@@ -99,7 +99,7 @@ export class ListingExpiryRepository {
         await stopListingPromotions(tx,listingId,input.decision);
         await tx
           .update(listings)
-          .set({ status: "archived", updatedAt: new Date() })
+          .set({ status: "archived", autoRenew: false, updatedAt: new Date() })
           .where(
             and(
               eq(listings.id, listingId),
@@ -115,6 +115,7 @@ export class ListingExpiryRepository {
     listingId: string,
     ownerId: string,
     expectedCycleExpiresAt: Date,
+    options: { automatic?: boolean; now?: Date } = {},
   ) {
     return db.transaction(async (tx) => {
       await promotionLock(tx);
@@ -154,6 +155,28 @@ export class ListingExpiryRepository {
       if (listing.status === "removed" || listing.status === "draft") {
         throw new ConflictError("This listing cannot be renewed");
       }
+      if (inventory.inventory_needs_confirmation || (inventory.unit_type === 'shared_bed' && (inventory.beds_available == null || Number(inventory.beds_available) <= 0))) {
+        throw new ConflictError('Confirm available beds before renewing');
+      }
+      if (inventory.availability === 'rented') {
+        throw new ConflictError('Confirm this unit is available before renewing');
+      }
+
+      const now = options.now ?? new Date();
+      if (options.automatic) {
+        const remaining = expectedCycleExpiresAt.getTime() - now.getTime();
+        const [account] = await tx.select({ status: users.accountStatus }).from(users).where(eq(users.id, ownerId));
+        const final = await tx.select({ id: listingLifecycleEvents.id }).from(listingLifecycleEvents).where(and(
+          eq(listingLifecycleEvents.listingId, listingId), eq(listingLifecycleEvents.cycleExpiresAt, expectedCycleExpiresAt),
+          inArray(listingLifecycleEvents.eventType, ['rented', 'archived']),
+        )).limit(1);
+        const hidden = await tx.execute(sql`SELECT unit_hidden_reason(l) AS reason FROM listings l WHERE id=${listingId}::uuid`);
+        if (!inventory.auto_renew || listing.status !== 'active' || remaining <= 0 || remaining > 3600000 ||
+            inventory.availability !== 'available' || hidden[0]?.reason || final.length ||
+            !account || ['restricted','banned'].includes(account.status)) {
+          throw new ConflictError('This unit is not eligible for automatic renewal');
+        }
+      }
 
       const [owner] = await tx
         .select({ id: users.id })
@@ -170,16 +193,14 @@ export class ListingExpiryRepository {
           cycleExpiresAt: expectedCycleExpiresAt,
           eventType: "renewed",
           outcome: "renewed",
-          source: "host",
+          source: options.automatic ? "system" : "host",
         })
         .onConflictDoNothing()
         .returning({ id: listingLifecycleEvents.id });
       if (!claimed) return { id: listingId, alreadyRenewed: true };
 
-      if (inventory.inventory_needs_confirmation || (inventory.unit_type === 'shared_bed' && Number(inventory.beds_available) === 0)) throw new ConflictError('Confirm available beds before renewing');
       await chargeUnit(tx,ownerId,listingId,'renew','renew:'+listingId+':'+expectedCycleExpiresAt.toISOString());
 
-      const now = new Date();
       const base = expectedCycleExpiresAt > now ? expectedCycleExpiresAt : now;
       const nextExpiry = new Date(base.getTime() + 30 * 24 * 60 * 60 * 1000);
       const [updated] = await tx

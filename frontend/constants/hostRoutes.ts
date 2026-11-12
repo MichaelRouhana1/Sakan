@@ -15,6 +15,11 @@ export function hostListingAnalyticsPath(id: string) {
   return `/hosting/listing/${id}/analytics`;
 }
 
+/** Owner renewal screen for one unit. */
+export function hostListingOutcomePath(id: string) {
+  return `/hosting/listing/${id}/outcome`;
+}
+
 /** Native stack screen for one listing's analytics. */
 export function posterListingAnalyticsPath(id: string) {
   return `/(poster)/analytics/${id}`;

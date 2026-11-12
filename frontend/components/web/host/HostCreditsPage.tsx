@@ -79,7 +79,7 @@ export function HostCreditsPage() {
   const router = useRouter();
   const requested = first(params.returnTo);
   const returnTo =
-    requested && /^\/hosting\/listing\/[0-9a-f-]{36}\/(outcome|promote)$/i.test(requested)
+    requested && /^\/hosting\/listing\/[0-9a-f-]{36}\/(outcome|promote|renew)$/i.test(requested)
       ? requested
       : undefined;
   const checkout = useWhishCheckout(first(params.ref), returnTo);
@@ -98,6 +98,10 @@ export function HostCreditsPage() {
   return (
     <View style={s.page}>
       <Text style={s.eyebrow}>YOUR HOST WALLET</Text>
+      <View style={{ marginVertical: 14, gap: 5 }}>
+        <Text style={{ fontFamily: Studently.type.bodySemi, color: Studently.color.ink }}>How listing time works</Text>
+        <Text style={{ fontFamily: Studently.type.body, color: Studently.color.inkMuted, fontSize: 13, lineHeight: 20, maxWidth: 760 }}>Each unit renewal costs 1 post credit for 30 days. Renew early to add 30 days to your current expiry; renew after expiry to start 30 days from renewal. Optional auto-renew uses your credits in the final hour before expiry. Without credits or a confirmed available-bed count, the unit expires. Bumps and Featured are separate.</Text>
+      </View>
       <Text style={s.title}>Credits, on your terms.</Text>
       <Text style={s.body}>
         Choose post credits or promotion credits. Pay securely with Whish; credits arrive after

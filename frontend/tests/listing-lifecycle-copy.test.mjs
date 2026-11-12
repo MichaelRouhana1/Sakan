@@ -18,8 +18,8 @@ test("expiry surfaces contain only supported actions and manual staff outreach",
     assert.equal(admin.includes(phrase), false, phrase);
   }
   assert.equal(outcome.includes("boost"), false);
-  assert.match(outcome, /still available — renew/i);
-  assert.match(outcome, /improve then renew/i);
+  assert.match(outcome, /yes, still available/i);
+  assert.match(outcome, /review the new date and confirm 1 post credit/i);
   assert.match(admin, /open whatsapp/i);
   assert.match(admin, /never sends a whatsapp message/i);
 });

@@ -2,8 +2,9 @@ import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import {
   ActivityIndicator,
   Platform,
@@ -18,7 +19,6 @@ import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { Studently } from "@/constants/theme";
 import {
   useExpiryDecision,
-  useRenewListing,
   useSubmitExpiryDecision,
   type ExpiryDecision,
 } from "@/features/listings/useExpiryDecision";
@@ -26,21 +26,29 @@ import { useBreakpoint } from "@/lib/breakpoints";
 import { formatFreshUsd } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 
+function apiFailure(error: unknown): { status?: number; message?: string } {
+  if (!axios.isAxiosError(error)) return {};
+  const message = error.response?.data?.error?.message;
+  return {
+    status: error.response?.status,
+    message: typeof message === "string" ? message : undefined,
+  };
+}
+
 export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
   const router = useRouter();
+  const params = useLocalSearchParams<{ choice?: string; cycle?: string }>();
+  const auth = useAuthSession();
   const compact = useBreakpoint() !== "desktop" || Platform.OS !== "web";
-  const query = useExpiryDecision(listingId);
+  const query = useExpiryDecision(listingId, auth.isSignedIn);
   const decide = useSubmitExpiryDecision(listingId);
-  const renew = useRenewListing(listingId);
   const [showImprove, setShowImprove] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [needsCredit, setNeedsCredit] = useState(false);
-  const [renewedNow, setRenewedNow] = useState(false);
 
-  if (query.isLoading) {
+  if (auth.isLoading || (auth.isSignedIn && !query.data && !query.isError)) {
     return <View style={styles.center}><ActivityIndicator color={Studently.color.primary} /></View>;
   }
-  if (!query.data || query.isError) {
+  if (!auth.isSignedIn) {
     return (
       <View style={styles.center}>
         <Text style={styles.errorTitle}>This listing isn’t available here</Text>
@@ -49,47 +57,38 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
       </View>
     );
   }
+  if (query.isError || !query.data) {
+    const message = apiFailure(query.error).message ?? "Couldn’t load this renewal.";
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorTitle}>Couldn’t open this renewal</Text>
+        <Text style={styles.errorBody}>{message}</Text>
+        <ActionButton label="Try again" onPress={() => void query.refetch()} />
+      </View>
+    );
+  }
 
   const data = query.data;
   const finalOutcome = data.outcome && data.outcome !== "unknown" ? data.outcome : null;
   const liveAhead = data.listing.status === "active" &&
-    new Date(data.cycleExpiresAt).getTime() > Date.now() + 5 * 24 * 60 * 60 * 1000;
+    new Date(data.cycleExpiresAt).getTime() > Date.now() + 3 * 24 * 60 * 60 * 1000;
   const approachingExpiry = data.listing.status === "active" &&
     new Date(data.cycleExpiresAt).getTime() > Date.now() && !liveAhead;
-  const resolvedOutcome = renewedNow ? "renewed" : finalOutcome;
+  const resolvedOutcome = finalOutcome;
   const cover = resolveMediaUrl(data.listing.coverUrl ?? data.listing.photos[0]?.url ?? null);
-  const busy = decide.isPending || renew.isPending;
+  const busy = decide.isPending;
 
-  async function doRenew() {
-    setNotice(null);
-    setNeedsCredit(false);
-    try {
-      await decide.mutateAsync({
-        cycleExpiresAt: data.cycleExpiresAt,
-        decision: "still_available",
-      });
-      await renew.mutateAsync(data.cycleExpiresAt);
-      setRenewedNow(true);
-      setNotice("Renewed for 30 more days.");
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 402) {
-        setNeedsCredit(true);
-        setNotice("One post credit is needed to complete this renewal.");
-        return;
-      }
-      setNotice("Couldn’t renew this listing. Please try again.");
-    }
+  function doRenew() {
+    router.push(`/hosting/listing/${listingId}/renew` as never);
   }
 
   async function choose(decision: ExpiryDecision) {
     setNotice(null);
-    if (decision === "still_available") {
-      await doRenew();
-      return;
-    }
     try {
       await decide.mutateAsync({ cycleExpiresAt: data.cycleExpiresAt, decision });
-      if (decision === "improve") {
+      if (decision === "still_available") {
+        setNotice("Thanks — confirmed still available. No credit was spent.");
+      } else if (decision === "improve") {
         setShowImprove(true);
       } else {
         setNotice(decision === "rented" ? "Thanks — marked as rented." : "Listing taken down.");
@@ -99,7 +98,6 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
     }
   }
 
-  const returnTo = `/hosting/listing/${listingId}/outcome`;
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={[styles.page, compact && styles.pageCompact]}>
@@ -126,10 +124,10 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
               {resolvedOutcome
                 ? "This listing cycle is resolved. Its history stays saved for you and the Studently team."
                 : liveAhead
-                  ? `This listing is active until ${new Date(data.cycleExpiresAt).toLocaleDateString()}. Come back near expiry to review it.`
+                  ? `This listing is active until ${new Date(data.cycleExpiresAt).toLocaleDateString()}. You can renew now or confirm availability.`
                 : approachingExpiry
                   ? `It expires ${new Date(data.cycleExpiresAt).toLocaleDateString()}. Renew it now or tell us what changed.`
-                : "Tell us what happened. Your answer helps keep listings accurate and never triggers an automatic financial action."}
+                : "Tell us what happened. Checking availability spends no credit. Auto-renew, if enabled, runs separately in the final hour before expiry."}
             </Text>
             <View style={styles.listingMeta}>
               <Text style={styles.listingTitle} numberOfLines={2}>{data.listing.title || data.listing.area}</Text>
@@ -138,9 +136,11 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
           </View>
         </View>
 
+        {params.cycle && params.cycle !== data.cycleExpiresAt ? <Text style={styles.errorBody}>This notification is from an older cycle. These are your current unit details.</Text> : null}
+        {params.choice && (!params.cycle || params.cycle === data.cycleExpiresAt) ? <Text style={styles.sectionBody}>Please confirm your choice below. Opening this link does not change your unit.</Text> : null}
         {notice ? <View style={styles.notice}><Text style={styles.noticeText}>{notice}</Text></View> : null}
 
-        {resolvedOutcome || liveAhead ? (
+        {resolvedOutcome ? (
           <View style={styles.resolvedCard}>
             <Ionicons name="checkmark-circle" size={28} color={Studently.color.primary} />
             <View style={styles.flex}>
@@ -159,26 +159,12 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
               <Text style={styles.sectionTitle}>{approachingExpiry ? "Choose what to do" : "Choose what happened"}</Text>
               <Text style={styles.sectionBody}>{approachingExpiry ? "Renew before expiry to keep the listing live." : "The listing is hidden at expiry until you renew it."}</Text>
               <View style={styles.actionStack}>
-                {data.recommendImprove ? (
-                  <DecisionButton icon="construct-outline" label="Improve then renew" detail="Review photos, price, contact and details" primary onPress={() => void choose("improve")} disabled={busy} />
-                ) : (
-                  <DecisionButton icon="refresh" label="Still available — Renew" detail="Uses 1 post credit for 30 more days" primary onPress={() => void choose("still_available")} disabled={busy} />
-                )}
-                <DecisionButton icon="key-outline" label="Rented" detail="Mark the result and keep it off browse" onPress={() => void choose("rented")} disabled={busy} />
-                {data.recommendImprove ? (
-                  <DecisionButton icon="refresh" label="Renew without changes" detail="Uses 1 post credit for 30 more days" onPress={() => void choose("still_available")} disabled={busy} />
-                ) : (
-                  <DecisionButton icon="construct-outline" label="Review improvements first" detail="See a quick listing health checklist" onPress={() => void choose("improve")} disabled={busy} />
-                )}
+                <DecisionButton icon="checkmark-circle-outline" label="Yes, still available" detail="Confirms availability. No credit spent." primary onPress={() => void choose("still_available")} disabled={busy} />
+                <DecisionButton icon="key-outline" label="Rented" detail="Mark rented and turn off auto-renew" onPress={() => void choose("rented")} disabled={busy} />
+                <DecisionButton icon="refresh" label="Renew" detail="Review the new date and confirm 1 post credit" onPress={doRenew} disabled={busy} />
                 <DecisionButton icon="archive-outline" label="Archive / take down" detail="Keep the listing saved but hidden" quiet onPress={() => void choose("archive")} disabled={busy} />
               </View>
               {busy ? <ActivityIndicator color={Studently.color.primary} style={styles.busy} /> : null}
-              {needsCredit ? (
-                <ActionButton
-                  label="Get a post credit"
-                  onPress={() => router.push({ pathname: "/hosting/credits", params: { returnTo } } as never)}
-                />
-              ) : null}
             </View>
 
             <View style={styles.checklistCard}>
