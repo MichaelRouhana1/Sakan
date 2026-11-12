@@ -301,7 +301,7 @@ export default function RenterNewHomeScreen() {
 
               <View style={styles.brandRow}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <StudentlyLogo size={32} />
+                  <StudentlyLogo size={40} tone="white" />
                   <Text style={styles.brandText}>studently</Text>
                 </View>
                 <View style={styles.brandActions}>
@@ -811,7 +811,7 @@ export default function RenterNewHomeScreen() {
         {/* CLEAN BRAND FOOTER */}
         <View style={styles.footer}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <StudentlyLogo size={36} />
+            <StudentlyLogo size={40} tone="white" />
             <Text style={styles.footerLogo}>studently</Text>
           </View>
           <Text style={styles.footerText}>

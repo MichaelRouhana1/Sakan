@@ -226,7 +226,7 @@ export function WebTopNav({ showSearch = false }: Props) {
             accessibilityRole="link"
             style={styles.brandHit}
           >
-            <StudentlyLogo size={32} />
+            <StudentlyLogo size={40} />
             <Text style={styles.brand}>Studently</Text>
           </Pressable>
         </Link>

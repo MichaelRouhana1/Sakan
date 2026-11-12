@@ -25,6 +25,7 @@ import { queryClient } from "@/lib/queryClient";
 import { NotificationBootstrap } from "@/features/notifications/NotificationBootstrap";
 import { SaveAuthPrompt } from "@/features/saved/saveAuthPrompt";
 import { SavedListingToast } from "@/features/saved/SavedListingToast";
+import { InitialLoadingScreen } from "@/components/common/InitialLoadingScreen";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -76,7 +77,7 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) {
-    return null;
+    return <InitialLoadingScreen />;
   }
 
   const tree = (

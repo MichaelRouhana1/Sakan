@@ -3,8 +3,7 @@
 The glossy pin and black S-arrow use the new coral brand color `#EA3F4A`. The white, softly shaded interior stays opaque. Only the exterior is transparent.
 
 - `frontend/assets/images/logo.png`: transparent 512px logo used by `StudentlyLogo` on web and native.
-- `frontend/public/logo.png`: same logo for public URLs.
-- `frontend/public/logo.svg`: compatibility wrapper with embedded PNG; this is not a vector master.
+- Current public-logo replacement: `../logo-system/studently-full-color.svg` and `../logo-system/png/studently-full-color-512.png`. The former `frontend/public/logo.png` and `frontend/public/logo.svg` have been retired in favor of the new kit.
 - `frontend/assets/images/favicon.png`: 64px browser icon.
 - `frontend/assets/images/icon.png`: opaque white 1024px app icon.
 - `frontend/assets/images/splash-icon.png`: transparent splash artwork.

@@ -19,7 +19,7 @@ import {
   View,
   type LayoutChangeEvent,
 } from "react-native";
-import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
+import { InitialLoadingScreen } from "@/components/common/InitialLoadingScreen";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { CoincidentListingsSection } from "@/components/listings/CoincidentListingsSection";
@@ -189,12 +189,7 @@ export function ListingDetailWeb({ listingId }: Props) {
 
   if (isLoading) {
     return (
-      <GeneralLoadingBlock
-        layout="page"
-        state="working"
-        label="Loading listing…"
-        style={styles.center}
-      />
+      <InitialLoadingScreen />
     );
   }
 

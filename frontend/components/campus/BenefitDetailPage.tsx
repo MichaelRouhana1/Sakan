@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { GeneralLoadingBlock } from "@/components/common/GeneralLoadingBlock";
+import { InitialLoadingScreen } from "@/components/common/InitialLoadingScreen";
 import { BenefitHeroTicket } from "@/components/campus/BenefitHeroTicket";
 import { BenefitRedeemPanel } from "@/components/campus/BenefitRedeemPanel";
 import { BenefitRelated } from "@/components/campus/BenefitRelated";
@@ -318,12 +318,7 @@ export function BenefitDetailPage({ id }: Props) {
 
   if (benefit.isLoading) {
     return (
-      <GeneralLoadingBlock
-        layout="page"
-        state="working"
-        label="Loading this offer…"
-        style={styles.centered}
-      />
+      <InitialLoadingScreen />
     );
   }
 

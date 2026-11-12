@@ -21,7 +21,7 @@ export function CampusFooter() {
       >
         <View style={[styles.brandCol, stacked && styles.brandColStacked]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <StudentlyLogo size={32} />
+            <StudentlyLogo size={40} />
             <LText variant="subtitle" style={styles.brand}>
               Studently
             </LText>

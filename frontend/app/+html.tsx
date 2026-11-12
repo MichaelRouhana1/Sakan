@@ -203,7 +203,11 @@ export default function Root({ children }: { children: ReactNode }) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
-        <meta name="theme-color" content="#1A1A1A" />
+        <meta name="theme-color" content="#EA3F4A" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <script dangerouslySetInnerHTML={{ __html: BRAND_PALETTE_BOOT }} />
         <meta
           name="description"

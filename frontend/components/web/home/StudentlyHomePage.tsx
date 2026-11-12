@@ -264,7 +264,7 @@ function HomeNav({
           accessibilityRole="link"
           accessibilityLabel="Studently home"
         >
-          <StudentlyLogo size={32} />
+          <StudentlyLogo size={40} tone={solid ? "color" : "white"} />
           <Text style={[styles.navBrandText, solid && styles.navBrandTextSolid]}>
             Studently
           </Text>
@@ -1123,7 +1123,7 @@ export function StudentlyHomePage() {
             <View style={[styles.footerGrid, isNarrow && styles.footerGridNarrow]}>
               <View style={styles.footerBrandCol}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <StudentlyLogo size={36} />
+                  <StudentlyLogo size={40} />
                   <Text style={styles.footerBrand}>Studently</Text>
                 </View>
                 <Text style={styles.footerTag}>

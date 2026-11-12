@@ -68,7 +68,7 @@ export function HostTopNav({
               accessibilityLabel="Studently home"
               style={styles.brandHit}
             >
-              <StudentlyLogo size={showMenuButton ? 28 : 32} />
+              <StudentlyLogo size={showMenuButton ? 36 : 40} />
               <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
                 Studently
               </Text>

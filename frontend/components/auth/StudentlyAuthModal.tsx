@@ -15,6 +15,7 @@ import { useClerk, useOAuth } from "@clerk/expo";
 import * as WebBrowser from "expo-web-browser";
 
 import { api } from "@/lib/api";
+import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { Studently } from "@/constants/theme";
 import { studentlyShadow } from "@/lib/studentlyShadow";
@@ -1011,6 +1012,7 @@ function StudentlyAuthModalClerk({
             contentContainerStyle={styles.contentPadding}
           >
             <View style={styles.modalHeader}>
+              <StudentlyLogo size={64} style={{ alignSelf: "center", marginBottom: 12 }} />
               <Text style={styles.title}>{modalTitle}</Text>
               <Text style={styles.subtitle}>{modalSubtitle}</Text>
             </View>

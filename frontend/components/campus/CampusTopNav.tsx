@@ -82,7 +82,7 @@ export function CampusTopNav() {
             accessibilityLabel="Studently Campus home"
             style={styles.brandHit}
           >
-            <StudentlyLogo size={compact ? 28 : 32} />
+            <StudentlyLogo size={compact ? 36 : 40} />
             <Text style={[styles.brand, compact && styles.brandCompact]}>
               Studently
             </Text>

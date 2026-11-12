@@ -155,7 +155,7 @@ export function AdminNeuShell({ children }: Props) {
         >
           <H className="mb-6 flex shrink-0 items-start justify-between gap-3 px-1">
             <H>
-              <StudentlyLogo size={32} />
+              <StudentlyLogo size={40} tone={theme === "dark" ? "white" : "color"} />
               <H
                 as="p"
                 className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-moss"
@@ -197,7 +197,7 @@ export function AdminNeuShell({ children }: Props) {
             >
               <Menu size={18} strokeWidth={1.75} />
             </NeuIconButton>
-            <StudentlyLogo size={28} />
+            <StudentlyLogo size={36} tone={theme === "dark" ? "white" : "color"} />
             <H as="p" className="flex-1 font-display text-base font-semibold">
               Studently Ops
             </H>

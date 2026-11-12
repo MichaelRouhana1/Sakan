@@ -29,10 +29,10 @@ export default {
       // Listing photos are served over LAN http:// during local/dev.
       usesCleartextTraffic: true,
       adaptiveIcon: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#EA3F4A",
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundImage: "./assets/images/android-icon-background.png",
-        monochromeImage: "./assets/images/android-icon-monochrome.png",
+        monochromeImage: "./assets/images/android-icon-foreground.png",
       },
       config: {
         googleMaps: {
@@ -50,7 +50,7 @@ export default {
         (process.argv.includes("export") || process.env.EAS_BUILD === "true"
           ? "static"
           : "single"),
-      favicon: "./assets/images/favicon.png",
+      favicon: "./public/favicon-32.png",
     },
     plugins: [
       "expo-router",
