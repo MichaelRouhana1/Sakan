@@ -1,0 +1,19 @@
+studently-full-color: SVG structure and 16/32/64/512px exports OK
+studently-full-color-tile-square: SVG structure and 16/32/64/512px exports OK
+studently-full-color-tile-circle: SVG structure and 16/32/64/512px exports OK
+studently-knockout-red: SVG structure and 16/32/64/512px exports OK
+studently-knockout-white: SVG structure and 16/32/64/512px exports OK
+studently-small-color: SVG structure and 16/32/64/512px exports OK
+studently-small-knockout-red: SVG structure and 16/32/64/512px exports OK
+studently-small-knockout-white: SVG structure and 16/32/64/512px exports OK
+studently-app-icon-white: SVG structure and 16/32/64/512px exports OK
+studently-app-icon-red: SVG structure and 16/32/64/512px exports OK
+studently-android-foreground-color: SVG structure and 16/32/64/512px exports OK
+studently-android-foreground-white: SVG structure and 16/32/64/512px exports OK
+studently-android-background-white: SVG structure and 16/32/64/512px exports OK
+studently-android-background-red: SVG structure and 16/32/64/512px exports OK
+Sampled interior: color RGBA 255,255,255,255; knockout RGBA 0,0,0,0
+1024px store icons opaque; both Android foregrounds fit the central 66/108 safe circle.
+All exported SVG colors belong to the original master palette.
+Small window occupies about 43% of interior width; 6-unit pane gaps. 16px uses one solid rounded window; 32/64/512px retain four panes.
+Full-color master: every original path preserved verbatim; only overall framing changed.

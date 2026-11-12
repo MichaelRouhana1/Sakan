@@ -1,0 +1,115 @@
+
+=== studently-android-background-red.svg  (251 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ea3f4a · gradients 0 · anchors 5
+margins L0.0 R0.0 T0.0 B0.0 · bbox fill 1.0
+✔ no issues found
+production-readiness score: 100/100 (heuristic)
+
+=== studently-android-background-white.svg  (247 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ffffff · gradients 0 · anchors 5
+margins L0.0 R0.0 T0.0 B0.0 · bbox fill 1.0
+✔ no issues found
+production-readiness score: 100/100 (heuristic)
+
+=== studently-android-foreground-color.svg  (2441 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 8: #cd303f #ea3f4a #f25961 #942a38 #ffada5 #f7767c #d83243 #ffffff · gradients 3 · anchors 96
+margins L73.6 R73.8 T60.0 B60.0 · bbox fill 0.226
+▲ WARN [many-colors] 8 distinct colours. ~75% of reference logos use ≤3; each extra colour costs recall and reproduction.
+▲ WARN [gradient] 3 gradient(s). Keep a flat-colour master; gradients weaken in print and at small sizes (~19% of reference logos use them).
+▲ WARN [near-miss-angle] 1 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 17.1° (→15°) len 16.9 at (164,111). (Expected — and fine — for type set on a curve or deliberately rotated elements.)
+· INFO [complexity] 96 anchor points (library median 53.0, p75 95.5). Check every point earns its place.
+· INFO [small-in-canvas] The mark occupies little of its square canvas; tighten the viewBox or scale up.
+production-readiness score: 74/100 (heuristic)
+
+=== studently-android-foreground-white.svg  (1330 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ffffff · gradients 0 · anchors 83
+margins L73.6 R73.8 T60.0 B60.0 · bbox fill 0.226
+· INFO [small-in-canvas] The mark occupies little of its square canvas; tighten the viewBox or scale up.
+production-readiness score: 99/100 (heuristic)
+
+=== studently-app-icon-red.svg  (1366 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 2: #ea3f4a #ffffff · gradients 0 · anchors 88
+margins L0.0 R0.0 T0.0 B0.0 · bbox fill 1.0
+· INFO [on-tile] White artwork on a full-canvas tile/container — fine for app icons and avatars; make sure a version without the tile exists for other uses.
+production-readiness score: 99/100 (heuristic)
+
+=== studently-app-icon-white.svg  (2473 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 8: #ffffff #cd303f #ea3f4a #f25961 #942a38 #ffada5 #f7767c #d83243 · gradients 3 · anchors 101
+margins L0.0 R0.0 T0.0 B0.0 · bbox fill 1.0
+▲ WARN [many-colors] 8 distinct colours. ~75% of reference logos use ≤3; each extra colour costs recall and reproduction.
+▲ WARN [gradient] 3 gradient(s). Keep a flat-colour master; gradients weaken in print and at small sizes (~19% of reference logos use them).
+▲ WARN [near-miss-angle] 1 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 17.1° (→15°) len 22.0 at (175,106). (Expected — and fine — for type set on a curve or deliberately rotated elements.)
+· INFO [complexity] 101 anchor points (library median 53.0, p75 95.5). Check every point earns its place.
+production-readiness score: 75/100 (heuristic)
+
+=== studently-full-color-tile-circle.svg  (2476 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 8: #ffffff #cd303f #ea3f4a #f25961 #942a38 #ffada5 #f7767c #d83243 · gradients 3 · anchors 99
+margins L8.0 R8.0 T8.0 B8.0 · bbox fill 0.879
+▲ WARN [many-colors] 8 distinct colours. ~75% of reference logos use ≤3; each extra colour costs recall and reproduction.
+▲ WARN [gradient] 3 gradient(s). Keep a flat-colour master; gradients weaken in print and at small sizes (~19% of reference logos use them).
+▲ WARN [near-miss-angle] 1 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 17.1° (→15°) len 20.4 at (172,108). (Expected — and fine — for type set on a curve or deliberately rotated elements.)
+· INFO [complexity] 99 anchor points (library median 53.0, p75 95.5). Check every point earns its place.
+production-readiness score: 75/100 (heuristic)
+
+=== studently-full-color-tile-square.svg  (2531 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 8: #ffffff #cd303f #ea3f4a #f25961 #942a38 #ffada5 #f7767c #d83243 · gradients 3 · anchors 105
+margins L8.0 R8.0 T8.0 B8.0 · bbox fill 0.879
+▲ WARN [many-colors] 8 distinct colours. ~75% of reference logos use ≤3; each extra colour costs recall and reproduction.
+▲ WARN [gradient] 3 gradient(s). Keep a flat-colour master; gradients weaken in print and at small sizes (~19% of reference logos use them).
+▲ WARN [near-miss-angle] 1 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 17.1° (→15°) len 20.4 at (172,108). (Expected — and fine — for type set on a curve or deliberately rotated elements.)
+· INFO [complexity] 105 anchor points (library median 53.0, p75 95.5). Check every point earns its place.
+production-readiness score: 75/100 (heuristic)
+
+=== studently-full-color.svg  (2362 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 8: #cd303f #ea3f4a #f25961 #942a38 #ffada5 #f7767c #d83243 #ffffff · gradients 3 · anchors 96
+margins L41.6 R42.0 T20.1 B20.0 · bbox fill 0.568
+▲ WARN [many-colors] 8 distinct colours. ~75% of reference logos use ≤3; each extra colour costs recall and reproduction.
+▲ WARN [gradient] 3 gradient(s). Keep a flat-colour master; gradients weaken in print and at small sizes (~19% of reference logos use them).
+▲ WARN [near-miss-angle] 1 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 17.1° (→15°) len 26.9 at (185,102). (Expected — and fine — for type set on a curve or deliberately rotated elements.)
+· INFO [complexity] 96 anchor points (library median 53.0, p75 95.5). Check every point earns its place.
+production-readiness score: 75/100 (heuristic)
+
+=== studently-knockout-red.svg  (1280 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ea3f4a · gradients 0 · anchors 83
+margins L41.6 R42.0 T20.1 B20.0 · bbox fill 0.568
+✔ no issues found
+production-readiness score: 100/100 (heuristic)
+
+=== studently-knockout-white.svg  (1282 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ffffff · gradients 0 · anchors 83
+margins L41.6 R42.0 T20.1 B20.0 · bbox fill 0.568
+✔ no issues found
+production-readiness score: 100/100 (heuristic)
+
+=== studently-small-color.svg  (961 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 3: #ffffff #ea3f4a #942a38 · gradients 0 · anchors 65
+margins L19.9 R19.9 T12.4 B20.5 · bbox fill 0.736
+▲ WARN [near-miss-angle] 2 straight edge(s) are 0.3–3° off a clean angle — they read as mistakes. Snap them: 15.4° (→15°) len 27.7 at (202,91); 164.6° (→165°) len 27.7 at (81,84). (Expected — and fine — for type set on a curve or deliberately rotated elements.)
+· INFO [off-centre-y] Vertical margins differ (top 12.4, bottom 20.5). Remember the optical centre sits slightly above the geometric centre.
+production-readiness score: 91/100 (heuristic)
+
+=== studently-small-knockout-red.svg  (818 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ea3f4a · gradients 0 · anchors 57
+margins L19.9 R19.9 T12.4 B20.5 · bbox fill 0.736
+· INFO [off-centre-y] Vertical margins differ (top 12.4, bottom 20.5). Remember the optical centre sits slightly above the geometric centre.
+production-readiness score: 99/100 (heuristic)
+
+=== studently-small-knockout-white.svg  (820 bytes)
+viewBox 0 0 256 256 · aspect 1.0 (square)
+colours 1: #ffffff · gradients 0 · anchors 57
+margins L19.9 R19.9 T12.4 B20.5 · bbox fill 0.736
+· INFO [off-centre-y] Vertical margins differ (top 12.4, bottom 20.5). Remember the optical centre sits slightly above the geometric centre.
+production-readiness score: 99/100 (heuristic)

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title"><title id="title">Studently — full color on white circle</title><circle cx="128" cy="128" r="120" fill="#FFFFFF"/><g transform="translate(128 128) scale(0.76) translate(-128 -128)"><defs>
+    <linearGradient id="roof-red" gradientUnits="userSpaceOnUse" x1="337" y1="520" x2="815" y2="270">
+      <stop stop-color="#CD303F"/>
+      <stop offset="0.6" stop-color="#EA3F4A"/>
+      <stop offset="1" stop-color="#F25961"/>
+    </linearGradient>
+    <linearGradient id="pin-red" gradientUnits="userSpaceOnUse" x1="454" y1="899" x2="807" y2="505">
+      <stop stop-color="#942A38"/>
+      <stop offset="0.55" stop-color="#EA3F4A"/>
+      <stop offset="1" stop-color="#EA3F4A"/>
+    </linearGradient>
+    <linearGradient id="coral" gradientUnits="userSpaceOnUse" x1="885" y1="549" x2="613" y2="1071">
+      <stop stop-color="#FFADA5"/>
+      <stop offset="0.43" stop-color="#F7767C"/>
+      <stop offset="1" stop-color="#D83243"/>
+    </linearGradient>
+  </defs><g transform="matrix(0.24 0 0 0.24 -27.52 -21.04)">    
+    <path fill="#FFFFFF" d="M464 466 L345 511 L615 320 L887 511 L780 478 C827 593 757 720 618 720 C478 720 404 596 464 466Z"/>
+    <path fill="url(#pin-red)" d="M464 466 L376 529 C356 544 346 585 347 628 C347 760 470 899 618 1071 C790 883 944 680 875 548 L780 478 C791 507 795 532 794 554 C791 648 716 720 618 720 C519 720 444 649 443 554 C440 523 450 490 464 466Z"/>
+    <path fill="url(#coral)" d="M875 548 C944 680 790 883 618 1071 C580 1008 557 963 558 905 C556 836 592 789 651 750 C716 708 771 690 816 643 C852 606 870 574 875 548Z"/>
+    <path fill="url(#roof-red)" d="M306 456 L595 251 Q615 236 635 251 L803 364 V297 L894 310 V427 L927 460 C947 480 946 504 929 519 C917 531 900 528 886 517 L628 341 Q615 331 602 341 L341 519 C326 530 307 528 295 513 C283 498 286 472 306 456Z"/>
+    <g fill="#942A38">
+      <path d="M641 222 L753 175 Q765 168 778 174 L1000 272 Q1012 280 1000 285 L909 316 V304 Q909 291 894 288 L779 270 V315Z"/>
+      <path d="M976 289 L992 284 V372 Q998 376 1000 389 L1006 428 Q1009 443 993 443 H976 Q960 442 963 429 L970 386 Q971 376 976 372Z"/>
+      <rect x="550" y="467" width="62" height="62" rx="12"/>
+      <rect x="627" y="467" width="62" height="62" rx="12"/>
+      <rect x="550" y="544" width="62" height="62" rx="12"/>
+      <rect x="627" y="544" width="62" height="62" rx="12"/>
+    </g>
+</g></g></svg>

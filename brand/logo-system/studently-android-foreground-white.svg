@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="1024" height="1024" role="img" aria-labelledby="title"><title id="title">Studently — Android adaptive foreground, white</title><g transform="translate(128 128) scale(0.63) translate(-128 -128)"><g transform="matrix(0.24 0 0 0.24 -27.52 -21.04)"><path fill="#FFFFFF" d="M464 466 L376 529 C356 544 346 585 347 628 C347 760 470 899 618 1071 C790 883 944 680 875 548 L780 478 C791 507 795 532 794 554 C791 648 716 720 618 720 C519 720 444 649 443 554 C440 523 450 490 464 466Z"/><path fill="#FFFFFF" d="M306 456 L595 251 Q615 236 635 251 L803 364 V297 L894 310 V427 L927 460 C947 480 946 504 929 519 C917 531 900 528 886 517 L628 341 Q615 331 602 341 L341 519 C326 530 307 528 295 513 C283 498 286 472 306 456Z"/><g fill="#FFFFFF">
+      <path d="M641 222 L753 175 Q765 168 778 174 L1000 272 Q1012 280 1000 285 L909 316 V304 Q909 291 894 288 L779 270 V315Z"/>
+      <path d="M976 289 L992 284 V372 Q998 376 1000 389 L1006 428 Q1009 443 993 443 H976 Q960 442 963 429 L970 386 Q971 376 976 372Z"/>
+      <rect x="550" y="467" width="62" height="62" rx="12"/>
+      <rect x="627" y="467" width="62" height="62" rx="12"/>
+      <rect x="550" y="544" width="62" height="62" rx="12"/>
+      <rect x="627" y="544" width="62" height="62" rx="12"/>
+    </g></g></g></svg>
