@@ -115,6 +115,17 @@ try {
   assert.ok((await current(visible.id)).expires_at>visible.expires_at);
   await database`UPDATE users SET post_credits=20 WHERE id=${owner.id}`;
  });
+ await check('host listings include the same eligibility as unit checks without exposing other owners',async()=>{
+  const rows=await listingsService.listMine(owner.id);
+  assert.ok(rows.length>1);
+  for(const row of rows) {
+   const state=await unitAutoRenew.view(owner.id,row.id);
+   assert.equal(row.autoRenewState.blocked,state.blocked);
+   assert.equal(row.autoRenewState.enabled,state.enabled);
+  }
+  const [other]=await database`INSERT INTO users(role) VALUES ('poster') RETURNING id`;
+  assert.equal((await unitAutoRenew.list(other.id)).length,0);
+ });
  await check('multi-unit place renews only the requested unit; stale toggle and rented snapshots cannot charge',async()=>{
   const a=await unit(),b=await unit();
   await database`UPDATE listings SET unit_type='private_room' WHERE id IN (${a.id},${b.id})`;

@@ -12,5 +12,6 @@ export function useMyListings(enabled = true) {
       return data.data;
     },
     enabled,
+    refetchInterval: 60000,
   });
 }

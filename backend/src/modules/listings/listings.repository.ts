@@ -739,7 +739,9 @@ export class ListingsRepository {
 
   async listByPoster(posterId: string) {
     const rows = await db
-      .select(listingPublicColumns)
+      .select({ ...listingPublicColumns,
+        primaryCampusName: sql<string | null>`(SELECT name FROM universities WHERE id = listing_resolved.primary_campus_id)`,
+      })
       .from(listingResolved)
       .where(eq(listingResolved.posterId, posterId));
 

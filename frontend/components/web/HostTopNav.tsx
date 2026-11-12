@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
 import { HOST_CREDITS_PATH } from "@/constants/hostRoutes";
@@ -21,6 +21,7 @@ export function HostTopNav({
   onMenuPress,
 }: Props) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { user, isSignedIn } = useAuthSession();
   const credits = useCredits(isSignedIn);
 
@@ -69,9 +70,9 @@ export function HostTopNav({
               style={styles.brandHit}
             >
               <StudentlyLogo size={showMenuButton ? 36 : 40} />
-              <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
+              {!(showMenuButton && width < 420) ? <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
                 Studently
-              </Text>
+              </Text> : null}
             </Pressable>
           </Link>
         </View>

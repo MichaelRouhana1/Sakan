@@ -176,6 +176,7 @@ export type Listing = {
   addressLine?: string | null;
   buildingName?: string | null;
   primaryCampusId?: string | null;
+  primaryCampusName?: string | null;
   area: string;
   landmark: string | null;
   /** WGS84 longitude from ST_X; null when listing has no pin. */

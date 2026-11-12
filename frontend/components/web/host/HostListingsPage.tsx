@@ -1,342 +1,41 @@
-import { HostPlaceGroups } from './HostPlaceGroups';
-import { router, useLocalSearchParams } from "expo-router";
-import { useIsFocused } from "expo-router/react-navigation";
-import { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import {
-  HostDraftModal,
-  type DraftModalTarget,
-} from "@/components/web/host/HostDraftModal";
-import { HostDraftGridCard } from "@/components/web/host/HostDraftGridCard";
-import {
-  HostListingsToolbar,
-  type HostListingsLayout,
-} from "@/components/web/host/HostListingsToolbar";
-import { HostNotificationPreferences } from "@/components/web/host/HostNotificationPreferences";
-import { EditListingDrawer } from "@/components/listings/edit/EditListingDrawer";
-import { appleTabScrollInset } from "@/components/ui/Glass";
-import { hostEditSection, HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
-import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
-import { Studently } from "@/constants/theme";
-import { useAuthSession } from "@/features/auth/AuthSessionProvider";
-import { openNewCreateListing } from "@/features/auth/useEnsureSession";
-import { draftHasMeaningfulProgress } from "@/features/listings/create/createDraftCheckpoint";
-import { useCreateDraftMeta } from "@/features/listings/useHostingNavState";
-import type { DraftCheckpoint, DraftSlot } from "@/features/listings/create/draft";
-import { openListingEdit } from "@/features/listings/edit/openListingEdit";
-import { useMyListings } from "@/features/listings/useMyListings";
-import { useBreakpoint } from "@/lib/breakpoints";
-import type { Listing } from "@/types/listing";
+import { useMemo, useState } from 'react';
+import { Platform } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from 'expo-router/react-navigation';
+import { HostDraftModal, type DraftModalTarget } from './HostDraftModal';
+import { HostListingsWorkspace, type WorkspaceDraft } from './HostListingsWorkspace';
+import { EditListingDrawer } from '@/components/listings/edit/EditListingDrawer';
+import { hostEditSection } from '@/constants/hostRoutes';
+import { useAuthSession } from '@/features/auth/AuthSessionProvider';
+import { checkpointDisplayTitle, checkpointLocationLine, draftHasMeaningfulProgress } from '@/features/listings/create/createDraftCheckpoint';
+import { useCreateDraftMeta } from '@/features/listings/useHostingNavState';
+import { openListingEdit } from '@/features/listings/edit/openListingEdit';
+import { useMyListings } from '@/features/listings/useMyListings';
 
-type GridItem =
-  | {
-      kind: "draft";
-      key: string;
-      savedAt: string;
-      slot: DraftSlot;
-      checkpoint: DraftCheckpoint;
-    }
-  | { kind: "listing"; key: string; listing: Listing; sortAt: string };
+const first = (value: string | string[] | undefined) => typeof value === 'string' ? value.trim() : value?.[0]?.trim() ?? '';
 
-const CARD_WIDTH = 240;
-const GRID_GAP = 16;
-
-function firstParam(value: string | string[] | undefined): string {
-  if (typeof value === "string") return value.trim();
-  return value?.[0]?.trim() ?? "";
-}
-
+/** Shared web/native host workspace; domain actions retain their existing flows. */
 export function HostListingsPage() {
-  const bp = useBreakpoint();
-  const compact = bp === "mobile" || Platform.OS !== "web";
-  const { isSignedIn } = useAuthSession();
+  const auth = useAuthSession();
   const { checkpoint, workingCheckpoint, refresh } = useCreateDraftMeta();
-  const { data, isLoading, isError, refetch, isFetching } = useMyListings(
-    isSignedIn,
-  );
-  const [layout, setLayout] = useState<HostListingsLayout>("grid");
+  const query = useMyListings(auth.isSignedIn);
   const [draftModal, setDraftModal] = useState<DraftModalTarget | null>(null);
   const focused = useIsFocused();
-  const params = useLocalSearchParams<{
-    edit?: string | string[];
-    section?: string | string[];
-  }>();
-  const editParam = params.edit;
-  const editSection = hostEditSection(firstParam(params.section));
-  // Only the focused listings screen owns the drawer. A stacked copy
-  // reading the global query was mounting a second sheet behind it.
-  const editId =
-    Platform.OS === "web" && focused ? firstParam(editParam) : "";
+  const params = useLocalSearchParams<{ edit?: string | string[]; section?: string | string[] }>();
+  const editId = Platform.OS === 'web' && focused ? first(params.edit) : '';
+  const hasMain = checkpoint != null && draftHasMeaningfulProgress(checkpoint);
+  const hasWorking = workingCheckpoint != null && draftHasMeaningfulProgress(workingCheckpoint);
+  const drafts = useMemo(() => {
+    const result: WorkspaceDraft[] = [];
+    if (hasMain && checkpoint) result.push({ key: 'local-main', title: checkpointDisplayTitle(checkpoint), subtitle: checkpointLocationLine(checkpoint), onPress: () => setDraftModal({ kind: 'local', checkpoint, slot: 'main' }) });
+    if (hasWorking && workingCheckpoint) result.push({ key: 'local-working', title: checkpointDisplayTitle(workingCheckpoint), subtitle: checkpointLocationLine(workingCheckpoint), onPress: () => setDraftModal({ kind: 'local', checkpoint: workingCheckpoint, slot: 'working' }) });
+    for (const listing of query.data ?? []) if (listing.status === 'draft') result.push({ key: listing.id, title: listing.title?.trim() || 'Your saved listing', subtitle: listing.area, onPress: () => setDraftModal({ kind: 'server', listing }) });
+    return result;
+  }, [hasMain, hasWorking, checkpoint, workingCheckpoint, query.data]);
 
-  const showMainDraft =
-    checkpoint != null && draftHasMeaningfulProgress(checkpoint);
-  const showWorkingDraft =
-    workingCheckpoint != null && draftHasMeaningfulProgress(workingCheckpoint);
-
-  const items = useMemo(() => {
-    const rows: GridItem[] = [];
-    if (showMainDraft && checkpoint) {
-      rows.push({
-        kind: "draft",
-        key: "local-draft-main",
-        savedAt: checkpoint.savedAt,
-        slot: "main",
-        checkpoint,
-      });
-    }
-    if (showWorkingDraft && workingCheckpoint) {
-      rows.push({
-        kind: "draft",
-        key: "local-draft-working",
-        savedAt: workingCheckpoint.savedAt,
-        slot: "working",
-        checkpoint: workingCheckpoint,
-      });
-    }
-    for (const listing of data ?? []) {
-      rows.push({
-        kind: "listing",
-        key: listing.id,
-        listing,
-        sortAt: listing.updatedAt,
-      });
-    }
-    rows.sort((a, b) => {
-      const aDraft =
-        a.kind === "draft" ||
-        (a.kind === "listing" && a.listing.status === "draft");
-      const bDraft =
-        b.kind === "draft" ||
-        (b.kind === "listing" && b.listing.status === "draft");
-      if (aDraft !== bDraft) return aDraft ? -1 : 1;
-      const aTime = a.kind === "draft" ? a.savedAt : a.sortAt;
-      const bTime = b.kind === "draft" ? b.savedAt : b.sortAt;
-      return bTime.localeCompare(aTime);
-    });
-    return rows;
-  }, [checkpoint, workingCheckpoint, data, showMainDraft, showWorkingDraft]);
-
-  function openLocalDraftModal(slot: DraftSlot, cp: DraftCheckpoint) {
-    setDraftModal({ kind: "local", checkpoint: cp, slot });
-  }
-
-  function openServerDraftModal(listing: Listing) {
-    setDraftModal({ kind: "server", listing });
-  }
-
-  function handleListingPress(listing: Listing) {
-    if (listing.status === "draft") {
-      openServerDraftModal(listing);
-      return;
-    }
-    if (listing.status === "active") {
-      openListingEdit(router, listing.id);
-      return;
-    }
-    router.push({
-      pathname: "/(poster)/listing/[id]",
-      params: { id: listing.id },
-    });
-  }
-
-  async function handleDraftRemoved() {
-    await Promise.all([refresh(), refetch()]);
-  }
-
-  return (
-    <>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          compact && styles.scrollCompact,
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isFetching && !isLoading}
-            onRefresh={() => void refetch()}
-            tintColor={Studently.color.primary}
-            colors={[Studently.color.primary]}
-          />
-        }
-      >
-        <View style={[styles.page, compact && styles.pageCompact]}>
-          <HostListingsToolbar
-            layout={layout}
-            onLayoutChange={setLayout}
-            createDisabled={showMainDraft && showWorkingDraft}
-          />
-
-          {isSignedIn ? <HostNotificationPreferences compact={compact} /> : null}
-
-          {isLoading && items.length === 0 ? (
-            <ActivityIndicator
-              color={Studently.color.primary}
-              style={styles.loader}
-            />
-          ) : isError && items.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>Couldn’t load listings</Text>
-              <Text style={styles.emptyBody}>
-                Check that the API is reachable, then try again.
-              </Text>
-              <Pressable
-                onPress={() => void refetch()}
-                style={styles.retryBtn}
-              >
-                <Text style={styles.retryText}>Retry</Text>
-              </Pressable>
-            </View>
-          ) : items.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>No listings yet</Text>
-              <Text style={styles.emptyBody}>
-                Start your first listing — it only takes a few minutes.
-              </Text>
-              <Pressable
-                onPress={() => openNewCreateListing(router)}
-                style={styles.retryBtn}
-              >
-                <Text style={styles.retryText}>Create a listing</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <>
-              {isError ? (
-                <View style={styles.inlineError}>
-                  <Text style={styles.emptyBody}>
-                    Couldn’t refresh published listings. Your drafts are still
-                    here.
-                  </Text>
-                  <Pressable
-                    onPress={() => void refetch()}
-                    style={styles.retryBtn}
-                  >
-                    <Text style={styles.retryText}>Retry</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-              <View style={[styles.grid, compact && styles.gridCompact]}>
-                {items.filter((item): item is Extract<GridItem,{kind:'draft'}>=>item.kind==='draft').map(item=><View key={item.key} style={[styles.cell,compact&&styles.cellCompact]}>
-                  <HostDraftGridCard checkpoint={item.checkpoint} onPress={()=>openLocalDraftModal(item.slot,item.checkpoint)}/>
-                </View>)}
-              </View>
-              <HostPlaceGroups listings={items.flatMap(item=>item.kind==='listing'?[item.listing]:[])} layout={layout} compact={compact} onPress={handleListingPress}/>
-            </>
-          )}
-
-          {isFetching && !isLoading ? (
-            <Text style={styles.refreshHint}>Refreshing…</Text>
-          ) : null}
-        </View>
-      </ScrollView>
-
-      <HostDraftModal
-        target={draftModal}
-        onClose={() => setDraftModal(null)}
-        onRemoved={() => void handleDraftRemoved()}
-      />
-
-      {editId ? (
-        <EditListingDrawer
-          listingId={editId}
-          initialSection={editSection}
-          onClose={() => router.replace(HOST_LISTINGS_PATH as never)}
-        />
-      ) : null}
-    </>
-  );
+  return <>
+    <HostListingsWorkspace listings={query.data ?? []} drafts={drafts} loading={auth.isLoading || (auth.isSignedIn && query.isLoading)} failed={query.isError} refreshing={query.isFetching} signedIn={auth.isSignedIn} createDisabled={hasMain && hasWorking} onRefresh={() => { void query.refetch(); void refresh(); }} onEdit={listing => openListingEdit(router, listing.id)} />
+    <HostDraftModal target={draftModal} onClose={() => setDraftModal(null)} onRemoved={() => { void refresh(); void query.refetch(); }} />
+    {editId ? <EditListingDrawer listingId={editId} initialSection={hostEditSection(first(params.section))} onClose={() => router.setParams({ edit: '', section: '' })} /> : null}
+  </>;
 }
-
-const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    paddingBottom: 64,
-  },
-  scrollCompact: {
-    paddingBottom: appleTabScrollInset + 24,
-  },
-  page: {
-    width: "100%",
-    paddingHorizontal: WEB_CONTENT_PAD_X,
-    paddingTop: 32,
-    ...(Platform.OS === "web" ? { boxSizing: "border-box" as const } : null),
-  },
-  pageCompact: {
-    maxWidth: "100%",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: GRID_GAP,
-  },
-  gridCompact: {
-    flexDirection: "column",
-    gap: 20,
-  },
-  cell: {
-    width: CARD_WIDTH,
-    flexShrink: 0,
-    paddingBottom: 8,
-    ...(Platform.OS === "web" ? { boxSizing: "border-box" as const } : null),
-  },
-  cellCompact: {
-    width: "100%",
-    paddingBottom: 0,
-  },
-  loader: {
-    marginTop: 48,
-  },
-  empty: {
-    alignItems: "center",
-    paddingVertical: 64,
-    gap: 12,
-  },
-  inlineError: {
-    alignItems: "center",
-    paddingBottom: 20,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontFamily: Studently.type.bodyBold,
-    fontSize: 22,
-    color: Studently.color.ink,
-  },
-  emptyBody: {
-    fontFamily: Studently.type.body,
-    fontSize: 15,
-    color: Studently.color.inkMuted,
-    textAlign: "center",
-    maxWidth: 360,
-  },
-  retryBtn: {
-    marginTop: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: Studently.color.primary,
-    ...(Platform.OS === "web" ? { cursor: "pointer" as const } : null),
-  },
-  retryText: {
-    fontFamily: Studently.type.bodySemi,
-    fontSize: 15,
-    color: "#FFFFFF",
-  },
-  refreshHint: {
-    marginTop: 16,
-    textAlign: "center",
-    fontFamily: Studently.type.body,
-    fontSize: 13,
-    color: Studently.color.inkMuted,
-  },
-});

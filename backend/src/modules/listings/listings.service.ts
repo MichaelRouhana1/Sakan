@@ -1,4 +1,5 @@
 import { ownerPlace } from './unit-publish.service.js';
+import { unitAutoRenew } from './unit-auto-renew.service.js';
 import { sharedFields, locationFields, normalizedShared, retainedDifferentFields } from './place-fields.js';
 import { ConflictError } from '../../lib/errors.js';
 import {
@@ -238,7 +239,12 @@ export class ListingsService {
   }
 
   async listMine(posterId: string) {
-    return listingsRepository.listByPoster(posterId);
+    const [listings, states] = await Promise.all([
+      listingsRepository.listByPoster(posterId),
+      unitAutoRenew.list(posterId),
+    ]);
+    const byId = new Map(states.map(state => [String(state.id), state]));
+    return listings.map(listing => ({ ...listing, autoRenewState: byId.get(String(listing.id)) }));
   }
 
   private async assertHost(userId: string) {
