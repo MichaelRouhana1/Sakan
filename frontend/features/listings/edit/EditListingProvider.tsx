@@ -16,9 +16,9 @@ import {
   type SetStateAction,
 } from "react";
 import type { DraftPhoto } from "@/components/listings/PhotoPickerGrid";
-import { LAST_REQUIRED_WIZARD_INDEX } from "@/constants/listingWizard";
+import { LAST_REQUIRED_SECTION_INDEX } from "@/constants/listingWizard";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
-import { CreateListingContext } from "@/features/listings/create/CreateListingProvider";
+import { ListingFormContext } from "@/features/listings/forms/ListingFormContext";
 import { createListingReducer } from "@/features/listings/create/createListingReducer";
 import {
   INITIAL_DRAFT,
@@ -107,7 +107,7 @@ export function EditListingProvider({
   const fieldErrors = useMemo(() => {
     if (!showValidation) return [];
     const errors: string[] = [];
-    for (let step = 0; step <= LAST_REQUIRED_WIZARD_INDEX; step += 1) {
+    for (let step = 0; step <= LAST_REQUIRED_SECTION_INDEX; step += 1) {
       errors.push(...stepFieldErrors(draft, step));
     }
     return errors;
@@ -146,7 +146,7 @@ export function EditListingProvider({
   const formValue = useMemo(
     () => ({
       draft,
-      committedStep: LAST_REQUIRED_WIZARD_INDEX,
+      committedStep: LAST_REQUIRED_SECTION_INDEX,
       patch,
       setPhotos,
       setStep: () => undefined,
@@ -190,9 +190,9 @@ export function EditListingProvider({
 
   return (
     <EditMetaContext.Provider value={meta}>
-      <CreateListingContext.Provider value={formValue}>
+      <ListingFormContext.Provider value={formValue}>
         {children}
-      </CreateListingContext.Provider>
+      </ListingFormContext.Provider>
     </EditMetaContext.Provider>
   );
 }

@@ -8,7 +8,7 @@ import {
 } from "@/components/listings/create/WizardField";
 import { HIGHLIGHT_TAG_OPTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import {
   COPY_DESCRIPTION_MIN,
   COPY_TITLE_MAX,
@@ -20,7 +20,7 @@ import { useListingCopy } from "@/features/listings/create/useListingCopy";
 import type { CopyMode } from "@/features/listings/create/listingCopyTemplates";
 
 export function CreateStepCopy() {
-  const { draft, patch } = useCreateListingDraft();
+  const { draft, patch } = useListingForm();
   const titleInvalid = useWizardFieldInvalid("title");
   const descriptionInvalid = useWizardFieldInvalid("description");
   const titleLen = draft.title.trim().length;

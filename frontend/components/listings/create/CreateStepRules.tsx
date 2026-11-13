@@ -6,7 +6,7 @@ import { LText } from "@/components/lister/Typography";
 import { LockedCluster } from "@/components/listings/create/LockedCluster";
 import { SelectableCard } from "@/components/listings/create/SelectableCard";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import type {
   GenderRestriction,
   GuestsPolicy,
@@ -16,10 +16,10 @@ import type {
 } from "@/types/listing";
 
 export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
-  const { draft, patch } = useCreateListingDraft();
+  const { draft, patch } = useListingForm();
   return (
     <View style={{ gap: 16 }}>
-      {!sharedOnly && (draft.unitCount ?? 1) === 1 ? <LockedCluster fields={["genderRestriction"]}>
+      {!sharedOnly ? <LockedCluster fields={["genderRestriction"]}>
       <Enter>
         <LText variant="subtitle">Gender</LText>
         <View style={{ height: 8 }} />

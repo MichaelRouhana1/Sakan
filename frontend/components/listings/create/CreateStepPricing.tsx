@@ -13,13 +13,13 @@ import {
   PAYMENT_MODALITY_OPTIONS,
 } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import type { LeaseTerm, PaymentModality } from "@/types/listing";
 import { usePriceGuide } from "@/features/listings/usePriceGuide";
 import { PriceGuideCard } from "./PriceGuideCard";
 
 export function CreateStepPricing() {
-  const { draft, patch } = useCreateListingDraft();
+  const { draft, patch } = useListingForm();
   const guide = usePriceGuide(draft);
   const rentInvalid = useWizardFieldInvalid("monthlyRentUsd");
   const depositInvalid = useWizardFieldInvalid("securityDepositUsd");

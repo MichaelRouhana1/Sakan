@@ -1,6 +1,7 @@
 import { INITIAL_DRAFT, type CreateListingDraft } from '../draft';
 import type { DraftPhoto } from '@/components/listings/PhotoPickerGrid';
 import { COPY_TITLE_MAX, isPhotoReady, stepFieldErrors } from '../validators';
+import { nextParkingIncludedInRent } from '../parkingIncluded';
 
 export const PLACE_SCREENS = ['place-type', 'location', 'utilities', 'rules', 'building-photos'] as const;
 export const UNIT_SCREENS = ['layout', 'photos', 'rent', 'copy'] as const;
@@ -10,7 +11,7 @@ export type Screen = PlaceScreen | UnitScreen | 'another' | 'review' | 'success'
 export type Position = { screen: Screen; unitId: string };
 export type Unit = { id: string; data: Partial<CreateListingDraft>; finished: boolean };
 export type WizardV2Draft = {
-  version: 1;
+  version: 2;
   place: { id?: string; kind: 'apartment' | 'building' | null; data: Partial<CreateListingDraft>; photos: DraftPhoto[] };
   contact: Partial<CreateListingDraft>;
   units: Unit[];
@@ -18,6 +19,7 @@ export type WizardV2Draft = {
   completedPlace: PlaceScreen[];
   returnTo: Position | null;
   reviewVisited: boolean;
+  pendingAttempt?: { requestId: string; body: Record<string, unknown> };
 };
 
 const UNIT_KEYS = ['spaceType', 'propertyType', 'priceBasis', 'bathroomPrivacy', 'bedsAvailable',
@@ -27,11 +29,11 @@ const UNIT_KEYS = ['spaceType', 'propertyType', 'priceBasis', 'bathroomPrivacy',
   'highlightTags', 'cardBadges'] as const;
 
 export function unitData(source: Partial<CreateListingDraft> = INITIAL_DRAFT): Partial<CreateListingDraft> {
-  return structuredClone(Object.fromEntries(UNIT_KEYS.filter(k => source[k] !== undefined).map(k => [k, source[k]])));
+  return JSON.parse(JSON.stringify(Object.fromEntries(UNIT_KEYS.filter(k => source[k] !== undefined).map(k => [k, source[k]]))));
 }
 
 export function newWizard(unitId: string, placeId?: string): WizardV2Draft {
-  return { version: 1, place: { id: placeId, kind: null, data: {}, photos: [] }, contact: {},
+  return { version: 2, place: { id: placeId, kind: null, data: {}, photos: [] }, contact: {},
     units: [{ id: unitId, data: unitData(), finished: false }],
     position: { screen: placeId ? 'layout' : 'place-type', unitId },
     completedPlace: [], returnTo: null, reviewVisited: false };
@@ -40,7 +42,7 @@ export function newWizard(unitId: string, placeId?: string): WizardV2Draft {
 export function formDraft(state: WizardV2Draft, id = state.position.unitId): CreateListingDraft {
   return { ...INITIAL_DRAFT, ...state.place.data, ...state.units.find(u => u.id === id)?.data,
     ...state.contact, placeKind: state.place.kind ?? undefined, existingPlaceId: state.place.id,
-    sharedValues: undefined, unitCount: 1, additionalUnits: [], sharedPhotos: state.place.photos };
+    sharedValues: undefined, sharedPhotos: state.place.photos };
 }
 
 export function unitErrors(state: WizardV2Draft, id: string, screen: UnitScreen): string[] {
@@ -79,6 +81,7 @@ export function screenErrors(state: WizardV2Draft): string[] {
 }
 
 export type Action =
+  | { type: 'attempt'; attempt?: WizardV2Draft['pendingAttempt'] }
   | { type: 'place'; patch: Partial<CreateListingDraft> }
   | { type: 'kind'; kind: 'apartment' | 'building' }
   | { type: 'contact'; patch: Partial<CreateListingDraft> }
@@ -92,8 +95,19 @@ export type Action =
 
 export function reduceWizard(state: WizardV2Draft, action: Action): WizardV2Draft {
   switch (action.type) {
+    case 'attempt': return { ...state, pendingAttempt: action.attempt };
     case 'kind': return { ...state, place: { ...state.place, kind: action.kind } };
-    case 'place': return state.place.id ? state : { ...state, place: { ...state.place, data: { ...state.place.data, ...action.patch } } };
+    case 'place': {
+      if (state.place.id) return state;
+      const data = { ...state.place.data, ...action.patch };
+      if (action.patch.amenities) data.parkingIncludedInRent = nextParkingIncludedInRent({
+        previousAmenities: state.place.data.amenities ?? INITIAL_DRAFT.amenities,
+        nextAmenities: action.patch.amenities,
+        previousIncluded: state.place.data.parkingIncludedInRent ?? INITIAL_DRAFT.parkingIncludedInRent,
+        explicit: action.patch.parkingIncludedInRent,
+      });
+      return { ...state, place: { ...state.place, data } };
+    }
     case 'loadedPlace': return { ...state, place: { ...state.place, kind: action.data.placeKind ?? 'apartment', data: action.data, photos: action.data.sharedPhotos ?? [] }, completedPlace: [...PLACE_SCREENS] };
     case 'contact': return { ...state, contact: { ...state.contact, ...action.patch } };
     case 'unit': return { ...state, units: state.units.map(u => u.id === action.id ? { ...u, data: { ...u.data, ...unitData(action.patch) } } : u) };
@@ -159,9 +173,6 @@ export function reduceWizard(state: WizardV2Draft, action: Action): WizardV2Draf
   }
 }
 
-export function storageKey(userId: string | null, placeId?: string, demo?: string): string {
-  return `studently.wizard-units-v2.v1:${userId ?? 'guest'}:${placeId ?? 'new'}:${demo ?? 'draft'}`;
-}
 export function persistablePhotos(photos: DraftPhoto[]): DraftPhoto[] {
   return photos.map(p => {
     const uri = p.url || (p.uri.startsWith('blob:') ? '' : p.uri);
@@ -172,18 +183,4 @@ export function persistablePhotos(photos: DraftPhoto[]): DraftPhoto[] {
 export function persistable(state: WizardV2Draft): WizardV2Draft {
   return { ...state, place: { ...state.place, photos: persistablePhotos(state.place.photos) },
     units: state.units.map(u => ({ ...u, data: { ...u.data, photos: persistablePhotos(u.data.photos ?? []) } })) };
-}
-export function readSaved(value: string | null): WizardV2Draft | null {
-  if (!value) return null;
-  const parsed = JSON.parse(value);
-  if (parsed.version !== 1 || !parsed.place || !Array.isArray(parsed.units) || parsed.units.length > 20 ||
-      !parsed.position || ![...PLACE_SCREENS, ...UNIT_SCREENS, 'another', 'review', 'success'].includes(parsed.position.screen) ||
-      !Array.isArray(parsed.completedPlace) || !parsed.contact ||
-      parsed.units.some((u: Unit) => !u.id || !u.data || !Array.isArray(u.data.photos))) throw new Error('This prototype draft could not be read.');
-  if (!parsed.units.some((u: Unit) => u.id === parsed.position.unitId) && !['review', 'success'].includes(parsed.position.screen)) throw new Error('This prototype draft has no active unit.');
-  return persistable(parsed);
-}
-
-export function wizardV2Enabled(dev: boolean, platform: string, flag: unknown): boolean {
-  return dev && platform === 'web' && flag === 'v2';
 }

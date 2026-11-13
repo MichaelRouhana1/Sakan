@@ -1,59 +1,34 @@
-# Listing Wizard — page overrides
+# Listing wizard
 
-> **PROJECT:** Studently  
-> **Page:** listing create wizard  
-> Overrides `frontend/design-system/studently-web/MASTER.md`. Lister tokens win over generated navy/gold.
+The listing wizard follows Your listings and the current Studently tokens. This page overrides the older generated design-system palette.
 
----
+## Visual direction
 
-## Direction lock (frontend-design)
+Use DM Sans throughout: 28/34 bold questions, 20/27 section titles, 16/22 labels, 14–15/22–23 body and 13/19 helper text. Brand red is #ea3f4a; text is #1a1a1a, with #625e59 secondary text. White cards sit on #f9fafb with a quiet #e4e5e7 border, 12px card corners and 8px controls. No decorative art pane, Lottie, grain or serif wizard headings.
 
-- **Purpose:** Poster publishes a Lebanon student listing without a government-form feel.
-- **Tone:** Calm hospitality editorial. Generous negative space, large type, quiet confidence. Refined — not playful-toy, not brutalist, not liquid-glass morphing.
-- **Constraints:** Expo RN + web, StyleSheet, Lister ocean `#2F6FED`, DM Sans body. Motion = Reanimated + **per-step Lottie**.
-- **Remembered moment:** Airbnb split — left pane is only the looping Lottie on mist; right pane is huge Playfair question + controls.
+The compact header contains the brand, save status and Save & exit. The horizontal progress row contains Place, numbered units and Review, with completed units available to revisit. On narrow screens it scrolls horizontally and brings the current unit into view.
 
-## Tokens (do not fork)
+Forms use one centred card, up to 760px wide (920px at Review), with 32px desktop padding and 20px on mobile. Space choices and related fields by 16–24px. Keep Back and the primary action in a fixed bottom action bar, above the safe area and keyboard.
 
-Use `Lister` from `frontend/constants/listerTheme.ts`.
+## Screens
 
-| Role | Hex |
-|------|-----|
-| Primary / CTA | `#2F6FED` |
-| Ink | `#121826` |
-| Muted | `#5B6570` (min contrast) |
-| Background | `#EEF1F6` |
-| Surface | `#FFFFFF` |
-| Mist selected / left pane | `#E8EEF6` |
-| Danger | `#B42318` |
+- Place type: two roomy apartment/building choices with short explanations.
+- Location: labelled address, campus selection and existing map-pin confirmation.
+- Utilities: building access followed by the existing utility and amenity controls.
+- House rules: the shared rules, with conditional fields appearing next to their choice.
+- Building photos: the familiar uploader, clearly optional; Skip for now when empty.
+- Layout: rental type, property type and the existing layout/furnishing controls. A building allows whole apartments only.
+- Unit photos: the same crop, upload, caption, reorder, cover and retry controls; require 3–15 ready photos.
+- Rent: price basis, monthly price, deposit, availability and terms.
+- Title and description: labelled writing fields and the existing writing suggestions.
+- Add another unit: compact thumbnail/title/rent rows, then Copy and Start blank choices. The primary action goes to Review.
+- Review: editable unit rows, one contact form, authoritative per-unit and total credit cost, then Publish or Publish all.
+- Success: confirmed result and actual charged total, unit summaries and Your listings.
 
-**Typography:** Playfair Display 700 for wizard headlines only. DM Sans 400–600 for body/UI. Never Inter, Roboto, Arial, Space Grotesk.
+An existing place displays a small context card and skips every Place screen. Copied units retain unit values and receive a visible ` (copy)` title suffix; their photo gallery starts empty.
 
-**Liquid Glass from search:** reject full-page morphing blur (perf + contrast). Allow one translucent sticky footer (`surface` 92% + 1px border).
+## Interaction
 
-## Layout
+Use a subtle 160ms fade between screens, and skip it for reduced motion. Photo entrance/fades also respect reduced motion. Move focus to each new question, retain visible keyboard focus on controls and trap/restore focus in removal confirmation. Actions have at least 44px touch targets. Long content scrolls independently of the progress and actions.
 
-- **Web ≥1024:** Full-viewport split. Left ~46% mist + Lottie (no headline). Right ~54% headline + controls. Padding 48.
-- **Tablet 768:** same split if width allows.
-- **Phone 375:** mist art band (~200–240px) then stacked form, padding 16–24, sticky footer above home indicator.
-- Thin 10-tick progress under top chrome. No raw step ids.
-- Footer: ghost Back left + compact primary Next right. No scale hover.
-
-## Motion
-
-- Step enter: FadeIn on Lottie, FadeInDown 420ms on form (`Lister.motion`).
-- Card select: border + mist fill, 180ms color/border. **No layout-shifting scale.**
-- `prefers-reduced-motion` / `useReducedMotion`: freeze Lottie on mid-frame; skip enter.
-- **Lottie every step** (looping, branded line-art in `frontend/assets/lottie/wizard/{id}.json`). Remount on step change so it replays.
-
-## Controls
-
-- Selectable cards: 2px primary border when on, mist fill, Ionicons 24, title + one-line helper, `cursor: pointer`.
-- Segmented pills for property type / furnishing / price basis.
-- Radio cards for gender / poster role.
-- Icon grid for amenities (Ionicons, never emoji).
-- +/− steppers for counts. Every input labeled.
-
-## Anti-patterns
-
-- Purple gradients, gold CTAs, emoji icons, cookie-cutter onboarding blobs, Inter, scattered micro-interactions, scale-on-press layout jump, tiny milestone Lottie under the form, random mixed-style LottieFiles.
+Saving / Saved / Couldn’t save with Retry are the only save states. Show a small reload notice for an external revision change. Preserve entered details and explain how to recover from save, upload, quote and publish errors. Unconfirmed publication stays read-only while its saved request is checked safely.

@@ -1,13 +1,13 @@
 import { View } from 'react-native';
 import { LText } from '@/components/lister/Typography';
 import { SegmentedPills } from '../create/SegmentedPills';
-import { useCreateListingDraft } from '@/features/listings/create/CreateListingProvider';
+import { useListingForm } from '@/features/listings/forms/ListingFormContext';
 import { SHARED_GROUPS } from '@/features/listings/create/unitDrafts';
 import type { CreateListingDraft } from '@/features/listings/create/draft';
 
 export const utilityKeys=[...SHARED_GROUPS.electricity,...SHARED_GROUPS.water,...SHARED_GROUPS.comforts];
 export function SharedDetailsChoice({fields=utilityKeys}:{fields?:readonly string[]}){
- const {draft,patch}=useCreateListingDraft();
+ const {draft,patch}=useListingForm();
  if(!draft.sharedValues)return null;
  const different=fields.some(k=>draft.differentFields?.includes(k));
  return <View style={{gap:10,marginBottom:18}}>

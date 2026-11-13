@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { WIZARD_STEPS } from "@/constants/listingWizard";
+import { LISTING_FORM_SECTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
 import JellyRadio from "@/components/listings/edit/JellyRadio";
 import { chipLabel } from "@/components/listings/edit/sectionChipLabel";
@@ -77,7 +77,7 @@ export function SectionPills({ activeId, onSelect }: Props) {
     <div className="edit-section-pills" ref={scroller}>
       <JellyRadio
         ariaLabel="Listing sections"
-        items={WIZARD_STEPS.map((step) => ({
+        items={LISTING_FORM_SECTIONS.map((step) => ({
           value: step.id,
           label: chipLabel(step.id),
         }))}

@@ -39,7 +39,7 @@ test("Copy step interactions", async (t) => {
     absWorkingDir: frontend, bundle: true, write: false, platform: "browser", jsx: "automatic",
     define: { "process.env.NODE_ENV": '"test"', __DEV__: "false" }, alias: { "react-native": "react-native-web" },
     plugins: [{ name: "test-boundaries", setup(builder) {
-      builder.onResolve({ filter: /^@\/features\/(auth\/AuthSessionProvider|listings\/create\/CreateListingProvider)$/ }, () => ({ path: path.join(frontend, "tests/copy-suggest-harness.tsx") }));
+      builder.onResolve({ filter: /^@\/features\/(auth\/AuthSessionProvider|listings\/forms\/ListingFormContext)$/ }, () => ({ path: path.join(frontend, "tests/copy-suggest-harness.tsx") }));
       builder.onResolve({ filter: /^(@\/lib\/api|@\/components\/lister\/Enter|@\/features\/universities\/useUniversities)$/ }, (args) => ({ path: args.path, namespace: "test-boundary" }));
       builder.onLoad({ filter: /.*/, namespace: "test-boundary" }, (args) => ({ resolveDir: frontend, loader: "tsx", contents:
         args.path === "@/lib/api" ? 'import axios from "axios"; export const api = axios.create();' :

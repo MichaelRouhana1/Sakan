@@ -19,8 +19,7 @@ import {
 } from "@/constants/listingWizard";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
-import { WaterSectionMarker } from "@/features/listings/create/WizardArtSync";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import {
   MAX_CUT_WINDOWS,
   cutHoursFromWindows,
@@ -86,7 +85,7 @@ function IncludedInRent({ children }: { children: ReactNode }) {
 }
 
 export function CreateStepAmenities() {
-  const { draft, patch, fieldInvalid, formChrome } = useCreateListingDraft();
+  const { draft, patch, fieldInvalid, formChrome } = useListingForm();
   const change = (values: Partial<CreateListingDraft>, keys: readonly string[]) =>
     patchOverride(draft, patch, values, keys);
   const reset = (keys: readonly string[]) => resetOverride(draft, patch, keys);
@@ -141,7 +140,7 @@ export function CreateStepAmenities() {
 
   return (
     <View style={{ gap: 16 }}>
-      {(draft.unitCount ?? 1)>1 || formChrome==='edit' ? <BuildingAccessFields/> : null}
+      {formChrome==='edit' ? <BuildingAccessFields/> : null}
       <Enter>
         <WizardFieldLabel required>Electricity</WizardFieldLabel>
         <FieldSource label="electricity" keys={["electricity"]} draft={draft} onReset={reset} />
@@ -325,7 +324,7 @@ export function CreateStepAmenities() {
         </View>
       ) : null}
       <Enter delay={140}>
-        <WaterSectionMarker />
+
         <WizardFieldLabel required>Water</WizardFieldLabel>
         <FieldSource label="water" keys={["water"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />

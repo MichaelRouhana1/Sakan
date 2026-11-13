@@ -40,9 +40,17 @@ type Props = {
 export function HostWebShell({ children }: Props) {
   const pathname = usePathname();
   const bp = useBreakpoint();
-  const desktop = bp === "desktop";
+  // Match the exported desktop shell on the first client render, then apply
+  // the viewport and saved rail preference after hydration.
+  const [hydrated, setHydrated] = useState(false);
+  const desktop = !hydrated || bp === "desktop";
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [railCollapsed, setRailCollapsed] = useState(readCollapsed);
+  const [railCollapsed, setRailCollapsed] = useState(false);
+
+  useEffect(() => {
+    setRailCollapsed(readCollapsed());
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     setDrawerOpen(false);

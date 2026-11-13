@@ -2,10 +2,7 @@ import { z } from "zod";
 
 export const creditReturnToSchema = z
   .string()
-  .regex(
-    /^\/hosting\/listing\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/(outcome|promote|renew)$/i,
-    "Invalid return path",
-  );
+  .refine(value => /^\/hosting\/listing\/[0-9a-f-]{36}\/(outcome|promote|renew)$/i.test(value) || /^\/create\?draftId=[0-9a-f-]{36}$/i.test(value), "Invalid return path");
 
 export const createPurchaseSchema = z.object({
   packId: z.string().regex(/^[a-z0-9_]+$/).max(80).optional(),

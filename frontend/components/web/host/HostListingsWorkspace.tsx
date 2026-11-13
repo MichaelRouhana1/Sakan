@@ -21,9 +21,12 @@ import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { api } from '@/lib/api';
 import { appleTabScrollInset } from '@/components/ui/Glass';
 import { expiryTime } from './hostListingStatus';
-import { listingFilters, placeName, portfolioCounts, unitTitle, unitTypeName, unitCampusName, workspaceFacts, workspaceGroups, type ListingsFilter, type WorkspaceAction } from './listingsWorkspaceModel';
+import { listingFilters, placeName, portfolioCounts, unitTitle, unitTypeName, unitCampusName, workspaceFacts, workspaceGroups, type WorkspaceAction } from './listingsWorkspaceModel';
 
-export type WorkspaceDraft = { key: string; title: string; subtitle: string; onPress: () => void };
+export type WorkspaceDraft = { key: string; title: string; subtitle: string; coverUrl?: string | null; onPress: () => void };
+const workspaceFilters = [...listingFilters, 'Drafts'] as const;
+type WorkspaceFilter = typeof workspaceFilters[number];
+
 type Props = { listings: Listing[]; drafts: WorkspaceDraft[]; loading: boolean; failed: boolean; refreshing: boolean; signedIn: boolean; createDisabled: boolean; onRefresh: () => void; onEdit: (unit: Listing) => void };
 type Anchor = { x: number; y: number };
 type Sheet = { kind: 'menu' | 'place'; unit: Listing; anchor?: Anchor } |
@@ -39,12 +42,11 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const router = useRouter();
   const focused = useIsFocused();
   const params = useLocalSearchParams<{ filter?: string; q?: string; sort?: string }>();
-  const [filter, setFilter] = useState<ListingsFilter>(() => listingFilters.find(value => value === params.filter) ?? 'All');
+  const [filter, setFilter] = useState<WorkspaceFilter>(() => workspaceFilters.find(value => value === params.filter) ?? 'All');
   const [search, setSearch] = useState(() => typeof params.q === 'string' ? params.q : '');
   const [sort, setSort] = useState<'urgency' | 'name'>(params.sort === 'name' ? 'name' : 'urgency');
   const [width, setWidth] = useState(0);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [showDrafts, setShowDrafts] = useState(false);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -55,8 +57,15 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const now = useListingClock();
   const units = useMemo(() => listings.filter(unit => unit.status !== 'draft'), [listings]);
   const counts = useMemo(() => portfolioCounts(units, now), [units, now]);
-  const groups = useMemo(() => workspaceGroups(units, filter, search, sort, now), [units, filter, search, sort, now]);
-  const wide = Platform.OS === 'web' && width >= 1080 && units.length !== 1;
+  const groups = useMemo(() => filter === 'Drafts' ? [] : workspaceGroups(units, filter, search, sort, now), [units, filter, search, sort, now]);
+  const visibleDrafts = useMemo(() => {
+    if (filter !== 'All' && filter !== 'Drafts') return [];
+    const tokens = search.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
+    const result = drafts.filter(draft => tokens.every(token => `${draft.title} ${draft.subtitle}`.toLocaleLowerCase().includes(token)));
+    return sort === 'name' ? [...result].sort((a,b) => a.title.localeCompare(b.title, undefined, {numeric:true})) : result;
+  }, [drafts, filter, search, sort]);
+  const filterCounts = {...counts, All: units.length + drafts.length, Drafts: drafts.length};
+  const wide = Platform.OS === 'web' && width >= 1080 && units.length + drafts.length !== 1;
   const narrow = width < 600;
   const known = !loading && (!failed || units.length > 0);
   const blockedCredits = units.some(unit => unit.autoRenewState?.enabled && unit.autoRenewState.blocked === 'credits');
@@ -112,15 +121,6 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
     } catch (e) { setError(message(e)); }
   }
 
-  const draftStrip = drafts.length > 0 ? <View style={s.drafts}>
-    <Pressable accessibilityRole="button" accessibilityState={{ expanded: showDrafts }} onPress={() => setShowDrafts(!showDrafts)} style={s.draftHeading}>
-      <Ionicons name="document-text-outline" size={17} color={Studently.color.inkMuted} />
-      <Text style={s.smallBold}>In progress · {drafts.length} {drafts.length === 1 ? 'draft' : 'drafts'}</Text>
-      <Text style={s.textLink}>{showDrafts ? 'Hide' : 'Show'}</Text>
-    </Pressable>
-    {showDrafts ? drafts.map(draft => <View key={draft.key} style={s.draftRow}><View style={s.flex}><Text style={s.smallBold}>{draft.title}</Text><Text style={s.muted}>{draft.subtitle}</Text></View><Button label="Continue" onPress={draft.onPress} /></View>) : null}
-  </View> : null;
-
   return <View style={s.root} onLayout={event => setWidth(event.nativeEvent.layout.width)} testID="listings-workspace">
     <ScrollView keyboardShouldPersistTaps="handled" stickyHeaderIndices={[1]} refreshControl={<RefreshControl refreshing={refreshing && !loading} onRefresh={refetch} tintColor={Studently.color.primary} />} contentContainerStyle={s.scroll}>
       <View style={[s.summary, narrow && s.summaryNarrow]}>
@@ -137,18 +137,17 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
       </View>
 
       <View style={s.toolbar}>
-        <View style={s.filters}>{listingFilters.map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value}`} accessibilityState={{ selected: filter === value }} onPress={() => setFilter(value)} style={[s.filter, filter === value && s.filterSelected]}><Text style={[s.filterLabel, filter === value && s.filterLabelSelected]}>{value}</Text><Text style={[s.count, filter === value && s.filterLabelSelected]}>{known ? counts[value] : '—'}</Text></Pressable>)}</View>
+        <View style={s.filters}>{workspaceFilters.map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value === 'Drafts' ? 'In progress' : value}`} accessibilityState={{ selected: filter === value }} onPress={() => setFilter(value)} style={[s.filter, filter === value && s.filterSelected]}><Text style={[s.filterLabel, filter === value && s.filterLabelSelected]}>{value === 'Drafts' ? 'In progress' : value}</Text><Text style={[s.count, filter === value && s.filterLabelSelected]}>{known || value === 'Drafts' ? filterCounts[value] : '—'}</Text></Pressable>)}</View>
         <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={18} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /></View>
       </View>
 
       <View style={[s.body, narrow && s.bodyNarrow]}>
-        {createDisabled ? <Notice text="You have two listings in progress. Finish or remove a draft before adding another." /> : null}
         {shortage ? <Notice warning text={blockedCredits ? 'Auto-renew needs more post credits.' : 'No post credits. Each unit renewal needs 1 credit.'} action="Buy credits" onPress={() => router.push('/hosting/credits' as never)} /> : null}
         {failed ? <Notice text={units.length ? 'Couldn’t refresh. Showing your last saved listings.' : 'Couldn’t load your listings.'} action="Retry" onPress={refetch} /> : refreshing && !loading ? <Text style={s.caption}>Refreshing…</Text> : null}
-        {draftStrip}
-        {loading && units.length === 0 ? <WorkspaceSkeleton wide={wide} /> : units.length === 0 && !failed ? <Empty title={drafts.length ? 'Finish your first listing' : 'Add your first listing'} detail={drafts.length ? 'Your saved drafts are above. Continue one when you’re ready.' : 'Start with a place, then add a whole apartment, private room or shared beds.'} action={drafts.length ? 'Continue draft' : 'Add listing'} onPress={() => drafts.length ? drafts[0].onPress() : open({ kind: 'add' })} /> : !groups.length && !failed ? <Empty title={filter === 'Needs attention' && !search ? 'Nothing needs attention right now.' : 'No units match these filters.'} detail={filter === 'Needs attention' && !search ? 'Your listing times and auto-renew settings are looking good.' : 'Try another unit, place name or area.'} action={filter === 'Needs attention' && !search ? 'Show all' : 'Clear search and filters'} onPress={() => { setFilter('All'); setSearch(''); }} /> : null}
-        {groups.length ? <View style={[s.list, units.length === 1 && s.singleList]} testID="unit-list">
-          {wide ? <View style={s.columnHeader}><Text style={[s.columnLabel,s.unitColumn]}>UNIT</Text><Text style={[s.columnLabel,s.timeColumn]}>LISTING TIME</Text><Text style={[s.columnLabel,s.availabilityColumn]}>AVAILABILITY</Text><Text style={[s.columnLabel,s.autoColumn]}>AUTO-RENEW</Text><Text style={[s.columnLabel,s.actionColumn]}>ACTION</Text></View> : null}
+        {loading && units.length === 0 && drafts.length === 0 ? <WorkspaceSkeleton wide={wide} /> : units.length === 0 && drafts.length === 0 && !failed && filter !== 'Drafts' ? <Empty title="Add your first listing" detail="Start with a place, then add a whole apartment, private room or shared beds." action="Add listing" onPress={() => open({ kind: 'add' })} /> : !groups.length && !visibleDrafts.length && !failed ? <Empty title={filter === 'Drafts' && !search ? 'No drafts in progress.' : filter === 'Needs attention' && !search ? 'Nothing needs attention right now.' : 'No listings match these filters.'} detail={filter === 'Drafts' && !search ? 'New listings you save before publishing will appear here.' : filter === 'Needs attention' && !search ? 'Your listing times and auto-renew settings are looking good.' : 'Try another unit, place name or area.'} action={filter === 'Needs attention' && !search ? 'Show all' : 'Clear search and filters'} onPress={() => { setFilter('All'); setSearch(''); }} /> : null}
+        {groups.length || visibleDrafts.length ? <View style={[s.list, units.length + drafts.length === 1 && s.singleList]} testID="unit-list">
+          {wide ? <View style={s.columnHeader}><View style={s.unitColumn}><Text style={s.columnLabel}>UNIT</Text></View><View style={s.timeColumn}><Text style={s.columnLabel}>LISTING TIME</Text></View><View style={s.availabilityColumn}><Text style={s.columnLabel}>AVAILABILITY</Text></View><View style={s.autoColumn} testID="auto-renew-column-header"><Text style={s.columnLabel}>AUTO-RENEW</Text></View><View style={s.actionColumn} testID="action-column-header"><Text style={s.columnLabel}>ACTION</Text></View></View> : null}
+          {visibleDrafts.map(draft => <DraftRow key={draft.key} draft={draft} wide={wide} />)}
           {groups.map(group => {
             const folded = collapsed.has(group.id) && filter === 'All' && !search;
             return <View key={group.id} testID={`place-${group.id}`} style={s.group}>
@@ -188,6 +187,21 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
       sheet?.kind === 'add' ? <><Text style={s.sheetTitle}>Add a listing</Text><Text style={s.muted}>Start a new place, or add a unit to one you own.</Text><Button label="New place" icon="home-outline" primary disabled={createDisabled} onPress={()=>addUnit()} /><View style={s.separator} /><Text style={s.smallBold}>UNIT IN AN EXISTING PLACE</Text>{[...new Map(units.filter(unit=>unit.placeId).map(unit=>[unit.placeId,unit])).values()].map(unit=><MenuItem key={unit.placeId} label={`${placeName(unit)} · ${unit.area}`} icon="add" disabled={createDisabled} onPress={()=>addUnit(unit)} />)}{!units.length?<Text style={s.muted}>No saved places yet.</Text>:null}</> :
       sheet?.kind === 'archive' || sheet?.kind === 'remove' ? <><Text style={s.sheetTitle}>{sheet.kind==='archive'?'Archive':'Remove'} this unit?</Text><Text style={s.paragraph}>{unitTitle(sheet.unit)}</Text><Text style={s.muted}>{sheet.kind==='archive'?'Takes this unit off search and turns auto-renew off. Occupancy stays saved.':'Permanently removes this listing. Confirm vacancy first; occupied units must be archived instead.'}</Text>{error?<Text accessibilityRole="alert" style={s.error}>{error}</Text>:null}<Button label={archive.isPending||remove.isPending?'Saving…':sheet.kind==='archive'?'Confirm archive':'Confirm remove'} primary disabled={archive.isPending||remove.isPending} onPress={()=>void destroy(sheet.unit,sheet.kind==='archive'?'archive':'remove')} /></> : null}
     </WorkspaceSheet>
+  </View>;
+}
+
+function DraftRow({draft,wide}:{draft:WorkspaceDraft;wide:boolean}) {
+  const {width}=useWindowDimensions();
+  const size=width>=1024?72:width>=768?64:56;
+  const photo=resolveMediaUrl(draft.coverUrl??null);
+  const identity=<View style={s.identity}>
+    {photo?<Image source={{uri:photo}} style={[s.thumbnail,{width:size,height:size}]} contentFit="cover"/>:<View style={[s.thumbnailFallback,{width:size,height:size}]}><Ionicons name="document-text-outline" size={24} color="#8A847C"/></View>}
+    <View style={s.identityCopy}><Text style={s.unitTitle} numberOfLines={width>=1440?undefined:2}>{draft.title}</Text><Text style={s.typePrice}>{draft.subtitle}</Text>{!wide?<Text style={s.draftCaption}>Not published</Text>:null}</View>
+  </View>;
+  const badge=<View style={[s.status,s.draftBadge]}><Text style={s.statusText}>In progress</Text></View>;
+  const actions=<><Button label="Continue" accessibilityLabel={`Continue draft ${draft.title}`} onPress={draft.onPress}/><MenuTrigger label={`Draft options for ${draft.title}`} onPress={draft.onPress}/></>;
+  return <View style={[s.unitRow,!wide&&s.compactRow]} testID={`draft-${draft.key}`}>
+    {wide?<><View style={s.unitColumn}>{identity}</View><View style={s.timeColumn}>{badge}<Text style={s.caption}>Not published</Text></View><View style={s.availabilityColumn}><Text style={s.caption}>—</Text></View><View style={s.autoColumn}><Text style={s.caption}>—</Text></View><View style={[s.actionColumn,s.rowActions]}>{actions}</View></>:<><View style={s.compactTop}>{identity}{badge}</View><View style={s.draftCompactActions}>{actions}</View></>}
   </View>;
 }
 
@@ -298,8 +312,8 @@ const s=StyleSheet.create({
   unitRow:{paddingHorizontal:16,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:12,borderTopWidth:1,borderTopColor:'#ECEDEF',minHeight:96},compactRow:{flexDirection:'column',alignItems:'stretch',gap:10,padding:14},identity:{flexDirection:'row',gap:12,flex:1,minWidth:0,alignItems:'center'},identityCopy:{flex:1,minWidth:0},thumbnail:{width:72,height:72,borderRadius:10,backgroundColor:'#E8EAED'},thumbnailFallback:{width:72,height:72,borderRadius:10,backgroundColor:'#F0F1F3',alignItems:'center',justifyContent:'center'},unitTitle:{fontFamily:Studently.type.bodySemi,fontSize:16,lineHeight:22,color:'#242321'},performance:{minHeight:26,justifyContent:'center',alignSelf:'flex-start'},rowActions:{flexDirection:'row',alignItems:'center',gap:2,justifyContent:'flex-end'},compactTop:{flexDirection:'row',alignItems:'flex-start',gap:8},compactStatus:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8},compactBottom:{flexDirection:'row',alignItems:'center',gap:12},
   status:{flexDirection:'row',alignItems:'center',gap:6,alignSelf:'flex-start',maxWidth:'100%',paddingVertical:4},statusWarning:{backgroundColor:'#FFFBEB',paddingHorizontal:7,borderRadius:6},statusExpired:{backgroundColor:'#FEF3F2',paddingHorizontal:7,borderRadius:6},statusDot:{width:5,height:5,borderRadius:3,flexShrink:0},statusText:{fontFamily:Studently.type.bodyMedium,fontSize:14,lineHeight:20,color:'#37332F',flexShrink:1},
   autoWrap:{gap:1},autoLine:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:7},autoLabelTouch:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6},autoLabel:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#5E5A55',textDecorationLine:'underline'},
-  button:{minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:'#FFFFFF'},buttonText:{fontFamily:Studently.type.bodySemi,fontSize:14,color:'#37332F'},primaryButton:{backgroundColor:'#C0343D',borderColor:'#C0343D'},primaryButtonText:{color:'#FFFFFF'},iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:8},
-  drafts:{borderWidth:1,borderColor:'#DFE2E6',borderRadius:10,overflow:'hidden',backgroundColor:'#FFFFFF'},draftHeading:{flexDirection:'row',alignItems:'center',gap:10,minHeight:48,paddingHorizontal:14},draftRow:{borderTopWidth:1,borderColor:'#ECEDEF',padding:12,flexDirection:'row',alignItems:'center',gap:10},
+  button:{minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:'#FFFFFF'},buttonText:{fontFamily:Studently.type.bodySemi,fontSize:14,color:'#37332F'},primaryButton:{backgroundColor:'#EA3F4A',borderColor:'#EA3F4A'},primaryButtonText:{color:'#FFFFFF'},iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:8},
+  draftBadge:{backgroundColor:'#F3F4F6',paddingHorizontal:8,borderRadius:6},draftCaption:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460',marginTop:4},draftCompactActions:{flexDirection:'row',justifyContent:'flex-end',alignItems:'center',gap:2},
   empty:{paddingHorizontal:24,paddingVertical:48,alignItems:'center',gap:14},emptyIcon:{width:60,height:60,borderRadius:18,backgroundColor:'#FDECEE',alignItems:'center',justifyContent:'center'},emptyTitle:{fontFamily:Studently.type.bodySemi,fontSize:21,color:'#242321',textAlign:'center'},emptyDetail:{fontFamily:Studently.type.body,fontSize:14,lineHeight:21,color:'#625E59',textAlign:'center',maxWidth:360},
   scrim:{flex:1,backgroundColor:'rgba(26,26,26,0.35)',justifyContent:'center',alignItems:'center',padding:24},mobileScrim:{justifyContent:'flex-end',paddingHorizontal:10,paddingBottom:16},sheet:{width:'100%',maxWidth:560,maxHeight:'90%',borderRadius:16,backgroundColor:'#FFFFFF',overflow:'hidden',boxShadow:'0 12px 48px rgba(26,26,26,0.12)'},mobileSheet:{maxWidth:600,maxHeight:'88%'},sheetClose:{height:44,alignItems:'flex-end',paddingRight:4},sheetContent:{padding:20,paddingTop:0,gap:10},sheetTitle:{fontFamily:Studently.type.bodySemi,fontSize:20,lineHeight:27,color:'#242321',marginBottom:5},paragraph:{fontFamily:Studently.type.body,fontSize:14,lineHeight:21,color:'#37332F'},menuItem:{minHeight:44,flexDirection:'row',alignItems:'center',gap:12,borderRadius:7,paddingHorizontal:8},menuText:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#37332F',flexShrink:1},separator:{height:1,backgroundColor:'#E4E5E7',marginVertical:6},
 });

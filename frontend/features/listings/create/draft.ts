@@ -23,29 +23,6 @@ import { emptyCutWindow } from "@/lib/electricityCuts";
 import type { ContactNumber } from "@/lib/lebanonPhone";
 import { emptyContactNumber } from "@/lib/lebanonPhone";
 
-/** @deprecated Legacy full-draft key — migrated to checkpoint on read. */
-export const CREATE_DRAFT_STORAGE_KEY = "studently.createListing.draft.v4";
-
-export const CREATE_DRAFT_CHECKPOINT_KEY = "studently.createListing.checkpoint.v1";
-
-export const CREATE_DRAFT_WORKING_KEY = "studently.createListing.working.v1";
-
-/** Which account may claim device drafts saved before account sync. */
-export const CREATE_DRAFT_LEGACY_OWNER_KEY =
-  "studently.createListing.legacyDraftOwner.v1";
-
-/** Main = resumed primary draft; working = started via + (new listing). */
-export type DraftSlot = "main" | "working";
-
-export type DraftCheckpoint = {
-  /** Last step validated via Next (index). */
-  committedStep: number;
-  /** Step shown when user last used Save & exit; resume uses max(savedStep, committedStep). */
-  savedStep?: number;
-  draft: CreateListingDraft;
-  savedAt: string;
-};
-
 export const EMPTY_PIN: ListingPin = {
   lng: 35.5018,
   lat: 33.8938,
@@ -56,14 +33,9 @@ export const EMPTY_PIN: ListingPin = {
 };
 
 export type CreateListingDraft = {
-  schemaVersion?: 2;
-  legacyProgress?: boolean;
-  unitCount?: number;
-  additionalUnits?: { id: string; data: Partial<CreateListingDraft> }[];
   sharedPhotos?: DraftPhoto[];
   existingPlaceId?: string;
   placeKind?: 'apartment' | 'building';
-  publishRequestId?: string;
   bathroomPrivacy?: 'private' | 'shared';
   bedsAvailable?: number | null;
   differentFields?: string[];
@@ -134,9 +106,6 @@ export type CreateListingDraft = {
 };
 
 export const INITIAL_DRAFT: CreateListingDraft = {
-  schemaVersion: 2,
-  unitCount: 1,
-  additionalUnits: [],
   sharedPhotos: [],
   step: 0,
   spaceType: null,
@@ -203,8 +172,6 @@ export const INITIAL_DRAFT: CreateListingDraft = {
 export type CreateListingAction =
   | { type: "hydrate"; draft: CreateListingDraft }
   | { type: "reset" }
-  | { type: "patchUnit"; index: number; patch: Partial<CreateListingDraft> }
-  | { type: "gallery"; index: number | 'shared'; updater: DraftPhoto[] | ((prev: DraftPhoto[]) => DraftPhoto[]) }
   | { type: "setStep"; step: number }
   | { type: "prevStep" }
   | { type: "patch"; patch: Partial<CreateListingDraft> }

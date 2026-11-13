@@ -12,7 +12,7 @@ import {
 } from "@/components/listings/create/WizardField";
 import { FURNISHING_OPTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import { patchOverride, resetOverride } from "@/features/listings/create/unitDrafts";
 import type { FurnishingType } from "@/types/listing";
 
@@ -25,7 +25,7 @@ function floorLabel(n: number) {
 }
 
 export function BuildingAccessFields(){
-  const {draft,patch}=useCreateListingDraft();
+  const {draft,patch}=useListingForm();
   const source = (label: string, key: "hasElevator" | "elevator24_7") =>
     !draft.sharedValues ? null : draft.differentFields?.includes(key) ? (
       <Pressable accessibilityRole="button" accessibilityLabel={`Reset ${label} to building`} onPress={() => resetOverride(draft, patch, [key])} style={{ alignSelf: "flex-start", paddingVertical: 4 }}>
@@ -58,7 +58,7 @@ export function BuildingAccessFields(){
 }
 
 export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boolean} = {}) {
-  const { draft, patch, formChrome } = useCreateListingDraft();
+  const { draft, patch, formChrome } = useListingForm();
   const furnishingInvalid = useWizardFieldInvalid("furnishingType");
   const bedsInvalid = useWizardFieldInvalid("beds");
   const occupancyInvalid = useWizardFieldInvalid("maxOccupancy");

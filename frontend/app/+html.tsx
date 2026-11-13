@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useServerDocumentContext } from "expo-router/html";
 import { brandPaletteCss } from "@/constants/brandPalette";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 import { CAMPUS_CSS } from "@/styles/campusCssText";
@@ -194,8 +195,9 @@ ${brandPaletteCss}
 `;
 
 export default function Root({ children }: { children: ReactNode }) {
+  const { headNodes, bodyNodes, htmlAttributes, bodyAttributes } = useServerDocumentContext();
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -278,8 +280,9 @@ ${ADMIN_CSS}
 `,
           }}
         />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>{children}{bodyNodes}</body>
     </html>
   );
 }

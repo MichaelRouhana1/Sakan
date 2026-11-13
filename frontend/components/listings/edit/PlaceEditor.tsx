@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import type { Listing } from '@/types/listing';
 import { LButton } from '@/components/lister/Button';
 import { LText } from '@/components/lister/Typography';
-import { CreateListingContext } from '@/features/listings/create/CreateListingProvider';
+import { ListingFormContext } from '@/features/listings/forms/ListingFormContext';
 import { mapListingToDraft } from '@/features/listings/edit/mapListingToDraft';
 import { placeToDraft } from '@/features/listings/create/placeToDraft';
 import { mapDraftToBody } from '@/features/listings/create/mapDraftToBody';
@@ -40,13 +40,13 @@ export function PlaceEditor({listing,onClose}:{listing:Listing;onClose:()=>void}
   <LText variant="title">{draft.placeKind==='building'?'Building details':'Apartment details'}</LText>
   <LText tone="muted">Changes apply to units using the shared details. Electricity set differently in a unit stays as you set it there.</LText>
   {query.isError?<><LText tone="danger">Could not load shared details.</LText><LButton label="Retry" onPress={()=>void query.refetch()}/></>:!loaded?<LText>Loading…</LText>:
-  <CreateListingContext.Provider value={{draft,patch:p=>setDraft(d=>({...d,...p})),setPhotos:u=>setDraft(d=>({...d,photos:typeof u==='function'?u(d.photos):u})),
+  <ListingFormContext.Provider value={{draft,patch:p=>setDraft(d=>({...d,...p})),setPhotos:u=>setDraft(d=>({...d,photos:typeof u==='function'?u(d.photos):u})),
    committedStep:8,setStep:()=>{},goNext:()=>false,goBack:()=>{},saveAndExit:async()=>{},reset:async()=>{},showValidation:true,fieldErrors:errors,fieldInvalid:f=>errors.includes(f),setShowValidation:()=>{},
    formChrome:'edit',lockedFields:new Set(['genderRestriction']),isLocked:f=>f==='genderRestriction'}}>
    <CreateStepLocation/><CreateStepAmenities/><CreateStepRules sharedOnly/>
    <PhotoPickerGrid shared photos={photos} setPhotos={u=>setDraft(d=>({...d,sharedPhotos:typeof u==='function'?u(d.sharedPhotos??[]):u}))}/>
    {error?<><LText tone="danger" accessibilityRole="alert">{error}</LText><LButton label="Reload saved shared details" variant="secondary" onPress={()=>void reload()} loading={query.isFetching}/></>:null}
    <LButton label="Save shared details" onPress={()=>void save()} loading={saving} disabled={errors.length>0||photos.some(p=>p.status!=='ready')}/>
-  </CreateListingContext.Provider>}
+  </ListingFormContext.Provider>}
  </View>;
 }

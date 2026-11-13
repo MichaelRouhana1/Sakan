@@ -9,7 +9,7 @@ const DraftContext = createContext<{
   fieldInvalid: () => boolean;
 }>(null!);
 const AuthContext = createContext({ session: { userId: "first-host", role: "renter" }, isSignedIn: true, isLoading: false });
-export const useCreateListingDraft = () => useContext(DraftContext);
+export const useListingForm = () => useContext(DraftContext);
 export const useAuthSession = () => useContext(AuthContext);
 
 function Harness() {

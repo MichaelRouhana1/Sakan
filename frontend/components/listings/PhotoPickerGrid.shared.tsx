@@ -131,8 +131,14 @@ export function TileEnter({
   const translate = useRef(new Animated.Value(reduceMotion ? 0 : 12)).current;
 
   useEffect(() => {
-    if (reduceMotion) return;
-    Animated.parallel([
+    if (reduceMotion) {
+      opacity.stopAnimation();
+      translate.stopAnimation();
+      opacity.setValue(1);
+      translate.setValue(0);
+      return;
+    }
+    const animation = Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
         duration: 280,
@@ -145,7 +151,9 @@ export function TileEnter({
         delay: Math.min(index, 6) * 40,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]);
+    animation.start();
+    return () => animation.stop();
   }, [index, opacity, reduceMotion, translate]);
 
   return (
@@ -256,6 +264,7 @@ export function PhotoTile({
   photoTileId,
   style,
 }: PhotoTileProps) {
+  const reduceMotion = useReducedMotion();
   const imageUri =
     photo.status === "ready" && photo.url ? photo.url : photo.uri;
 
@@ -315,7 +324,7 @@ export function PhotoTile({
             source={{ uri: imageUri }}
             style={photoPickerStyles.image}
             contentFit="cover"
-            transition={200}
+            transition={reduceMotion ? 0 : 200}
           />
           <View style={photoPickerStyles.tileWash} />
 

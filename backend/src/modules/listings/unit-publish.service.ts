@@ -15,12 +15,13 @@ import { settlePlaceInventory } from './inventory.service.js';
 const fieldKeys = [...Object.keys(sharedFields), 'amenities'] as unknown as [string, ...string[]];
 export const sharedPhotoSchema = z.object({url:z.string().max(2048).refine(v=>/^https?:\/\//.test(v)||v.startsWith('/uploads/')),caption:z.string().max(48).default('')});
 export const publishUnitsSchema = z.object({
+ draftId:z.uuid().optional(),expectedDraftRevision:z.number().int().positive().optional(),expectedPlaceUpdatedAt:z.string().datetime().optional(),
  expectedTotal:z.number().int().min(0).max(20), requestId:z.uuid(), placeId:z.uuid().optional(), kind:z.enum(['apartment','building']),
  shared:sharedDetailsSchema, sharedPhotos:z.array(sharedPhotoSchema).max(15),
  units:z.array(z.object({details:createListingSchema, differentFields:z.array(z.enum(fieldKeys)).max(fieldKeys.length).default([]),
   bathroomPrivacy:z.enum(['private','shared']), bedsAvailable:z.number().int().min(1).max(20).optional(),
  })).min(1).max(20),
-});
+}).refine(v=>Boolean(v.draftId)===Boolean(v.expectedDraftRevision),{message:'A draft and its saved revision are required together'});
 export type PublishUnitsInput = z.infer<typeof publishUnitsSchema>;
 export type PublishedBatch = {placeId:string;listingIds:string[];credits:number[];total:number};
 
@@ -59,11 +60,17 @@ export async function publishUnits(ownerId:string,input:PublishUnitsInput) {
    if(prior.request_hash!==hash)throw new ConflictError('This publish request was already used. Refresh your dashboard.');
    return prior.result as {placeId:string;listingIds:string[];credits:number[];total:number};
   }
+  if(input.draftId){
+   const [draft]=await tx.execute(sql`SELECT * FROM creation_drafts WHERE id=${input.draftId}::uuid AND owner_id=${ownerId}::uuid FOR UPDATE`);
+   if(!draft)throw new NotFoundError('Draft not found');
+   if(draft.status!=='active' || Number(draft.revision)!==input.expectedDraftRevision)throw new ConflictError('Your draft changed on another device. Reload and review before publishing.');
+  }
   let placeId=input.placeId;
   let place:Record<string,unknown>;
   if(placeId){
    const [owned]=await tx.execute(sql`SELECT *,ST_AsText(location::geometry) AS location_wkt FROM places WHERE id=${placeId}::uuid AND owner_id=${ownerId}::uuid FOR UPDATE`);
    if(!owned)throw new NotFoundError('Apartment or building not found');
+   if(input.expectedPlaceUpdatedAt && new Date(String(owned.updated_at)).toISOString()!==input.expectedPlaceUpdatedAt)throw new ConflictError('Place details changed. Reload and review before publishing.');
    place=owned;
   }else{
    const shared=sharedSqlValues(input.shared);
@@ -107,6 +114,7 @@ export async function publishUnits(ownerId:string,input:PublishUnitsInput) {
   await settlePlaceInventory(tx,placeId!);
   const result={placeId:placeId!,listingIds,credits,total:credits.reduce((a,b)=>a+b,0)};
   await tx.execute(sql`INSERT INTO unit_publish_batches(owner_id,request_id,request_hash,result) VALUES(${ownerId}::uuid,${input.requestId}::uuid,${hash},${JSON.stringify(result)}::jsonb)`);
+  if(input.draftId)await tx.execute(sql`UPDATE creation_drafts SET status='published',result=${JSON.stringify(result)}::jsonb,revision=revision+1,updated_at=now() WHERE id=${input.draftId}::uuid`);
   return result;
  });
 }

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 
 type Props = {
   fields: string[];
@@ -12,7 +12,7 @@ type Props = {
 
 /** Read-only wrap for structural fields after the 24h window. Wizard never locks. */
 export function LockedCluster({ fields, children }: Props) {
-  const { isLocked, draft } = useCreateListingDraft();
+  const { isLocked, draft } = useListingForm();
   const locked = fields.some((field) => isLocked(field));
   const sharedLocation = draft.sharedValues && fields.some(field =>
     ['area', 'buildingName', 'lat', 'lng', 'primaryCampusId'].includes(field));

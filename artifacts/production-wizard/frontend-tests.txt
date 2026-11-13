@@ -1,0 +1,34 @@
+✔ facts snapshot preserves unknowns, derives deposits and excludes private draft data (0.7094ms)
+▶ Copy step interactions
+  ✔ two taps fill empty copy, keyboard actions, private facts excluded and mobile layout (898.0455ms)
+  ✔ existing text requires confirmation; brief preserves details; everything remains editable (489.4078ms)
+  ✔ AI attribution is quiet, while template fallback does not claim AI (1463.3078ms)
+  ✔ loading never locks typing; changed text, facts, session and unmount discard delayed results (2653.0544ms)
+  ✔ editing while a preview is open invalidates it; long retained text is not truncated (413.9411ms)
+✔ Copy step interactions (6476.5268ms)
+✔ five place screens, four unit screens, another and Review run in order (2.0355ms)
+✔ copy is independent, appends suffix within title limit, and clears photos (0.4051ms)
+✔ blank never appends copy and has no inherited unit values (0.1812ms)
+✔ existing place skips all shared screens and is read-only (0.1344ms)
+✔ unit and shared photo limits enforce readiness and separate galleries (0.3049ms)
+✔ Review edits return directly and preserve independent units (0.2278ms)
+✔ Back from a later unit preserves it and does not repeat Place questions (0.235ms)
+✔ late uploads use stable unit IDs and cannot recreate removed units (0.3135ms)
+✔ 20-unit maximum and building rental restrictions are enforced (0.5231ms)
+✔ empty batch is blocked; interrupted photos restore in a recoverable state (0.4666ms)
+✔ parking keeps the existing included-in-rent default and respects an explicit override (0.1904ms)
+▶ Pricing guidance UI
+  ✔ populated card, keyboard application, manual override and responsive layout (698.1825ms)
+  ✔ null, absent, forbidden, server and network errors render no guide or gap (6659.8928ms)
+  ✔ hide initial loading and cancel old results after draft changes (387.7535ms)
+  ✔ matching inputs, user switches, invalid inputs and sign-out remove earlier guide (2088.408ms)
+  ✔ failed refetch hides cached data and remount requests a fresh guide (380.5516ms)
+✔ Pricing guidance UI (12969.5048ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13312.5425

@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { StyleSheet, View, type TextStyle, type ViewStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 
 export function useWizardFieldInvalid(field: string): boolean {
-  const { fieldInvalid } = useCreateListingDraft();
+  const { fieldInvalid } = useListingForm();
   return fieldInvalid(field);
 }
 

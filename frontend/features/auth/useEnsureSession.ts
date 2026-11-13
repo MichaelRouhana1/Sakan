@@ -40,7 +40,7 @@ export async function switchToRole(role: UserRole): Promise<User> {
 export function openCreateListing(router: Pick<ImperativeRouter, "push">): void {
   router.push({
     pathname: "/(poster)/create",
-    params: { new: undefined, working: undefined },
+    params: { draftId: undefined, placeId: undefined, new: undefined },
   } as never);
 }
 
@@ -48,15 +48,7 @@ export function openCreateListing(router: Pick<ImperativeRouter, "push">): void 
 export function openNewCreateListing(router: Pick<ImperativeRouter, "push">): void {
   router.push({
     pathname: "/(poster)/create",
-    params: { new: "1", working: undefined },
-  } as never);
-}
-
-/** Resume the in-progress "new listing" working draft. */
-export function openWorkingCreateListing(router: Pick<ImperativeRouter, "push">): void {
-  router.push({
-    pathname: "/(poster)/create",
-    params: { new: undefined, working: "1" },
+    params: { new: "1", draftId: undefined, placeId: undefined },
   } as never);
 }
 

@@ -27,6 +27,22 @@ import {
 } from "./listing-expiry.schemas.js";
 
 export const listingsRouter = Router();
+import { createDraftSchema, saveDraftSchema, createCreationDraft, readCreationDraft, listCreationDrafts, saveCreationDraft, discardCreationDraft } from './creation-drafts.service.js';
+listingsRouter.get('/creation-drafts', requireAuth, async (req,res,next) => {
+ try { res.json({data:await listCreationDrafts(req.user!.id)}); } catch(e) { next(e); }
+});
+listingsRouter.post('/creation-drafts', requireAuth, validate(createDraftSchema), async (req,res,next) => {
+ try { res.status(201).json({data:await createCreationDraft(req.user!.id,req.body)}); } catch(e) { next(e); }
+});
+listingsRouter.get('/creation-drafts/:draftId', requireAuth, async (req,res,next) => {
+ try { res.json({data:await readCreationDraft(req.user!.id,z.uuid().parse(req.params.draftId))}); } catch(e) { next(e); }
+});
+listingsRouter.put('/creation-drafts/:draftId', requireAuth, validate(saveDraftSchema), async (req,res,next) => {
+ try { res.json({data:await saveCreationDraft(req.user!.id,z.uuid().parse(req.params.draftId),req.body)}); } catch(e) { next(e); }
+});
+listingsRouter.delete('/creation-drafts/:draftId', requireAuth, async (req,res,next) => {
+ try { await discardCreationDraft(req.user!.id,z.uuid().parse(req.params.draftId)); res.status(204).end(); } catch(e) { next(e); }
+});
 listingsRouter.use(copySuggestRouter);
 listingsRouter.patch('/places/:placeId',requireAuth,validate(editPlaceSchema),async(req,res,next)=>{
  try{res.json({data:await editPlace(req.user!.id,z.uuid().parse(req.params.placeId),req.body)})}catch(e){next(e)}
@@ -79,18 +95,6 @@ listingsRouter.get("/mine", requireAuth, (req, res, next) =>
 
 listingsRouter.get("/mine/analytics", requireAuth, (req, res, next) =>
   listingsController.mineAnalytics(req, res, next),
-);
-
-listingsRouter.get("/drafts", requireAuth, (req, res, next) =>
-  listingsController.listDrafts(req, res, next),
-);
-
-listingsRouter.put("/drafts/:slot", requireAuth, (req, res, next) =>
-  listingsController.saveDraft(req, res, next),
-);
-
-listingsRouter.delete("/drafts/:slot", requireAuth, (req, res, next) =>
-  listingsController.deleteDraft(req, res, next),
 );
 
 listingsRouter.get("/home-popular", (req, res, next) =>

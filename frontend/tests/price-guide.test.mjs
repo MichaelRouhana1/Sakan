@@ -23,7 +23,7 @@ test("Pricing guidance UI", async (t) => {
     jsx: "automatic", define: { "process.env.NODE_ENV": '"test"', __DEV__: "false" },
     alias: { "react-native": "react-native-web" },
     plugins: [{ name: "test-boundaries", setup(builder) {
-      builder.onResolve({ filter: /^@\/features\/(auth\/AuthSessionProvider|listings\/create\/CreateListingProvider)$/ },
+      builder.onResolve({ filter: /^@\/features\/(auth\/AuthSessionProvider|listings\/forms\/ListingFormContext)$/ },
         () => ({ path: path.join(frontend, "tests/price-guide-harness.tsx") }));
       builder.onResolve({ filter: /^(@\/lib\/api|@\/components\/lister\/Enter|expo-haptics|@expo\/vector-icons)$/ },
         (args) => ({ path: args.path, namespace: "test-boundary" }));
@@ -139,7 +139,7 @@ test("Pricing guidance UI", async (t) => {
         await expect(page.getByTestId("price-guide")).toBeVisible();
         await page.getByRole("button", { name: action, exact: true }).click();
         await expect(page.getByTestId("price-guide")).toHaveCount(0);
-        assert.equal(calls, action === "Sign out" || action === "Clear area" ? 1 : 2, action);
+        await expect.poll(() => calls).toBe(action === "Sign out" || action === "Clear area" ? 1 : 2);
         await page.close();
       }
     });

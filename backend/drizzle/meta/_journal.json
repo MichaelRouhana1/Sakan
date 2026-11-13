@@ -281,6 +281,13 @@
       "when": 1794480000000,
       "tag": "0039_unit_auto_renew",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794570000000,
+      "tag": "0040_creation_drafts",
+      "breakpoints": true
     }
   ]
 }

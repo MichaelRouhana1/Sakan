@@ -1,4 +1,3 @@
-import { countUnits, unitDrafts, wizardStepOrder } from './unitDrafts';
 import {
   windowComplete,
   type CutWindow,
@@ -7,8 +6,8 @@ import { numberComplete, numbersFromLegacy } from "@/lib/lebanonPhone";
 import type { CreateListingDraft } from "./draft";
 import {
   GENERATOR_AMP_OPTIONS,
-  LAST_REQUIRED_WIZARD_INDEX,
-  WIZARD_STEPS,
+  LAST_REQUIRED_SECTION_INDEX,
+  LISTING_FORM_SECTIONS,
 } from "@/constants/listingWizard";
 
 export const COPY_TITLE_MIN = 10;
@@ -35,7 +34,7 @@ const FIELD_MESSAGES: Record<string, string> = {
   securityDepositUsd: "Enter a valid security deposit",
   availableFrom: "Pick an available-from date",
   title: `Title must be ${COPY_TITLE_MIN}–${COPY_TITLE_MAX} characters`,
-  description: `Description must be at least ${COPY_DESCRIPTION_MIN} characters`,
+  description: `Description must be ${COPY_DESCRIPTION_MIN}–4000 characters`,
   listingPosterRole: "Choose your role",
   contactName: "Enter a contact name",
   contactPhone: "Enter a valid phone number",
@@ -67,28 +66,13 @@ export function countReadyPhotos(draft: CreateListingDraft): number {
 export function stepFieldErrors(
   draft: CreateListingDraft,
   step: number,
-  unitOnly = false,
+  _unitOnly = false,
 ): string[] {
-  if (!unitOnly) {
-    if (!wizardStepOrder(draft).includes(step)) return [];
-    if (step === 5) {
-      const shared = draft.sharedPhotos ?? [];
-      const errors = shared.length>15 || shared.some(p=>!isPhotoReady(p)) ? ['sharedPhotos'] : [];
-      if (countUnits(draft)>1 || draft.existingPlaceId) {
-        unitDrafts(draft).forEach((unit,i)=>[2,5,6,7].forEach(s=>{
-          errors.push(...stepFieldErrors(unit,s,true).map(field=>`Unit ${i+1}: ${fieldErrorMessage(field)}`));
-        }));
-        return errors;
-      }
-      if(errors.length)return errors;
-    }
-  }
   switch (step) {
     case 0: {
       const errors: string[] = [];
       if (!draft.spaceType) errors.push("spaceType");
       if (!draft.propertyType) errors.push("propertyType");
-      if (!Number.isInteger(countUnits(draft)) || countUnits(draft)<1 || countUnits(draft)>20) errors.push('unitCount');
       if (draft.existingPlaceId && draft.placeKind==='building' && draft.spaceType!=='entire_place') errors.push('A building contains whole apartments');
       return errors;
     }
@@ -171,7 +155,7 @@ export function stepFieldErrors(
       if (titleLen < COPY_TITLE_MIN || titleLen > COPY_TITLE_MAX) {
         errors.push("title");
       }
-      if (draft.description.trim().length < COPY_DESCRIPTION_MIN) {
+      if (draft.description.trim().length < COPY_DESCRIPTION_MIN || draft.description.trim().length > 4000) {
         errors.push("description");
       }
       return errors;
@@ -195,47 +179,17 @@ export function stepFieldErrors(
   }
 }
 
-export function stepError(draft: CreateListingDraft, step: number): string | null {
-  return stepFieldErrors(draft, step).length > 0 ? "invalid" : null;
-}
-
-/** Highest step index whose required fields all pass validation. */
-export function effectiveCommittedStep(
-  draft: CreateListingDraft,
-  storedCommittedStep: number,
-): number {
-  let last = -1;
-  const cap = Math.min(storedCommittedStep, LAST_REQUIRED_WIZARD_INDEX);
-  for (let i = 0; i <= cap; i++) {
-    if (stepFieldErrors(draft, i).length > 0) break;
-    last = i;
-  }
-  return last;
-}
-
-/** First required wizard step with validation errors, searching up to `throughStep` inclusive. */
-export function firstInvalidStepIndex(
-  draft: CreateListingDraft,
-  throughStep = LAST_REQUIRED_WIZARD_INDEX,
-): number | null {
-  const last = Math.min(throughStep, LAST_REQUIRED_WIZARD_INDEX);
-  for (let i = 0; i <= last; i++) {
-    if (stepFieldErrors(draft, i).length > 0) return i;
-  }
-  return null;
-}
-
 /** All blocking issues across required wizard steps (excludes Review). */
-export function wizardPublishIssues(
+export function listingFormIssues(
   draft: CreateListingDraft,
 ): WizardValidationIssue[] {
   const issues: WizardValidationIssue[] = [];
-  for (let i = 0; i <= LAST_REQUIRED_WIZARD_INDEX; i++) {
+  for (let i = 0; i <= LAST_REQUIRED_SECTION_INDEX; i++) {
     const fields = stepFieldErrors(draft, i);
     if (fields.length === 0) continue;
     issues.push({
       step: i,
-      stepTitle: WIZARD_STEPS[i].title,
+      stepTitle: LISTING_FORM_SECTIONS[i].title,
       fields,
       messages: fields.map(fieldErrorMessage),
     });

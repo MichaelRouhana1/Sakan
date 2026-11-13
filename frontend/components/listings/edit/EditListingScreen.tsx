@@ -34,12 +34,12 @@ import { CreateStepRules } from "@/components/listings/create/CreateStepRules";
 import { CreateStepSpecs } from "@/components/listings/create/CreateStepSpecs";
 import { CreateStepType } from "@/components/listings/create/CreateStepType";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
-import { WIZARD_STEPS } from "@/constants/listingWizard";
+import { LISTING_FORM_SECTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
 import { openNewCreateListing } from "@/features/auth/useEnsureSession";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import type { CreateListingDraft } from "@/features/listings/create/draft";
-import { wizardPublishIssues } from "@/features/listings/create/validators";
+import { listingFormIssues } from "@/features/listings/create/validators";
 import { useEditListingMeta } from "@/features/listings/edit/EditListingProvider";
 import { applyLockedBaseline } from "@/features/listings/edit/mapListingToDraft";
 import { premiumClaimsChanged } from "@/features/listings/edit/premiumUtilityClaims";
@@ -92,20 +92,20 @@ export function EditListingScreen({
   });
   const insets = useSafeAreaInsets();
   const meta = useEditListingMeta();
-  const { draft, setShowValidation } = useCreateListingDraft();
+  const { draft, setShowValidation } = useListingForm();
   const update = useUpdateListing(listingId);
   const archive = useArchiveListing();
   const reduced = useReducedMotion();
   const scrollRef = useRef<ScrollView>(null);
   const offsets = useRef<Record<string, number>>({});
   const heights = useRef<Record<string, number>>({});
-  const activeRef = useRef(WIZARD_STEPS[0].id);
+  const activeRef = useRef(LISTING_FORM_SECTIONS[0].id);
   const scrollingTo = useRef<string | null>(null);
   const scrollY = useRef(0);
   const maxScroll = useRef(Number.POSITIVE_INFINITY);
   const jumpToken = useRef(0);
   const userDragging = useRef(false);
-  const [active, setActive] = useState<string>(WIZARD_STEPS[0].id);
+  const [active, setActive] = useState<string>(LISTING_FORM_SECTIONS[0].id);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [needsDisclaimer, setNeedsDisclaimer] = useState(false);
@@ -172,10 +172,10 @@ export function EditListingScreen({
     const { contentSize, layoutMeasurement } = native;
     const maxScroll = Math.max(0, contentSize.height - layoutMeasurement.height);
     const atEnd = maxScroll > 0 && y >= maxScroll - 4;
-    if (atEnd) return WIZARD_STEPS[WIZARD_STEPS.length - 1].id;
+    if (atEnd) return LISTING_FORM_SECTIONS[LISTING_FORM_SECTIONS.length - 1].id;
     const marker = y + 28;
-    let next = WIZARD_STEPS[0].id;
-    for (const step of WIZARD_STEPS) {
+    let next = LISTING_FORM_SECTIONS[0].id;
+    for (const step of LISTING_FORM_SECTIONS) {
       const top = offsets.current[step.id];
       if (top != null && top <= marker) next = step.id;
     }
@@ -212,12 +212,12 @@ export function EditListingScreen({
 
   async function save(acknowledged = false) {
     setSaved(false);
-    const issues = wizardPublishIssues(draft);
+    const issues = listingFormIssues(draft);
     if (issues.length > 0) {
       setShowValidation(true);
       setNeedsDisclaimer(false);
       setError(issues[0]?.messages[0] ?? "Check the highlighted fields.");
-      jumpTo(WIZARD_STEPS[issues[0].step].id);
+      jumpTo(LISTING_FORM_SECTIONS[issues[0].step].id);
       return;
     }
     const payload =
@@ -430,7 +430,7 @@ export function EditListingScreen({
         }}
         onScroll={onFormScroll}
       >
-        {WIZARD_STEPS.map((step, index) => {
+        {LISTING_FORM_SECTIONS.map((step, index) => {
           const Step = SECTIONS[index];
           return (
             <View

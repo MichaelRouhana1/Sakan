@@ -12,7 +12,7 @@ import {
 } from "@/components/listings/create/WizardField";
 import { LEBANON_AREAS, type LebanonArea } from "@/constants/areas";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { formatCampusWalkLine } from "@/lib/listingCardMeta";
 
@@ -33,7 +33,7 @@ function haversineMeters(
 }
 
 export function CreateStepLocation() {
-  const { draft, patch } = useCreateListingDraft();
+  const { draft, patch } = useListingForm();
   const areaInvalid = useWizardFieldInvalid("area");
   const pinInvalid = useWizardFieldInvalid("pin");
   const campusInvalid = useWizardFieldInvalid("primaryCampusId");

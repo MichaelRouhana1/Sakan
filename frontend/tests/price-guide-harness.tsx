@@ -13,7 +13,7 @@ const DraftContext = createContext<{
 const AuthContext = createContext({
   session: { userId: "first-time-host", role: "renter" }, isSignedIn: true, isLoading: false,
 });
-export const useCreateListingDraft = () => useContext(DraftContext);
+export const useListingForm = () => useContext(DraftContext);
 export const useAuthSession = () => useContext(AuthContext);
 
 const queryClient = new QueryClient();

@@ -139,6 +139,8 @@ try{
   await client`UPDATE listings SET published_at=now()-interval '2 days' WHERE id=${first.listingIds[1]}`;
   await assert.rejects(()=>editPlace(owner.id,first.placeId,editPlaceSchema.parse({details:{...details,locationWkt:'POINT(35.49 33.89)'},photos:[],expectedUpdatedAt:new Date(updated.updatedAt).toISOString()})),/locked/);
  });
+ const {creationDraftChecks}=await import('./creation-drafts.checks.mjs');
+ await creationDraftChecks(client,check,details);
  console.log(`Wizard integration: ${passed} scenarios passed`);
 }catch(error){console.error(error);process.exitCode=1;}finally{
  await client?.end();await admin.unsafe('DROP DATABASE IF EXISTS "'+name+'" WITH (FORCE)');await admin.end();

@@ -90,7 +90,7 @@ export const PHOTO_CAPTION_PRESETS = [
   "Building",
 ];
 
-export const WIZARD_STEPS = [
+export const LISTING_FORM_SECTIONS = [
   { id: "type", title: "What are you listing?", subtitle: "Start with the space a renter can call their own." },
   { id: "location", title: "Where is it?", subtitle: "Pin the building so students can walk the commute." },
   { id: "specs", title: "Layout and size", subtitle: "Beds, baths, floor, and how many people can live here." },
@@ -108,7 +108,7 @@ export const WIZARD_STEPS = [
 ] as const;
 
 /** Contact — last step with required fields (Review is optional). */
-export const LAST_REQUIRED_WIZARD_INDEX = WIZARD_STEPS.findIndex(
+export const LAST_REQUIRED_SECTION_INDEX = LISTING_FORM_SECTIONS.findIndex(
   (s) => s.id === "contact",
 );
 

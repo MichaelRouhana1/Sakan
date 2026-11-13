@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet } from "react-native";
 import { LText } from "@/components/lister/Typography";
-import { WIZARD_STEPS } from "@/constants/listingWizard";
+import { LISTING_FORM_SECTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
 import { chipLabel } from "@/components/listings/edit/sectionChipLabel";
 
@@ -19,7 +19,7 @@ export function SectionPills({ activeId, onSelect }: Props) {
       style={styles.bar}
       contentContainerStyle={styles.row}
     >
-      {WIZARD_STEPS.map((step) => {
+      {LISTING_FORM_SECTIONS.map((step) => {
         const on = step.id === activeId;
         return (
           <Pressable

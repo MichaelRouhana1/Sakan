@@ -22,12 +22,12 @@ import {
 } from "@/lib/listingCardBadges";
 import type { Listing } from "@/types/listing";
 import { useCardBadgeDrag } from "./useCardBadgeDrag";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { WizardHeadline } from "./WizardHeadline";
-import { WIZARD_STEPS } from "@/constants/listingWizard";
+import { ListingFormHeading } from "../forms/ListingFormHeading";
+import { LISTING_FORM_SECTIONS } from "@/constants/listingWizard";
 
-const reviewStep = WIZARD_STEPS.find((step) => step.id === "review")!;
+const reviewStep = LISTING_FORM_SECTIONS.find((step) => step.id === "review")!;
 
 type Props = {
   listing: Listing;
@@ -39,7 +39,7 @@ type Props = {
 };
 
 function CardBadgeSubsetEditor({ listing, onChange }: Props) {
-  const { formChrome } = useCreateListingDraft();
+  const { formChrome } = useListingForm();
   const { width } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
   const [activeControl, setActiveControl] = useState<string | null>(null);
@@ -197,7 +197,7 @@ function CardBadgeSubsetEditor({ listing, onChange }: Props) {
   const titleSize = Math.min(60, Math.max(42, contentWidth * 0.046));
   const heading = (
     <View testID="card-customization-heading">
-      <WizardHeadline title={reviewStep.title} subtitle={reviewStep.subtitle}
+      <ListingFormHeading title={reviewStep.title} subtitle={reviewStep.subtitle}
         titleStyle={sideBySide ? { fontSize: titleSize, lineHeight: titleSize * 1.16 } : undefined} />
     </View>
   );
@@ -447,7 +447,7 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
   const titleSize = Math.min(60, Math.max(42, contentWidth * 0.046));
   const heading = (
     <View testID="card-customization-heading">
-      <WizardHeadline
+      <ListingFormHeading
         title={reviewStep.title}
         subtitle="Every badge on this listing is on the card. Drag to set the order."
         titleStyle={wide ? { fontSize: titleSize, lineHeight: titleSize * 1.16 } : undefined}
@@ -544,7 +544,7 @@ const launcherStyles = StyleSheet.create({
 });
 
 export function CardBadgeEditor(props: Props) {
-  const { formChrome } = useCreateListingDraft();
+  const { formChrome } = useListingForm();
   if (props.showHeading === false || formChrome !== "edit") {
     return <WizardBadgeOrder {...props} />;
   }

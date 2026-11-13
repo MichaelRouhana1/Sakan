@@ -12,9 +12,6 @@ import {
 import { publicUrlForUpload } from "./photos.storage.js";
 import { priceGuideQuerySchema } from "./price-guide.js";
 import { listingExpiryService } from "./listing-expiry.service.js";
-import { wizardDraftCheckpointSchema } from "./listing-wizard-drafts.schemas.js";
-import { listingWizardDraftsService } from "./listing-wizard-drafts.service.js";
-import type { WizardDraftSlot } from "../../db/schema/listing-wizard-drafts.js";
 import type {
   ListingExpiryDecisionInput,
   ListingRenewInput,
@@ -26,6 +23,7 @@ function clientIp(req: Request): string | undefined {
   const ip = raw.replace(/^::ffff:/, "").trim();
   return ip || undefined;
 }
+
 
 function queryString(value: unknown): string | undefined {
   if (typeof value === "string") return value;
@@ -90,43 +88,6 @@ export class ListingsController {
     try {
       const data = await listingsService.listMine(req.user!.id);
       res.json({ data });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async listDrafts(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await listingWizardDraftsService.list(req.user!.id);
-      res.json({ data });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async saveDraft(req: Request, res: Response, next: NextFunction) {
-    try {
-      const slot = draftSlotParam(req.params.slot);
-      const parsed = wizardDraftCheckpointSchema.safeParse(req.body);
-      if (!parsed.success) {
-        throw new ValidationError("Invalid listing draft");
-      }
-      const data = await listingWizardDraftsService.save(
-        req.user!.id,
-        slot,
-        parsed.data,
-      );
-      res.json({ data });
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async deleteDraft(req: Request, res: Response, next: NextFunction) {
-    try {
-      const slot = draftSlotParam(req.params.slot);
-      await listingWizardDraftsService.remove(req.user!.id, slot);
-      res.status(204).end();
     } catch (err) {
       next(err);
     }
@@ -339,9 +300,5 @@ export class ListingsController {
   }
 }
 
-function draftSlotParam(value: unknown): WizardDraftSlot {
-  if (value === "main" || value === "working") return value;
-  throw new ValidationError("Draft slot must be main or working");
-}
 
 export const listingsController = new ListingsController();

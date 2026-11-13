@@ -79,7 +79,7 @@ export function HostCreditsPage() {
   const router = useRouter();
   const requested = first(params.returnTo);
   const returnTo =
-    requested && /^\/hosting\/listing\/[0-9a-f-]{36}\/(outcome|promote|renew)$/i.test(requested)
+    requested && (/^\/hosting\/listing\/[0-9a-f-]{36}\/(outcome|promote|renew)$/i.test(requested) || /^\/create\?draftId=[0-9a-f-]{36}$/i.test(requested))
       ? requested
       : undefined;
   const checkout = useWhishCheckout(first(params.ref), returnTo);

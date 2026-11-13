@@ -1,45 +1,30 @@
-# Units wizard prototype
+# Production listing wizard
 
-Branch: `wizard-units-v2`. Baseline: `82918daa859248e4d2ed957129df10d36fa1edef` (`wizard-cards-v1`).
+`/create` is the production wizard on web, iOS and Android. Sign-in is required before creating or loading a draft. `/create?draftId=<id>` resumes an account-owned server draft; `/create?placeId=<id>` begins a new unit in an owned place and skips Place questions. There is no feature flag, demo route or simulated publishing.
 
-V2 requires `__DEV__`, web, and the exact `wizard=v2` query parameter. Native, production builds, and `/create` without the flag retain the existing wizard. V1's provider, shell, step order and draft storage are unchanged.
+## Flow
 
-## Local review
+Place type → Location → Utilities → House rules → Building photos (optional, 0–15). Each unit then has Layout → Photos (3–15) → Rent/terms → Title/description → Add another unit. Copy fills only unit fields and appends ` (copy)` within the 60-character limit; it clears photos. Start blank retains only Place details. Review contains unit rows with edit/remove, contact once, authoritative credit quotes and Publish / Publish all.
 
-- Fresh form: [http://localhost:8082/create?wizard=v2](http://localhost:8082/create?wizard=v2)
-- One-unit example: [http://localhost:8082/create?wizard=v2&demo=one](http://localhost:8082/create?wizard=v2&demo=one)
-- Copy example: [http://localhost:8082/create?wizard=v2&demo=three](http://localhost:8082/create?wizard=v2&demo=three)
-- Existing-place example: [http://localhost:8082/create?wizard=v2&demo=existing](http://localhost:8082/create?wizard=v2&demo=existing)
+## Drafts and publishing
 
-Examples use clearly labeled sample data and sample credit quotes. The copy example starts after the first unit so Copy this unit can be tried immediately. The existing-place example starts at layout. Example photos come from existing local housing demo media, copied into the frontend's public assets.
+`creation_drafts` stores a versioned document, owner, revision, lifecycle and confirmed publish result. Draft updates use last-save-wins; a revision change raises a small Reload notice. Saves are serialized and debounced for 700ms; navigation and Save & exit flush them. Saving, Saved and Couldn’t save / Retry are the only save states. No local draft storage, offline outbox, migration or legacy compatibility paths remain.
 
-Every URL resumes its own browser draft. Append `&new=1` to restart that example; it replaces that example's v2 draft. A real owned place can be loaded with `&placeId=<id>` and the existing authenticated API.
+The pre-launch schema change `0040_creation_drafts.sql` deletes old slot storage and unpublished legacy listing drafts. Development/test drafts are intentionally not preserved.
 
-## Behavior and boundaries
+Publishing uses the existing quote and batch endpoints. A frozen attempt is saved to the draft before sending. Retry checks its receipt first; unresolved attempts stay read-only and reuse the same request identity. The backend locks the draft, verifies its revision and optional existing-place version, publishes all units and charges atomically, then marks the draft published in the same transaction. Late saves cannot reopen published or discarded drafts. 402 preserves details and offers credit purchase with a return to the same Review; 409 requires refreshed review or receipt recovery.
 
-Place screens run once, followed by four unit screens and Add another unit. Copies are independent, have no photos and append ` (copy)` to the title. At the 60-character title limit the source portion is shortened to keep the suffix visible. Start blank resets all unit fields. A maximum of 20 units is supported.
+`ListingFormContext` is shared with the live-listing and shared-place editors. Field validation and card customisation remain available to those editors without retaining the old wizard.
 
-The summary after every unit shows every unit's cover, title and rent. Review supports edits/removal, shared contact, per-unit credit costs, and a total. Publish all validates and displays a simulated success; this prototype never calls `POST /api/listings/publish-units`.
-
-Drafts live under `studently.wizard-units-v2.v1:<owner>:<place>:<example>` in browser storage. Shared place data, contact and independently identified units are saved together with navigation. Field saves debounce for 700ms; navigation, Save & exit, page hiding and visibility changes flush the checkpoint. Upload callbacks target stable unit IDs, including after navigation; deleted IDs ignore late callbacks. Interrupted uploads restore with an error and recovery controls. Saving failure is visible and prevents Save & exit or simulated publishing from discarding the in-memory draft.
-
-Normal photo intake uses the existing crop/upload pipeline and media API. The examples also offer Use 3 example photos. No backend schema, migrations or draft API changes are required. Account-wide synchronization and real publishing are outside this prototype.
-
-## Verification
+## Checks
 
 From the repository root:
 
 ```powershell
-node --test frontend/tests/wizard-units-v2.test.mjs frontend/tests/unit-wizard.test.mjs
-node frontend/tests/wizard-units-v2-ui.mjs
+node --test frontend/tests/creation-wizard.test.mjs frontend/tests/copy-suggest.test.mjs frontend/tests/price-guide.test.mjs
+node frontend/tests/creation-wizard-ui.mjs
 ```
 
-The UI suite expects the development server at port 8082; override `STUDENTLY_TEST_URL` if needed. It mocks API responses, exercises browser photo decoding/cropping, records six videos and captures desktop/mobile/tablet screenshots under `artifacts/wizard-units-v2`.
+The browser suite uses the existing development test host and local API on 3002. The default web target is the development server on 8084; set `STUDENTLY_TEST_URL=http://localhost:8085` to test the production export served by `node scripts/serve-web-export.mjs`. The final acceptance captures use that production export. The suite creates real server drafts, uploads and published units, captures screens at mobile/desktop/tablet sizes, and restores its account balance, role and test data in `finally`. It refuses databases other than the independently marked local `studently_dev`.
 
-Production gate verification after a SPA export:
-
-```powershell
-node frontend/tests/wizard-units-v2-production.mjs
-```
-
-The production test serves `.expo/wizard-v2-production-spa` temporarily, requests the v2 flag, and verifies the original wizard is rendered.
+Backend publishing/draft integration checks run in a disposable database through `backend/tests/unit-wizard.integration.mjs`. Screenshots and acceptance evidence are in `artifacts/production-wizard`.

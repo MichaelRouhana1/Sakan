@@ -10,7 +10,7 @@ import {
 } from "@/components/listings/create/WizardField";
 import { Ionicons } from "@expo/vector-icons";
 import { Lister } from "@/constants/listerTheme";
-import { useCreateListingDraft } from "@/features/listings/create/CreateListingProvider";
+import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import {
   deriveContactPhones,
   emptyContactNumber,
@@ -21,7 +21,7 @@ import {
 import type { ListingPosterRole } from "@/types/listing";
 
 export function CreateStepContact() {
-  const { draft, patch, fieldInvalid } = useCreateListingDraft();
+  const { draft, patch, fieldInvalid } = useListingForm();
   const roleInvalid = fieldInvalid("listingPosterRole");
   const nameInvalid = fieldInvalid("contactName");
   const phonesInvalid = fieldInvalid("contactNumbers");

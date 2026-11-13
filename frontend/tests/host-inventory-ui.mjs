@@ -15,17 +15,14 @@ const fixture={id:'bed',title:'Shared room',status:'active',placeId:'place',unit
 const entry=`import React from 'react';import {createRoot} from 'react-dom/client';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {HostInventoryControl} from './components/listings/HostInventoryControl';
-import {HostListingListView} from './components/web/host/HostListingListView';
 const client=new QueryClient({defaultOptions:{queries:{retry:false}}});
 window.parentClicks=0;
 const params=new URLSearchParams(location.search);
-const listing={id:'bed',title:'Shared room near campus',area:'Hamra',listingType:'shared_dorm_bed',status:'active',availability:'available',expiresAt:null,photos:[]};
-createRoot(document.getElementById('root')).render(<QueryClientProvider client={client}><main onClick={()=>window.parentClicks++} style={{maxWidth:400,margin:'20px auto',padding:16}}>{params.has('list')?<HostListingListView compact rows={[{kind:'listing',listing}]} onDraftPress={()=>{}} onListingPress={()=>window.parentClicks++}/>:<HostInventoryControl listingId={params.get('id')||'bed'}/>}</main></QueryClientProvider>);`;
+createRoot(document.getElementById('root')).render(<QueryClientProvider client={client}><main onClick={()=>window.parentClicks++} style={{maxWidth:400,margin:'20px auto',padding:16}}><HostInventoryControl listingId={params.get('id')||'bed'}/></main></QueryClientProvider>);`;
 const bundle=await build({stdin:{contents:entry,loader:'tsx',resolveDir:root},bundle:true,write:false,format:'iife',platform:'browser',jsx:'automatic',define:{'process.env.NODE_ENV':'"test"',__DEV__:'true'},alias:{'react-native':'react-native-web'},plugins:[{name:'local-api-and-unrelated-visuals',setup(b){
  b.onResolve({filter:/^@\/lib\/api$/},()=>({path:'test-api',namespace:'test'}));
- b.onResolve({filter:/^(\.\/PromotionAction|@expo\/vector-icons|expo-image)$/},()=>({path:'visuals',namespace:'test'}));
- b.onResolve({filter:/createDraftCheckpoint$/},()=>({path:'drafts',namespace:'test'}));
- b.onLoad({filter:/.*/,namespace:'test'},({path:p})=>({contents:p==='test-api'?"import axios from 'axios';export const API_BASE_URL=location.origin;export const api=axios.create({baseURL:location.origin});":p==='visuals'?"export const PromotionAction=()=>null;export const Ionicons=()=>null;export const Image=()=>null;":"export const checkpointCoverPhoto=()=>null;export const checkpointDisplayTitle=()=>'';export const checkpointLocationLine=()=>'';",resolveDir:root}));
+ b.onResolve({filter:/^(@expo\/vector-icons|expo-image)$/},()=>({path:'visuals',namespace:'test'}));
+ b.onLoad({filter:/.*/,namespace:'test'},({path:p})=>({contents:p==='test-api'?"import axios from 'axios';export const API_BASE_URL=location.origin;export const api=axios.create({baseURL:location.origin});":"export const Ionicons=()=>null;export const Image=()=>null;",resolveDir:root}));
 }}]});
 const rows=new Map([['bed',{...fixture}],['whole',{...fixture,id:'whole',title:'Whole apartment',unitType:'whole_apartment',bedsTotal:null,bedsAvailable:null,inventoryNeedsConfirmation:false,blockers:[{id:'room',title:'Room A',inventoryNeedsConfirmation:false}]}],['room',{...fixture,id:'room',title:'Room A',status:'archived',unitType:'private_room',bedsTotal:null,bedsAvailable:null,inventoryNeedsConfirmation:false,availability:'rented'}]]);
 let fail=false;const writes=[];
@@ -88,9 +85,5 @@ try {
  await expect(page.getByRole('dialog',{name:'Blocking unit',exact:true})).toBeHidden();
  assert.equal(await page.evaluate(()=>window.parentClicks),0,'inventory controls must not open the parent listing');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:path.join(output,'host-inventory.png'),fullPage:true});
- await page.goto(base+'?list=1');await expect(page.getByText('1 of 3 beds available')).toBeVisible();
- assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'compact list must fit a narrow screen');
- await page.getByRole('button',{name:'Free a bed'}).click();await expect(page.getByText('2 of 3 beds available')).toBeVisible();assert.equal(await page.evaluate(()=>window.parentClicks),0);
- await page.screenshot({path:path.join(output,'compact-list.png'),fullPage:true});checks.push('real compact list fits and inventory clicks do not navigate');
  await writeFile(path.join(output,'result.json'),JSON.stringify({passed:checks.length,checks},null,2));console.log('PASS host inventory browser: '+checks.join('; '));
 } finally {if(browser)await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

@@ -8,6 +8,8 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { ClerkProvider } from "@clerk/expo";
+import { Ionicons } from "@expo/vector-icons";
+import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from "@expo-google-fonts/dm-sans";
 import "react-native-reanimated";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -29,7 +31,9 @@ import { InitialLoadingScreen } from "@/components/common/InitialLoadingScreen";
 export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  anchor: "index",
+  // Browser history owns web back navigation. Prepending the home route also
+  // renders an unrelated page beneath direct links before its async chunk loads.
+  anchor: Platform.OS === "web" ? undefined : "index",
 };
 
 const tokenCache = {
@@ -64,6 +68,11 @@ installBrandPalette();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    ...Ionicons.font,
   });
 
   useEffect(() => {

@@ -6,7 +6,7 @@ import {
   numbersFromLegacy,
   serializeContactNumber,
 } from "@/lib/lebanonPhone";
-import type { CreateListingBody } from "@/features/listings/useCreateListing";
+import type { CreateListingBody } from "@/features/listings/listingBody";
 import { deriveListingType } from "./deriveListingType";
 import type { CreateListingDraft } from "./draft";
 import { previewListingFromDraft } from "./previewListingFromDraft";
