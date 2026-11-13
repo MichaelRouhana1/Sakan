@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studently · Wizard v2 walkthrough</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#faf9f7;color:#24211f;font:15px/1.6 system-ui,sans-serif}main{max-width:1160px;margin:auto;padding:48px 24px}h1{font:600 42px/1.15 Georgia,serif;letter-spacing:-1px}h2{font:600 30px/1.2 Georgia,serif;margin:0 0 16px}h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#6b625d}p{max-width:760px;color:#625c57}a{color:#ae2530;text-underline-offset:3px}nav{display:flex;gap:20px;flex-wrap:wrap;margin:28px 0}header{padding-bottom:40px;border-bottom:1px solid #ddd6d1}.badge{font-size:12px;background:#fce9eb;color:#a02832;padding:6px 10px;border-radius:5px}.grid{display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start}.media{background:#fff;border:1px solid #e1dcd7;border-radius:12px;padding:18px;min-width:0}video,img{max-width:100%;display:block;border-radius:6px}video{width:100%;max-height:600px;background:#fff}section{padding-top:48px}.screens{margin-top:24px}.screens a{display:block}.screens img{box-shadow:0 2px 16px #0000000c}.links{display:flex;flex-wrap:wrap;gap:18px}.note{font-size:13px;border-left:3px solid #ea3f4a;padding-left:14px;margin-top:24px}footer{border-top:1px solid #ddd6d1;margin-top:48px;padding-top:20px;font-size:13px;color:#6b625d}@media(max-width:760px){main{padding:28px 18px}h1{font-size:34px}.grid{grid-template-columns:1fr}video{max-height:600px}}
+</style>
+<main>
+<header>
+<span class="badge">Prototype · wizard-units-v2 · not merged</span>
+<h1>Describe the place once.<br>Add units one at a time.</h1>
+<p>Three flows, recorded on desktop (1440 × 1000) and mobile (375 × 900). Videos show the actual local prototype and play slowly for readability. Click an image to open the full-size screenshot.</p>
+<nav><a href="#one">1 unit</a><a href="#three">3 units with copy</a><a href="#existing">Existing place</a><a href="WALKTHROUGH.md">Detailed acceptance notes</a></nav>
+<div class="links"><a href="http://localhost:8082/create?wizard=v2">Open blank wizard</a><a href="http://localhost:8082/create?wizard=v2&demo=one">Open example</a></div>
+<p class="note">Publish all is simulated. Example photos and credit quotes are labeled sample data; no listings were created or credits spent. Drafts resume in the same browser. Append <code>&amp;new=1</code> to an example URL to restart that example.</p>
+</header>
+<section id="one">
+<h2>1. One unit</h2>
+<p>Five Place screens, then layout, photos, rent and title/description. Finish unit shows the new summary. Done opens Review with contact once, cost and simulated publishing.</p>
+<p><a href="http://localhost:8082/create?wizard=v2&demo=one">Click through this example →</a></p>
+<div class="grid"><div class="media"><h3>Desktop walkthrough</h3><video controls muted playsinline preload="metadata" poster="one-unit-desktop-review.png" src="one-unit-desktop.webm"></video></div><div class="media"><h3>Mobile walkthrough</h3><video controls muted playsinline preload="metadata" poster="one-unit-mobile-review.png" src="one-unit-mobile.webm"></video></div></div>
+<div class="grid screens"><a href="one-unit-desktop-review.png"><img loading="lazy" src="one-unit-desktop-review.png" alt="One unit in the desktop review"></a><a href="one-unit-mobile-contact-cost.png"><img loading="lazy" src="one-unit-mobile-contact-cost.png" alt="Shared contact and credit total on mobile"></a></div>
+</section>
+<section id="three">
+<h2>2. Three units, including copies</h2>
+<p>Begin with one completed unit. Copy adds an independent unit with <strong> (copy)</strong> appended to its title and an empty gallery. Add fresh photos, adjust rent, then repeat. The summary grows to three rows with independent rents of $650, $750 and $850.</p>
+<p><a href="http://localhost:8082/create?wizard=v2&demo=three">Try copying a unit →</a></p>
+<div class="grid"><div class="media"><h3>Desktop walkthrough</h3><video controls muted playsinline preload="metadata" poster="three-units-desktop-review.png" src="three-units-copy-desktop.webm"></video></div><div class="media"><h3>Mobile walkthrough</h3><video controls muted playsinline preload="metadata" poster="three-units-mobile-summary.png" src="three-units-copy-mobile.webm"></video></div></div>
+<div class="grid screens"><a href="three-units-desktop-review.png"><img loading="lazy" src="three-units-desktop-review.png" alt="Three independent units with costs and edit/remove actions"></a><a href="three-units-mobile-summary.png"><img loading="lazy" src="three-units-mobile-summary.png" alt="Units added so far, with thumbnail, title and rent"></a></div>
+</section>
+<section id="existing">
+<h2>3. Add to an existing place</h2>
+<p>Place is marked existing. All Place questions are skipped; the flow starts at unit layout, showing the inherited place as read-only context. Only newly added units appear in Review.</p>
+<p><a href="http://localhost:8082/create?wizard=v2&demo=existing">Try the existing-place flow →</a></p>
+<div class="grid"><div class="media"><h3>Desktop walkthrough</h3><video controls muted playsinline preload="metadata" poster="existing-place-desktop-layout.png" src="existing-place-desktop.webm"></video></div><div class="media"><h3>Mobile walkthrough</h3><video controls muted playsinline preload="metadata" poster="existing-place-mobile-layout.png" src="existing-place-mobile.webm"></video></div></div>
+<div class="grid screens"><a href="existing-place-desktop-layout.png"><img loading="lazy" src="existing-place-desktop-layout.png" alt="Existing place starts at unit layout on desktop"></a><a href="existing-place-mobile-layout.png"><img loading="lazy" src="existing-place-mobile-layout.png" alt="Read-only Cedar House context on mobile"></a></div>
+</section>
+<footer>17 model tests passed. All desktop/mobile flows and tablet checks passed. Zero real publish requests and zero uncaught browser errors. <a href="acceptance-results.json">Browser results</a> · <a href="production-results.json">Production flag check</a> · <a href="model-tests.tap">Model test output</a>.</footer>
+</main>
+<script>document.querySelectorAll('video').forEach(video => { video.defaultPlaybackRate = .35; video.playbackRate = .35; });</script>
+</html>
