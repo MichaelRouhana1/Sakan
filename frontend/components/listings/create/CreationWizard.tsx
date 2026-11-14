@@ -4,9 +4,9 @@ import { Image } from 'expo-image';
 import { useFonts } from 'expo-font';
 import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StudentlyAuthModal } from '@/components/auth/StudentlyAuthModal';
 import { LButton } from '@/components/lister/Button';
@@ -20,6 +20,7 @@ import { BuildingAccessFields, CreateStepSpecs } from './CreateStepSpecs';
 import { CreateStepPricing } from './CreateStepPricing';
 import { CreateStepCopy } from './CreateStepCopy';
 import { CreateStepContact } from './CreateStepContact';
+import { EnterAnimationContext } from '@/components/lister/Enter';
 import { CreateFooter } from './CreateFooter';
 import { CreationWizardStage } from './CreationWizardStage';
 import { Lister } from '@/constants/listerTheme';
@@ -109,17 +110,15 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
   const quote = useQuery({ queryKey: ['publish-quote', props.userId, state?.units.length],
     enabled: Boolean(state?.units.length && screen === 'review' && record?.status === 'active'), retry: false, staleTime: 0,
     queryFn: async (): Promise<PublishQuote> => (await api.get('/api/listings/publish-quote', { params: { count: state!.units.length } })).data.data });
-  useEffect(() => {
+  useLayoutEffect(() => {
     setShowValidation(false); setRemoveId(null); Keyboard.dismiss(); content.current?.scrollTo({ y: 0, animated: false });
-    const timer = setTimeout(() => {
-      if (Platform.OS === 'web') {
-        const target = heading.current as unknown as HTMLElement | null;
-        if (target) { target.style.outline = 'none'; target.focus(); }
-      }
-      else { const handle = findNodeHandle(heading.current); if (handle) AccessibilityInfo.setAccessibilityFocus(handle); }
-    }, reduced ? 0 : 180);
-    return () => clearTimeout(timer);
-  }, [screen, activeId, Boolean(state), reduced]);
+    if (Platform.OS === 'web') {
+      const target = heading.current as unknown as HTMLElement | null;
+      if (target) { target.style.outline = 'none'; target.focus({ preventScroll: true }); }
+    } else {
+      const handle = findNodeHandle(heading.current); if (handle) AccessibilityInfo.setAccessibilityFocus(handle);
+    }
+  }, [screen, activeId, Boolean(state)]);
   useEffect(() => {
     if (!removeId || Platform.OS !== 'web') return;
     const previous = document.activeElement as HTMLElement | null;
@@ -184,7 +183,7 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
       </View>
       {flow.changedElsewhere && screen !== 'success' ? <View style={s.notice} accessibilityRole="alert"><Text style={s.noticeText}>Updated on another device. Reload?</Text><Link label="Reload" onPress={() => void flow.reload()} /><Link label="Dismiss" onPress={flow.dismissNotice} /></View> : null}
       <CreationWizardStage screen={screen} unitId={activeId} placeName={state.place.data.buildingName} unitCount={state.units.length} scrollRef={content}>
-        <Animated.View key={`${screen}:${activeId}`} entering={reduced ? undefined : FadeInDown.duration(250)} style={[s.formCard, screen === 'review' && s.reviewCard, !split && s.formStacked, narrow && s.formNarrow]} testID={`screen-${screen}`}>
+        <EnterAnimationContext.Provider value={false}><Animated.View key={`${screen}:${activeId}`} entering={reduced ? undefined : FadeIn.duration(160)} style={[s.formCard, screen === 'review' && s.reviewCard, !split && s.formStacked, narrow && s.formNarrow]} testID={`screen-${screen}`}>
           <Text style={s.eyebrow}>{isPlace ? `Place · ${PLACE_SCREENS.indexOf(screen as typeof PLACE_SCREENS[number]) + 1} of 5` : isUnit ? `Unit ${index + 1} · ${UNIT_SCREENS.indexOf(screen as typeof UNIT_SCREENS[number]) + 1} of 4` : screen === 'another' ? `${state.units.length} ${state.units.length === 1 ? 'unit' : 'units'} added` : 'Your place, together'}</Text>
           <Text ref={heading} accessibilityRole="header" tabIndex={-1} style={[s.title, !split && s.titleCompact, narrow && s.titleNarrow]}>{screen === 'success' && state.units.length > 1 ? 'Your listings are published' : meta.title}</Text>
           <Text style={s.intro}>{meta.subtitle}</Text>
@@ -214,7 +213,7 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
           {flow.publishError ? <View style={s.errors} accessibilityRole="alert"><Text style={s.errorText}>{flow.publishError}</Text></View> : null}
           {state.pendingAttempt && !flow.publishing && screen !== 'success' ? <Text style={s.helper}>Publishing hasn’t been confirmed yet. Retry safely to check before making changes.</Text> : null}
           {showValidation && errors.length ? <View style={s.errors} accessibilityRole="alert"><Text style={s.sectionLabel}>Check these details to continue</Text>{[...new Set(errors)].map(e => <Text key={e} style={s.errorText}>• {validationMessage(e)}</Text>)}{screen === 'review' ? state.units.filter(u => !unitComplete(state, u)).map((u,i) => <Link key={u.id} label={`Complete ${u.data.title || `unit ${i + 1}`}`} onPress={() => send({ type: 'editUnit', id: u.id })} />) : null}</View> : null}
-        </Animated.View>
+        </Animated.View></EnterAnimationContext.Provider>
       </CreationWizardStage>
       <View style={{ paddingBottom: insets.bottom, backgroundColor: Lister.color.surface }}>
         {!split ? <View style={s.footerProgress}>{progressControl}</View> : null}
@@ -254,13 +253,13 @@ const s = StyleSheet.create({
   center: { flex: 1, minHeight: 400, padding: 32, gap: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Platform.OS === 'web' ? 32 : 24, paddingTop: Platform.OS === 'web' ? 20 : 0, paddingBottom: 12, gap: 16, backgroundColor: Lister.color.surface }, headerStacked: { paddingTop: 12, paddingBottom: 12 },
   brandText: { fontFamily: Studently.type.bodyBold, fontSize: 29, letterSpacing: -1.3, color: '#242321' }, brandDot: { color: '#EA3F4A' },
-  saveActions: { flexDirection: 'row', gap: 16, alignItems: 'center' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, color: '#6B6460' },
-  saveExit: { paddingVertical: 10, paddingHorizontal: 4, cursor: 'pointer' }, saveExitText: { fontFamily: Lister.type.bodySemi, fontSize: 15, color: Lister.color.ink, textDecorationLine: 'underline' },
+  saveActions: { flexDirection: 'row', gap: 16, alignItems: 'center' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, width: 88, color: '#6B6460' },
+  saveExit: { paddingVertical: 10, paddingHorizontal: 4, cursor: 'pointer' }, saveExitText: { fontFamily: Lister.type.bodySemi, fontSize: 15, lineHeight: 20, color: Lister.color.ink, textDecorationLine: 'underline' },
   saveExitPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: '#B0B0B0', backgroundColor: Lister.color.surface }, saveExitPillText: { fontSize: 14, textDecorationLine: 'none' },
   progressWrap: { flex: 1, minWidth: 0 }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
-  phase: { flex: 1, minWidth: 68, minHeight: 44, justifyContent: 'center', gap: 6 }, phaseTick: { height: 3, borderRadius: 2, backgroundColor: Lister.color.border, width: '100%' }, phaseTickDone: { backgroundColor: Lister.color.primary }, phaseTickCurrent: { backgroundColor: Lister.color.primaryDeep },
+  phase: { flex: 1, minWidth: 68, minHeight: 44, justifyContent: 'center' }, phaseTick: { position: 'absolute', top: 2, left: 0, height: 3, borderRadius: 2, backgroundColor: Lister.color.border, width: '100%' }, phaseTickDone: { backgroundColor: Lister.color.primary }, phaseTickCurrent: { backgroundColor: Lister.color.primaryDeep },
   footerTick: { height: 2, borderRadius: 1, backgroundColor: '#DDDDDD' }, footerTickDone: { backgroundColor: '#222222' },
-  phaseText: { fontFamily: Studently.type.body, fontSize: 11, color: '#6B6460', textAlign: 'center' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: Lister.color.ink },
+  phaseText: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, color: '#6B6460', textAlign: 'center' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: Lister.color.ink },
   formCard: { width: '100%', maxWidth: 640, paddingHorizontal: Platform.OS === 'web' ? 48 : 28, paddingTop: 48, paddingBottom: 64, alignSelf: 'flex-start' }, reviewCard: { maxWidth: 900 }, formStacked: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48 }, formNarrow: { paddingHorizontal: 24, paddingTop: 8 },
   eyebrow: { fontFamily: Studently.type.bodySemi, fontSize: 11, lineHeight: 18, letterSpacing: 1.5, textTransform: 'uppercase', color: '#6B6460', marginBottom: 14 },
   title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 42, lineHeight: 50, letterSpacing: -.8, color: '#242321', maxWidth: 560 }, titleCompact: { fontSize: 36, lineHeight: 43 }, titleNarrow: { fontSize: 32, lineHeight: 39 }, intro: { fontFamily: Studently.type.body, fontSize: 16, lineHeight: 25, color: '#6B6460', marginTop: 16, marginBottom: 32, maxWidth: 530 },

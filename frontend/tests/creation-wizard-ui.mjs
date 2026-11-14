@@ -26,7 +26,12 @@ const createContext=async(width,state=authState)=>{
 };
 async function screen(p,name){await expect(p.getByTestId(`screen-${name}`)).toBeVisible({timeout:90000});}
 async function shot(p,file,fullPage=false){
-  if(await p.locator('[data-wizard-art-asset]').count())await expect(p.locator('[data-wizard-art-asset] svg')).toHaveCount(1,{timeout:30000});
+  if(await p.locator('[data-wizard-art-asset]').count()){
+    const art=p.locator('[data-wizard-art-asset]'),id=await art.getAttribute('data-wizard-art-asset');
+    const data=JSON.parse(await readFile(path.join(root,'assets/lottie/wizard',id+'.json'),'utf8'));
+    await expect(art.locator('svg')).toHaveCount(1,{timeout:30000});
+    await expect(art.locator('svg')).toHaveAttribute('viewBox',`0 0 ${data.w} ${data.h}`,{timeout:30000});
+  }
   const bytes=await p.screenshot({fullPage});
   for(let attempt=0;;attempt++){
     try{await writeFile(path.join(out,file),bytes);return;}

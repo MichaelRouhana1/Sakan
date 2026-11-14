@@ -21,3 +21,11 @@ The web player loads only in the browser; native uses the same original asset da
 ## Production invariants
 
 The new unit-by-unit flow, server draft IDs, last-save-wins notice, Copy suffix and photo clearing, real credit quotes, atomic batch publishing, saved receipts and 402/409 recovery remain in place. No old card orchestration, local draft slots, fake listings, demo paths or prototype labels return. The design restoration must be verified visually against the saved reference, as well as through the existing acceptance checks.
+
+## Header and transition stability
+
+Save & exit, save status and progress labels share a 20px line height and one center line. Reserve a fixed 88px save-status slot so Saving/Saved cannot move progress. Progress tracks sit above their labels without affecting text alignment.
+
+Each screen uses one 160ms opacity entrance. Preserve field wrapper layout while suppressing nested staggered entrances in the wizard. Focus headings before paint with preventScroll; reset the form scroll once, with no delayed focus timer. Keep document scrolling disabled only while the full-height wizard is mounted.
+
+The web illustration player keeps up to four paused, prepared players and warms likely next scenes after the form settles. Only the visible scene plays; dispose players when leaving the wizard. A new scene fades after its SVG is ready. Defer web map construction until the form entrance has finished. Respect reduced motion throughout.

@@ -1,0 +1,812 @@
+{
+  "base": "http://localhost:8085",
+  "metrics": [
+    {
+      "width": 1920,
+      "screen": "location",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 75.09999999999991,
+      "slowFrames": [
+        {
+          "at": 164.4000000000001,
+          "gap": 71,
+          "y": 0
+        },
+        {
+          "at": 389.5999999999999,
+          "gap": 75.09999999999991,
+          "y": 0
+        },
+        {
+          "at": 581.4000000000001,
+          "gap": 70.90000000000009,
+          "y": 0
+        },
+        {
+          "at": 648.0999999999999,
+          "gap": 66.69999999999982,
+          "y": 0
+        }
+      ],
+      "tasks": [
+        {
+          "start": 511.20000000298023,
+          "duration": 72
+        },
+        {
+          "start": 587.6000000089407,
+          "duration": 61
+        }
+      ],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "utilities",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 66.69999999999982,
+      "slowFrames": [
+        {
+          "at": 81.99999999105921,
+          "gap": 66.69999999999982,
+          "y": 0
+        }
+      ],
+      "tasks": [
+        {
+          "start": 15.200000002980232,
+          "duration": 66
+        }
+      ],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "rules",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 20.799999999999727,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "building-photos",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 29.199999999999818,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "layout",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 16.699999999999818,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "photos",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 25.100000000000364,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "rent",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 8.299999999999272,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "copy",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 8.399999999999636,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    },
+    {
+      "width": 1920,
+      "screen": "another",
+      "alignment": [
+        {
+          "text": "Save & exit",
+          "box": {
+            "x": 36,
+            "y": 32,
+            "width": 79.890625,
+            "height": 20,
+            "top": 32,
+            "right": 115.890625,
+            "bottom": 52,
+            "left": 36
+          }
+        },
+        {
+          "text": "Saved",
+          "box": {
+            "x": 135.890625,
+            "y": 34,
+            "width": 33.625,
+            "height": 16,
+            "top": 34,
+            "right": 169.515625,
+            "bottom": 50,
+            "left": 135.890625
+          }
+        },
+        {
+          "text": "Place",
+          "box": {
+            "x": 185.515625,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 744.671875,
+            "bottom": 53.5,
+            "left": 185.515625
+          }
+        },
+        {
+          "text": "Unit 1",
+          "box": {
+            "x": 749.671875,
+            "y": 39.5,
+            "width": 559.171875,
+            "height": 14,
+            "top": 39.5,
+            "right": 1308.84375,
+            "bottom": 53.5,
+            "left": 749.671875
+          }
+        },
+        {
+          "text": "Review",
+          "box": {
+            "x": 1313.84375,
+            "y": 39.5,
+            "width": 559.15625,
+            "height": 14,
+            "top": 39.5,
+            "right": 1873,
+            "bottom": 53.5,
+            "left": 1313.84375
+          }
+        }
+      ],
+      "maxGap": 8.399999999999636,
+      "slowFrames": [],
+      "tasks": [],
+      "windowScroll": 0,
+      "heading": {
+        "x": 924.296875,
+        "y": 156,
+        "width": 544,
+        "height": 50,
+        "top": 156,
+        "right": 1468.296875,
+        "bottom": 206,
+        "left": 924.296875
+      }
+    }
+  ],
+  "errors": []
+}

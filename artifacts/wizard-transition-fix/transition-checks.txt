@@ -1,0 +1,166 @@
+[
+  {
+    "width": 1920,
+    "screen": "location",
+    "maxGap": 129.4000000000001,
+    "tasks": [
+      {
+        "start": 291.90000000596046,
+        "duration": 55
+      },
+      {
+        "start": 376.40000000596046,
+        "duration": 79
+      },
+      {
+        "start": 928.1000000089407,
+        "duration": 71
+      },
+      {
+        "start": 999.6000000089407,
+        "duration": 59
+      },
+      {
+        "start": 1174.6000000089407,
+        "duration": 126
+      },
+      {
+        "start": 1311.1000000089407,
+        "duration": 106
+      }
+    ],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "utilities",
+    "maxGap": 41.69999999999982,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "rules",
+    "maxGap": 12.599999999999454,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "building-photos",
+    "maxGap": 54.19999999999982,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "layout",
+    "maxGap": 16.700000000000728,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "photos",
+    "maxGap": 24.899999999999636,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "rent",
+    "maxGap": 12.5,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "copy",
+    "maxGap": 20.899999999999636,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 1920,
+    "screen": "another",
+    "maxGap": 12.600000000000364,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "location",
+    "maxGap": 208.5,
+    "tasks": [
+      {
+        "start": 285.5,
+        "duration": 62
+      },
+      {
+        "start": 461.70000000298023,
+        "duration": 68
+      },
+      {
+        "start": 978.7000000029802,
+        "duration": 208
+      }
+    ],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "utilities",
+    "maxGap": 41.69999999999982,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "rules",
+    "maxGap": 16.800000000000182,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "building-photos",
+    "maxGap": 20.900000000000546,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "layout",
+    "maxGap": 16.700000000000728,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "photos",
+    "maxGap": 20.800000000000182,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "rent",
+    "maxGap": 12.399999999999636,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "copy",
+    "maxGap": 25,
+    "tasks": [],
+    "windowScroll": 0
+  },
+  {
+    "width": 375,
+    "screen": "another",
+    "maxGap": 8.400000000001455,
+    "tasks": [],
+    "windowScroll": 0
+  }
+]

@@ -1,5 +1,5 @@
 import type { AnimationItem } from "lottie-web";
-import { createElement, useEffect, useRef, useState } from "react";
+import { createElement, useCallback, useEffect, useRef, useState } from "react";
 import { Image, Platform, View } from "react-native";
 import {
   BRAND_PALETTE_EVENT,
@@ -21,6 +21,12 @@ type Props = {
 };
 
 const dataCache = new Map<WizardLottieAssetId, Promise<object>>();
+type Player = { key: string; container: HTMLDivElement; animation: AnimationItem };
+const NEXT: Partial<Record<WizardLottieAssetId, WizardLottieAssetId[]>> = {
+  type: ['location'], location: ['utilities'], utilities: ['water', 'rules'],
+  water: ['rules'], rules: ['photos'], photos: ['specs', 'pricing'],
+  specs: ['photos'], pricing: ['copy'], copy: ['review'],
+};
 
 function moduleUri(mod: unknown): string | null {
   if (typeof mod === "string" && mod.length > 0) return mod;
@@ -69,6 +75,8 @@ export function WizardLottie({ assetId, width, height, reducedMotion }: Props) {
   const preference = useReducedMotion();
   const reduce = reducedMotion ?? preference;
   const host = useRef<HTMLDivElement | null>(null);
+  const players = useRef(new Map<string, Promise<Player>>());
+  const active = useRef<Player | null>(null);
   const [palette, setPalette] = useState<BrandPaletteId>(() =>
     Platform.OS === "web" ? readStoredBrandPalette() : "madder",
   );
@@ -80,41 +88,71 @@ export function WizardLottie({ assetId, width, height, reducedMotion }: Props) {
     return () => window.removeEventListener(BRAND_PALETTE_EVENT, sync);
   }, []);
 
+  const prepare = useCallback((id: WizardLottieAssetId) => {
+    const key = `${palette}:${id}`;
+    const cached = players.current.get(key);
+    if (cached) return cached;
+    const pending = Promise.all([loadAnimationData(id), import('lottie-web')]).then(([data, { default: lottie }]) => new Promise<Player>((resolve, reject) => {
+      const container = document.createElement('div');
+      Object.assign(container.style, { width: '100%', height: '100%' });
+      const animation = lottie.loadAnimation({
+        container, renderer: 'svg', loop: false, autoplay: false,
+        // Each player owns its data: lottie mutates it while preparing layers.
+        animationData: palette === 'madder' ? tintWizardLottie(data, palette, id) : structuredClone(data),
+        rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
+      });
+      const ready = () => resolve({ key, container, animation });
+      animation.addEventListener('DOMLoaded', ready);
+      animation.addEventListener('data_failed', () => { animation.destroy(); reject(new Error('Could not prepare wizard artwork')); });
+      if (animation.isLoaded) ready();
+    }));
+    players.current.set(key, pending);
+    void pending.catch(() => { if (players.current.get(key) === pending) players.current.delete(key); });
+    return pending;
+  }, [palette]);
+
+  useEffect(() => () => {
+    for (const pending of players.current.values()) void pending.then(player => player.animation.destroy()).catch(() => {});
+    players.current.clear();
+  }, []);
+
   useEffect(() => {
     const el = host.current;
     if (!el) return;
     let cancelled = false;
-    let anim: AnimationItem | null = null;
+    void prepare(assetId).then(player => {
+      if (cancelled) return;
+      const changed = active.current !== player;
+      el.getAnimations().forEach(animation => animation.cancel());
+      active.current?.animation.pause();
+      active.current = player;
+      el.replaceChildren(player.container);
+      player.animation.resize();
+      player.animation.loop = !reduce;
+      if (reduce) player.animation.goToAndStop(Math.floor(player.animation.totalFrames * .55), true);
+      else player.animation.play();
+      if (changed && !reduce) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
+    }).catch(() => {});
 
-    Promise.all([loadAnimationData(assetId), import('lottie-web')])
-      .then(([animationData, { default: lottie }]) => {
-        if (cancelled || !host.current) return;
-        el.replaceChildren();
-        try {
-          anim = lottie.loadAnimation({
-            container: el,
-            renderer: "svg",
-            loop: !reduce,
-            autoplay: !reduce,
-            animationData: tintWizardLottie(animationData, palette, assetId),
-            rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
-          });
-          if (reduce) {
-            anim.goToAndStop(Math.floor(anim.totalFrames * 0.55), true);
-          }
-        } catch {
-          el.replaceChildren();
+    return () => { cancelled = true; };
+  }, [assetId, prepare, reduce]);
+
+  // Prepare likely next artwork while the question is idle, not during Next.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const targets = NEXT[assetId] ?? [];
+      void Promise.allSettled(targets.map(prepare)).then(() => {
+        const keep = new Set([`${palette}:${assetId}`, ...targets.map(id => `${palette}:${id}`), active.current?.key]);
+        for (const [key, pending] of players.current) {
+          if (players.current.size <= 4) break;
+          if (!keep.has(key)) { players.current.delete(key); void pending.then(player => player.animation.destroy()).catch(() => {}); }
         }
-      })
-      .catch(() => {
-        dataCache.delete(assetId);
       });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [assetId, palette, prepare]);
 
-    return () => {
-      cancelled = true;
-      anim?.destroy();
-    };
-  }, [assetId, palette, reduce]);
+  useEffect(() => { active.current?.animation.resize(); }, [width, height]);
 
   return (
     <View

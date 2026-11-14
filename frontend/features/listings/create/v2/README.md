@@ -32,3 +32,5 @@ Backend publishing/draft integration checks run in a disposable database through
 ## Visual design
 
 The saved original wizard’s borderless 46% illustration pane, aspect-aware authored animations, compact Save & exit header, original footer controls, Playfair Display headings and unboxed form layout surround the production flow. Mobile stacks artwork above the question and keeps actions fixed below. Reduced motion freezes artwork and skips transitions; changing the preference also updates an open screen. Only presentation helpers are restored from the saved wizard; its old navigation and draft orchestration stay deleted.
+
+The header alignment and normal-motion transition checks run with `node frontend/tests/creation-wizard-transitions.mjs` against the production preview. They exercise every question on desktop/mobile, check stable headings and Saving/Saved geometry, and record frame/long-task measurements. Test drafts are removed afterward. Evidence is in `artifacts/wizard-transition-fix`.

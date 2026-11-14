@@ -264,6 +264,11 @@ body {
 #studently-web-shell {
   scrollbar-gutter: stable;
 }
+html:has([data-testid="creation-wizard"]),
+body:has([data-testid="creation-wizard"]) {
+  overflow: hidden;
+  scrollbar-gutter: auto;
+}
 *, *::before, *::after { box-sizing: border-box; }
 a { text-decoration: none; color: inherit; }
 button, [role="button"], [role="link"] { cursor: pointer; }

@@ -1,0 +1,124 @@
+components/admin-neu/reports/ReportsPage.tsx(233,54): error TS18047: 'state.selected' is possibly 'null'.
+components/campus/AcademicCalendarPage.tsx(567,21): error TS2322: Type '({ pressed, hovered }: PressState) => (false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ pressed, hovered }: PressState) => (false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/campus/AcademicCalendarPage.tsx(587,21): error TS2322: Type '({ pressed, hovered }: PressState) => (false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ pressed, hovered }: PressState) => (false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { borderColor: "#F7B7BC"; backgroundColor: "#FDECEE"; } | { width: number; height: number; } | { opacity: number; cursor: string; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/campus/StrokeHeadline.web.tsx(140,24): error TS2488: Type 'NodeListOf<SVGTSpanElement>' must have a '[Symbol.iterator]()' method that returns an iterator.
+components/campus/StudentBenefitsPage.tsx(128,17): error TS2345: Argument of type '{ value: string; label: string; }' is not assignable to parameter of type '{ value: string; label: string; detail: string; slug: string; logoUrl: string | null; website: string | null; } | { value: string; label: string; shortLabel: string; }'.
+  Property 'shortLabel' is missing in type '{ value: string; label: string; }' but required in type '{ value: string; label: string; shortLabel: string; }'.
+components/campus/TuitionCalculatorPage.tsx(615,23): error TS2322: Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/campus/TuitionCalculatorPage.tsx(667,23): error TS2322: Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/campus/TuitionCalculatorPage.tsx(909,19): error TS2322: Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/campus/TuitionCalculatorPage.tsx(961,19): error TS2322: Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ hovered, pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: "#D9DDE3"; backgroundColor: "#FFFFFF"; alignItems: "center"; justifyContent: "center"; cursor: "pointer"; } | { ...; } | { ...; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/listings/create/CardBadgeEditor.tsx(397,17): error TS2322: Type '{ children: Element; style: (false | ViewStyle)[]; dataSet: { [x: string]: string; }; accessibilityRole: "button"; accessibilityLabel: string; accessibilityHint: string; accessibilityState: { ...; }; onPress: () => void; }' is not assignable to type 'IntrinsicAttributes & PressableProps & RefAttributes<View>'.
+  Property 'dataSet' does not exist on type 'IntrinsicAttributes & PressableProps & RefAttributes<View>'.
+components/listings/edit/EditListingScreen.tsx(143,5): error TS2322: Type 'string' is not assignable to type '"type"'.
+components/listings/edit/EditListingScreen.tsx(180,41): error TS2322: Type '"type" | "location" | "specs" | "utilities" | "rules" | "photos" | "pricing" | "copy" | "contact" | "review"' is not assignable to type '"type"'.
+  Type '"location"' is not assignable to type '"type"'.
+components/listings/edit/EditPanelHeader.tsx(158,9): error TS2322: Type '(event?: { relatedTarget?: EventTarget | null | undefined; } | undefined) => void' is not assignable to type '(event: MouseEvent) => void'.
+  Types of parameters 'event' and 'event' are incompatible.
+    Type 'NativeSyntheticEvent<NativeMouseEvent>' has no properties in common with type '{ relatedTarget?: EventTarget | null | undefined; }'.
+components/listings/edit/EditPanelHeader.tsx(260,35): error TS2339: Property 'focused' does not exist on type 'PressableStateCallbackType'.
+components/listings/edit/EditPanelHeader.tsx(290,35): error TS2339: Property 'focused' does not exist on type 'PressableStateCallbackType'.
+components/listings/edit/SectionPills.web.tsx(43,42): error TS18047: 'root' is possibly 'null'.
+components/listings/edit/SectionPills.web.tsx(45,9): error TS18047: 'root' is possibly 'null'.
+components/listings/edit/SectionPills.web.tsx(49,7): error TS18047: 'root' is possibly 'null'.
+components/listings/edit/SectionPills.web.tsx(54,19): error TS18047: 'root' is possibly 'null'.
+components/listings/edit/SectionPills.web.tsx(54,38): error TS18047: 'root' is possibly 'null'.
+components/listings/edit/SectionPills.web.tsx(58,67): error TS18047: 'root' is possibly 'null'.
+components/listings/edit/SectionPills.web.tsx(60,54): error TS18047: 'root' is possibly 'null'.
+components/listings/ListingCardCarousel.tsx(267,19): error TS2353: Object literal may only specify known properties, and 'pointerEvents' does not exist in type '(ImageStyle & { fontWeight?: "light" | 100 | 300 | "bold" | 900 | "100" | 200 | 500 | 800 | "medium" | "normal" | 700 | 400 | "200" | "300" | "400" | "500" | "600" | "700" | ... 11 more ... | undefined; color?: ColorValue | undefined; fontSize?: number | undefined; }) | RecursiveArray<...>'.
+components/listings/ListingCardCarousel.tsx(282,17): error TS2353: Object literal may only specify known properties, and 'pointerEvents' does not exist in type '(ImageStyle & { fontWeight?: "light" | 100 | 300 | "bold" | 900 | "100" | 200 | 500 | 800 | "medium" | "normal" | 700 | 400 | "200" | "300" | "400" | "500" | "600" | "700" | ... 11 more ... | undefined; color?: ColorValue | undefined; fontSize?: number | undefined; }) | RecursiveArray<...> | readonly (Falsy | (Image...'.
+components/listings/ReportReasonOptions.tsx(52,41): error TS2339: Property 'focused' does not exist on type 'PressableStateCallbackType'.
+components/matcher/BestMatchBadge.tsx(91,28): error TS2339: Property 'focused' does not exist on type 'PressableStateCallbackType'.
+components/web/host/analytics/HostAnalyticsListingRow.tsx(51,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ fontFamily: "DMSans_400Regular"; fontSize: number; color: "#1A1A1A"; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ fontFamily: "DMSans_400Regular"; fontSize: number; color: "#1A1A1A"; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+components/web/host/analytics/HostAnalyticsListingRow.tsx(99,25): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ fontFamily: "DMSans_400Regular"; fontSize: number; color: "#1A1A1A"; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ fontFamily: "DMSans_400Regular"; fontSize: number; color: "#1A1A1A"; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+components/web/host/analytics/SilenceNextStep.tsx(151,34): error TS2345: Argument of type '"add_photos" | "review_price" | "wait_peak" | "check_place" | null' is not assignable to parameter of type 'SilenceAction'.
+  Type 'null' is not assignable to type 'SilenceAction'.
+components/web/host/HostListingsToolbar.tsx(61,15): error TS2322: Type '({ pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: string; alignItems: "center"; justifyContent: "center"; backgroundColor: string; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle> | ((state: PressableStateCallbackType) => StyleProp<ViewStyle>)'.
+  Type '({ pressed }: PressableStateCallbackType) => (false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: string; alignItems: "center"; justifyContent: "center"; backgroundColor: string; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type '(state: PressableStateCallbackType) => StyleProp<ViewStyle>'.
+    Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: string; alignItems: "center"; justifyContent: "center"; backgroundColor: string; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '(false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: string; alignItems: "center"; justifyContent: "center"; backgroundColor: string; cursor: "pointer"; } | { ...; } | { ...; })[]' is not assignable to type 'RecursiveArray<ViewStyle | Falsy>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'false | { width: number; height: number; borderRadius: number; borderWidth: number; borderColor: string; alignItems: "center"; justifyContent: "center"; backgroundColor: string; cursor: "pointer"; } | { ...; } | { ...; } | undefined' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+            Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle | Falsy | RecursiveArray<ViewStyle | Falsy> | readonly (ViewStyle | Falsy)[]'.
+              Type '{ opacity: number; cursor: string; }' is not assignable to type 'ViewStyle'.
+                Types of property 'cursor' are incompatible.
+                  Type 'string' is not assignable to type 'CursorValue | undefined'.
+components/web/host/HostSideNav.tsx(64,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '"navigation"' is not assignable to type 'AccessibilityRole | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '"navigation"' is not assignable to type 'AccessibilityRole | undefined'.
+components/web/ReportListingDialog.tsx(104,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '"dialog"' is not assignable to type 'AccessibilityRole | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '"dialog"' is not assignable to type 'AccessibilityRole | undefined'.
+components/web/ReportListingDialog.tsx(155,38): error TS2339: Property 'focused' does not exist on type 'PressableStateCallbackType'.
+components/web/ReportListingDialog.tsx(209,38): error TS2339: Property 'focused' does not exist on type 'PressableStateCallbackType'.
+tests/rent-inclusion.test.ts(3,43): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+tests/rent-inclusion.test.ts(7,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+tests/rent-inclusion.test.ts(8,45): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+tests/silence-diagnosis.test.ts(8,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+tests/whatsapp-template.test.ts(7,8): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.

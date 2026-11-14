@@ -1,6 +1,5 @@
 import { useState, type ReactNode, type RefObject } from 'react';
 import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { Lister } from '@/constants/listerTheme';
 import { WizardArtProvider, useWizardLottieAsset, useWizardScrollContentRef, useWizardScrollHandler } from '@/features/listings/create/WizardArtSync';
 import type { Screen } from '@/features/listings/create/v2/model';
@@ -43,9 +42,9 @@ function Stage({ screen, unitId, placeName, unitCount = 1, scrollRef, children, 
   const frame = final && Platform.OS === 'web' && split
     ? { width: Math.min(640, width * .33), height: Math.min(640, width * .33) }
     : wizardLottieFrame(asset, width, split);
-  const art = <Animated.View key={`${screen}:${unitId}:${asset}`} entering={reduced ? undefined : FadeIn.duration(420)} testID="wizard-illustration">
+  const art = <View testID="wizard-illustration">
     <WizardLottie assetId={asset} {...frame} reducedMotion={reduced} />
-  </Animated.View>;
+  </View>;
   return <View style={[s.stage, split && s.split]} onLayout={e => onHeight(e.nativeEvent.layout.height)} testID="wizard-stage">
     {split ? <View style={[s.art, final && s.reviewArt]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><WizardGrain />{art}</View> : null}
     <ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets onScroll={handleScroll} scrollEventThrottle={16}>

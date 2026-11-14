@@ -107,7 +107,8 @@ export function LocationPicker({ area, value, onChange }: Props) {
 
     let cancelled = false;
 
-    void (async () => {
+    // Let the screen entrance finish before Mapbox builds its canvas and workers.
+    const startup = window.setTimeout(() => { void (async () => {
       try {
         const mapboxgl = await loadMapbox();
         if (cancelled || !hostRef.current) return;
@@ -172,10 +173,11 @@ export function LocationPicker({ area, value, onChange }: Props) {
       } catch {
         // SSR / missing window
       }
-    })();
+    })(); }, 180);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(startup);
       markerRef.current?.remove();
       markerRef.current = null;
       destroyStudentlyMap(mapRef.current);
