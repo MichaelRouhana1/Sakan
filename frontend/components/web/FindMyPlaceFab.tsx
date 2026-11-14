@@ -1,3 +1,4 @@
+import { usePathname } from "expo-router";
 import lottie, { type AnimationItem } from "lottie-web";
 import { createElement, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -18,6 +19,17 @@ const INTRO_MS = 6500;
 const BOT_LOTTIE: unknown = require("../../assets/lottie/find-place-bot.json");
 
 const LABEL = "Need help finding a place?";
+
+function hidesFindPlaceBot(pathname: string) {
+  return (
+    pathname === "/hosting" ||
+    pathname.startsWith("/hosting/") ||
+    pathname === "/create" ||
+    pathname.startsWith("/create/") ||
+    pathname === "/campus" ||
+    pathname.startsWith("/campus/")
+  );
+}
 
 let animationDataPromise: Promise<object> | null = null;
 
@@ -231,13 +243,16 @@ export function FindMyPlaceFab({
   onPress: () => void;
   hidden?: boolean;
 }) {
+  const pathname = usePathname();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     setPortalRoot(document.body);
   }, []);
 
-  if (!portalRoot) return null;
+  // Portaled to document.body, so a kept-alive search screen would otherwise
+  // leave this control floating over hosting, the listing wizard, and campus.
+  if (!portalRoot || hidesFindPlaceBot(pathname)) return null;
   return createPortal(
     <FabBody onPress={onPress} hidden={hidden} />,
     portalRoot,

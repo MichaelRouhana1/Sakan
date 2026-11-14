@@ -1,0 +1,51 @@
+.studently-rubber-segment {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  isolation: isolate;
+}
+.studently-rubber-segment__thumb {
+  position: absolute;
+  z-index: -1;
+  border-radius: 8px;
+  background: #fdecee;
+  pointer-events: none;
+}
+.studently-rubber-segment__item {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5e5a55;
+  font-family: DMSans_500Medium, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.studently-rubber-segment__count {
+  color: #6b6460;
+  font-family: DMSans_400Regular, sans-serif;
+  font-size: 13px;
+}
+.studently-rubber-segment__item[aria-pressed='true'],
+.studently-rubber-segment__item[aria-pressed='true'] .studently-rubber-segment__count {
+  color: #a82d36;
+}
+.studently-rubber-segment__item:focus-visible {
+  outline: 2px solid #ea3f4a;
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .studently-rubber-segment__item:hover { color: #a82d36; }
+}

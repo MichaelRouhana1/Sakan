@@ -1647,7 +1647,7 @@ function MatcherSession({
                     <ChatBubble
                       side="right"
                       color={Studently.color.primaryMist}
-                      hoverColor="#DCE7F5"
+                      hoverColor={Studently.color.primaryMist}
                       stroke={
                         editingStep === index ? Studently.color.primary : undefined
                       }

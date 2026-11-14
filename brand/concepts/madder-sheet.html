@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Studently — paper and madder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #F9FAFB;
+      --ink: #1A1A1A;
+      --muted: #5E5A55;
+      --faint: #8A847C;
+      --line: #D5D0C8;
+      --madder: #9E2B32;
+      --madder-deep: #7C2128;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Figtree, "Avenir Next", sans-serif;
+      font-size: 15px;
+    }
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--madder); outline-offset: 3px; }
+    ::selection { background: #F0D0D2; }
+
+    .shell {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      height: 64px;
+      padding: 0 28px;
+      background: var(--paper);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: 0;
+      padding: 0;
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: -0.05em;
+    }
+    .brand i {
+      width: 10px;
+      height: 10px;
+      background: var(--madder);
+      display: block;
+    }
+    nav { display: flex; gap: 18px; }
+    nav button {
+      background: none;
+      border: 0;
+      padding: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    nav button.on {
+      color: var(--ink);
+      box-shadow: inset 0 -2px 0 var(--madder);
+      padding-bottom: 2px;
+    }
+    .spacer { flex: 1; }
+    .key {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .key span { display: flex; align-items: center; gap: 6px; }
+    .key b {
+      width: 14px;
+      height: 8px;
+      display: block;
+    }
+    .quiet {
+      background: none;
+      border: 0;
+      font-weight: 600;
+      font-size: 14px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .paper-toggle {
+      background: transparent;
+      border: 1px solid var(--line);
+      height: 32px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .share {
+      display: flex;
+      height: 8px;
+    }
+    .share i { display: block; height: 100%; }
+    .share i:first-child { box-shadow: inset 0 -1px 0 var(--line); }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      min-height: 0;
+      border-top: 1px solid var(--line);
+    }
+    .photo {
+      position: relative;
+      min-height: 0;
+      background: #E7E4DE;
+      border-right: 1px solid var(--line);
+    }
+    .photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 42%;
+      display: block;
+    }
+    .stamp {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      background: var(--madder);
+      color: white;
+      padding: 10px 12px 8px;
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .stamp small {
+      display: block;
+      margin-top: 4px;
+      font-family: Figtree, sans-serif;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .spec {
+      padding: 28px 32px 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+    .eyebrow {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    h1 {
+      margin: 8px 0 0;
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      font-size: clamp(36px, 4vw, 52px);
+      line-height: 0.92;
+      letter-spacing: -0.045em;
+    }
+    .walk { margin: 10px 0 0; color: var(--muted); }
+    .price {
+      margin: 18px 0 0;
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      font-size: 40px;
+      letter-spacing: -0.045em;
+      line-height: 1;
+    }
+    .price span {
+      font-family: Figtree, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0;
+    }
+    dl {
+      margin: 20px 0 0;
+      display: grid;
+    }
+    .pair {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 12px;
+      padding: 9px 0;
+      border-top: 1px solid var(--line);
+      font-size: 15px;
+    }
+    dt {
+      color: var(--faint);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      align-self: center;
+    }
+    .wa {
+      margin-top: 22px;
+      background: var(--madder);
+      color: white;
+      border: 0;
+      height: 48px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .wa:hover { background: var(--madder-deep); }
+
+    .index {
+      list-style: none;
+      margin: 22px 0 0;
+      padding: 0;
+      border-top: 1px solid var(--line);
+    }
+    .index li { border-bottom: 1px solid var(--line); }
+    .index button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 10px;
+      align-items: baseline;
+      padding: 10px 0;
+      background: transparent;
+      border: 0;
+      text-align: left;
+    }
+    .index li.on button { background: white; }
+    .num { color: var(--faint); font-variant-numeric: tabular-nums; }
+    .name { font-weight: 600; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); font-size: 13px; }
+    .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 900px) {
+      .shell { height: auto; overflow: visible; }
+      .main { grid-template-columns: 1fr; }
+      .photo { height: 280px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .index button { grid-template-columns: 28px 1fr auto; }
+      .sub { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <button class="brand" type="button"><i></i> studently</button>
+      <nav>
+        <button class="on" type="button">Find</button>
+        <button type="button">Campus</button>
+      </nav>
+      <div class="spacer"></div>
+      <div class="key" aria-label="60 percent paper, 30 percent ink, 10 percent madder">
+        <span><b id="paper-swatch" style="background:#F9FAFB; outline:1px solid #D5D0C8"></b> 60 paper</span>
+        <span><b style="background:#1A1A1A"></b> 30 ink</span>
+        <span><b style="background:#9E2B32"></b> 10 madder</span>
+      </div>
+      <button class="paper-toggle" id="paper-toggle" type="button" aria-pressed="false">#F9FAFB</button>
+      <button class="quiet" type="button">Log in</button>
+    </header>
+
+    <div class="main">
+      <div class="photo">
+        <img alt="Living room with pale walls and a light sofa" src="https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1600&q=75" />
+        <div class="stamp">4 min<small>Walk to AUB</small></div>
+      </div>
+      <section class="spec">
+        <p class="eyebrow" id="where">Hamra · Bliss</p>
+        <h1 id="title">Sunny studio</h1>
+        <p class="walk" id="walk">350 m from AUB · fourth floor</p>
+        <p class="price" id="price">$650 <span>/ month</span></p>
+        <dl>
+          <div class="pair"><dt>Solar</dt><dd>Shared</dd></div>
+          <div class="pair"><dt>Ishtirak</dt><dd>10 amps</dd></div>
+          <div class="pair"><dt>Water</dt><dd>Building</dd></div>
+        </dl>
+        <button class="wa" type="button">WhatsApp the poster</button>
+        <ul class="index">
+      <li>
+        <button type="button" data-where="Achrafieh · Sassine" data-title="Private room" data-walk="600 m from USJ · 8 min walk" data-price="$425">
+          <span class="num">02</span>
+          <span class="name">Private room · Sassine</span>
+          <span class="amt">$425</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" data-where="Hamra" data-title="Shared flat" data-walk="180 m from AUB · 2 min walk" data-price="$380">
+          <span class="num">03</span>
+          <span class="name">Shared flat · two rooms left</span>
+          <span class="amt">$380</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" data-where="Hamra · Sidani" data-title="Quiet 1BR foyer" data-walk="500 m from LAU · 6 min walk" data-price="$800">
+          <span class="num">04</span>
+          <span class="name">Quiet 1BR foyer · Sidani</span>
+          <span class="amt">$800</span>
+        </button>
+      </li>
+    </ul>
+      </section>
+    </div>
+  </div>
+  <script>
+    const papers = ["#F9FAFB", "#F3F2EF"];
+    let paperIndex = 0;
+    const paperToggle = document.getElementById("paper-toggle");
+    const paperSwatch = document.getElementById("paper-swatch");
+    paperToggle.addEventListener("click", () => {
+      paperIndex = 1 - paperIndex;
+      const hex = papers[paperIndex];
+      document.documentElement.style.setProperty("--paper", hex);
+      paperToggle.textContent = hex;
+      paperToggle.setAttribute("aria-pressed", paperIndex === 1 ? "true" : "false");
+      paperSwatch.style.background = hex;
+    });
+    document.querySelectorAll("nav button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("nav button").forEach((b) => b.classList.remove("on"));
+        btn.classList.add("on");
+      });
+    });
+    document.querySelectorAll(".index button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".index li").forEach((li) => li.classList.remove("on"));
+        btn.parentElement.classList.add("on");
+        document.getElementById("where").textContent = btn.dataset.where;
+        document.getElementById("title").textContent = btn.dataset.title;
+        document.getElementById("walk").textContent = btn.dataset.walk;
+        document.getElementById("price").innerHTML = btn.dataset.price + ' <span>/ month</span>';
+      });
+    });
+  </script>
+</body>
+</html>

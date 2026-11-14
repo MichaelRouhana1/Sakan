@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { NATIVE_CARD_PHOTO_WIDTH, NATIVE_CARD_PHOTO_MIN_HEIGHT } from "@/lib/listingPhotoFrames";
 import { Ionicons } from "@expo/vector-icons";
 import { MapPin } from "lucide-react-native";
@@ -152,22 +153,7 @@ export function ListingCard({ listing, onPress, showDistance }: Props) {
 
       {/* Column 3 — favorite + price + CTA */}
       <View style={styles.rightCol}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
-          hitSlop={8}
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            toggleSaved.mutate(listing);
-          }}
-          style={styles.heart}
-        >
-          <Ionicons
-            name={isSaved ? "heart" : "heart-outline"}
-            size={20}
-            color={isSaved ? "#C23B2E" : "#475569"}
-          />
-        </Pressable>
+        <FavoriteButton saved={isSaved} onPress={() => toggleSaved.mutate(listing)} style={styles.heart}/>
 
         <Pressable onPress={onPress} style={styles.priceBlock}>
           <Text style={styles.priceFrom}>From</Text>

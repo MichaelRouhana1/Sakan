@@ -224,7 +224,7 @@ export const matcherStyles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingHorizontal: 12,
   },
-  chipSelected: { borderColor: c.primary, backgroundColor: "#EEF4FF" },
+  chipSelected: { borderColor: c.primary, backgroundColor: c.primaryMist },
   chipHover: { borderColor: c.primary },
   chipText: {
     fontFamily: t.bodyMedium,
@@ -763,7 +763,7 @@ export const matcherStyles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: c.primary,
   },
-  primaryHover: { backgroundColor: "#245FD2" },
+  primaryHover: { backgroundColor: c.primaryPressed },
   entry: {
     ...interactive,
     minHeight: 48,

@@ -135,7 +135,8 @@ test.describe('unit renewal UX', () => {
   expect((await sql`select auto_renew from listings where id=${units[0].id}`)[0].auto_renew).toBe(true);
   await toggle.click();
   await expect(toggle).not.toBeChecked();
-  await live.getByRole('button',{name:'Auto-renew details for Sunny studio',exact:true}).click();
+  await live.getByRole('button',{name:'Actions for Sunny studio',exact:true}).click();
+  await page.getByTestId('workspace-dialog').getByRole('button',{name:'Auto-renew settings',exact:true}).click();
   await expect(page.getByText(/Renews for 30 days with 1 post credit in the final hour/)).toBeVisible();
   await page.getByRole('button',{name:'Close dialog',exact:true}).click();
   await live.getByRole('button',{name:'Actions for Sunny studio',exact:true}).click();

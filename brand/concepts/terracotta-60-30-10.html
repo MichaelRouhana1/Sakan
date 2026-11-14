@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Studently — terracotta concept</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --plaster: #F4F0E8;
+      --wash: #EBE6DE;
+      --white: #FFFFFF;
+      --ink: #121826;
+      --muted: #675F58;
+      --faint: #8C847C;
+      --line: #DDD6CB;
+      --clay: #B4472A;
+      --clay-deep: #8C3520;
+      --mist: #F8EBE6;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: "DM Sans", sans-serif;
+      background: var(--plaster);
+      color: var(--ink);
+      min-height: 100%;
+    }
+
+    .key {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 10px 28px;
+      background: var(--ink);
+      color: #F4F0E8;
+      font-size: 12px;
+      letter-spacing: 0.01em;
+    }
+    .key b { font-weight: 600; color: white; }
+    .swatches { display: flex; gap: 14px; margin-left: auto; }
+    .swatch { display: flex; align-items: center; gap: 6px; color: #D9D3C8; }
+    .swatch i {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      display: block;
+    }
+
+    .app { max-width: 1240px; margin: 0 auto; padding: 0 28px 40px; }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      height: 68px;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand span {
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: -0.06em;
+    }
+    nav { display: flex; gap: 22px; font-size: 14px; font-weight: 500; color: var(--muted); }
+    nav .on { color: var(--ink); }
+    .nav-spacer { flex: 1; }
+    .text-btn {
+      background: none;
+      border: 0;
+      font: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+    }
+    .clay-btn {
+      background: var(--clay);
+      color: white;
+      border: 0;
+      font: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .clay-btn:hover { background: var(--clay-deep); }
+
+    .search {
+      display: flex;
+      align-items: center;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 6px 6px 6px 18px;
+      gap: 8px;
+    }
+    .field { flex: 1; min-width: 0; padding: 8px 12px 8px 0; }
+    .field + .field { border-left: 1px solid var(--line); padding-left: 16px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .field p { margin: 2px 0 0; font-size: 14px; font-weight: 500; }
+    .search .clay-btn { padding: 12px 22px; }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      padding: 16px 0 8px;
+      align-items: center;
+    }
+    .pill {
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .pill.on {
+      background: var(--white);
+      color: var(--ink);
+      border-color: var(--clay);
+    }
+    .count {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+      margin-top: 8px;
+      min-height: 640px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-content: start;
+    }
+    article {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .photo {
+      position: relative;
+      height: 168px;
+      background: var(--wash) center/cover no-repeat;
+    }
+    .heart {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--white);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .body { padding: 12px 14px 14px; }
+    .kicker {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 4px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .meta {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .price { font-weight: 700; font-size: 15px; letter-spacing: -0.02em; }
+    .price span { font-weight: 400; color: var(--muted); font-size: 12px; }
+    .tags { display: flex; gap: 6px; }
+    .tag {
+      background: var(--wash);
+      color: var(--ink);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 7px;
+      border-radius: 999px;
+    }
+
+    .map {
+      background: #E7E1D6;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      min-height: 640px;
+    }
+    .map svg { width: 100%; height: 100%; display: block; }
+    .pin {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      filter: none;
+    }
+    .pin button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      background: var(--clay);
+      border: 2px solid white;
+      cursor: pointer;
+    }
+    .pin.on button { width: 34px; height: 34px; background: var(--clay-deep); }
+    .map-card {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      background: var(--white);
+      border-radius: 10px;
+      display: flex;
+      gap: 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+    }
+    .map-card img {
+      width: 84px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: var(--wash);
+    }
+    .map-card h3 { margin: 0; font-size: 14px; font-weight: 600; }
+    .map-card p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .map-label {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+  </style>
+</head>
+<body>
+  <div class="key">
+    <span>Color concept · browse. The word stays ink. Terracotta is the action.</span>
+    <div class="swatches">
+      <span class="swatch"><i style="background:#F4F0E8; border:1px solid #8C847C"></i> 60% plaster</span>
+      <span class="swatch"><i style="background:#FFFFFF; border:1px solid #8C847C"></i> 30% white + ink</span>
+      <span class="swatch"><i style="background:#B4472A"></i> 10% terracotta</span>
+    </div>
+  </div>
+
+  <div class="app">
+    <header>
+      <div class="brand">
+        <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+          <path fill="#B4472A" d="M16 1.5c-6.2 0-11 4.6-11 11.1C5 20.2 16 30.5 16 30.5S27 20.2 27 12.6C27 6.1 22.2 1.5 16 1.5z"/>
+          <path fill="#F4F0E8" d="M10 16.2h12v1.7H10zM11.2 10.2h3.1v6H11.2zM17.6 8.2h3.1v8h-3.1z"/>
+        </svg>
+        <span>studently</span>
+      </div>
+      <nav>
+        <span class="on">Find</span>
+        <span>Campus</span>
+      </nav>
+      <div class="nav-spacer"></div>
+      <button class="text-btn" type="button">Log in</button>
+      <button class="clay-btn" type="button">List a place</button>
+    </header>
+
+    <form class="search" action="#" onsubmit="return false">
+      <div class="field">
+        <label>Where</label>
+        <p>Hamra, near AUB</p>
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <p>Studio or private room</p>
+      </div>
+      <div class="field">
+        <label>Budget</label>
+        <p>$400 – $800 / month</p>
+      </div>
+      <button class="clay-btn" type="submit">Search</button>
+    </form>
+
+    <div class="filters">
+      <button class="pill on" type="button">All areas</button>
+      <button class="pill" type="button">Hamra</button>
+      <button class="pill" type="button">Achrafieh</button>
+      <button class="pill" type="button">Jounieh</button>
+      <button class="pill" type="button">Walk to campus</button>
+      <span class="count">48 places · priced in USD / month</span>
+    </div>
+
+    <div class="split">
+      <div class="cards">
+        <article>
+          <div class="photo" style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=900&q=70')">
+            <button class="heart" type="button" aria-label="Saved" data-saved="1">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#B4472A" stroke="#B4472A" stroke-width="1.8"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 4.6-7 9-7 9z"/></svg>
+            </button>
+          </div>
+          <div class="body">
+            <p class="kicker">Hamra · Bliss</p>
+            <h2>Sunny studio, fourth floor</h2>
+            <p class="meta">350 m from AUB · about 4 min walk</p>
+            <div class="row">
+              <div class="price">$650 <span>/ month</span></div>
+              <div class="tags"><span class="tag">Solar</span><span class="tag">Furnished</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article>
+          <div class="photo" style="background-image:url('https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=900&q=70')">
+            <button class="heart" type="button" aria-label="Save">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#121826" stroke-width="1.8"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 4.6-7 9-7 9z"/></svg>
+            </button>
+          </div>
+          <div class="body">
+            <p class="kicker">Achrafieh · Sassine</p>
+            <h2>Private room in a shared flat</h2>
+            <p class="meta">600 m from USJ · about 8 min walk</p>
+            <div class="row">
+              <div class="price">$425 <span>/ month</span></div>
+              <div class="tags"><span class="tag">Ishtirak</span><span class="tag">Water</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article>
+          <div class="photo" style="background-image:url('https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=900&q=70')">
+            <button class="heart" type="button" aria-label="Save">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#121826" stroke-width="1.8"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 4.6-7 9-7 9z"/></svg>
+            </button>
+          </div>
+          <div class="body">
+            <p class="kicker">Hamra</p>
+            <h2>Shared flat, two rooms left</h2>
+            <p class="meta">180 m from AUB · about 2 min walk</p>
+            <div class="row">
+              <div class="price">$380 <span>/ month</span></div>
+              <div class="tags"><span class="tag">Generator</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article>
+          <div class="photo" style="background-image:url('https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=900&q=70')">
+            <button class="heart" type="button" aria-label="Save">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#121826" stroke-width="1.8"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 4.6-7 9-7 9z"/></svg>
+            </button>
+          </div>
+          <div class="body">
+            <p class="kicker">Hamra · Sidani</p>
+            <h2>Quiet 1BR foyer</h2>
+            <p class="meta">500 m from LAU Beirut · about 6 min walk</p>
+            <div class="row">
+              <div class="price">$800 <span>/ month</span></div>
+              <div class="tags"><span class="tag">Solar</span><span class="tag">Balcony</span></div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <aside class="map" aria-label="Map of listings">
+        <svg viewBox="0 0 480 720" preserveAspectRatio="xMidYMid slice">
+          <rect width="480" height="720" fill="#E7E1D6"/>
+          <path d="M0 0h210c40 80 20 140-10 200 30 40 80 60 70 130-20 80 10 120-30 180H0V0z" fill="#C9D4DE"/>
+          <path d="M120 40h40M180 120h90M150 200h140M200 280h120M160 360h150M220 450h100M140 540h160" stroke="#D4CBBC" stroke-width="10" fill="none"/>
+          <path d="M200 0v720M300 80v560" stroke="#DDD4C6" stroke-width="6" fill="none"/>
+          <circle cx="250" cy="250" r="18" fill="none" stroke="#121826" stroke-width="1.5" opacity="0.35"/>
+          <text x="274" y="246" fill="#8C847C" font-family="DM Sans, sans-serif" font-size="13" font-weight="600">AUB</text>
+        </svg>
+        <span class="map-label" style="top:24px; left:24px">Beirut</span>
+        <div class="pin on" style="left:46%; top:38%"><button type="button" aria-label="Sunny studio"></button></div>
+        <div class="pin" style="left:62%; top:52%"><button type="button" aria-label="Private room"></button></div>
+        <div class="pin" style="left:40%; top:58%"><button type="button" aria-label="Shared flat"></button></div>
+        <div class="map-card">
+          <img alt="" src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=300&q=70" />
+          <div>
+            <h3>Sunny studio, fourth floor</h3>
+            <p>350 m from AUB · $650 / month</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll(".pill").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        document.querySelectorAll(".pill").forEach((p) => p.classList.remove("on"));
+        pill.classList.add("on");
+      });
+    });
+    document.querySelectorAll(".heart").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const saved = btn.getAttribute("data-saved") === "1";
+        const next = !saved;
+        btn.setAttribute("data-saved", next ? "1" : "0");
+        btn.setAttribute("aria-label", next ? "Saved" : "Save");
+        const path = btn.querySelector("path");
+        path.setAttribute("fill", next ? "#B4472A" : "none");
+        path.setAttribute("stroke", next ? "#B4472A" : "#121826");
+      });
+    });
+  </script>
+</body>
+</html>

@@ -259,7 +259,7 @@ const s = StyleSheet.create({
   saveActions: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, width: 88, textAlign: 'right', color: '#6B6460' },
   saveExit: { paddingVertical: 10, paddingHorizontal: 4, cursor: 'pointer' }, saveExitText: { fontFamily: Lister.type.bodySemi, fontSize: 15, lineHeight: 20, color: Lister.color.ink, textDecorationLine: 'underline' },
   saveExitPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: '#B0B0B0', backgroundColor: Lister.color.surface }, saveExitPillText: { fontSize: 14, textDecorationLine: 'none' },
-  progressWrap: { flex: 1, minWidth: 0 }, progressDesktop: { maxWidth: 720 }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
+  progressWrap: { flex: 1, minWidth: 0 }, progressDesktop: { maxWidth: 720, transform: [{ translateY: 18 }] }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
   phase: { flex: 1, minWidth: 68, minHeight: 44, justifyContent: 'center' }, phaseTick: { position: 'absolute', top: 2, left: 0, height: 3, borderRadius: 2, backgroundColor: Lister.color.border, width: '100%' }, phaseTickDone: { backgroundColor: Lister.color.primary }, phaseTickCurrent: { backgroundColor: Lister.color.primaryDeep },
   footerTick: { height: 2, borderRadius: 1, backgroundColor: '#DDDDDD' }, footerTickDone: { backgroundColor: '#222222' },
   phaseText: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, color: '#6B6460', textAlign: 'center' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: Lister.color.ink },

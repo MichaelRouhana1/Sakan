@@ -16,11 +16,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Studently } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
 import { savedKeys } from "./keys";
-import {
-  subscribeSavedToasts,
-  type SavedToastEvent,
-} from "./savedToast";
+import { subscribeSavedToasts } from "./savedToast";
 import { useToggleSaved } from "./useSavedListings";
+import { applyListingToastEvent, type ListingToastItem } from "./listingToastState";
 
 const SIDE = 16;
 const FUSE = "rgba(47, 111, 237, 1)";
@@ -38,39 +36,17 @@ const FUSE_STOPS = [
 ] as const;
 const FUSE_AT = [0, 0.09, 0.18, 0.28, 0.38, 0.62, 0.72, 0.82, 0.91, 1] as const;
 
-type ToastItem = {
-  key: string;
-  seq: number;
-  listing: Listing;
-  open: boolean;
-};
-
-function applyToastEvent(prev: ToastItem[], event: SavedToastEvent): ToastItem[] {
-  if (event.kind === "clear") {
-    return prev.map((toast) => {
-      if (toast.listing.id !== event.listingId || !toast.open) return toast;
-      if (event.seq != null && toast.seq !== event.seq) return toast;
-      return { ...toast, open: false };
-    });
-  }
-  return [
-    ...prev.filter((toast) => toast.listing.id !== event.listing.id),
-    {
-      key: `${event.listing.id}:${event.seq}`,
-      seq: event.seq,
-      listing: event.listing,
-      open: true,
-    },
-  ];
-}
-
 function NativeFavoriteToast({
+  title,
+  actionLabel,
   open,
   top,
   width,
   onUndo,
   onExited,
 }: {
+  title: string;
+  actionLabel: string;
   open: boolean;
   top: number;
   width: number;
@@ -154,17 +130,17 @@ function NativeFavoriteToast({
       ]}
     >
       <View style={styles.card}>
-        <Text style={styles.title}>Added to favorites</Text>
+        <Text style={styles.title}>{title}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Undo"
+          accessibilityLabel={actionLabel}
           onPress={() => {
             onUndo();
             leave();
           }}
           style={styles.undo}
         >
-          <Text style={styles.undoText}>Undo</Text>
+          <Text style={styles.undoText}>{actionLabel}</Text>
         </Pressable>
         <Animated.View
           pointerEvents="none"
@@ -189,17 +165,17 @@ function NativeFavoriteToast({
   );
 }
 
-/** Native favorite toast. Web resolves SavedListingToast.web.tsx. */
+/** Native shared listing feedback, matching the existing favorite toast. */
 export function SavedListingToast() {
   const queryClient = useQueryClient();
   const toggleSaved = useToggleSaved();
   const insets = useSafeAreaInsets();
   const cardWidth = useWindowDimensions().width - SIDE * 2;
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [toasts, setToasts] = useState<ListingToastItem[]>([]);
 
   useEffect(() => {
     return subscribeSavedToasts((event) => {
-      setToasts((prev) => applyToastEvent(prev, event));
+      setToasts((prev) => applyListingToastEvent(prev, event));
     });
   }, []);
 
@@ -216,10 +192,12 @@ export function SavedListingToast() {
       {toasts.map((toast, index) => (
         <NativeFavoriteToast
           key={toast.key}
+          title={toast.title}
+          actionLabel={toast.kind === "saved" ? "Undo" : "Dismiss"}
           open={toast.open}
           top={index === toasts.length - 1 ? insets.top + 8 : 8}
           width={cardWidth}
-          onUndo={() => undo(toast.listing)}
+          onUndo={() => { if (toast.kind === "saved") undo(toast.listing); }}
           onExited={() => {
             setToasts((prev) => prev.filter((item) => item.key !== toast.key));
           }}

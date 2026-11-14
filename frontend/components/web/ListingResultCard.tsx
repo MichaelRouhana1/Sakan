@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { recordFeaturedImpression, rememberPlacement } from "@/features/promotions/activity";
 import { BestMatchBadge } from "@/components/matcher/BestMatchBadge";
 import { BestMatchBeam } from "@/components/matcher/BestMatchBeam";
@@ -91,43 +92,6 @@ function photoUrls(listing: Listing): string[] {
     .filter(Boolean);
   if (fromPhotos.length > 0) return resolveMediaUrls(fromPhotos);
   return resolveMediaUrls(listing.coverUrl ? [listing.coverUrl] : []);
-}
-
-function HeartButton({
-  isSaved,
-  onToggle,
-  style,
-  disabled = false,
-}: {
-  isSaved: boolean;
-  onToggle: () => void;
-  style?: object;
-  disabled?: boolean;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
-      hitSlop={8}
-      onPress={(e) => {
-        e?.preventDefault?.();
-        e?.stopPropagation?.();
-        onToggle();
-      }}
-      onPressIn={(e) => {
-        e?.preventDefault?.();
-        e?.stopPropagation?.();
-      }}
-      style={style}
-    >
-      <Ionicons
-        name={isSaved ? "heart" : "heart-outline"}
-        size={20}
-        color={isSaved ? "#C23B2E" : "#475569"}
-      />
-    </Pressable>
-  );
 }
 
 function PillChips({
@@ -458,9 +422,9 @@ export function ListingResultCard({
             ) : (
               <View />
             )}
-            <HeartButton
-              isSaved={interactive && isSaved}
-              onToggle={onToggleSave}
+            <FavoriteButton
+              saved={interactive && isSaved}
+              onPress={onToggleSave}
               style={styles.heart}
               disabled={!interactive}
             />
@@ -539,9 +503,9 @@ export function ListingResultCard({
       <View testID="listing-grid-media" style={[touchPanX, styles.gridMedia]}>
         <ListingCardCarousel urls={urls} onPressCard={onOpen} />
 
-        <HeartButton
-          isSaved={interactive && isSaved}
-          onToggle={onToggleSave}
+        <FavoriteButton
+          saved={interactive && isSaved}
+          onPress={onToggleSave}
           style={styles.gridHeart}
           disabled={!interactive}
         />

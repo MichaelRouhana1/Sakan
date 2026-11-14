@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -130,13 +131,8 @@ export function ListingDetailGallery({
         />
         <View style={styles.topRight}>
           <OverlayBtn icon="share-outline" label="Share listing" onPress={() => void share()} />
-          <OverlayBtn
-            icon={saved ? "heart" : "heart-outline"}
-            label={saved ? "Remove from shortlist" : "Save to shortlist"}
-            selected={saved}
-            disabled={savePending}
-            onPress={onToggleSave}
-          />
+          <FavoriteButton saved={saved} disabled={savePending} onPress={onToggleSave}
+            accessibilityLabel={saved ? 'Remove from shortlist' : 'Save to shortlist'} style={styles.iconBtn}/>
         </View>
       </View>
 

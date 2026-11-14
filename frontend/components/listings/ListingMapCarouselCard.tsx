@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -71,23 +72,7 @@ export function ListingMapCarouselCard({ listing, width, onPress }: Props) {
           </View>
         )}
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={isSaved ? "Remove from saved" : "Save listing"}
-          hitSlop={8}
-          onPress={(e) => {
-            e?.preventDefault?.();
-            e?.stopPropagation?.();
-            toggleSaved.mutate(listing);
-          }}
-          style={styles.heart}
-        >
-          <Ionicons
-            name={isSaved ? "heart" : "heart-outline"}
-            size={20}
-            color={isSaved ? "#C23B2E" : "#475569"}
-          />
-        </Pressable>
+        <FavoriteButton saved={isSaved} onPress={() => toggleSaved.mutate(listing)} style={styles.heart}/>
 
         {badge?.kind === "rating" ? (
           <ListingGridRatingBadge

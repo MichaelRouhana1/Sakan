@@ -10,6 +10,8 @@ const output=path.resolve('../artifacts/listings-workspace');
 let sql:any,page:Page,wallet:any;
 let units:any[]=[],places:string[]=[];
 let limit=24, hold=false,release:(()=>void)|undefined;
+let draftPreview=false;
+const draftId='00000000-0000-4000-8000-000000000001';
 function releaseLoading(){ release?.(); }
 let perRowGets:string[]=[],timings:any[]=[];
 async function clerkTicket(): Promise<string> {
@@ -115,7 +117,9 @@ test.describe('host listings workspace',()=>{
    const response=await route.fetch();
    const body=await response.json();
    const visible=new Set(units.slice(0,limit).map(unit=>unit.id));
-   await route.fulfill({response,json:{...body,data:body.data.filter((unit:any)=>visible.has(unit.id))}});
+   const data=body.data.filter((unit:any)=>visible.has(unit.id));
+   if(draftPreview)data.push({...body.data.find((unit:any)=>unit.id===units[0].id),id:draftId,status:'draft',title:'Unfinished apartment in Hamra',area:'Hamra'});
+   await route.fulfill({response,json:{...body,data}});
   });
   await signIn(page);
  });
@@ -151,7 +155,8 @@ test.describe('host listings workspace',()=>{
    await expect(first.getByText('Sunny home',{exact:true})).toHaveCSS('font-size','16px');
    const smallText=await page.getByTestId('unit-list').evaluate(el=>Array.from(el.querySelectorAll('div')).filter(node=>node.childElementCount===0&&node.textContent?.trim()).filter(node=>parseFloat(getComputedStyle(node).fontSize)<13).map(node=>node.textContent));
    if(width===375)expect(smallText).toEqual([]);
-   await expect(first.getByText('Off',{exact:true})).toHaveCount(0);
+   await expect(first.getByText(width===1440&&count>1?'Off':'Auto-renew · Off',{exact:true})).toBeVisible();
+   await expect(first.getByRole('button',{name:/Auto-renew details/})).toHaveCount(0);
    await expect(first.getByText('Sunny home · Achrafieh ⌄',{exact:true})).toHaveCount(0);
    if(count>=10){
     const campus=page.getByTestId(`unit-${units[6].id}`);
@@ -161,6 +166,17 @@ test.describe('host listings workspace',()=>{
    }
    if(count===1)await expect(page.getByRole('button',{name:/Collapse Sunny home/})).toHaveCount(0);
    if(count>=10&&width===1440){
+    const autoHeader=await page.getByTestId('auto-renew-column-header').boundingBox();
+    const actionHeader=await page.getByTestId('action-column-header').boundingBox();
+    for(const index of [0,1,4]){
+     const row=page.getByTestId(`unit-${units[index].id}`);
+     const control=await row.getByRole('switch').boundingBox();
+     const menu=await row.getByRole('button',{name:/^Actions for /}).boundingBox();
+     const primary=await row.getByRole('button',{name:/^(Edit|Renew|Update availability) /}).boundingBox();
+     expect(Math.abs(control!.x+control!.width/2-autoHeader!.x-autoHeader!.width/2)).toBeLessThan(1);
+     expect(Math.abs(control!.y+control!.height/2-primary!.y-primary!.height/2)).toBeLessThan(1);
+     expect(Math.abs((primary!.x+menu!.x+menu!.width)/2-actionHeader!.x-actionHeader!.width/2)).toBeLessThan(1);
+    }
     const rented=page.getByTestId(`unit-${units[4].id}`);
     const toggle=await rented.getByRole('switch').boundingBox();
     const primary=await rented.getByRole('button',{name:'Update availability Rented room',exact:true}).boundingBox();
@@ -168,6 +184,57 @@ test.describe('host listings workspace',()=>{
    }
    await screenshot(`portfolio-${count}-${width}`);
   }
+ });
+
+ test('toggle saves keep the table and unrelated switches stable during slow requests',async()=>{
+  const results:any[]=[];
+  for(const width of [1440,768,375])for(const index of [0,5]){
+   limit=24;await page.setViewportSize({width,height:1000});await dashboard();
+   const target=page.getByTestId(`unit-${units[index].id}`).getByRole('switch');
+   const other=page.getByTestId(`unit-${units[6].id}`).getByRole('switch');
+   await target.scrollIntoViewIfNeeded();
+   const measure=()=>page.getByTestId('unit-list').evaluate(el=>{
+    let scroller:Element|null=el.parentElement;
+    while(scroller&&!/(auto|scroll)/.test(getComputedStyle(scroller).overflowY))scroller=scroller.parentElement;
+    return {top:el.getBoundingClientRect().top,height:el.getBoundingClientRect().height,scroll:scroller?.scrollTop??0};
+   });
+   let releasePatch=()=>{},releaseGet=()=>{},patchHeld=false,getHeld=false;
+   const patchGate=new Promise<void>(resolve=>{releasePatch=resolve;});
+   const getGate=new Promise<void>(resolve=>{releaseGet=resolve;});
+   const patch=async(route:any)=>{patchHeld=true;await patchGate;await route.continue();};
+   const get=async(route:any)=>{getHeld=true;await getGate;await route.fallback();};
+   await page.route(`**/${units[index].id}/auto-renew`,patch);
+   await page.route('**/api/listings/mine',get);
+   try {
+    const before=await measure();const wasChecked=await target.isChecked();
+    await target.click();await expect.poll(()=>patchHeld).toBe(true);
+    const unrelatedDisabled=await other.isDisabled();
+    const optimisticChanged=await target.isChecked()!==wasChecked;
+    releasePatch();await expect.poll(()=>getHeld).toBe(true);
+    await expect(page.getByTestId('listings-workspace')).toHaveAttribute('aria-busy','true');
+    const during=await measure();const refreshRows=await page.getByText('Refreshing…',{exact:true}).count();
+    releaseGet();await expect.poll(()=>target.isChecked()).toBe(!wasChecked);await expect(target).toBeEnabled();
+    await expect(page.getByTestId('listings-workspace')).toHaveAttribute('aria-busy','false');
+    await expect(page.getByText('Refreshing…',{exact:true})).toHaveCount(0);
+    const after=await measure();
+    const maxShift=Math.max(...Object.keys(before).flatMap(key=>[Math.abs(during[key as keyof typeof during]-before[key as keyof typeof before]),Math.abs(after[key as keyof typeof after]-before[key as keyof typeof before])]));
+    results.push({width,unit:units[index].title,unrelatedDisabled,optimisticChanged,refreshRows,maxShift,before,during,after});
+   } finally {releasePatch();releaseGet();await page.unroute(`**/${units[index].id}/auto-renew`,patch);await page.unroute('**/api/listings/mine',get);}
+  }
+  await writeFile(path.join(output,'toggle-stability.json'),JSON.stringify(results,null,2));
+  for(const result of results){expect(result.unrelatedDisabled).toBe(false);expect(result.optimisticChanged).toBe(true);expect(result.refreshRows).toBe(0);expect(result.maxShift).toBeLessThan(1);}
+  const failedToggle=page.getByTestId(`unit-${units[5].id}`).getByRole('switch');
+  const original=await failedToggle.isChecked();let reject=()=>{};
+  const failureGate=new Promise<void>(resolve=>{reject=resolve;});
+  const fail=async(route:any)=>{await failureGate;await route.fulfill({status:500,json:{error:{message:'Could not save auto-renew.'}}});};
+  await page.route(`**/${units[5].id}/auto-renew`,fail);
+  try {
+   await failedToggle.click();await expect.poll(()=>failedToggle.isChecked()).toBe(!original);
+   await expect(page.getByTestId(`unit-${units[0].id}`).getByRole('switch')).toBeEnabled();
+   reject();await expect.poll(()=>failedToggle.isChecked()).toBe(original);await expect(failedToggle).toBeEnabled();
+   await expect(page.locator('.swipe-toast').filter({hasText:'Could not save auto-renew.'})).toBeVisible();
+  } finally {reject();await page.unroute(`**/${units[5].id}/auto-renew`,fail);}
+  for(const index of [0,5])await sql`update listings set auto_renew=${units[index].auto_renew} where id=${units[index].id}`;
  });
 
  test('filters, urgency, search, groups, short menus and labeled auto-renew',async()=>{
@@ -184,26 +251,77 @@ test.describe('host listings workspace',()=>{
   await page.getByRole('button',{name:'Expand Bliss House',exact:true}).click();
   const normal=page.getByTestId(`unit-${units[0].id}`);
   await normal.getByRole('button',{name:'Actions for Sunny home',exact:true}).click();
-  for(const name of ['Update availability','Renew','Analytics','Edit','Promote','Was it rented?','Archive','Remove'])await expect(page.getByTestId('workspace-dialog').getByRole('button',{name,exact:true})).toBeVisible();
+  for(const name of ['Update availability','Renew','Auto-renew settings','Analytics','Edit','Promote','Was it rented?','Archive','Remove'])await expect(page.getByTestId('workspace-dialog').getByRole('button',{name,exact:true})).toBeVisible();
   await expect(page.getByTestId('workspace-dialog').getByText('Auto-renew details',{exact:true})).toHaveCount(0);
   await page.keyboard.press('Escape');await expect(page.getByTestId('workspace-dialog')).toHaveCount(0);
   await expect(normal.getByRole('button',{name:'Actions for Sunny home',exact:true})).toBeFocused();
   const toggle=normal.getByRole('switch',{name:'Auto-renew for Sunny home',exact:true});
   const renewalDate=await page.evaluate(value=>new Date(value).toLocaleString(undefined,{month:'short',day:'numeric'}),units[0].expires_at.toISOString());
   await toggle.click();await expect(normal.getByText(`Next renewal by ${renewalDate}`)).toBeVisible();
-  const switchColors=()=>toggle.evaluate(el=>Array.from(el.parentElement!.children).slice(0,2).map(child=>getComputedStyle(child).backgroundColor));
-  await expect.poll(switchColors).toEqual(['rgb(234, 63, 74)','rgb(255, 255, 255)']);
+  const switchColors=()=>toggle.evaluate(el=>['[data-squish-track]','[data-squish-thumb]'].map(selector=>getComputedStyle(el.querySelector(selector)!).backgroundColor));
+  await expect.poll(switchColors).toEqual(['rgb(234, 63, 74)','rgb(242, 242, 242)']);
   expect((await sql`select auto_renew from listings where id=${units[0].id}`)[0].auto_renew).toBe(true);
   await toggle.click();
-  await expect(page.getByTestId('listings-toast')).toContainText('Auto-renew off.');
-  await expect.poll(switchColors).toEqual(['rgb(154, 160, 168)','rgb(255, 255, 255)']);
+  const toast=page.locator('.swipe-toast').filter({hasText:'Auto-renew off.'});
+  await expect(toast).toBeVisible();await expect(toast).toHaveAttribute('data-placement','default');
+  await expect(toast).toHaveCSS('right','32px');await expect(toast).toHaveCSS('bottom','32px');
+  await expect(page.getByTestId('listings-toast')).toHaveCount(0);
+  await expect.poll(switchColors).toEqual(['rgb(209, 213, 219)','rgb(234, 63, 74)']);
   await screenshot('auto-renew-toast-1440');
   const beforeToast=await normal.boundingBox();
-  await expect(page.getByTestId('listings-toast')).toHaveCount(0,{timeout:6000});
+  await expect(toast).toHaveCount(0,{timeout:7000});
   const afterToast=await normal.boundingBox();
   expect(Math.abs(beforeToast!.y-afterToast!.y)).toBeLessThan(1);
-  await normal.getByRole('button',{name:'Auto-renew details for Sunny home',exact:true}).click();await expect(page.getByText(/Renews for 30 days with 1 post credit in the final hour/)).toBeVisible();await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+  await normal.getByRole('button',{name:'Actions for Sunny home',exact:true}).click();await page.getByTestId('workspace-dialog').getByRole('button',{name:'Auto-renew settings',exact:true}).click();await expect(page.getByText(/Renews for 30 days with 1 post credit in the final hour/)).toBeVisible();await page.getByRole('button',{name:'Close dialog',exact:true}).click();
+  await expect(page.getByTestId('workspace-dialog')).toHaveCount(0);
   expect(perRowGets.filter(url=>url.endsWith('/auto-renew'))).toEqual([]);
+  await page.setViewportSize({width:375,height:1000});
+  await toggle.click();await expect(toggle).toBeChecked();
+  const phoneToast=page.locator('.swipe-toast').filter({hasText:'Auto-renew on.'});
+  await expect(phoneToast).toHaveAttribute('data-placement','top');await expect(phoneToast).toHaveCSS('top','8px');
+  await expect.poll(()=>phoneToast.locator('.swipe-toast__card').evaluate(el=>Math.round(el.getBoundingClientRect().top))).toBe(8);
+  await screenshot('auto-renew-toast-375');
+  await phoneToast.getByRole('button',{name:'Dismiss',exact:true}).click();await expect(phoneToast).toHaveCount(0);
+  await expect(toggle).toBeChecked();await toggle.click();await expect(toggle).not.toBeChecked();
+  await page.locator('.swipe-toast').filter({hasText:'Auto-renew off.'}).getByRole('button',{name:'Dismiss',exact:true}).click();
+  await page.setViewportSize({width:1440,height:1000});
+ });
+
+ test('squish switch supports drag, cancellation, keyboard, reduced motion and disabled states',async()=>{
+  limit=24;await page.setViewportSize({width:1440,height:1000});await dashboard();
+  await page.getByRole('textbox',{name:'Search units, places or areas'}).fill('Sunny home');
+  const normal=page.getByTestId(`unit-${units[0].id}`);
+  const toggle=normal.getByRole('switch');
+  const patches:string[]=[];
+  const record=(request:any)=>{if(request.method()==='PATCH'&&request.url().endsWith(`/${units[0].id}/auto-renew`))patches.push(request.url());};
+  page.on('request',record);
+  try {
+   await expect(toggle).not.toBeChecked();
+   await toggle.screenshot({path:path.join(output,'auto-renew-squish-off.png')});
+   const box=(await toggle.boundingBox())!;
+   await page.mouse.move(box.x+14,box.y+14);await page.mouse.down();
+   await page.mouse.move(box.x+16,box.y+14);
+   for(const offset of [44,14,44])await page.mouse.move(box.x+offset,box.y+14,{steps:6});
+   expect(patches).toHaveLength(0);
+   await page.mouse.up();await expect(toggle).toBeChecked();await expect(toggle).toBeEnabled();expect(patches).toHaveLength(1);
+   await page.mouse.move(0,0);
+   await expect.poll(()=>toggle.locator('[data-squish-thumb]').evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).m41)).toBeCloseTo(31,1);
+   await toggle.screenshot({path:path.join(output,'auto-renew-squish-on.png')});
+   await toggle.focus();await page.keyboard.press('Space');await expect(toggle).not.toBeChecked();await expect(toggle).toBeEnabled();
+   await page.keyboard.press('Enter');await expect(toggle).toBeChecked();await expect(toggle).toBeEnabled();
+   await page.keyboard.press('Space');await expect(toggle).not.toBeChecked();await expect(toggle).toBeEnabled();expect(patches).toHaveLength(4);
+   await page.mouse.move(box.x+14,box.y+14);await page.mouse.down();await page.mouse.move(box.x+16,box.y+14);await page.mouse.move(box.x+44,box.y+14,{steps:6});
+   await page.keyboard.press('Escape');await page.mouse.up();await expect(toggle).not.toBeChecked();expect(patches).toHaveLength(4);
+   await page.mouse.move(0,0);await page.emulateMedia({reducedMotion:'reduce'});
+   await toggle.focus();await page.keyboard.press('Space');await expect(toggle).toBeChecked();await expect(toggle).toBeEnabled();
+   await expect.poll(()=>toggle.locator('[data-squish-thumb]').evaluate(el=>{
+    const transform=new DOMMatrix(getComputedStyle(el).transform);return [Math.round(transform.a*1000),Math.round(transform.d*1000),Math.round(transform.m41)];
+   })).toEqual([1000,1000,31]);
+   await page.keyboard.press('Space');await expect(toggle).not.toBeChecked();await expect(toggle).toBeEnabled();
+   await page.getByRole('button',{name:'Clear search',exact:true}).click();
+   const expired=page.getByTestId(`unit-${units[1].id}`).getByRole('switch');await expect(expired).toBeDisabled();
+   const before=patches.length;await expired.click({force:true});await expect(expired).not.toBeChecked();expect(patches).toHaveLength(before);
+  } finally {page.off('request',record);await page.emulateMedia({reducedMotion:'no-preference'});}
  });
 
  test('desktop/mobile healthy, attention, rented, empty and loading screenshots',async()=>{
@@ -215,6 +333,39 @@ test.describe('host listings workspace',()=>{
    limit=0;await dashboard();await expect(page.getByText('Add your first listing',{exact:true})).toBeVisible();await screenshot(`empty-${width}`);
    hold=true;release=undefined;await page.goto('/hosting/listing',{waitUntil:'commit'});await expect(page.getByTestId('listings-loading')).toBeVisible({timeout:30000});await expect.poll(()=>Boolean(release),{timeout:30000}).toBe(true);await screenshot(`loading-${width}`);hold=false;releaseLoading();await expect(page.getByTestId('listings-loading')).toHaveCount(0,{timeout:30000});
   }
+ });
+
+ test('drafts share the list, filter and search without changing real draft slots',async()=>{
+  draftPreview=true;limit=10;
+  try {
+   for(const width of [1440,768,375]){
+    await page.setViewportSize({width,height:1000});await dashboard();
+    const draft=page.getByTestId(`draft-${draftId}`);
+    await expect(draft.getByText('Draft',{exact:true})).toBeVisible();
+    await expect(page.getByText(/In progress ·/)).toHaveCount(0);
+    await expect(page.getByTestId('unit-list').getByTestId(/^unit-/)).toHaveCount(10);
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);expect(overflow).toBe(false);
+    await screenshot(`integrated-drafts-${width}`);
+    if(width===1440){
+     const box=await page.getByTestId('unit-list').boundingBox();
+     await page.screenshot({path:path.join(output,'integrated-drafts-table-1440.png'),clip:{x:box!.x,y:box!.y,width:box!.width,height:Math.min(560,1000-box!.y)}});
+    }
+    await page.getByRole('button',{name:'Filter Drafts',exact:true}).click();
+    await expect(page.getByTestId('unit-list').getByTestId(/^unit-/)).toHaveCount(0);
+    await expect(draft.getByRole('switch')).toHaveCount(0);
+    await draft.getByRole('button',{name:'Continue draft Unfinished apartment in Hamra',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Edit listing',exact:true})).toBeVisible();
+    await expect(page.getByRole('button',{name:/Remove listing/})).toBeVisible();
+    await page.getByRole('button',{name:'Close',exact:true}).last().click();
+    await page.getByRole('textbox',{name:'Search units, places or areas'}).fill('does not exist');
+    await expect(draft).toHaveCount(0);
+    await page.getByRole('button',{name:'Clear search',exact:true}).click();
+    await expect(draft).toBeVisible();
+   }
+   limit=0;await dashboard();await expect(page.getByTestId(`draft-${draftId}`)).toBeVisible();
+   await expect(page.getByText('Add your first listing',{exact:true})).toHaveCount(0);
+   await screenshot('draft-only-375');
+  } finally {draftPreview=false;limit=24;await dashboard();}
  });
 
  test('existing action flows: availability, bed count, renewal, settings, place editing and navigation',async()=>{

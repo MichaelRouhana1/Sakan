@@ -5,11 +5,9 @@ import { SwipeToast } from "@/components/ui/SwipeToast.web";
 import { Studently } from "@/constants/theme";
 import type { Listing } from "@/types/listing";
 import { savedKeys } from "./keys";
-import {
-  subscribeSavedToasts,
-  type SavedToastEvent,
-} from "./savedToast";
+import { subscribeSavedToasts } from "./savedToast";
 import { useToggleSaved } from "./useSavedListings";
+import { applyListingToastEvent, type ListingToastItem } from "./listingToastState";
 
 const STACK = 66;
 const LAYER = 280;
@@ -31,41 +29,15 @@ function usePhoneScreen() {
   return phone;
 }
 
-type ToastItem = {
-  key: string;
-  seq: number;
-  listing: Listing;
-  open: boolean;
-};
-
-function applyToastEvent(prev: ToastItem[], event: SavedToastEvent): ToastItem[] {
-  if (event.kind === "clear") {
-    return prev.map((toast) => {
-      if (toast.listing.id !== event.listingId || !toast.open) return toast;
-      if (event.seq != null && toast.seq !== event.seq) return toast;
-      return { ...toast, open: false };
-    });
-  }
-  return [
-    ...prev.filter((toast) => toast.listing.id !== event.listing.id),
-    {
-      key: `${event.listing.id}:${event.seq}`,
-      seq: event.seq,
-      listing: event.listing,
-      open: true,
-    },
-  ];
-}
-
-/** Same swipe toast as a deleted listing photo, for a new favorite. */
+/** Shared listing feedback; favorites retain their Undo action. */
 export function SavedListingToast() {
   const queryClient = useQueryClient();
   const toggleSaved = useToggleSaved();
   const mobile = usePhoneScreen();
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [toasts, setToasts] = useState<ListingToastItem[]>([]);
 
   useEffect(() => subscribeSavedToasts((event) => {
-    setToasts((prev) => applyToastEvent(prev, event));
+    setToasts((prev) => applyListingToastEvent(prev, event));
   }), []);
 
   function undo(listing: Listing) {
@@ -81,14 +53,14 @@ export function SavedListingToast() {
       {toasts.map((toast, index) => (
         <SwipeToast
           key={toast.key}
-          title="Added to favorites"
-          actionLabel="Undo"
+          title={toast.title}
+          actionLabel={toast.kind === "saved" ? "Undo" : "Dismiss"}
           fuseColor={Studently.color.primary}
           open={toast.open}
           placement={mobile ? "top" : "default"}
           stack={(toasts.length - 1 - index) * STACK}
           layer={LAYER + index}
-          onAction={() => undo(toast.listing)}
+          onAction={() => { if (toast.kind === "saved") undo(toast.listing); }}
           onClose={() => {
             setToasts((prev) => prev.filter((item) => item.key !== toast.key));
           }}

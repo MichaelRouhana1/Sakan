@@ -269,9 +269,6 @@ body:has([data-testid="creation-wizard"]) {
   overflow: hidden;
   scrollbar-gutter: auto;
 }
-[data-testid="wizard-header"] [data-testid="wizard-progress"] {
-  transform: translateY(18px);
-}
 *, *::before, *::after { box-sizing: border-box; }
 a { text-decoration: none; color: inherit; }
 button, [role="button"], [role="link"] { cursor: pointer; }

@@ -11,6 +11,7 @@ import {
 import { campusShellPadTop } from "@/components/campus/CampusShell";
 import { HeroCap } from "@/components/campus/HeroCap";
 import { HeroRipple } from "@/components/campus/HeroRipple";
+import { StrokeHeadline } from "@/components/campus/StrokeHeadline";
 import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
@@ -135,13 +136,12 @@ export function CampusHomePage() {
                 {uni ? `Campus · ${uni}` : "Campus · Lebanon"}
               </LText>
             </View>
-            <LText
-              accessibilityRole="header"
-              variant="display"
-              style={[styles.title, compact && styles.titleCompact]}
-            >
-              {uni ? `Your ${uni} student home` : "Your student home"}
-            </LText>
+            <StrokeHeadline
+              text={uni ? `Your ${uni} student home` : "Your student home"}
+              fontSize={compact ? 36 : 56}
+              lineHeight={compact ? 42 : 62}
+              letterSpacing={compact ? -0.8 : -1.6}
+            />
             <LText
               variant="body"
               tone="muted"
@@ -331,18 +331,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     letterSpacing: 0.2,
     color: "#FFFFFF",
-  },
-  title: {
-    fontSize: 56,
-    lineHeight: 62,
-    letterSpacing: -1.6,
-    alignSelf: "flex-start",
-    pointerEvents: "auto",
-  },
-  titleCompact: {
-    fontSize: 36,
-    lineHeight: 42,
-    letterSpacing: -0.8,
   },
   lede: {
     fontSize: 16,

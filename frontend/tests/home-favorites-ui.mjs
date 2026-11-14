@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 import path from 'node:path';
+import {mkdir,writeFile} from 'node:fs/promises';
 import { build } from '../../backend/node_modules/esbuild/lib/main.js';
 import { chromium, expect } from '@playwright/test';
 
@@ -25,16 +26,30 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {StudentlyHomePage} from './components/web/home/StudentlyHomePage';
 import {ListingResultCard} from './components/web/ListingResultCard';
 import {SaveAuthPrompt} from './features/saved/saveAuthPrompt';
+import {SavedListingToast} from './features/saved/SavedListingToast';
+import {useIsSaved,useToggleSaved} from './features/saved/useSavedListings';
+import {ListingCard} from './components/listings/ListingCard';
+import {ListingMapCarouselCard} from './components/listings/ListingMapCarouselCard';
+import {ListingContactCard} from './components/listings/detail/ListingContactCard';
+import {ListingDetailGallery} from './components/listings/detail/ListingDetailGallery';
 import {useListings} from './features/listings/useListings';
 const client = new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
 function SearchCards(){
   const query = useListings({sort:'newest',pageSize:6});
-  return <div data-testid="search-cards">{query.data?.listings.map(listing => <div key={listing.id} data-testid={'search-listing-'+listing.id} style={{width:240}}><ListingResultCard listing={listing}/></div>)}</div>;
+  return <div data-testid="search-cards" style={{paddingTop:120}}>{query.data?.listings.map(listing => <div key={listing.id} data-testid={'search-listing-'+listing.id} style={{width:240}}><ListingResultCard listing={listing}/></div>)}</div>;
+}
+const sample=${JSON.stringify(listings[0])};
+function FavoriteExamples({kind}){
+ const {data:saved=false}=useIsSaved(sample.id);const toggle=useToggleSaved();const [mode,setMode]=useState('photos');
+ const props={listing:sample,onPress:()=>{(window.navigations??=[]).push('card-open');}};
+ return <div data-testid="favorite-example" style={{paddingTop:120,width:kind==='list'?800:360,maxWidth:'100%'}}>
+  {kind==='map'?<ListingMapCarouselCard {...props} width={300}/>:kind==='native-card'?<ListingCard {...props}/>:kind==='contact'?<ListingContactCard listing={sample} title={sample.title} price="$300" priceLabel="Monthly rent" saved={saved} onSave={()=>toggle.mutate(sample)} onShare={()=>{}} onWhatsApp={()=>{}} onCall={()=>{}} onReport={()=>{}}/>:kind==='gallery'?<ListingDetailGallery listing={sample} height={240} saved={saved} onToggleSave={()=>toggle.mutate(sample)} onBack={()=>{}} mode={mode} onModeChange={setMode}/>:<ListingResultCard listing={sample} variant={kind==='list'?'list':'grid'} interactive={kind!=='preview'}/>}
+ </div>;
 }
 function App(){
   const [surface,setSurface] = useState('home');
   window.setSurface = setSurface;
-  return <><SaveAuthPrompt/>{surface==='home'?<StudentlyHomePage/>:<SearchCards/>}</>;
+  return <><SaveAuthPrompt/>{surface==='home'?<StudentlyHomePage/>:surface==='search'?<SearchCards/>:<FavoriteExamples kind={surface}/>}<SavedListingToast/></>;
 }
 createRoot(document.getElementById('root')).render(<QueryClientProvider client={client}><App/></QueryClientProvider>);
 `;
@@ -47,17 +62,22 @@ const stubs = {
   haptics: `export const ImpactFeedbackStyle={Light:'light',Medium:'medium'};export const impactAsync=async()=>{};`,
   navigation: `export const useHostingNavState=()=>({showBecomeAHost:false,showSwitchToHosting:false});export const openCreateListing=()=>{};`,
   universities: `export const useUniversities=()=>({data:[]});`,
-  decorations: `export const Ionicons=()=>null;export const MapPin=()=>null;export const StudentlyLogo=()=>null;export const ProductSwitchControl=()=>null;export const DownloadAppButton=()=>null;export const InstitutionLogo=()=>null;export const InsightsMarquee=()=>null;export const BestMatchBadge=()=>null;`,
+  decorations: `export const Ionicons=()=>null;export const MapPin=()=>null;export const StudentlyLogo=()=>null;export const ProductSwitchControl=()=>null;export const DownloadAppButton=()=>null;export const InstitutionLogo=()=>null;export const InsightsMarquee=()=>null;export const BestMatchBadge=()=>null;export const ListingMoreMenu=()=>null;`,
   gradient: `import {View} from 'react-native';export const LinearGradient=({children,style})=><View style={style}>{children}</View>;`,
   search: `export const SearchAutocomplete=()=>null;`,
   carousel: `import {View} from 'react-native';export const ListingCardCarousel=()=> <View style={{height:150}}/>;`,
   pillIcons: `export const LISTING_PILL_ICONS={};export const highlightTagIcon=()=>undefined;`,
+  image: `export const Image=()=>null;`,
+  gallery: `import {View} from 'react-native';export const ListingGallery=()=> <View style={{height:240}}/>;export const ListingPinMap=()=>null;`,
+  safearea: `import {View} from 'react-native';export const useSafeAreaInsets=()=>({top:0,right:0,bottom:0,left:0});export const SafeAreaView=View;`,
   svg: `export const Svg=()=>null;export const Path=()=>null;export default Svg;`,
 };
 const bundle = await build({
   stdin: { contents: entry, loader: 'tsx', resolveDir: frontend },
   absWorkingDir: frontend, bundle: true, write: false, format: 'iife',
   platform: 'browser', jsx: 'automatic',
+  outfile: path.join(frontend,'.expo/pulse-heart-tests/bundle.js'),
+  resolveExtensions: ['.web.tsx','.tsx','.web.ts','.ts','.web.js','.js','.jsx','.json'],
   define: { 'process.env.NODE_ENV': '"test"', __DEV__: 'true' },
   alias: { 'react-native': 'react-native-web' },
   plugins: [{ name: 'isolated-boundaries', setup(builder) {
@@ -66,11 +86,13 @@ const bundle = await build({
       [/^expo-router$/, 'router'], [/StudentlyAuthModal$/, 'authModal'],
       [/^@react-native-async-storage\/async-storage$/, 'storage'],
       [/^expo-haptics$/, 'haptics'], [/useHostingNavState$|useEnsureSession$/, 'navigation'],
-      [/useUniversities$/, 'universities'], [/^expo-linear-gradient$/, 'gradient'],
+      [/useUniversities$/, 'universities'], [/^expo-linear-gradient$/, 'gradient'], [/^expo-image$/, 'image'],
       [/SearchAutocomplete$/, 'search'], [/ListingCardCarousel$/, 'carousel'],
       [/^@\/lib\/listingPillIcons$/, 'pillIcons'],
       [/^react-native-svg/, 'svg'],
-      [/^@expo\/vector-icons$|^lucide-react-native$|StudentlyLogo$|ProductSwitchControl$|DownloadAppButton$|InstitutionLogo$|InsightsMarquee$|BestMatchBadge$/, 'decorations'],
+      [/ListingGallery$|ListingPinMap$/, 'gallery'],
+      [/^react-native-safe-area-context$/, 'safearea'],
+      [/^@expo\/vector-icons$|^lucide-react-native$|StudentlyLogo$|ProductSwitchControl$|DownloadAppButton$|InstitutionLogo$|InsightsMarquee$|BestMatchBadge$|ListingMoreMenu$/, 'decorations'],
     ];
     for (const [filter, id] of rules) builder.onResolve({ filter }, () => ({ path: id, namespace: 'stub' }));
     builder.onLoad({ filter: /.*/, namespace: 'stub' }, ({ path: id }) => ({ contents: stubs[id], resolveDir: frontend, loader: 'tsx' }));
@@ -82,8 +104,9 @@ let failListings = false;
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/bundle.js') {
-    res.setHeader('content-type', 'text/javascript'); res.end(bundle.outputFiles[0].contents); return;
+    res.setHeader('content-type', 'text/javascript'); res.end(bundle.outputFiles.find(file=>file.path.endsWith('.js')).contents); return;
   }
+  if (url.pathname === '/bundle.css') { res.setHeader('content-type','text/css');res.end(bundle.outputFiles.find(file=>file.path.endsWith('.css'))?.contents??'');return; }
   if (url.pathname.startsWith('/api/')) {
     res.setHeader('content-type', 'application/json');
     const reply = data => res.end(JSON.stringify(data));
@@ -112,7 +135,7 @@ const server = createServer(async (req, res) => {
     reply({ data: [] }); return;
   }
   res.setHeader('content-type', 'text/html');
-  res.end('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}</style><div id="root"></div><script src="/bundle.js"></script>');
+  res.end('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}</style><div id="root"></div><link rel="stylesheet" href="/bundle.css"><script src="/bundle.js"></script>');
 });
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
 const origin = 'http://127.0.0.1:' + server.address().port;
@@ -184,6 +207,78 @@ try {
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(homeCard(first)).toBeVisible();
   checks.push('failed listing loads show retry and recover without demo cards');
+  // Check the same shared control on every active favorite surface.
+  failListings=false;await page.setViewportSize({width:1440,height:1000});await page.goto(origin);
+  const output=path.resolve(frontend,'../artifacts/pulse-heart');await mkdir(output,{recursive:true});
+  for(const width of [375,768,1440])for(const kind of ['search','list','native-card','map','contact','gallery']){
+    await page.setViewportSize({width,height:1000});await page.evaluate(value=>window.setSurface(value),kind);
+    const heart=(kind==='search'?page.getByTestId('search-listing-'+first):page.getByTestId('favorite-example')).locator('.studently-favorite-pulse').first();
+    await expect(heart).toBeVisible();
+    const before=await heart.boundingBox();const pressed=await heart.getAttribute('aria-pressed');const writesBefore=writes.length;
+    const navigationsBefore=await page.evaluate(()=>(window.navigations??[]).length);
+    await heart.click();await expect(heart).toHaveAttribute('aria-pressed',pressed==='true'?'false':'true');
+    await expect.poll(()=>writes.length).toBe(writesBefore+1);
+    await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+    const after=await heart.boundingBox();assert.equal(after.width,before.width);assert.equal(after.height,before.height);
+    assert.equal(await page.evaluate(()=>(window.navigations??[]).length),navigationsBefore);
+    if(width===1440)await page.getByTestId(kind==='search'?'search-listing-'+first:'favorite-example').screenshot({path:path.join(output,kind+'.png')});
+  }
+  checks.push('one shared pulse control works on grid/list cards, map cards, detail contact cards and mobile galleries at 375/768/1440 without resizing or opening the listing');
+
+  await page.setViewportSize({width:1440,height:1000});await page.evaluate(()=>window.setSurface('search'));
+  let heart=page.getByTestId('search-listing-'+first).locator('.studently-favorite-pulse');
+  if((await heart.getAttribute('aria-pressed'))==='true'){await heart.click();await expect(heart).toHaveAttribute('aria-pressed','false');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);}
+  await heart.evaluate(el=>{
+    window.pulseFrames=[];const start=performance.now();
+    const sample=()=>{const g=el.querySelector('g');const transform=g.transform.baseVal.consolidate();const box=el.getBoundingClientRect();window.pulseFrames.push({scale:transform?.matrix.a??1,width:box.width,height:box.height,liked:el.getAttribute('data-liked')});if(performance.now()-start<900)requestAnimationFrame(sample);};requestAnimationFrame(sample);
+  });
+  await heart.click();await expect(heart).toHaveAttribute('data-running','');await expect(heart).toHaveAttribute('data-liked','true');
+  await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  const frames=await page.evaluate(()=>window.pulseFrames);
+  assert.ok(Math.min(...frames.map(frame=>frame.scale))<.4,'heart must contract to the reference dot phase');
+  assert.ok(Math.max(...frames.map(frame=>frame.scale))>1.02,'heart must pulse beyond its resting scale');
+  assert.equal(new Set(frames.map(frame=>frame.width+':'+frame.height)).size,1);
+  await writeFile(path.join(output,'animation-frames.json'),JSON.stringify(frames,null,2));
+  await heart.screenshot({path:path.join(output,'heart-saved.png')});
+  checks.push('animation contracts to a dot, changes color, overshoots and settles without changing the button layout');
+
+  await heart.focus();await page.keyboard.press('Space');await expect(heart).toHaveAttribute('aria-pressed','false');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  await page.keyboard.press('Enter');await expect(heart).toHaveAttribute('aria-pressed','true');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  await page.emulateMedia({reducedMotion:'reduce'});await heart.click();await expect(heart).toHaveAttribute('data-liked','false');await expect(heart).not.toHaveAttribute('data-running','');
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  checks.push('keyboard toggles and reduced-motion preference preserve favorite state');
+
+  const beforeBurst=writes.length;
+  await heart.click();await expect(heart).toHaveAttribute('aria-pressed','true');
+  await heart.click();await expect(heart).toHaveAttribute('aria-pressed','false');
+  await heart.click();await expect(heart).toHaveAttribute('aria-pressed','true');
+  await expect.poll(()=>writes.length).toBe(beforeBurst+3);
+  await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  await expect(heart).toHaveAttribute('data-liked','true');await expect.poll(()=>saved.has(first)).toBe(true);
+  await heart.click();await expect(heart).toHaveAttribute('aria-pressed','false');
+  await expect.poll(()=>saved.has(first)).toBe(false);
+  await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  checks.push('rapid taps during the pulse keep the latest saved state without duplicate writes');
+
+  await heart.click();await expect(heart).toHaveAttribute('aria-pressed','true');
+  await page.locator('.swipe-toast').filter({hasText:'Added to favorites'}).getByRole('button',{name:'Undo',exact:true}).last().click();
+  await expect(heart).toHaveAttribute('aria-pressed','false');await expect.poll(()=>saved.has(first)).toBe(false);
+  await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  checks.push('favorite toast Undo reverses the pulse and saved state');
+
+  const failure=async route=>route.fulfill({status:500,json:{error:{message:'Save failed'}}});
+  await page.route('**/api/saved/'+first,failure);await heart.click();
+  await expect(heart).toHaveAttribute('aria-pressed','false');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);await expect(heart).toHaveAttribute('data-liked','false');
+  await page.unroute('**/api/saved/'+first,failure);
+  checks.push('failed saves restore the unfilled heart');
+
+  await page.evaluate(()=>window.setSurface('preview'));heart=page.getByTestId('favorite-example').locator('.studently-favorite-pulse');
+  const beforePreview=writes.length;await expect(heart).toBeDisabled();await heart.click({force:true});assert.equal(writes.length,beforePreview);
+  checks.push('preview hearts remain disabled');
+  await page.goto(origin+'?signedout');heart=homeCard(first).locator('.studently-favorite-pulse');await heart.click();
+  await expect(page.getByRole('dialog',{name:'Sign in to save listings'})).toBeVisible();await expect(heart).toHaveAttribute('data-liked','false');await expect(heart).not.toHaveAttribute('data-running','');
+  checks.push('signed-out clicks open sign-in without a false saved animation');
+
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ checks, writes, errors }, null, 2));
 } finally {

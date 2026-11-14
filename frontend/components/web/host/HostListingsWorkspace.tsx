@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useIsFocused } from 'expo-router/react-navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { publishListingFeedback } from '@/features/saved/savedToast';
+import { SquishSwitch } from '@/components/ui/SquishSwitch';
+import { RubberSegment } from '@/components/ui/RubberSegment';
 import { Studently } from '@/constants/theme';
 import type { Listing } from '@/types/listing';
 import { useCredits } from '@/features/credits/useCredits';
@@ -26,8 +29,7 @@ import { listingFilters, placeName, portfolioCounts, unitTitle, unitTypeName, un
 export type WorkspaceDraft = { key: string; title: string; subtitle: string; coverUrl?: string | null; onPress: () => void };
 const workspaceFilters = [...listingFilters, 'Drafts'] as const;
 type WorkspaceFilter = typeof workspaceFilters[number];
-
-type Props = { listings: Listing[]; drafts: WorkspaceDraft[]; loading: boolean; failed: boolean; refreshing: boolean; signedIn: boolean; createDisabled: boolean; onRefresh: () => void; onEdit: (unit: Listing) => void };
+type Props = { listings: Listing[]; drafts: WorkspaceDraft[]; loading: boolean; failed: boolean; refreshing: boolean; signedIn: boolean; createDisabled: boolean; onRefresh: () => Promise<unknown>; onEdit: (unit: Listing) => void };
 type Anchor = { x: number; y: number };
 type Sheet = { kind: 'menu' | 'place'; unit: Listing; anchor?: Anchor } |
   { kind: 'renew' | 'availability' | 'auto' | 'shared' | 'archive' | 'remove'; unit: Listing } |
@@ -50,6 +52,8 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const [sheet, setSheet] = useState<Sheet>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [pendingAutoIds, setPendingAutoIds] = useState<Set<string>>(new Set());
+  const [manualRefresh, setManualRefresh] = useState(false);
   const client = useQueryClient();
   const credits = useCredits(signedIn);
   const archive = useArchiveListing();
@@ -68,20 +72,41 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const wide = Platform.OS === 'web' && width >= 1080 && units.length + drafts.length !== 1;
   const narrow = width < 600;
   const known = !loading && (!failed || units.length > 0);
-  const blockedCredits = units.some(unit => unit.autoRenewState?.enabled && unit.autoRenewState.blocked === 'credits');
-  const shortage = units.length > 0 && (blockedCredits || credits.data?.postCredits === 0);
+  const shortage = units.length > 0 && credits.data?.postCredits === 0;
   const close = () => { setSheet(null); setError(''); };
   const open = (next: Sheet) => { setError(''); setSheet(next); };
-  const refetch = () => { onRefresh(); void credits.refetch(); };
+  const refetch = async () => {
+    setManualRefresh(true);
+    try { await Promise.all([onRefresh(), credits.refetch()]); }
+    finally { setManualRefresh(false); }
+  };
   const auto = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => (await api.patch<{data: NonNullable<Listing['autoRenewState']>}>(`/api/listings/${id}/auto-renew`, { enabled })).data.data,
+    onMutate: async input => {
+      setPendingAutoIds(current => new Set(current).add(input.id));
+      await client.cancelQueries({queryKey: ['listings', 'mine']});
+      const previous = client.getQueryData<Listing[]>(['listings', 'mine'])?.find(unit => unit.id === input.id);
+      client.setQueryData<Listing[]>(['listings', 'mine'], current => current?.map(unit => unit.id === input.id ? {
+        ...unit, autoRenew: input.enabled,
+        autoRenewState: unit.autoRenewState ? {...unit.autoRenewState, enabled: input.enabled} : undefined,
+      } : unit));
+      return {previous};
+    },
     onSuccess: (state, input) => {
       client.setQueryData<Listing[]>(['listings', 'mine'], current => current?.map(unit => unit.id === input.id ? { ...unit, autoRenew: state.enabled, autoRenewState: state } : unit));
+      publishListingFeedback(`auto-renew:${input.id}`, `Auto-renew ${state.enabled ? 'on' : 'off'}.`);
+    },
+    onError: (error, input, context) => {
+      if (context?.previous) client.setQueryData<Listing[]>(['listings', 'mine'], current => current?.map(unit => unit.id === input.id ? {
+        ...unit, autoRenew: context.previous!.autoRenew, autoRenewState: context.previous!.autoRenewState,
+      } : unit));
+      publishListingFeedback(`auto-renew:${input.id}`, message(error));
+    },
+    onSettled: (_data, _error, input) => {
       void client.invalidateQueries({ queryKey: ['listings', 'mine'] });
       void client.invalidateQueries({ queryKey: ['unit-auto-renew'] });
-      setNotice(`Auto-renew ${state.enabled ? 'on' : 'off'}.`);
+      setPendingAutoIds(current => { const next = new Set(current); next.delete(input.id); return next; });
     },
-    onError: error => setNotice(message(error)),
   });
 
   useEffect(() => {
@@ -121,8 +146,8 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
     } catch (e) { setError(message(e)); }
   }
 
-  return <View style={s.root} onLayout={event => setWidth(event.nativeEvent.layout.width)} testID="listings-workspace">
-    <ScrollView keyboardShouldPersistTaps="handled" stickyHeaderIndices={[1]} refreshControl={<RefreshControl refreshing={refreshing && !loading} onRefresh={refetch} tintColor={Studently.color.primary} />} contentContainerStyle={s.scroll}>
+  return <View style={s.root} onLayout={event => setWidth(event.nativeEvent.layout.width)} testID="listings-workspace" aria-busy={loading || refreshing}>
+    <ScrollView keyboardShouldPersistTaps="handled" stickyHeaderIndices={[1]} refreshControl={<RefreshControl refreshing={manualRefresh && !loading} onRefresh={refetch} tintColor={Studently.color.primary} />} contentContainerStyle={s.scroll}>
       <View style={[s.summary, narrow && s.summaryNarrow]}>
         <View style={s.headingRow}><View style={s.flex}>{!narrow ? <Text style={s.eyebrow}>HOST WORKSPACE</Text> : null}<Text style={s.title}>Your listings</Text></View><Button label="Add listing" icon="add" primary onPress={() => open({ kind: 'add' })} disabled={createDisabled} /></View>
         <View style={s.summaryBottom}>
@@ -137,13 +162,13 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
       </View>
 
       <View style={s.toolbar}>
-        <View style={s.filters}>{workspaceFilters.map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`Filter ${value === 'Drafts' ? 'In progress' : value}`} accessibilityState={{ selected: filter === value }} onPress={() => setFilter(value)} style={[s.filter, filter === value && s.filterSelected]}><Text style={[s.filterLabel, filter === value && s.filterLabelSelected]}>{value === 'Drafts' ? 'In progress' : value}</Text><Text style={[s.count, filter === value && s.filterLabelSelected]}>{known || value === 'Drafts' ? filterCounts[value] : '—'}</Text></Pressable>)}</View>
+        <RubberSegment value={filter} onChange={setFilter} items={workspaceFilters.map(value => ({value, label: value === 'Drafts' ? 'In progress' : value, count: known || value === 'Drafts' ? filterCounts[value] : '—'}))} />
         <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={18} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /></View>
       </View>
 
       <View style={[s.body, narrow && s.bodyNarrow]}>
-        {shortage ? <Notice warning text={blockedCredits ? 'Auto-renew needs more post credits.' : 'No post credits. Each unit renewal needs 1 credit.'} action="Buy credits" onPress={() => router.push('/hosting/credits' as never)} /> : null}
-        {failed ? <Notice text={units.length ? 'Couldn’t refresh. Showing your last saved listings.' : 'Couldn’t load your listings.'} action="Retry" onPress={refetch} /> : refreshing && !loading ? <Text style={s.caption}>Refreshing…</Text> : null}
+        {shortage ? <Notice warning text="No post credits. Each unit renewal needs 1 credit." action="Buy credits" onPress={() => router.push('/hosting/credits' as never)} /> : null}
+        {failed ? <Notice text={units.length ? 'Couldn’t refresh. Showing your last saved listings.' : 'Couldn’t load your listings.'} action="Retry" onPress={refetch} /> : null}
         {loading && units.length === 0 && drafts.length === 0 ? <WorkspaceSkeleton wide={wide} /> : units.length === 0 && drafts.length === 0 && !failed && filter !== 'Drafts' ? <Empty title="Add your first listing" detail="Start with a place, then add a whole apartment, private room or shared beds." action="Add listing" onPress={() => open({ kind: 'add' })} /> : !groups.length && !visibleDrafts.length && !failed ? <Empty title={filter === 'Drafts' && !search ? 'No drafts in progress.' : filter === 'Needs attention' && !search ? 'Nothing needs attention right now.' : 'No listings match these filters.'} detail={filter === 'Drafts' && !search ? 'New listings you save before publishing will appear here.' : filter === 'Needs attention' && !search ? 'Your listing times and auto-renew settings are looking good.' : 'Try another unit, place name or area.'} action={filter === 'Needs attention' && !search ? 'Show all' : 'Clear search and filters'} onPress={() => { setFilter('All'); setSearch(''); }} /> : null}
         {groups.length || visibleDrafts.length ? <View style={[s.list, units.length + drafts.length === 1 && s.singleList]} testID="unit-list">
           {wide ? <View style={s.columnHeader}><View style={s.unitColumn}><Text style={s.columnLabel}>UNIT</Text></View><View style={s.timeColumn}><Text style={s.columnLabel}>LISTING TIME</Text></View><View style={s.availabilityColumn}><Text style={s.columnLabel}>AVAILABILITY</Text></View><View style={s.autoColumn} testID="auto-renew-column-header"><Text style={s.columnLabel}>AUTO-RENEW</Text></View><View style={s.actionColumn} testID="action-column-header"><Text style={s.columnLabel}>ACTION</Text></View></View> : null}
@@ -158,7 +183,7 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
                 {!narrow ? <Button label="Add unit" icon="add" disabled={createDisabled} onPress={() => addUnit(group.unit)} /> : null}
                 <MenuTrigger label={`Place options for ${group.name}`} onPress={anchor => open({kind:'place',unit:group.unit,anchor})} />
               </View> : null}
-              {!folded ? group.units.map(unit => <UnitRow key={unit.id} unit={unit} now={now} wide={wide} singlePlace={group.total===1} onAction={kind=>action(unit,kind)} onMenu={anchor=>open({kind:'menu',unit,anchor})} onPlace={anchor=>open({kind:'place',unit,anchor})} onAutoDetails={()=>open({kind:'auto',unit})} onToggle={enabled=>auto.mutate({id:unit.id,enabled})} autoBusy={auto.isPending} onAnalytics={()=>analytics(unit)} />) : null}
+              {!folded ? group.units.map(unit => <UnitRow key={unit.id} unit={unit} now={now} wide={wide} singlePlace={group.total===1} onAction={kind=>action(unit,kind)} onMenu={anchor=>open({kind:'menu',unit,anchor})} onPlace={anchor=>open({kind:'place',unit,anchor})} onToggle={enabled=>auto.mutate({id:unit.id,enabled})} autoBusy={pendingAutoIds.has(unit.id)} onAnalytics={()=>analytics(unit)} />) : null}
             </View>;
           })}
         </View> : null}
@@ -171,6 +196,7 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
         <Text style={s.sheetTitle}>{unitTitle(sheet.unit)}</Text>
         <MenuItem label="Update availability" icon="bed-outline" onPress={()=>open({kind:'availability',unit:sheet.unit})} />
         <MenuItem label="Renew" icon="refresh-outline" disabled={!workspaceFacts(sheet.unit,now).canRenew} onPress={()=>open({kind:'renew',unit:sheet.unit})} />
+        <MenuItem label="Auto-renew settings" icon="sync-outline" onPress={()=>open({kind:'auto',unit:sheet.unit})} />
         <MenuItem label="Analytics" icon="stats-chart-outline" onPress={()=>analytics(sheet.unit)} />
         <MenuItem label="Edit" icon="create-outline" disabled={!workspaceFacts(sheet.unit,now).canEdit} onPress={()=>action(sheet.unit,'edit')} />
         <MenuItem label="Promote" icon="trending-up-outline" disabled={sheet.unit.status==='removed'} onPress={()=>{close();router.push(`/hosting/listing/${sheet.unit.id}/promote` as never);}} />
@@ -183,7 +209,7 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
       sheet?.kind === 'availability' ? <><Text style={s.sheetTitle}>Update availability</Text><Text style={s.muted}>{unitTitle(sheet.unit)}</Text><HostInventoryControl listingId={sheet.unit.id} /></> :
       sheet?.kind === 'shared' ? <PlaceEditor listing={sheet.unit} onClose={close} /> :
       sheet?.kind === 'reminders' ? <HostNotificationPreferences compact /> :
-      sheet?.kind === 'auto' ? <><Text style={s.sheetTitle}>Auto-renew</Text><Text style={s.paragraph}>Renews for 30 days with 1 post credit in the final hour before it expires. Uses credits already in your wallet. Each unit renews separately.</Text><Text style={s.paragraph}>{unitTitle(sheet.unit)}</Text><AutoRenewSummary unit={listings.find(unit=>unit.id===sheet.unit.id)??sheet.unit} now={now} onPress={()=>{}} onToggle={enabled=>auto.mutate({id:sheet.unit.id,enabled})} busy={auto.isPending} details />{sheet.unit.expiresAt ? <Text style={s.paragraph}>Renewal window: {date((expiryTime(sheet.unit.expiresAt)??0)-3600000,true)} – {date(sheet.unit.expiresAt,true)}.</Text> : null}<Text style={s.muted}>Without enough credits or a confirmed available-bed count, the unit expires normally. Renewing after expiry requires your confirmation.</Text><Button label="Refresh eligibility" onPress={refetch} /></> :
+      sheet?.kind === 'auto' ? <><Text style={s.sheetTitle}>Auto-renew</Text><Text style={s.paragraph}>Renews for 30 days with 1 post credit in the final hour before it expires. Uses credits already in your wallet. Each unit renews separately.</Text><Text style={s.paragraph}>{unitTitle(sheet.unit)}</Text><AutoRenewSummary unit={listings.find(unit=>unit.id===sheet.unit.id)??sheet.unit} now={now} onToggle={enabled=>auto.mutate({id:sheet.unit.id,enabled})} busy={pendingAutoIds.has(sheet.unit.id)} compact />{sheet.unit.expiresAt ? <Text style={s.paragraph}>Renewal window: {date((expiryTime(sheet.unit.expiresAt)??0)-3600000,true)} – {date(sheet.unit.expiresAt,true)}.</Text> : null}<Text style={s.muted}>Without enough credits or a confirmed available-bed count, the unit expires normally. Renewing after expiry requires your confirmation.</Text><Button label="Refresh eligibility" onPress={refetch} /></> :
       sheet?.kind === 'add' ? <><Text style={s.sheetTitle}>Add a listing</Text><Text style={s.muted}>Start a new place, or add a unit to one you own.</Text><Button label="New place" icon="home-outline" primary disabled={createDisabled} onPress={()=>addUnit()} /><View style={s.separator} /><Text style={s.smallBold}>UNIT IN AN EXISTING PLACE</Text>{[...new Map(units.filter(unit=>unit.placeId).map(unit=>[unit.placeId,unit])).values()].map(unit=><MenuItem key={unit.placeId} label={`${placeName(unit)} · ${unit.area}`} icon="add" disabled={createDisabled} onPress={()=>addUnit(unit)} />)}{!units.length?<Text style={s.muted}>No saved places yet.</Text>:null}</> :
       sheet?.kind === 'archive' || sheet?.kind === 'remove' ? <><Text style={s.sheetTitle}>{sheet.kind==='archive'?'Archive':'Remove'} this unit?</Text><Text style={s.paragraph}>{unitTitle(sheet.unit)}</Text><Text style={s.muted}>{sheet.kind==='archive'?'Takes this unit off search and turns auto-renew off. Occupancy stays saved.':'Permanently removes this listing. Confirm vacancy first; occupied units must be archived instead.'}</Text>{error?<Text accessibilityRole="alert" style={s.error}>{error}</Text>:null}<Button label={archive.isPending||remove.isPending?'Saving…':sheet.kind==='archive'?'Confirm archive':'Confirm remove'} primary disabled={archive.isPending||remove.isPending} onPress={()=>void destroy(sheet.unit,sheet.kind==='archive'?'archive':'remove')} /></> : null}
     </WorkspaceSheet>
@@ -205,8 +231,9 @@ function DraftRow({draft,wide}:{draft:WorkspaceDraft;wide:boolean}) {
   </View>;
 }
 
-function UnitRow({unit,now,wide,singlePlace,onAction,onMenu,onPlace,onAutoDetails,onToggle,autoBusy,onAnalytics}:{unit:Listing;now:number;wide:boolean;singlePlace:boolean;onAction:(kind:WorkspaceAction)=>void;onMenu:(anchor:Anchor)=>void;onPlace:(anchor:Anchor)=>void;onAutoDetails:()=>void;onToggle:(value:boolean)=>void;autoBusy:boolean;onAnalytics:()=>void}) {
+function UnitRow({unit,now,wide,singlePlace,onAction,onMenu,onPlace,onToggle,autoBusy,onAnalytics}:{unit:Listing;now:number;wide:boolean;singlePlace:boolean;onAction:(kind:WorkspaceAction)=>void;onMenu:(anchor:Anchor)=>void;onPlace:(anchor:Anchor)=>void;onToggle:(value:boolean)=>void;autoBusy:boolean;onAnalytics:()=>void}) {
   const f=workspaceFacts(unit,now);
+  const autoInfo=autoRenewInfo(unit,now);
   const photo=resolveMediaUrl(unit.coverUrl??unit.photos?.[0]?.url??null);
   const {width:viewportWidth}=useWindowDimensions();
   const thumbnailSize=viewportWidth>=1024?72:viewportWidth>=768?64:56;
@@ -224,29 +251,38 @@ function UnitRow({unit,now,wide,singlePlace,onAction,onMenu,onPlace,onAutoDetail
   return <View style={[s.unitRow,!wide&&s.compactRow]} testID={`unit-${unit.id}`}>
     {wide?<>
       <View style={s.unitColumn}>{identity}</View>
-      <View style={s.timeColumn}>{status}{f.expired?<Text style={s.caption}>{date(unit.expiresAt)}</Text>:null}</View>
+      <View style={[s.timeColumn,{minHeight:f.hidden||f.expiring?92:72}]}>{status}{f.expired?<Text style={s.caption}>{date(unit.expiresAt)}</Text>:null}{autoInfo.copy?<Text style={[s.caption,autoInfo.reason&&s.warningText]}>{autoInfo.copy}</Text>:null}{f.enabled&&autoInfo.reason&&unit.expiresAt?<Text style={s.caption}>Due {date(unit.expiresAt)}</Text>:null}</View>
       <View style={s.availabilityColumn}>{availability}</View>
-      <View style={s.autoColumn}><AutoRenewSummary unit={unit} now={now} onPress={onAutoDetails} onToggle={onToggle} busy={autoBusy}/></View>
+      <View style={s.autoColumn}><AutoRenewSummary unit={unit} now={now} onToggle={onToggle} busy={autoBusy} anchored/></View>
       <View style={[s.actionColumn,s.rowActions]}><Button label={primaryLabels[f.primary]} accessibilityLabel={`${primaryLabels[f.primary]} ${unitTitle(unit)}`} primary={f.primary==='renew'} onPress={()=>onAction(f.primary)} /><MenuTrigger label={`Actions for ${unitTitle(unit)}`} onPress={onMenu}/></View>
     </>:<>
       <View style={s.compactTop}>{identity}<MenuTrigger label={`Actions for ${unitTitle(unit)}`} onPress={onMenu}/></View>
       <View style={s.compactStatus}>{status}{availability}</View>
-      <View style={s.compactBottom}><View style={s.flex}><AutoRenewSummary unit={unit} now={now} onPress={onAutoDetails} onToggle={onToggle} busy={autoBusy}/></View><Button label={primaryLabels[f.primary]} accessibilityLabel={`${primaryLabels[f.primary]} ${unitTitle(unit)}`} primary={f.primary==='renew'} onPress={()=>onAction(f.primary)}/></View>
+      <View style={s.compactBottom}><View style={s.flex}><AutoRenewSummary unit={unit} now={now} onToggle={onToggle} busy={autoBusy} compact/></View><Button label={primaryLabels[f.primary]} accessibilityLabel={`${primaryLabels[f.primary]} ${unitTitle(unit)}`} primary={f.primary==='renew'} onPress={()=>onAction(f.primary)}/></View>
     </>}
   </View>;
 }
 
-function AutoRenewSummary({unit,now,onPress,onToggle,busy,details=false}:{unit:Listing;now:number;onPress:()=>void;onToggle:(enabled:boolean)=>void;busy:boolean;details?:boolean}) {
+function autoRenewInfo(unit:Listing,now:number) {
   const f=workspaceFacts(unit,now);
   const ready=unit.autoRenewState!=null;
   const disabled=unit.status==='removed'||f.rented||(!f.enabled&&(f.expired||unit.status!=='active'));
   const reason=f.blocked==='credits'?'Blocked: add credits':f.blocked==='beds'?'Blocked: confirm beds':f.blocked==='account'?'Blocked: account restricted':f.blocked?'Blocked: check availability':null;
   const copy=f.expired?(f.enabled?'Expired · renew manually':'Renew first to enable'):disabled?(f.rented?'Unavailable while rented':'Unavailable'):!ready?'Eligibility unavailable':f.enabled?(reason??`Next renewal by ${date(unit.expiresAt)}`):'';
-  return <View style={s.autoWrap}><View style={s.autoLine}><Pressable accessibilityRole="button" accessibilityLabel={`Auto-renew details for ${unitTitle(unit)}`} onPress={onPress} disabled={details} style={s.autoLabelTouch}><Text style={s.autoLabel}>Auto-renew</Text></Pressable><Switch accessibilityLabel={`Auto-renew for ${unitTitle(unit)}`} value={f.enabled} disabled={disabled||!ready||busy} onValueChange={onToggle} trackColor={{false:'#9AA0A8',true:'#EA3F4A'}} thumbColor='#FFFFFF' {...(Platform.OS==='web'?{activeThumbColor:'#FFFFFF'}:{})} /></View>{copy?<Text style={[s.caption,reason&&s.warningText]}>{copy}</Text>:null}{f.enabled&&reason&&unit.expiresAt?<Text style={s.caption}>Due {date(unit.expiresAt)}</Text>:null}</View>;
+  return {f,ready,disabled,reason,copy};
+}
+
+function AutoRenewSummary({unit,now,onToggle,busy,compact=false,anchored=false}:{unit:Listing;now:number;onToggle:(enabled:boolean)=>void;busy:boolean;compact?:boolean;anchored?:boolean}) {
+  const {f,ready,disabled,reason,copy}=autoRenewInfo(unit,now);
+  const deadline=unit.expiresAt?date(unit.expiresAt):'Date unavailable';
+  const briefReason=f.blocked==='credits'?'Add credits':f.blocked==='beds'?'Confirm beds':f.blocked==='account'?'Check account':'Check availability';
+  const compactCopy=!ready?copy:f.rented?'Unavailable':f.enabled&&!f.expired?(reason?`${briefReason} · ${deadline}`:`Next: ${deadline}`):copy;
+  const fullCopy=`${copy}${f.enabled&&reason&&unit.expiresAt?` · Due ${deadline}`:''}`;
+  return <View style={anchored?s.autoAnchor:s.autoWrap}><SquishSwitch accessibilityLabel={`Auto-renew for ${unitTitle(unit)}`} value={f.enabled} disabled={disabled||!ready||busy} onValueChange={onToggle} /><Text style={[s.autoState,anchored&&s.autoStateBelow]}>{compact?'Auto-renew · ':''}{ready?(f.enabled?'On':'Off'):'—'}</Text>{!anchored?<View style={{minHeight:18,maxWidth:'100%'}}>{compactCopy?<Text numberOfLines={1} accessibilityLabel={fullCopy} style={[s.autoHelper,reason&&s.warningText]}>{compactCopy}</Text>:null}</View>:null}</View>;
 }
 
 function Metric({value,label,tone,onPress}:{value:number|null;label:string;tone?:'warning'|'danger';onPress:()=>void}) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value??'loading'}`} onPress={onPress} style={s.metric}><Text style={[s.metricValue,tone==='warning'&&{color:'#92400E'},tone==='danger'&&{color:'#B42318'}]}>{value??'—'}</Text><Text style={s.metricLabel}>{label}</Text></Pressable>;
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value??'loading'}`} onPress={onPress} style={s.metric}><Text style={[s.metricValue,tone==='warning'&&{color:'#BC3D34'},tone==='danger'&&{color:'#EA3F4A'}]}>{value??'—'}</Text><Text style={s.metricLabel}>{label}</Text></Pressable>;
 }
 function Notice({text,warning=false,action,onPress}:{text:string;warning?:boolean;action?:string;onPress?:()=>void}) { return <View style={[s.notice,warning&&s.noticeWarning]}><Ionicons name={warning?'alert-circle-outline':'information-circle-outline'} size={18} color={warning?'#92400E':'#5E5A55'}/><Text style={[s.small,s.flex,warning&&s.warningText]}>{text}</Text>{action&&onPress?<Button label={action} onPress={onPress}/>:null}</View>; }
 function Empty({title,detail,action,onPress}:{title:string;detail:string;action:string;onPress:()=>void}) { return <View style={s.empty} testID="listings-empty"><View style={s.emptyIcon}><Ionicons name="home-outline" size={28} color="#C0343D"/></View><Text style={s.emptyTitle}>{title}</Text><Text style={s.emptyDetail}>{detail}</Text><Button label={action} primary onPress={onPress}/></View>; }
@@ -305,13 +341,13 @@ const s=StyleSheet.create({
   summaryBottom:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12},metrics:{flexDirection:'row',gap:28},metric:{minHeight:48,justifyContent:'center',gap:1},metricValue:{fontFamily:Studently.type.bodyBold,fontSize:28,lineHeight:34,color:'#1A1A1A'},metricLabel:{fontFamily:Studently.type.body,fontSize:13,color:'#5E5A55'},
   wallet:{flexDirection:'row',alignItems:'center',gap:14},walletLabel:{flexDirection:'row',alignItems:'center',gap:7},summaryFoot:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:4},
   touch:{minHeight:44,justifyContent:'center'},small:{fontFamily:Studently.type.body,fontSize:14,lineHeight:20,color:'#37332F'},smallBold:{fontFamily:Studently.type.bodySemi,fontSize:14,lineHeight:20,color:'#242321'},typePrice:{fontFamily:Studently.type.body,fontSize:14,lineHeight:20,color:'#625E59'},muted:{fontFamily:Studently.type.body,fontSize:13,lineHeight:19,color:'#625E59'},caption:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460'},textLink:{fontFamily:Studently.type.bodySemi,fontSize:13,color:'#AD2D37'},captionLink:{fontFamily:Studently.type.bodyMedium,fontSize:13,lineHeight:18,color:'#6B6460',textDecorationLine:'underline'},
-  toolbar:{backgroundColor:'#F9FAFB',paddingHorizontal:16,paddingTop:8,paddingBottom:12,gap:10,borderBottomWidth:1,borderBottomColor:'#E4E5E7',zIndex:2},filters:{flexDirection:'row',flexWrap:'wrap',gap:4},filter:{flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:12,minHeight:44,borderRadius:8},filterSelected:{backgroundColor:'#FDECEE'},filterLabel:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#5E5A55'},filterLabelSelected:{color:'#A82D36',fontFamily:Studently.type.bodySemi},count:{fontFamily:Studently.type.body,fontSize:13,color:'#6B6460'},searchRow:{flexDirection:'row',alignItems:'center',gap:10},search:{flex:1,flexDirection:'row',alignItems:'center',paddingLeft:12,minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,backgroundColor:'#FFFFFF',gap:8},searchInput:{flex:1,minWidth:0,minHeight:44,paddingVertical:9,paddingRight:8,fontFamily:Studently.type.body,fontSize:15,color:'#1A1A1A'},
+  toolbar:{backgroundColor:'#F9FAFB',paddingHorizontal:16,paddingTop:8,paddingBottom:12,gap:10,borderBottomWidth:1,borderBottomColor:'#E4E5E7',zIndex:2},searchRow:{flexDirection:'row',alignItems:'center',gap:10},search:{flex:1,flexDirection:'row',alignItems:'center',paddingLeft:12,minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,backgroundColor:'#FFFFFF',gap:8},searchInput:{flex:1,minWidth:0,minHeight:44,paddingVertical:9,paddingRight:8,fontFamily:Studently.type.body,fontSize:15,color:'#1A1A1A'},
   body:{paddingHorizontal:16,paddingTop:16,gap:14},bodyNarrow:{paddingHorizontal:12},notice:{padding:12,borderWidth:1,borderColor:'#D9DDE3',borderRadius:10,backgroundColor:'#FFFFFF',flexDirection:'row',alignItems:'center',gap:9,flexWrap:'wrap'},noticeWarning:{backgroundColor:'#FFFBEB',borderColor:'#F0D59D'},warningText:{color:'#92400E'},error:{color:'#B42318',fontFamily:Studently.type.body,fontSize:13,lineHeight:19},toast:{position:'absolute',bottom:24,left:16,right:16,maxWidth:460,alignSelf:'center',zIndex:100,flexDirection:'row',alignItems:'center',gap:10,backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#D9DDE3',paddingLeft:16,borderRadius:12,boxShadow:'0 4px 20px rgba(26,26,26,0.16)'},
-  list:{borderWidth:1,borderColor:'#DFE2E6',borderRadius:12,overflow:'hidden',backgroundColor:'#FFFFFF'},singleList:{maxWidth:720,width:'100%'},columnHeader:{flexDirection:'row',gap:12,paddingHorizontal:16,paddingVertical:12,backgroundColor:'#FAFAFA',borderBottomWidth:1,borderColor:'#E4E5E7'},columnLabel:{fontFamily:Studently.type.bodySemi,fontSize:12,letterSpacing:.7,color:'#6B6460'},unitColumn:{flex:1,minWidth:220},timeColumn:{width:162,justifyContent:'center',gap:4},availabilityColumn:{width:110,justifyContent:'center'},autoColumn:{width:175,justifyContent:'center'},actionColumn:{width:210},
+  list:{borderWidth:1,borderColor:'#DFE2E6',borderRadius:12,overflow:'hidden',backgroundColor:'#FFFFFF'},singleList:{maxWidth:720,width:'100%'},columnHeader:{flexDirection:'row',gap:12,paddingHorizontal:16,paddingVertical:12,backgroundColor:'#FAFAFA',borderBottomWidth:1,borderColor:'#E4E5E7'},columnLabel:{fontFamily:Studently.type.bodySemi,fontSize:12,letterSpacing:.7,color:'#6B6460'},unitColumn:{flex:1,minWidth:220},timeColumn:{width:162,justifyContent:'center',gap:4},availabilityColumn:{width:110,justifyContent:'center'},autoColumn:{width:175,justifyContent:'center',alignItems:'center'},actionColumn:{width:210,justifyContent:'center',alignItems:'center'},
   group:{borderBottomWidth:1,borderColor:'#E4E5E7'},groupHeading:{paddingHorizontal:12,paddingVertical:6,backgroundColor:'#F3F4F6',flexDirection:'row',alignItems:'center',gap:8},groupTitleButton:{flex:1,flexDirection:'row',alignItems:'center',gap:8,minHeight:44,minWidth:0},groupTitle:{fontFamily:Studently.type.bodySemi,fontSize:13,color:'#37332F',lineHeight:19},
-  unitRow:{paddingHorizontal:16,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:12,borderTopWidth:1,borderTopColor:'#ECEDEF',minHeight:96},compactRow:{flexDirection:'column',alignItems:'stretch',gap:10,padding:14},identity:{flexDirection:'row',gap:12,flex:1,minWidth:0,alignItems:'center'},identityCopy:{flex:1,minWidth:0},thumbnail:{width:72,height:72,borderRadius:10,backgroundColor:'#E8EAED'},thumbnailFallback:{width:72,height:72,borderRadius:10,backgroundColor:'#F0F1F3',alignItems:'center',justifyContent:'center'},unitTitle:{fontFamily:Studently.type.bodySemi,fontSize:16,lineHeight:22,color:'#242321'},performance:{minHeight:26,justifyContent:'center',alignSelf:'flex-start'},rowActions:{flexDirection:'row',alignItems:'center',gap:2,justifyContent:'flex-end'},compactTop:{flexDirection:'row',alignItems:'flex-start',gap:8},compactStatus:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8},compactBottom:{flexDirection:'row',alignItems:'center',gap:12},
+  unitRow:{paddingHorizontal:16,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:12,borderTopWidth:1,borderTopColor:'#ECEDEF',minHeight:96},compactRow:{flexDirection:'column',alignItems:'stretch',gap:10,padding:14},identity:{flexDirection:'row',gap:12,flex:1,minWidth:0,alignItems:'center'},identityCopy:{flex:1,minWidth:0},thumbnail:{width:72,height:72,borderRadius:10,backgroundColor:'#E8EAED'},thumbnailFallback:{width:72,height:72,borderRadius:10,backgroundColor:'#F0F1F3',alignItems:'center',justifyContent:'center'},unitTitle:{fontFamily:Studently.type.bodySemi,fontSize:16,lineHeight:22,color:'#242321'},performance:{minHeight:26,justifyContent:'center',alignSelf:'flex-start'},rowActions:{flexDirection:'row',alignItems:'center',gap:2,justifyContent:'center'},compactTop:{flexDirection:'row',alignItems:'flex-start',gap:8},compactStatus:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8},compactBottom:{flexDirection:'row',alignItems:'center',gap:12},
   status:{flexDirection:'row',alignItems:'center',gap:6,alignSelf:'flex-start',maxWidth:'100%',paddingVertical:4},statusWarning:{backgroundColor:'#FFFBEB',paddingHorizontal:7,borderRadius:6},statusExpired:{backgroundColor:'#FEF3F2',paddingHorizontal:7,borderRadius:6},statusDot:{width:5,height:5,borderRadius:3,flexShrink:0},statusText:{fontFamily:Studently.type.bodyMedium,fontSize:14,lineHeight:20,color:'#37332F',flexShrink:1},
-  autoWrap:{gap:1},autoLine:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:7},autoLabelTouch:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6},autoLabel:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#5E5A55',textDecorationLine:'underline'},
+  autoAnchor:{height:28,width:'100%',alignItems:'center'},autoStateBelow:{position:'absolute',top:32,left:0,right:0},autoWrap:{gap:4,alignItems:'center'},autoState:{fontFamily:Studently.type.bodyMedium,fontSize:13,lineHeight:18,color:'#5E5A55',textAlign:'center'},autoHelper:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460',textAlign:'center'},
   button:{minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:'#FFFFFF'},buttonText:{fontFamily:Studently.type.bodySemi,fontSize:14,color:'#37332F'},primaryButton:{backgroundColor:'#EA3F4A',borderColor:'#EA3F4A'},primaryButtonText:{color:'#FFFFFF'},iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:8},
   draftBadge:{backgroundColor:'#F3F4F6',paddingHorizontal:8,borderRadius:6},draftCaption:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460',marginTop:4},draftCompactActions:{flexDirection:'row',justifyContent:'flex-end',alignItems:'center',gap:2},
   empty:{paddingHorizontal:24,paddingVertical:48,alignItems:'center',gap:14},emptyIcon:{width:60,height:60,borderRadius:18,backgroundColor:'#FDECEE',alignItems:'center',justifyContent:'center'},emptyTitle:{fontFamily:Studently.type.bodySemi,fontSize:21,color:'#242321',textAlign:'center'},emptyDetail:{fontFamily:Studently.type.body,fontSize:14,lineHeight:21,color:'#625E59',textAlign:'center',maxWidth:360},

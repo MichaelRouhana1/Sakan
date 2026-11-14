@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { ListingMoreMenu } from "@/components/listings/detail/ListingMoreMenu";
@@ -147,21 +148,8 @@ export function ListingContactCard({
               onReport={onReport}
               canReport={canReport}
             />
-            <Pressable
-              onPress={onSave}
-              accessibilityRole="button"
-              accessibilityLabel={saved ? "Unsave listing" : "Save listing"}
-              style={({ hovered }) => [
-                styles.iconBtn,
-                hovered && styles.iconBtnHover,
-              ]}
-            >
-              <Ionicons
-                name={saved ? "heart" : "heart-outline"}
-                size={16}
-                color={saved ? Studently.color.danger : Studently.color.ink}
-              />
-            </Pressable>
+            <FavoriteButton saved={saved} onPress={onSave} iconSize={16}
+              accessibilityLabel={saved ? 'Unsave listing' : 'Save listing'} style={styles.iconBtn}/>
           </View>
         </View>
 
