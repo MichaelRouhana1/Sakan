@@ -1,34 +1,21 @@
-# Listing wizard
+# Listing wizard — restored visual direction
 
-The listing wizard follows Your listings and the current Studently tokens. This page overrides the older generated design-system palette.
+The saved wizard at `wizard-cards-v1` and the approved units prototype at `c0d3dfb` are the visual references. Preserve their editorial, illustrated composition while retaining the production unit flow and server behavior.
 
-## Visual direction
+## Composition and typography
 
-Use DM Sans throughout: 28/34 bold questions, 20/27 section titles, 16/22 labels, 14–15/22–23 body and 13/19 helper text. Brand red is #ea3f4a; text is #1a1a1a, with #625e59 secondary text. White cards sit on #f9fafb with a quiet #e4e5e7 border, 12px card corners and 8px controls. No decorative art pane, Lottie, grain or serif wizard headings.
+Use a white, full-height wizard with the original `studently.` wordmark, a compact save status and Save & exit. Keep Place, numbered units and Review in the progress header. On desktop, the illustration sits in a warm #fcfbfa left pane (40%; 30% at Review), alongside an unboxed form on white. The form has 48px padding and a 700px maximum width, expanding to 900px at Review. No grey page background or enclosing form card.
 
-The compact header contains the brand, save status and Save & exit. The horizontal progress row contains Place, numbered units and Review, with completed units available to revisit. On narrow screens it scrolls horizontally and brings the current unit into view.
+Restore Playfair Display 700 questions at 42/50px desktop, 36/43px tablet and 32/39px mobile. Body text and controls remain DM Sans; introductory text is 16/25px with a generous 32px gap before the form. Brand red remains #ea3f4a. Links use dark ink and an underline, and selected controls keep the existing red treatment.
 
-Forms use one centred card, up to 760px wide (920px at Review), with 32px desktop padding and 20px on mobile. Space choices and related fields by 16–24px. Keep Back and the primary action in a fixed bottom action bar, above the safe area and keyboard.
+On mobile, show the original illustration above the question in a compact 178px band (220px native), followed by the form with 24px side padding. Keep actions fixed at the bottom with the original thin local-step progress strip. Long forms scroll independently; the header and primary action stay available.
 
-## Screens
+## Illustrations and motion
 
-- Place type: two roomy apartment/building choices with short explanations.
-- Location: labelled address, campus selection and existing map-pin confirmation.
-- Utilities: building access followed by the existing utility and amenity controls.
-- House rules: the shared rules, with conditional fields appearing next to their choice.
-- Building photos: the familiar uploader, clearly optional; Skip for now when empty.
-- Layout: rental type, property type and the existing layout/furnishing controls. A building allows whole apartments only.
-- Unit photos: the same crop, upload, caption, reorder, cover and retry controls; require 3–15 ready photos.
-- Rent: price basis, monthly price, deposit, availability and terms.
-- Title and description: labelled writing fields and the existing writing suggestions.
-- Add another unit: compact thumbnail/title/rent rows, then Copy and Start blank choices. The primary action goes to Review.
-- Review: editable unit rows, one contact form, authoritative per-unit and total credit cost, then Publish or Publish all.
-- Success: confirmed result and actual charged total, unit summaries and Your listings.
+Use the original authored Lottie JSON files, original brand tinting, and subtle grain. Map Place type → house, Location → map, Utilities → electricity, Rules → house rules, Building/unit photos → camera, Layout → room, Rent → pricing, Title/description → writing, and Add another/Review/Success → review. Utilities switches to the original water illustration when its section enters the form viewport. The illustration pane uses the host’s actual place name and a quiet place/unit caption.
 
-An existing place displays a small context card and skips every Place screen. Copied units retain unit values and receive a visible ` (copy)` title suffix; their photo gallery starts empty.
+The web player loads only in the browser; native uses the same original asset data. Reduced motion shows a still frame at 55% and disables entry motion. Otherwise restore the illustration fade and subtle form entrance. Preserve keyboard focus, readable validation/errors, upload controls and confirmation behavior.
 
-## Interaction
+## Production invariants
 
-Use a subtle 160ms fade between screens, and skip it for reduced motion. Photo entrance/fades also respect reduced motion. Move focus to each new question, retain visible keyboard focus on controls and trap/restore focus in removal confirmation. Actions have at least 44px touch targets. Long content scrolls independently of the progress and actions.
-
-Saving / Saved / Couldn’t save with Retry are the only save states. Show a small reload notice for an external revision change. Preserve entered details and explain how to recover from save, upload, quote and publish errors. Unconfirmed publication stays read-only while its saved request is checked safely.
+The new unit-by-unit flow, server draft IDs, last-save-wins notice, Copy suffix and photo clearing, real credit quotes, atomic batch publishing, saved receipts and 402/409 recovery remain in place. No old card orchestration, local draft slots, fake listings, demo paths or prototype labels return. The design restoration must be verified visually against the saved reference, as well as through the existing acceptance checks.

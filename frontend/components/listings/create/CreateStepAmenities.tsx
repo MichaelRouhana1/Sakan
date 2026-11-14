@@ -19,6 +19,7 @@ import {
 } from "@/constants/listingWizard";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { Lister } from "@/constants/listerTheme";
+import { WaterSectionMarker } from '@/features/listings/create/WizardArtSync';
 import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import {
   MAX_CUT_WINDOWS,
@@ -324,7 +325,7 @@ export function CreateStepAmenities() {
         </View>
       ) : null}
       <Enter delay={140}>
-
+        <WaterSectionMarker />
         <WizardFieldLabel required>Water</WizardFieldLabel>
         <FieldSource label="water" keys={["water"]} draft={draft} onReset={reset} />
         <View style={{ height: 8 }} />

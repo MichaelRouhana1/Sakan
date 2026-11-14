@@ -8,7 +8,7 @@ import { env, postgres, signIn, apiRequest } from './creation-wizard-auth.mjs';
 import { fixture, photos, photoNames } from './creation-wizard-fixtures.mjs';
 
 const root=path.resolve(import.meta.dirname,'..'), base=process.env.STUDENTLY_TEST_URL??'http://localhost:8084',api='http://localhost:3002';
-const out=path.resolve(root,'../artifacts/production-wizard');await mkdir(out,{recursive:true});
+const out=path.resolve(root,process.env.STUDENTLY_ARTIFACT_DIR??'../artifacts/production-wizard');await mkdir(out,{recursive:true});
 const url=new URL(env.DATABASE_URL);if(!['localhost','127.0.0.1','[::1]'].includes(url.hostname)||url.pathname!=='/studently_dev')throw Error('UI tests require local studently_dev');
 const sql=postgres(url.toString(),{max:1,onnotice:()=>{}});
 const [guard]=await sql`SELECT environment,database_name FROM studently_ops.environment_guard WHERE singleton=true`;
@@ -26,6 +26,7 @@ const createContext=async(width,state=authState)=>{
 };
 async function screen(p,name){await expect(p.getByTestId(`screen-${name}`)).toBeVisible({timeout:90000});}
 async function shot(p,file,fullPage=false){
+  if(await p.locator('[data-wizard-art-asset]').count())await expect(p.locator('[data-wizard-art-asset] svg')).toHaveCount(1,{timeout:30000});
   const bytes=await p.screenshot({fullPage});
   for(let attempt=0;;attempt++){
     try{await writeFile(path.join(out,file),bytes);return;}
@@ -40,6 +41,10 @@ async function capture(p,name){
   // The form has its own scroll area so the fixed actions stay visible. Capture its remaining fields too.
   const form=p.locator('[data-testid^="screen-"]');
   if(!await form.count())return;
+  await expect(form.getByRole('heading').first()).toHaveCSS('font-family',/PlayfairDisplay/);
+  assert.ok(await p.evaluate(()=>[...document.fonts].some(font=>font.family.includes('PlayfairDisplay_700Bold')&&font.status==='loaded')),`${name}: original display font loaded`);
+  await expect(form).toHaveCSS('border-top-width','0px');
+  assert.ok(!/prototype|saved on this browser/i.test(await form.innerText()),`${name}: production copy`);
   const scroller=await form.evaluateHandle(el=>{for(let a=el.parentElement;a;a=a.parentElement)if(a.scrollHeight>a.clientHeight+10&&getComputedStyle(a).overflowY==='auto')return a;return null;});
   const metrics=await scroller.evaluate(el=>el?{top:el.scrollTop,height:el.clientHeight,max:el.scrollHeight-el.clientHeight}:null);
   if(metrics&&metrics.top<10){for(let top=metrics.height-80,part=2;top<metrics.max+metrics.height-80;top+=metrics.height-80,part++){await scroller.evaluate((el,y)=>{el.scrollTop=Math.min(y,el.scrollHeight-el.clientHeight);},top);await p.waitForTimeout(80);await save(`-part-${part}`);if(top>=metrics.max)break;}await scroller.evaluate((el,y)=>{el.scrollTop=y;},metrics.top);}
@@ -69,7 +74,16 @@ try{
     try{
       const row=await create(p,fixture(m,campus.id,api));await open(p,row);
       const order=['place-type','location','utilities','rules','building-photos','layout','photos','rent','copy','another','review'];
-      for(let i=0;i<9;i++){await capture(p,`${device}-${String(i+1).padStart(2,'0')}-${order[i]}`);await next(p,order[i],order[i+1],order[i]==='building-photos'?'Skip for now':order[i]==='copy'?'Finish unit':'Next');}
+      for(let i=0;i<9;i++){
+        if(order[i]==='utilities'){
+          const marker=p.getByTestId('wizard-water-marker');
+          await marker.evaluate(el=>{for(let a=el.parentElement;a;a=a.parentElement)if(a.scrollHeight>a.clientHeight+10&&getComputedStyle(a).overflowY==='auto'){a.scrollTop+=el.getBoundingClientRect().top-a.getBoundingClientRect().top-a.clientHeight*.35;return;}});
+          await expect(p.locator('[data-wizard-art-asset]')).toHaveAttribute('data-wizard-art-asset','water');await capture(p,`${device}-utilities-water`);
+          await marker.evaluate(el=>{for(let a=el.parentElement;a;a=a.parentElement)if(a.scrollHeight>a.clientHeight+10&&getComputedStyle(a).overflowY==='auto'){a.scrollTop=0;return;}});
+          await expect(p.locator('[data-wizard-art-asset]')).toHaveAttribute('data-wizard-art-asset','utilities');
+        }
+        await capture(p,`${device}-${String(i+1).padStart(2,'0')}-${order[i]}`);await next(p,order[i],order[i+1],order[i]==='building-photos'?'Skip for now':order[i]==='copy'?'Finish unit':'Next');
+      }
       await capture(p,`${device}-10-another`);await p.reload();await screen(p,'another');
       await p.getByRole('button',{name:'Done — review units',exact:true}).click();await screen(p,'review');await capture(p,`${device}-11-review`);
       await p.getByText('Publishing cost',{exact:true}).scrollIntoViewIfNeeded();await capture(p,`${device}-11-contact-cost`);
@@ -173,6 +187,11 @@ try{
     await max.p.getByRole('button',{name:'Edit unit 1',exact:true}).click();await screen(max.p,'layout');await inHeader('Unit 1');
     await shot(max.p,'mobile-progress-jump-unit-1.png');screenshots.push('mobile-progress-jump-unit-1.png');
     checks.push('At the 20-unit maximum on mobile, adding is disabled and the progress header follows Review and jumps back to the edited unit');
+    const motion=max.p.locator('[data-wizard-art-asset]');
+    const mutations=()=>max.p.evaluate(()=>new Promise(resolve=>{let count=0;const svg=document.querySelector('[data-wizard-art-asset] svg');const observer=new MutationObserver(records=>{count+=records.length;});observer.observe(svg,{attributes:true,subtree:true});setTimeout(()=>{observer.disconnect();resolve(count);},700);}));
+    await max.p.emulateMedia({reducedMotion:'no-preference'});await expect(motion).toHaveAttribute('data-wizard-motion','playing');await max.p.waitForTimeout(300);assert.ok(await mutations()>0,'Original artwork animates with motion enabled');
+    await max.p.emulateMedia({reducedMotion:'reduce'});await expect(motion).toHaveAttribute('data-wizard-motion','still');await max.p.waitForTimeout(300);assert.equal(await mutations(),0,'Reduced motion freezes the artwork');
+    checks.push('The original illustration assets render on every screen, Playfair headings and the unboxed layout are restored, and motion preferences start/stop the artwork');
   }finally{await max.c.close();}
   assert.deepEqual(errors,[]);
 }catch(e){for(const c of contexts){const p=c.pages().at(-1);if(p&&!p.isClosed())await p.screenshot({path:path.join(out,'failure-screen.png')}).catch(()=>{});}await writeFile(path.join(out,'failure.json'),JSON.stringify({error:String(e),checks,errors},null,2));throw e;}
