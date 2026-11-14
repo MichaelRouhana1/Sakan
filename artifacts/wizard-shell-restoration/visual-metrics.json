@@ -1,0 +1,38 @@
+{
+  "base": "http://localhost:8085",
+  "metrics": [
+    {
+      "width": 1440,
+      "header": 76,
+      "artWidth": 655.5,
+      "border": "0px",
+      "art": {
+        "x": 10.953125,
+        "y": 319.296875,
+        "width": 633.59375,
+        "height": 356.390625,
+        "top": 319.296875,
+        "right": 644.546875,
+        "bottom": 675.6875,
+        "left": 10.953125
+      }
+    },
+    {
+      "width": 375,
+      "header": 60,
+      "artWidth": 360,
+      "border": "0px",
+      "art": {
+        "x": 10,
+        "y": 84.375,
+        "width": 340,
+        "height": 191.25,
+        "top": 84.375,
+        "right": 350,
+        "bottom": 275.625,
+        "left": 10
+      }
+    }
+  ],
+  "errors": []
+}

@@ -20,7 +20,9 @@ import { BuildingAccessFields, CreateStepSpecs } from './CreateStepSpecs';
 import { CreateStepPricing } from './CreateStepPricing';
 import { CreateStepCopy } from './CreateStepCopy';
 import { CreateStepContact } from './CreateStepContact';
+import { CreateFooter } from './CreateFooter';
 import { CreationWizardStage } from './CreationWizardStage';
+import { Lister } from '@/constants/listerTheme';
 import { Studently } from '@/constants/theme';
 import { PROPERTY_TYPE_OPTIONS, PRICE_BASIS_OPTIONS, SPACE_TYPE_OPTIONS } from '@/constants/listingWizard';
 import { HOST_CREDITS_PATH, HOST_LISTINGS_PATH } from '@/constants/hostRoutes';
@@ -64,7 +66,7 @@ export function CreationWizard(props: { draftId?: string; placeId?: string; fres
   useEffect(() => { if (fontError) throw fontError; }, [fontError]);
   if (auth.isLoading || !fontsLoaded) return <View style={s.center}><ActivityIndicator color={Studently.color.primary} accessibilityLabel="Loading your account" /></View>;
   if (!auth.isSignedIn || !auth.session) return <View style={s.root}>
-    <View style={[s.header, width < 600 && s.headerNarrow]}><Text style={s.brandText}>studently<Text style={s.brandDot}>.</Text></Text></View>
+    <View style={[s.header, width < 600 && s.headerStacked]}><Text style={s.brandText}>studently<Text style={s.brandDot}>.</Text></Text></View>
     <CreationWizardStage screen="place-type"><View style={[s.formCard, width < 1024 && s.formStacked, width < 600 && s.formNarrow]}>
       <Text style={s.eyebrow}>Your place, together</Text><Text style={[s.title, width < 1024 && s.titleCompact, width < 600 && s.titleNarrow]}>A place for their next chapter.</Text>
       <Text style={s.intro}>Sign in to save your place and units, then pick up from any device.</Text>
@@ -156,24 +158,30 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
       onEdit={editable && !locked ? () => send({ type: 'editUnit', id: u.id }) : undefined} onRemove={editable && !locked ? () => setRemoveId(u.id) : undefined} />)}
   </View>;
   const goPublish = () => { setShowValidation(true); if (!errors.length && (quote.data || state.pendingAttempt)) void flow.publish(quote.data ?? { units: [], total: 0, balance: 0 }); };
-  const sections = isPlace ? PLACE_SCREENS : isUnit ? UNIT_SCREENS : [];
-  const sectionIndex = (sections as readonly Screen[]).indexOf(screen);
-  return <ListingFormContext.Provider value={form}>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[s.root, { paddingTop: insets.top }]} testID="creation-wizard">
-      <View style={[s.header, narrow && s.headerNarrow]}>
-        <View style={s.brand}><Text style={[s.brandText, narrow && s.brandTextNarrow]}>studently<Text style={s.brandDot}>.</Text></Text></View>
-        <View style={s.saveActions}><Text accessibilityLiveRegion="polite" role="status" style={[s.saveLabel, saveState === 'error' && s.errorText]}>{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving…' : 'Couldn’t save'}</Text>
-          {saveState === 'error' ? <Link label="Retry" onPress={() => { void persist().catch(() => {}); }} /> : null}
-          <Link label="Save & exit" onPress={() => void saveExit()} />
-        </View>
-      </View>
-      <View style={s.progressWrap}><ScrollView horizontal ref={progress} showsHorizontalScrollIndicator={false} accessibilityLabel="Wizard progress" contentContainerStyle={s.progress}>
+  const progressControl = <View style={s.progressWrap}><ScrollView horizontal ref={progress} showsHorizontalScrollIndicator={false} accessibilityLabel="Wizard progress" contentContainerStyle={s.progress}>
         <Phase label={state.place.id ? 'Place · existing' : 'Place'} current={isPlace} complete={state.completedPlace.length === 5} disabled={locked || Boolean(state.place.id) || isPlace || state.completedPlace.length !== 5} onPress={() => send({ type: 'editPlace' })} onLayout={x => progressLayout('place', x)} />
         {state.units.map((u, i) => <Phase key={u.id} label={`Unit ${i + 1}`} current={!isPlace && activeId === u.id && screen !== 'review' && screen !== 'success'} complete={unitComplete(state, u)}
           disabled={locked || state.completedPlace.length !== 5 || (activeId === u.id && isUnit)} onPress={() => send({ type: 'editUnit', id: u.id })}
           onLayout={x => progressLayout(u.id, x)} />)}
         <Phase label="Review" current={screen === 'review' || screen === 'success'} complete={record.status === 'published'} disabled={locked || !state.reviewVisited || screen === 'review'} onPress={() => send({ type: 'review' })} onLayout={x => progressLayout('review', x)} />
-      </ScrollView></View>
+      </ScrollView></View>;
+  const footerLabel = screen === 'success' ? 'Your listings' : screen === 'review' ? flow.publishing ? 'Publishing…' : state.pendingAttempt ? 'Retry publishing' : state.units.length > 1 ? 'Publish all' : 'Publish' : screen === 'another' ? 'Done — review units' : screen === 'copy' ? state.returnTo ? 'Save unit' : 'Finish unit' : screen === 'building-photos' && !state.place.photos.length ? 'Skip for now' : 'Next';
+  const footerAction = () => {
+    if (screen === 'success') exit();
+    else if (screen === 'review') goPublish();
+    else if (screen === 'another') { setShowValidation(true); if (state.units.every(u => unitComplete(state, u))) send({ type: 'review' }); }
+    else next();
+  };
+  return <ListingFormContext.Provider value={form}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[s.root, { paddingTop: insets.top }]} testID="creation-wizard">
+      <View style={[s.header, !split && s.headerStacked]} testID="wizard-header">
+        <View style={s.saveActions}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Save & exit" onPress={() => void saveExit()} style={[s.saveExit, !split && s.saveExitPill]}><Text style={[s.saveExitText, !split && s.saveExitPillText]}>Save & exit</Text></Pressable>
+          <Text accessibilityLiveRegion="polite" role="status" style={[s.saveLabel, saveState === 'error' && s.errorText]}>{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving…' : 'Couldn’t save'}</Text>
+          {saveState === 'error' ? <Link label="Retry" onPress={() => { void persist().catch(() => {}); }} /> : null}
+        </View>
+        {split ? progressControl : null}
+      </View>
       {flow.changedElsewhere && screen !== 'success' ? <View style={s.notice} accessibilityRole="alert"><Text style={s.noticeText}>Updated on another device. Reload?</Text><Link label="Reload" onPress={() => void flow.reload()} /><Link label="Dismiss" onPress={flow.dismissNotice} /></View> : null}
       <CreationWizardStage screen={screen} unitId={activeId} placeName={state.place.data.buildingName} unitCount={state.units.length} scrollRef={content}>
         <Animated.View key={`${screen}:${activeId}`} entering={reduced ? undefined : FadeInDown.duration(250)} style={[s.formCard, screen === 'review' && s.reviewCard, !split && s.formStacked, narrow && s.formNarrow]} testID={`screen-${screen}`}>
@@ -208,14 +216,11 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
           {showValidation && errors.length ? <View style={s.errors} accessibilityRole="alert"><Text style={s.sectionLabel}>Check these details to continue</Text>{[...new Set(errors)].map(e => <Text key={e} style={s.errorText}>• {validationMessage(e)}</Text>)}{screen === 'review' ? state.units.filter(u => !unitComplete(state, u)).map((u,i) => <Link key={u.id} label={`Complete ${u.data.title || `unit ${i + 1}`}`} onPress={() => send({ type: 'editUnit', id: u.id })} />) : null}</View> : null}
         </Animated.View>
       </CreationWizardStage>
-      <View style={[s.footer, { paddingBottom: Math.max(16, insets.bottom) }, narrow && s.footerNarrow]}>
-        {!split && sections.length ? <View style={s.stepTrack} accessibilityRole="progressbar" accessibilityLabel={isPlace ? 'Place steps' : 'Unit steps'} accessibilityValue={{ min: 1, max: sections.length, now: sectionIndex + 1 }}>{sections.map((value, i) => <View key={value} style={[s.stepTick, i <= sectionIndex && s.stepTickDone]} />)}</View> : null}
-        <View style={s.footerRow}>
-        <View style={s.footerStart}>{screen !== 'place-type' && screen !== 'success' && !(screen === 'layout' && state.place.id && index === 0 && !state.returnTo) ? <Link label="Back" disabled={locked} onPress={form.goBack} /> : null}
-          {split ? <Text style={s.footerNote}>{isPlace ? 'Shared by every unit' : isUnit ? `Unit ${index + 1} of ${state.units.length} · a space of its own` : `${state.units.length} ${state.units.length === 1 ? 'unit' : 'units'} · one shared place`}</Text> : null}
-        </View>
-        {screen === 'success' ? <LButton label="Your listings" onPress={exit} style={s.primary} /> : screen === 'review' ? <LButton label={flow.publishing ? 'Publishing…' : state.pendingAttempt ? 'Retry publishing' : state.units.length > 1 ? 'Publish all' : 'Publish'} loading={flow.publishing} disabled={!state.pendingAttempt && (!quoteReady || !afford || quote.isError)} onPress={goPublish} style={s.primary} /> : screen === 'another' ? <LButton label="Done — review units" disabled={locked} onPress={() => { setShowValidation(true); if (state.units.every(u => unitComplete(state, u))) send({ type: 'review' }); }} style={s.primary} /> : <LButton label={screen === 'copy' ? state.returnTo ? 'Save unit' : 'Finish unit' : screen === 'building-photos' && !state.place.photos.length ? 'Skip for now' : 'Next'} onPress={next} disabled={locked} style={s.primary} />}
-        </View>
+      <View style={{ paddingBottom: insets.bottom, backgroundColor: Lister.color.surface }}>
+        {!split ? <View style={s.footerProgress}>{progressControl}</View> : null}
+        <CreateFooter borderless={!split} hideBack={screen === 'place-type' || screen === 'success' || (screen === 'layout' && Boolean(state.place.id) && index === 0 && !state.returnTo)} onBack={form.goBack}
+          nextLabel={footerLabel} onNext={footerAction} nextLoading={screen === 'review' && flow.publishing}
+          nextDisabled={screen === 'success' ? false : screen === 'review' ? !state.pendingAttempt && (!quoteReady || !afford || quote.isError) : locked} />
       </View>
       <Modal visible={Boolean(removeId)} transparent animationType={reduced ? 'none' : 'fade'} onRequestClose={() => setRemoveId(null)}>
         <View style={s.scrim}><View style={s.dialog} role="dialog" accessibilityViewIsModal accessibilityLabel="Remove unit" testID="remove-unit-dialog"><Text style={s.sectionTitle}>Remove this unit?</Text><Text style={s.body}>“{state.units.find(u => u.id === removeId)?.data.title || 'Untitled unit'}” will be removed from this draft.</Text><View style={s.dialogButtons}><Link label="Keep unit" onPress={() => setRemoveId(null)} /><LButton label="Remove unit" variant="danger" onPress={() => { if (removeId) send({ type: 'remove', id: removeId }); setRemoveId(null); }} style={s.primary} /></View></View></View>
@@ -228,7 +233,9 @@ function Link({ label, onPress, disabled = false }: { label: string; onPress: ()
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.link, disabled && s.locked]}><Text style={s.linkText}>{label}</Text></Pressable>;
 }
 function Phase({ label, current, complete, disabled, onPress, onLayout }: { label: string; current: boolean; complete: boolean; disabled: boolean; onPress: () => void; onLayout?: (x: number) => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: current, disabled }} disabled={disabled} onPress={onPress} onLayout={e => onLayout?.(e.nativeEvent.layout.x)} style={[s.phase, current && s.activePhase]}><View style={[s.phaseDot, (complete || current) && s.completeDot]}>{complete ? <Ionicons name="checkmark" size={13} color={Studently.color.primary} /> : <Text style={[s.phaseNumber, current && s.phaseNumberCurrent]}>{label.match(/\d+/)?.[0] ?? (label.startsWith('Place') ? '1' : '✓')}</Text>}</View><Text style={[s.phaseText, current && s.activePhaseText]}>{label}</Text></Pressable>;
+  const { width } = useWindowDimensions();
+  const footer = width < (Platform.OS === 'web' ? 1024 : 768);
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: current, disabled }} disabled={disabled} onPress={onPress} onLayout={e => onLayout?.(e.nativeEvent.layout.x)} style={s.phase}><View style={[s.phaseTick, complete && s.phaseTickDone, current && s.phaseTickCurrent, footer && s.footerTick, footer && (complete || current) && s.footerTickDone]} /><Text style={[s.phaseText, current && s.activePhaseText]}>{label}</Text></Pressable>;
 }
 function Choice({ title, detail, icon, disabled, onPress }: { title: string; detail: string; icon: keyof typeof Ionicons.glyphMap; disabled: boolean; onPress: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.choice, pressed && s.selectedChoice, disabled && s.locked]}><Ionicons name={icon} size={24} color={Studently.color.primary} /><Text style={s.sectionLabel}>{title}</Text><Text style={s.helper}>{detail}</Text></Pressable>;
@@ -245,15 +252,16 @@ function UnitRow({ unit, index, complete, credits, narrow, onEdit, onRemove }: {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { height: '100dvh' as unknown as number, overflow: 'hidden' } : {}) },
   center: { flex: 1, minHeight: 400, padding: 32, gap: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 36, paddingTop: 22, paddingBottom: 18, minHeight: 78, gap: 14, backgroundColor: '#FFFFFF' }, headerNarrow: { paddingHorizontal: 20, paddingVertical: 10, minHeight: 66, flexWrap: 'wrap' },
-  brand: { flexDirection: 'row', alignItems: 'center' }, brandText: { fontFamily: Studently.type.bodyBold, fontSize: 29, letterSpacing: -1.3, color: '#242321' }, brandTextNarrow: { fontSize: 25 }, brandDot: { color: '#EA3F4A' },
-  saveActions: { flexDirection: 'row', gap: 18, alignItems: 'center' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, color: '#6B6460' },
-  progressWrap: { backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEEAE7' }, progress: { paddingHorizontal: 24, gap: 8, paddingBottom: 8 },
-  phase: { flexDirection: 'row', gap: 7, alignItems: 'center', minHeight: 48, paddingHorizontal: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' }, activePhase: { borderBottomColor: '#EA3F4A' },
-  phaseDot: { width: 19, height: 19, borderRadius: 10, borderWidth: 1, borderColor: '#D9DDE3', alignItems: 'center', justifyContent: 'center' }, completeDot: { backgroundColor: '#FDECEE', borderColor: '#F7B7BC' },
-  phaseText: { fontFamily: Studently.type.body, fontSize: 13, color: '#6B6460' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: '#1A1A1A' },
-  phaseNumber: { fontFamily: Studently.type.body, fontSize: 11, color: '#938B85' }, phaseNumberCurrent: { color: '#EA3F4A' },
-  formCard: { width: '100%', maxWidth: 700, paddingHorizontal: 48, paddingTop: 48, paddingBottom: 64, alignSelf: 'center' }, reviewCard: { maxWidth: 900 }, formStacked: { paddingHorizontal: 36, paddingTop: 36, paddingBottom: 48 }, formNarrow: { paddingHorizontal: 24, paddingTop: 28 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Platform.OS === 'web' ? 32 : 24, paddingTop: Platform.OS === 'web' ? 20 : 0, paddingBottom: 12, gap: 16, backgroundColor: Lister.color.surface }, headerStacked: { paddingTop: 12, paddingBottom: 12 },
+  brandText: { fontFamily: Studently.type.bodyBold, fontSize: 29, letterSpacing: -1.3, color: '#242321' }, brandDot: { color: '#EA3F4A' },
+  saveActions: { flexDirection: 'row', gap: 16, alignItems: 'center' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, color: '#6B6460' },
+  saveExit: { paddingVertical: 10, paddingHorizontal: 4, cursor: 'pointer' }, saveExitText: { fontFamily: Lister.type.bodySemi, fontSize: 15, color: Lister.color.ink, textDecorationLine: 'underline' },
+  saveExitPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: '#B0B0B0', backgroundColor: Lister.color.surface }, saveExitPillText: { fontSize: 14, textDecorationLine: 'none' },
+  progressWrap: { flex: 1, minWidth: 0 }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
+  phase: { flex: 1, minWidth: 68, minHeight: 44, justifyContent: 'center', gap: 6 }, phaseTick: { height: 3, borderRadius: 2, backgroundColor: Lister.color.border, width: '100%' }, phaseTickDone: { backgroundColor: Lister.color.primary }, phaseTickCurrent: { backgroundColor: Lister.color.primaryDeep },
+  footerTick: { height: 2, borderRadius: 1, backgroundColor: '#DDDDDD' }, footerTickDone: { backgroundColor: '#222222' },
+  phaseText: { fontFamily: Studently.type.body, fontSize: 11, color: '#6B6460', textAlign: 'center' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: Lister.color.ink },
+  formCard: { width: '100%', maxWidth: 640, paddingHorizontal: Platform.OS === 'web' ? 48 : 28, paddingTop: 48, paddingBottom: 64, alignSelf: 'flex-start' }, reviewCard: { maxWidth: 900 }, formStacked: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48 }, formNarrow: { paddingHorizontal: 24, paddingTop: 8 },
   eyebrow: { fontFamily: Studently.type.bodySemi, fontSize: 11, lineHeight: 18, letterSpacing: 1.5, textTransform: 'uppercase', color: '#6B6460', marginBottom: 14 },
   title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 42, lineHeight: 50, letterSpacing: -.8, color: '#242321', maxWidth: 560 }, titleCompact: { fontSize: 36, lineHeight: 43 }, titleNarrow: { fontSize: 32, lineHeight: 39 }, intro: { fontFamily: Studently.type.body, fontSize: 16, lineHeight: 25, color: '#6B6460', marginTop: 16, marginBottom: 32, maxWidth: 530 },
   sectionTitle: { fontFamily: Studently.type.bodySemi, fontSize: 20, lineHeight: 27, color: '#242321', marginBottom: 16 }, sectionLabel: { fontFamily: Studently.type.bodySemi, fontSize: 16, lineHeight: 22, color: '#242321' },
@@ -263,8 +271,7 @@ const s = StyleSheet.create({
   thumbnail: { width: 72, height: 72, borderRadius: 8, backgroundColor: '#F3F4F6' }, thumbnailNarrow: { width: 52, height: 62 }, photoEmpty: { width: 52, height: 62, borderRadius: 8, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }, unitTitle: { fontFamily: Studently.type.bodySemi, fontSize: 16, lineHeight: 22, color: '#242321', marginVertical: 3 },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginVertical: 24 }, choice: { flex: 1, minWidth: 125, gap: 10, padding: 18, borderWidth: 1, borderColor: '#DED7D2', borderRadius: 12, backgroundColor: '#FFFFFF', cursor: 'pointer' }, selectedChoice: { borderColor: '#EA3F4A', backgroundColor: '#FDECEE' },
   contact: { borderTopWidth: 1, borderTopColor: '#E4E5E7', marginTop: 24, paddingTop: 28 }, cost: { marginTop: 28, padding: 20, gap: 10, borderWidth: 1, borderColor: '#E4E5E7', borderRadius: 8, backgroundColor: '#F9FAFB' }, totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, total: { fontFamily: Studently.type.bodyBold, fontSize: 18, color: '#1A1A1A' },
-  footer: { paddingHorizontal: 36, paddingTop: 18, borderTopWidth: 1, borderTopColor: '#E9E4E1', backgroundColor: '#FFFFFF' }, footerNarrow: { paddingHorizontal: 20, paddingTop: 14 }, footerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, minHeight: 52 }, footerStart: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 28 }, footerNote: { fontFamily: Studently.type.body, fontSize: 12, color: '#6B6460', flexShrink: 1 }, primary: { minHeight: 52, borderRadius: 8, minWidth: 100, paddingHorizontal: 24 },
-  stepTrack: { flexDirection: 'row', gap: 5, marginBottom: 12 }, stepTick: { flex: 1, height: 2, borderRadius: 1, backgroundColor: '#DDDDDD' }, stepTickDone: { backgroundColor: '#242321' },
+  primary: { minHeight: 52, borderRadius: 8, minWidth: 100, paddingHorizontal: 24 },
   link: { minHeight: 44, justifyContent: 'center', cursor: 'pointer' }, linkText: { fontFamily: Studently.type.bodySemi, fontSize: 14, color: '#242321', textDecorationLine: 'underline' }, locked: { opacity: .55 },
   notice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, gap: 18, backgroundColor: '#FFFBEB', borderBottomWidth: 1, borderBottomColor: '#F0D59D' }, noticeText: { fontFamily: Studently.type.body, fontSize: 13, color: '#92400E' },
   errors: { marginTop: 24, padding: 16, borderRadius: 8, backgroundColor: '#FEF3F2', borderWidth: 1, borderColor: '#F1C5C0', gap: 6 }, errorText: { fontFamily: Studently.type.body, fontSize: 13, lineHeight: 20, color: '#B42318' },
