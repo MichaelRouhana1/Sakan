@@ -6,13 +6,15 @@
   "scripts": {
     "dev:frontend": "npm --prefix frontend start",
     "dev:backend": "npm --prefix backend run dev",
+    "dev:waitlist": "npm --prefix waitlist run dev",
     "build:backend": "npm --prefix backend run build",
+    "build:waitlist": "npm --prefix waitlist run build",
     "db:generate": "npm --prefix backend run db:generate",
     "db:push": "npm --prefix backend run db:push",
     "db:studio": "npm --prefix backend run db:studio",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
-    "install:all": "npm --prefix frontend install && npm --prefix backend install",
+    "install:all": "npm --prefix frontend install && npm --prefix backend install && npm --prefix waitlist install",
     "db:reset:dev": "npm --prefix backend run db:reset:dev --",
     "db:places:dry-run": "npm --prefix backend run db:places:dry-run"
   },
