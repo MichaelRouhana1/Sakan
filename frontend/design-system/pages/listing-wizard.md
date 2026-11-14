@@ -24,7 +24,7 @@ The new unit-by-unit flow, server draft IDs, last-save-wins notice, Copy suffix 
 
 ## Header and transition stability
 
-Save & exit, save status and progress labels share a 20px line height and one center line. Reserve a fixed 88px save-status slot so Saving/Saved cannot move progress. Progress tracks sit above their labels without affecting text alignment.
+The progress tracks sit level with the middle of Save & exit and the save status; step labels sit below the tracks. Lower the desktop web progress block by 18px. Do not offset the mobile footer progress. Reserve a fixed 88px save-status slot so Saving/Saved cannot move progress. Progress tracks sit above their labels without affecting text alignment.
 
 Each screen uses one 160ms opacity entrance. Preserve field wrapper layout while suppressing nested staggered entrances in the wizard. Focus headings before paint with preventScroll; reset the form scroll once, with no delayed focus timer. Keep document scrolling disabled only while the full-height wizard is mounted.
 
