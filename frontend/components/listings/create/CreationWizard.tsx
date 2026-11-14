@@ -157,7 +157,7 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
       onEdit={editable && !locked ? () => send({ type: 'editUnit', id: u.id }) : undefined} onRemove={editable && !locked ? () => setRemoveId(u.id) : undefined} />)}
   </View>;
   const goPublish = () => { setShowValidation(true); if (!errors.length && (quote.data || state.pendingAttempt)) void flow.publish(quote.data ?? { units: [], total: 0, balance: 0 }); };
-  const progressControl = <View style={s.progressWrap}><ScrollView horizontal ref={progress} showsHorizontalScrollIndicator={false} accessibilityLabel="Wizard progress" contentContainerStyle={s.progress}>
+  const progressControl = <View testID="wizard-progress" style={[s.progressWrap, split && s.progressDesktop]}><ScrollView horizontal ref={progress} showsHorizontalScrollIndicator={false} accessibilityLabel="Wizard progress" contentContainerStyle={s.progress}>
         <Phase label={state.place.id ? 'Place · existing' : 'Place'} current={isPlace} complete={state.completedPlace.length === 5} disabled={locked || Boolean(state.place.id) || isPlace || state.completedPlace.length !== 5} onPress={() => send({ type: 'editPlace' })} onLayout={x => progressLayout('place', x)} />
         {state.units.map((u, i) => <Phase key={u.id} label={`Unit ${i + 1}`} current={!isPlace && activeId === u.id && screen !== 'review' && screen !== 'success'} complete={unitComplete(state, u)}
           disabled={locked || state.completedPlace.length !== 5 || (activeId === u.id && isUnit)} onPress={() => send({ type: 'editUnit', id: u.id })}
@@ -174,12 +174,14 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
   return <ListingFormContext.Provider value={form}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[s.root, { paddingTop: insets.top }]} testID="creation-wizard">
       <View style={[s.header, !split && s.headerStacked]} testID="wizard-header">
-        <View style={s.saveActions}>
+        <View style={[s.headerSide, !split && s.headerSideMobile]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Save & exit" onPress={() => void saveExit()} style={[s.saveExit, !split && s.saveExitPill]}><Text style={[s.saveExitText, !split && s.saveExitPillText]}>Save & exit</Text></Pressable>
+        </View>
+        {split ? <View style={s.headerProgress}>{progressControl}</View> : null}
+        <View style={[s.headerSide, s.saveActions, !split && s.headerStatusMobile]}>
           <Text accessibilityLiveRegion="polite" role="status" style={[s.saveLabel, saveState === 'error' && s.errorText]}>{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving…' : 'Couldn’t save'}</Text>
           {saveState === 'error' ? <Link label="Retry" onPress={() => { void persist().catch(() => {}); }} /> : null}
         </View>
-        {split ? progressControl : null}
       </View>
       {flow.changedElsewhere && screen !== 'success' ? <View style={s.notice} accessibilityRole="alert"><Text style={s.noticeText}>Updated on another device. Reload?</Text><Link label="Reload" onPress={() => void flow.reload()} /><Link label="Dismiss" onPress={flow.dismissNotice} /></View> : null}
       <CreationWizardStage screen={screen} unitId={activeId} placeName={state.place.data.buildingName} unitCount={state.units.length} scrollRef={content}>
@@ -253,10 +255,11 @@ const s = StyleSheet.create({
   center: { flex: 1, minHeight: 400, padding: 32, gap: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Platform.OS === 'web' ? 32 : 24, paddingTop: Platform.OS === 'web' ? 20 : 0, paddingBottom: 12, gap: 16, backgroundColor: Lister.color.surface }, headerStacked: { paddingTop: 12, paddingBottom: 12 },
   brandText: { fontFamily: Studently.type.bodyBold, fontSize: 29, letterSpacing: -1.3, color: '#242321' }, brandDot: { color: '#EA3F4A' },
-  saveActions: { flexDirection: 'row', gap: 16, alignItems: 'center' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, width: 88, color: '#6B6460' },
+  headerSide: { width: 160, minHeight: 44, justifyContent: 'center', alignItems: 'flex-start' }, headerSideMobile: { width: undefined }, headerStatusMobile: { width: undefined, flex: 1, minWidth: 0 }, headerProgress: { flex: 1, minWidth: 0, flexDirection: 'row', justifyContent: 'center' },
+  saveActions: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, width: 88, textAlign: 'right', color: '#6B6460' },
   saveExit: { paddingVertical: 10, paddingHorizontal: 4, cursor: 'pointer' }, saveExitText: { fontFamily: Lister.type.bodySemi, fontSize: 15, lineHeight: 20, color: Lister.color.ink, textDecorationLine: 'underline' },
   saveExitPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: '#B0B0B0', backgroundColor: Lister.color.surface }, saveExitPillText: { fontSize: 14, textDecorationLine: 'none' },
-  progressWrap: { flex: 1, minWidth: 0 }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
+  progressWrap: { flex: 1, minWidth: 0 }, progressDesktop: { maxWidth: 720 }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
   phase: { flex: 1, minWidth: 68, minHeight: 44, justifyContent: 'center' }, phaseTick: { position: 'absolute', top: 2, left: 0, height: 3, borderRadius: 2, backgroundColor: Lister.color.border, width: '100%' }, phaseTickDone: { backgroundColor: Lister.color.primary }, phaseTickCurrent: { backgroundColor: Lister.color.primaryDeep },
   footerTick: { height: 2, borderRadius: 1, backgroundColor: '#DDDDDD' }, footerTickDone: { backgroundColor: '#222222' },
   phaseText: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, color: '#6B6460', textAlign: 'center' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: Lister.color.ink },

@@ -4,7 +4,7 @@ The saved wizard at `wizard-cards-v1` is the reference for the outer shell, illu
 
 ## Composition and typography
 
-Use the saved white, full-height shell: Save & exit on the left, thin progress tracks on the right on desktop. Keep the production Saving / Saved / Couldn’t save state alongside it. Place, numbered units and Review remain clickable progress labels. On mobile, restore the outlined Save & exit pill and place the progress tracks above the footer actions.
+Use the saved white, full-height shell: Save & exit on the left, compact progress centered on the page, and Saving / Saved / Couldn’t save at the right. Cap desktop progress at 720px and use equal 160px side slots so the progress stays centered regardless of save state. Place, numbered units and Review remain clickable progress labels. On mobile, restore the outlined Save & exit pill and place the progress tracks above the footer actions.
 
 Restore the original 46% web illustration pane (42% native; 30% at web Review), without a vertical divider, tinted panel or added place captions. Use the saved aspect-aware `wizardLottieFrame` dimensions: up to 680px wide / 560px high on desktop and 340px wide / 260px high on mobile. Web Review uses the original square up to 640px. The form uses the saved 640px desktop maximum with 48px side padding. No enclosing form card.
 
