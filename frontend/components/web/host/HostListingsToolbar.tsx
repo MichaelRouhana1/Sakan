@@ -15,33 +15,45 @@ type Props = {
   createDisabled?: boolean;
 };
 
+export function HostListingsLayoutButton({
+  layout,
+  onLayoutChange,
+}: {
+  layout: HostListingsLayout;
+  onLayoutChange: (layout: HostListingsLayout) => void;
+}) {
+  const nextLayout = layout === "grid" ? "list" : "grid";
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={
+        layout === "grid" ? "Switch to list view" : "Switch to grid view"
+      }
+      onPress={() => onLayoutChange(nextLayout)}
+      style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+    >
+      <Ionicons
+        name={layout === "grid" ? "reorder-three-outline" : "grid-outline"}
+        size={18}
+        color={Studently.color.ink}
+      />
+    </Pressable>
+  );
+}
+
 export function HostListingsToolbar({
   layout,
   onLayoutChange,
   createDisabled = false,
 }: Props) {
   const router = useRouter();
-  const nextLayout = layout === "grid" ? "list" : "grid";
 
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
         <Text style={styles.title}>Your listings</Text>
         <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              layout === "grid" ? "Switch to list view" : "Switch to grid view"
-            }
-            onPress={() => onLayoutChange(nextLayout)}
-            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-          >
-            <Ionicons
-              name={layout === "grid" ? "reorder-three-outline" : "grid-outline"}
-              size={18}
-              color={Studently.color.ink}
-            />
-          </Pressable>
+          <HostListingsLayoutButton layout={layout} onLayoutChange={onLayoutChange} />
           <View
             {...(Platform.OS === "web" && createDisabled
               ? { title: CREATE_LISTING_CAP_MESSAGE }

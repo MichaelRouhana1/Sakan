@@ -24,6 +24,7 @@ import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { api } from '@/lib/api';
 import { appleTabScrollInset } from '@/components/ui/Glass';
 import { expiryTime } from './hostListingStatus';
+import { HostListingsLayoutButton, type HostListingsLayout } from './HostListingsToolbar';
 import { listingFilters, placeName, portfolioCounts, unitTitle, unitTypeName, unitCampusName, workspaceFacts, workspaceGroups, type WorkspaceAction } from './listingsWorkspaceModel';
 
 export type WorkspaceDraft = { key: string; title: string; subtitle: string; coverUrl?: string | null; onPress: () => void };
@@ -47,6 +48,7 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const [filter, setFilter] = useState<WorkspaceFilter>(() => workspaceFilters.find(value => value === params.filter) ?? 'All');
   const [search, setSearch] = useState(() => typeof params.q === 'string' ? params.q : '');
   const [sort, setSort] = useState<'urgency' | 'name'>(params.sort === 'name' ? 'name' : 'urgency');
+  const [layoutChoice, setLayoutChoice] = useState<HostListingsLayout | null>(null);
   const [width, setWidth] = useState(0);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -69,7 +71,10 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
     return sort === 'name' ? [...result].sort((a,b) => a.title.localeCompare(b.title, undefined, {numeric:true})) : result;
   }, [drafts, filter, search, sort]);
   const filterCounts = {...counts, All: units.length + drafts.length, Drafts: drafts.length};
-  const wide = Platform.OS === 'web' && width >= 1080 && units.length + drafts.length !== 1;
+  const count = units.length + drafts.length;
+  const autoList = Platform.OS === 'web' && width >= 1080 && count !== 1;
+  const layout: HostListingsLayout = layoutChoice ?? (autoList ? 'list' : 'grid');
+  const wide = layout === 'list' && Platform.OS === 'web' && width >= 1080;
   const narrow = width < 600;
   const known = !loading && (!failed || units.length > 0);
   const shortage = units.length > 0 && credits.data?.postCredits === 0;
@@ -163,14 +168,14 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
 
       <View style={s.toolbar}>
         <RubberSegment value={filter} onChange={setFilter} items={workspaceFilters.map(value => ({value, label: value === 'Drafts' ? 'In progress' : value, count: known || value === 'Drafts' ? filterCounts[value] : '—'}))} />
-        <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={18} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /></View>
+        <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={18} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /><HostListingsLayoutButton layout={layout} onLayoutChange={setLayoutChoice} /></View>
       </View>
 
       <View style={[s.body, narrow && s.bodyNarrow]}>
         {shortage ? <Notice warning text="No post credits. Each unit renewal needs 1 credit." action="Buy credits" onPress={() => router.push('/hosting/credits' as never)} /> : null}
         {failed ? <Notice text={units.length ? 'Couldn’t refresh. Showing your last saved listings.' : 'Couldn’t load your listings.'} action="Retry" onPress={refetch} /> : null}
         {loading && units.length === 0 && drafts.length === 0 ? <WorkspaceSkeleton wide={wide} /> : units.length === 0 && drafts.length === 0 && !failed && filter !== 'Drafts' ? <Empty title="Add your first listing" detail="Start with a place, then add a whole apartment, private room or shared beds." action="Add listing" onPress={() => open({ kind: 'add' })} /> : !groups.length && !visibleDrafts.length && !failed ? <Empty title={filter === 'Drafts' && !search ? 'No drafts in progress.' : filter === 'Needs attention' && !search ? 'Nothing needs attention right now.' : 'No listings match these filters.'} detail={filter === 'Drafts' && !search ? 'New listings you save before publishing will appear here.' : filter === 'Needs attention' && !search ? 'Your listing times and auto-renew settings are looking good.' : 'Try another unit, place name or area.'} action={filter === 'Needs attention' && !search ? 'Show all' : 'Clear search and filters'} onPress={() => { setFilter('All'); setSearch(''); }} /> : null}
-        {groups.length || visibleDrafts.length ? <View style={[s.list, units.length + drafts.length === 1 && s.singleList]} testID="unit-list">
+        {groups.length || visibleDrafts.length ? <View style={[s.list, !wide && count === 1 && s.singleList]} testID="unit-list">
           {wide ? <View style={s.columnHeader}><View style={s.unitColumn}><Text style={s.columnLabel}>UNIT</Text></View><View style={s.timeColumn}><Text style={s.columnLabel}>LISTING TIME</Text></View><View style={s.availabilityColumn}><Text style={s.columnLabel}>AVAILABILITY</Text></View><View style={s.autoColumn} testID="auto-renew-column-header"><Text style={s.columnLabel}>AUTO-RENEW</Text></View><View style={s.actionColumn} testID="action-column-header"><Text style={s.columnLabel}>ACTION</Text></View></View> : null}
           {visibleDrafts.map(draft => <DraftRow key={draft.key} draft={draft} wide={wide} />)}
           {groups.map(group => {
