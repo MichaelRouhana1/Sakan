@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
+import { FindMyPlaceFab } from "@/components/web/FindMyPlaceFab";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
@@ -1159,6 +1160,10 @@ export function StudentlyHomePage() {
           </View>
         </View>
       </ScrollView>
+      <FindMyPlaceFab
+        visibleOn="/"
+        onPress={() => router.push({ pathname: "/search", params: { guide: "1" } })}
+      />
       <StudentlyAuthModal
         visible={authModalOpen}
         onClose={() => setAuthModalOpen(false)}

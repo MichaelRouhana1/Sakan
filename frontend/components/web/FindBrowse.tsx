@@ -656,7 +656,7 @@ export function FindBrowse() {
           onApply={applyBrowseFilters}
         />
       )}
-      <FindMyPlaceFab onPress={openMatcher} hidden={browse.open || (isMap && !isDesktop)} />
+      <FindMyPlaceFab visibleOn="/search" onPress={openMatcher} hidden={browse.open || (isMap && !isDesktop)} />
     </View>
   );
 }

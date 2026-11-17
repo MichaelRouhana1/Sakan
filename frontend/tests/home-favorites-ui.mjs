@@ -56,7 +56,7 @@ createRoot(document.getElementById('root')).render(<QueryClientProvider client={
 const stubs = {
   api: `import axios from 'axios';export const API_BASE_URL=location.origin;export const api=axios.create({baseURL:location.origin,headers:{Authorization:'Bearer test-session'}});`,
   auth: `import {useSyncExternalStore} from 'react';const params=new URLSearchParams(location.search);let state={isSignedIn:!params.has('signedout'),isLoading:params.has('loading')};const listeners=new Set();window.setAuth=next=>{state={...state,...next};listeners.forEach(fn=>fn());};export const useAuthSession=()=>{const auth=useSyncExternalStore(fn=>{listeners.add(fn);return()=>listeners.delete(fn);},()=>state);return {...auth,hasClerkSession:auth.isSignedIn,session:auth.isSignedIn?{userId:'renter'}:null,user:auth.isSignedIn?{email:'renter@example.com'}:null,logout:async()=>window.setAuth({isSignedIn:false})};};`,
-  router: `export const router={push:url=>{(window.navigations??=[]).push(url);}};export const useRouter=()=>router;`,
+  router: `export const router={push:url=>{(window.navigations??=[]).push(url);}};export const useRouter=()=>router;export const usePathname=()=>location.pathname;`,
   authModal: `export const StudentlyAuthModal=({visible,title,onClose})=>visible?<div role="dialog" aria-label={title||'Sign in to Studently'}><button onClick={onClose}>Close sign in</button></div>:null;`,
   storage: `export default {getItem:async key=>localStorage.getItem(key),setItem:async(key,value)=>localStorage.setItem(key,value),removeItem:async key=>localStorage.removeItem(key)};`,
   haptics: `export const ImpactFeedbackStyle={Light:'light',Medium:'medium'};export const impactAsync=async()=>{};`,

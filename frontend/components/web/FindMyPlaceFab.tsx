@@ -20,17 +20,6 @@ const BOT_LOTTIE: unknown = require("../../assets/lottie/find-place-bot.json");
 
 const LABEL = "Need help finding a place?";
 
-function hidesFindPlaceBot(pathname: string) {
-  return (
-    pathname === "/hosting" ||
-    pathname.startsWith("/hosting/") ||
-    pathname === "/create" ||
-    pathname.startsWith("/create/") ||
-    pathname === "/campus" ||
-    pathname.startsWith("/campus/")
-  );
-}
-
 let animationDataPromise: Promise<object> | null = null;
 
 function moduleUri(mod: unknown): string | null {
@@ -239,9 +228,11 @@ function FabBody({
 export function FindMyPlaceFab({
   onPress,
   hidden = false,
+  visibleOn,
 }: {
   onPress: () => void;
   hidden?: boolean;
+  visibleOn: "/" | "/search";
 }) {
   const pathname = usePathname();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
@@ -250,9 +241,9 @@ export function FindMyPlaceFab({
     setPortalRoot(document.body);
   }, []);
 
-  // Portaled to document.body, so a kept-alive search screen would otherwise
-  // leave this control floating over hosting, the listing wizard, and campus.
-  if (!portalRoot || hidesFindPlaceBot(pathname)) return null;
+  // Screens can stay mounted after navigation; only the active page owns
+  // the bot portal, including when moving between home and search.
+  if (!portalRoot || pathname !== visibleOn) return null;
   return createPortal(
     <FabBody onPress={onPress} hidden={hidden} />,
     portalRoot,
