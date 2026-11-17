@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Image,
   Linking,
@@ -51,6 +51,7 @@ import { useUniversities } from "@/features/universities/useUniversities";
 import { homeBrowseHref } from "@/lib/browseSearchUrl";
 import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
 import { InsightsMarquee } from "./InsightsMarquee";
+import { homeRevealProps, useHomeScrollReveal } from "./useHomeScrollReveal";
 import type { Listing } from "@/types/listing";
 
 const IS_WEB = Platform.OS === "web";
@@ -205,8 +206,8 @@ function SectionHeader({
   return (
     <View style={styles.sectionHeadRow}>
       <View style={styles.sectionHeadText}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {subtitle ? <Text style={styles.sectionSub}>{subtitle}</Text> : null}
+        <Text {...homeRevealProps("up")} style={styles.sectionTitle}>{title}</Text>
+        {subtitle ? <Text {...homeRevealProps("up")} style={styles.sectionSub}>{subtitle}</Text> : null}
       </View>
       {rowEnd}
     </View>
@@ -462,7 +463,7 @@ function ListingCard({
   width?: number;
 }) {
   return (
-    <View testID={`home-listing-${item.id}`} style={{ width, flexShrink: 0 }}>
+    <View {...homeRevealProps("card", 60, "listings")} testID={`home-listing-${item.id}`} style={{ width, flexShrink: 0 }}>
       <ListingResultCard listing={item} badgeLimit={3} />
     </View>
   );
@@ -470,6 +471,8 @@ function ListingCard({
 
 export function StudentlyHomePage() {
   const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  useHomeScrollReveal(scrollRef);
   const [navSolid, setNavSolid] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
@@ -614,6 +617,7 @@ export function StudentlyHomePage() {
       <HomeNav solid={navSolid} onRequestAuth={openAuth} />
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -690,6 +694,7 @@ export function StudentlyHomePage() {
               return (
                 <Pressable
                   key={tab.id}
+                  {...homeRevealProps("soft", 35, "discover-pills")}
                   onPress={() => setDiscoverTab(tab.id)}
                   style={[styles.countryTab, active && styles.countryTabActive]}
                 >
@@ -715,6 +720,7 @@ export function StudentlyHomePage() {
             <View style={styles.citiesWrap}>
               <View
                 {...({ className: "sk-cities-grid" } as object)}
+                {...homeRevealProps("fade", 0)}
                 style={[
                   styles.citiesGrid,
                   {
@@ -814,6 +820,7 @@ export function StudentlyHomePage() {
               return (
                 <Pressable
                   key={p}
+                  {...homeRevealProps("soft", 35, "listing-pills")}
                   onPress={() => setRailPill(p)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
@@ -892,7 +899,7 @@ export function StudentlyHomePage() {
               contentContainerStyle={styles.testimonialRail}
             >
               {TESTIMONIALS.map((t) => (
-                <View key={t.id} style={styles.testimonialCard}>
+                <View {...homeRevealProps("card", 60, "testimonials")} key={t.id} style={styles.testimonialCard}>
                   <View style={styles.stars}>
                     {[0, 1, 2, 3, 4].map((i) => (
                       <Ionicons key={i} name="star" size={14} color="#00B67A" />
@@ -915,7 +922,7 @@ export function StudentlyHomePage() {
           />
           <View style={[styles.valueGrid, isNarrow && styles.valueGridNarrow]}>
             {VALUE_PROPS.map((v) => (
-              <View key={v.id} style={styles.valueCard}>
+              <View {...homeRevealProps("up", 60)} key={v.id} style={styles.valueCard}>
                 <View style={styles.valueIcon}>
                   <Ionicons name={v.icon} size={26} color={Studently.color.primary} />
                 </View>
@@ -936,6 +943,7 @@ export function StudentlyHomePage() {
             {PROMO_CARDS.map((p) => (
               <Pressable
                 key={p.id}
+                {...homeRevealProps("card", 60, "promos")}
                 style={[
                   styles.promoCard,
                   p.tone === "warm" && styles.promoWarm,
@@ -987,7 +995,7 @@ export function StudentlyHomePage() {
           />
           <View style={[styles.steps, isNarrow && styles.stepsNarrow]}>
             {STEPS.map((s, i) => (
-              <View key={s.n} style={styles.stepWrap}>
+              <View {...homeRevealProps("card", 110)} key={s.n} style={styles.stepWrap}>
                 <View style={styles.stepCard}>
                   <View style={styles.stepCircle}>
                     <Text style={styles.stepN}>{s.n}</Text>
@@ -1010,7 +1018,7 @@ export function StudentlyHomePage() {
             { paddingHorizontal: padX, flexDirection: isNarrow ? "column" : "row", gap: 16 },
           ]}
         >
-          <Pressable style={styles.bannerCard} onPress={() => goBrowse()}>
+          <Pressable {...homeRevealProps("photo", 80)} style={styles.bannerCard} onPress={() => goBrowse()}>
             <Image
               source={{
                 uri: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=70",
@@ -1034,7 +1042,7 @@ export function StudentlyHomePage() {
         {/* ─── 10. DIRECTORY ─── */}
         <View style={[styles.section, { paddingHorizontal: padX }]}>
           <SectionHeader title="Neighborhoods & universities" />
-          <View style={styles.dirTabs}>
+          <View {...homeRevealProps("soft", 60)} style={styles.dirTabs}>
             {(
               [
                 ["areas", "Areas"],
@@ -1061,6 +1069,7 @@ export function StudentlyHomePage() {
             {(dirTab === "areas" ? DIRECTORY_AREAS : DIRECTORY_UNIS).map((name) => (
               <Pressable
                 key={name}
+                {...homeRevealProps("soft", 22)}
                 onPress={() =>
                   goBrowse(dirTab === "areas" ? { areas: [name] } : undefined)
                 }
@@ -1079,7 +1088,7 @@ export function StudentlyHomePage() {
             subtitle="Questions about browsing or listing."
           />
           <View style={[styles.helpGrid, isNarrow && styles.helpGridNarrow]}>
-            <Pressable onPress={openAuth} style={styles.helpCard}>
+            <Pressable {...homeRevealProps("card", 60, "help")} onPress={openAuth} style={styles.helpCard}>
               <View style={[styles.helpIcon, { backgroundColor: "#E8EEF6" }]}>
                 <Ionicons
                   name="chatbubbles-outline"
@@ -1098,6 +1107,7 @@ export function StudentlyHomePage() {
                 )
               }
               style={styles.helpCard}
+              {...homeRevealProps("card", 60, "help")}
             >
               <View style={[styles.helpIcon, { backgroundColor: "#E7F8F3" }]}>
                 <Ionicons name="logo-whatsapp" size={24} color="#128C7E" />
@@ -1108,6 +1118,7 @@ export function StudentlyHomePage() {
             <Pressable
               onPress={() => Linking.openURL("mailto:hello@studently.app")}
               style={styles.helpCard}
+              {...homeRevealProps("card", 60, "help")}
             >
               <View style={[styles.helpIcon, { backgroundColor: "#FEF3C7" }]}>
                 <Ionicons name="mail-outline" size={24} color="#B45309" />
@@ -1123,21 +1134,21 @@ export function StudentlyHomePage() {
           <View style={[styles.footerInner, { paddingHorizontal: padX }]}>
             <View style={[styles.footerGrid, isNarrow && styles.footerGridNarrow]}>
               <View style={styles.footerBrandCol}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View {...homeRevealProps("up", 60)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <StudentlyLogo size={40} />
                   <Text style={styles.footerBrand}>Studently</Text>
                 </View>
-                <Text style={styles.footerTag}>
+                <Text {...homeRevealProps("up", 60)} style={styles.footerTag}>
                   Lebanon rental classifieds — find, save, connect on WhatsApp.
                 </Text>
               </View>
-              <View>
+              <View {...homeRevealProps("up", 70)}>
                 <Text style={styles.footerHead}>Company</Text>
                 <Pressable onPress={() => goBrowse()}>
                   <Text style={styles.footerLink}>Find housing</Text>
                 </Pressable>
               </View>
-              <View>
+              <View {...homeRevealProps("up", 70)}>
                 <Text style={styles.footerHead}>Support</Text>
                 <Pressable onPress={openAuth}>
                   <Text style={styles.footerLink}>Help</Text>
@@ -1146,14 +1157,14 @@ export function StudentlyHomePage() {
                   <Text style={styles.footerLink}>Contact</Text>
                 </Pressable>
               </View>
-              <View>
+              <View {...homeRevealProps("up", 70)}>
                 <Text style={styles.footerHead}>Account</Text>
                 <Pressable onPress={openAuth}>
                   <Text style={styles.footerLink}>Sign in</Text>
                 </Pressable>
               </View>
             </View>
-            <Text style={styles.footerCopy}>
+            <Text {...homeRevealProps("soft", 60)} style={styles.footerCopy}>
               © {new Date().getFullYear()} Studently. Matchmaking only — we don’t hold leases
               or deposits.
             </Text>
