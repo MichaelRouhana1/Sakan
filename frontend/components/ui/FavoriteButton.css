@@ -17,5 +17,6 @@
 .studently-favorite-pulse::after {content:'';position:absolute;inset:-5px;}
 .studently-favorite-pulse:focus-visible {outline:2px solid #EA3F4A;outline-offset:3px;}
 .studently-favorite-pulse:disabled {opacity:.55;cursor:default;}
-.studently-favorite-pulse__surface {display:flex;align-items:center;justify-content:center;transform-origin:center;pointer-events:none;}
+.studently-favorite-pulse__surface {display:grid;align-items:center;justify-content:center;transform-origin:center;pointer-events:none;}
+.studently-favorite-pulse__glyph {display:block;grid-area:1 / 1;}
 .studently-favorite-pulse svg {display:block;overflow:visible;}

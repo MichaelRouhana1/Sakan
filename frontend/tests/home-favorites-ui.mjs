@@ -230,7 +230,7 @@ try {
   if((await heart.getAttribute('aria-pressed'))==='true'){await heart.click();await expect(heart).toHaveAttribute('aria-pressed','false');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);}
   await heart.evaluate(el=>{
     window.pulseFrames=[];const start=performance.now();
-    const sample=()=>{const g=el.querySelector('g');const transform=g.transform.baseVal.consolidate();const box=el.getBoundingClientRect();window.pulseFrames.push({scale:transform?.matrix.a??1,width:box.width,height:box.height,liked:el.getAttribute('data-liked')});if(performance.now()-start<900)requestAnimationFrame(sample);};requestAnimationFrame(sample);
+    const sample=()=>{const transform=getComputedStyle(el.querySelector('.studently-favorite-pulse__surface')).transform;const scale=transform==='none'?1:new DOMMatrixReadOnly(transform).a;const box=el.getBoundingClientRect();window.pulseFrames.push({scale,width:box.width,height:box.height,liked:el.getAttribute('data-liked')});if(performance.now()-start<900)requestAnimationFrame(sample);};requestAnimationFrame(sample);
   });
   await heart.click();await expect(heart).toHaveAttribute('data-running','');await expect(heart).toHaveAttribute('data-liked','true');
   await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
@@ -241,6 +241,29 @@ try {
   await writeFile(path.join(output,'animation-frames.json'),JSON.stringify(frames,null,2));
   await heart.screenshot({path:path.join(output,'heart-saved.png')});
   checks.push('animation contracts to a dot, changes color, overshoots and settles without changing the button layout');
+
+  const beforeInterrupted=writes.length;
+  const interruption=await heart.evaluate(async el=>{
+    const surface=el.querySelector('.studently-favorite-pulse__surface');
+    const scale=()=>{const transform=getComputedStyle(surface).transform;return transform==='none'?1:new DOMMatrixReadOnly(transform).a;};
+    const until=predicate=>new Promise((resolve,reject)=>{
+      const start=performance.now();
+      const tick=()=>{if(predicate())resolve();else if(performance.now()-start>2000)reject(new Error('pulse did not reach expected phase'));else requestAnimationFrame(tick);};tick();
+    });
+    el.click();await until(()=>scale()<.6);
+    const before=scale();
+    const oldPulse=surface.getAnimations()[0];
+    el.click();await until(()=>surface.getAnimations()[0]!==oldPulse);
+    const after=scale();
+    return {before,after,animations:el.getAnimations({subtree:true}).length};
+  });
+  assert.ok(Math.abs(interruption.after-interruption.before)<.15,'interrupting a pulse must preserve its current scale');
+  assert.equal(interruption.animations,3,'scale and both opacity layers must use browser-managed animations');
+  await expect.poll(()=>writes.length).toBe(beforeInterrupted+2);
+  await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
+  await expect(heart).toHaveAttribute('aria-pressed','true');
+  assert.equal(await heart.evaluate(el=>el.getAnimations({subtree:true}).length),0);
+  checks.push('interrupting a contracted heart preserves its scale and releases all animations after settling');
 
   await heart.focus();await page.keyboard.press('Space');await expect(heart).toHaveAttribute('aria-pressed','false');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
   await page.keyboard.press('Enter');await expect(heart).toHaveAttribute('aria-pressed','true');await expect.poll(()=>heart.getAttribute('data-running')).toBe(null);
