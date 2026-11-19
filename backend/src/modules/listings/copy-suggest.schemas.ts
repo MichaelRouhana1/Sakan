@@ -1,3 +1,4 @@
+import { MAX_MONTHLY_RENT_USD, MAX_SECURITY_DEPOSIT_USD } from "../../constants/listingPricing.js";
 import { z } from "zod";
 import { LEBANON_AREA_SET } from "../../constants/lebanonAreas.js";
 
@@ -26,7 +27,7 @@ export const copySuggestSchema = z.object({
     wifiIncluded: z.boolean().optional(), routerUps: z.boolean().optional(),
     hasElevator: z.boolean().optional(), elevator24_7: z.boolean().optional(),
     conciergeIncluded: z.boolean().optional(), cookingGasIncluded: z.boolean().optional(),
-    monthlyRentUsd: count(1, 10000000), securityDepositUsd: count(0, 20000000),
+    monthlyRentUsd: count(1, MAX_MONTHLY_RENT_USD), securityDepositUsd: count(0, MAX_SECURITY_DEPOSIT_USD),
     priceBasis: optional(z.enum(["per_unit_month", "per_bed_month", "per_room_month"])),
     leaseTerm: optional(z.enum(["semester", "months_6", "months_9", "year", "flexible"])),
     paymentModality: optional(z.enum(["monthly", "semester", "quarterly"])),

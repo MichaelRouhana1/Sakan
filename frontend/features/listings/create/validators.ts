@@ -1,3 +1,4 @@
+import { MAX_MONTHLY_RENT_USD, MAX_SECURITY_DEPOSIT_USD, RENT_USD_MESSAGE, DEPOSIT_USD_MESSAGE } from "@/constants/listingPricing";
 import {
   windowComplete,
   type CutWindow,
@@ -30,8 +31,8 @@ const FIELD_MESSAGES: Record<string, string> = {
   bathroomPrivacy: "Choose a private or shared bathroom",
   bedsAvailable: "Confirm available beds between 1 and the total",
   sharedPhotos: "Finish uploading the shared photos (maximum 15)",
-  monthlyRentUsd: "Enter a valid monthly rent",
-  securityDepositUsd: "Enter a valid security deposit",
+  monthlyRentUsd: RENT_USD_MESSAGE,
+  securityDepositUsd: DEPOSIT_USD_MESSAGE,
   availableFrom: "Pick an available-from date",
   title: `Title must be ${COPY_TITLE_MIN}–${COPY_TITLE_MAX} characters`,
   description: `Description must be ${COPY_DESCRIPTION_MIN}–4000 characters`,
@@ -136,10 +137,10 @@ export function stepFieldErrors(
     case 6: {
       const errors: string[] = [];
       const rent = Number(draft.monthlyRentUsd);
-      if (!Number.isInteger(rent) || rent <= 0) errors.push("monthlyRentUsd");
+      if (!Number.isInteger(rent) || rent <= 0 || rent > MAX_MONTHLY_RENT_USD) errors.push("monthlyRentUsd");
       if (draft.depositPreset === "custom") {
         const dep = Number(draft.securityDepositUsd);
-        if (!Number.isInteger(dep) || dep < 0) errors.push("securityDepositUsd");
+        if (!Number.isInteger(dep) || dep < 0 || dep > MAX_SECURITY_DEPOSIT_USD) errors.push("securityDepositUsd");
       }
       if (
         !draft.availableImmediate &&

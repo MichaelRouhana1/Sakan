@@ -1,3 +1,4 @@
+import { MAX_MONTHLY_RENT_USD, MAX_SECURITY_DEPOSIT_USD, RENT_USD_MESSAGE, DEPOSIT_USD_MESSAGE } from "../../constants/listingPricing.js";
 import { sharedFields } from './place-fields.js';
 import { matcherQuerySchema } from "../search/matcher.schema.js";
 import { z } from "zod";
@@ -87,8 +88,8 @@ export const createListingFields = z.object({
   genderRestriction: z
     .enum(["anyone", "boys_only", "girls_only"])
     .default("anyone"),
-  monthlyRentUsd: z.coerce.number().int().positive(),
-  securityDepositUsd: z.coerce.number().int().min(0).default(0),
+  monthlyRentUsd: z.coerce.number().int().min(1).max(MAX_MONTHLY_RENT_USD, RENT_USD_MESSAGE),
+  securityDepositUsd: z.coerce.number().int().min(0).max(MAX_SECURITY_DEPOSIT_USD, DEPOSIT_USD_MESSAGE).default(0),
   leaseTerm: z
     .enum(["semester", "months_6", "months_9", "year", "flexible"])
     .default("flexible"),

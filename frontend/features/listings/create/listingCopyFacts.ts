@@ -1,3 +1,4 @@
+import { MAX_MONTHLY_RENT_USD, MAX_SECURITY_DEPOSIT_USD } from "@/constants/listingPricing";
 import type { CreateListingDraft } from "./draft";
 import type { CopyFacts } from "./listingCopyTemplates";
 import { toHHMM, windowComplete } from "@/lib/electricityCuts";
@@ -5,12 +6,12 @@ import { toHHMM, windowComplete } from "@/lib/electricityCuts";
 /** Deliberately independent of publish/preview mappings: neither may invent defaults here. */
 export function listingCopyFacts(draft: CreateListingDraft, campus?: { id: string; name: string } | null): CopyFacts {
   const rent = draft.monthlyRentUsd.trim() ? Number(draft.monthlyRentUsd) : null;
-  const validRent = rent != null && Number.isInteger(rent) && rent > 0 ? rent : null;
+  const validRent = rent != null && Number.isInteger(rent) && rent > 0 && rent <= MAX_MONTHLY_RENT_USD ? rent : null;
   const customDeposit = draft.securityDepositUsd.trim() ? Number(draft.securityDepositUsd) : null;
   const deposit = draft.depositPreset === "none" ? 0
     : draft.depositPreset === "1" ? validRent
     : draft.depositPreset === "2" ? validRent == null ? null : validRent * 2
-    : customDeposit != null && Number.isInteger(customDeposit) && customDeposit >= 0 ? customDeposit : null;
+    : customDeposit != null && Number.isInteger(customDeposit) && customDeposit >= 0 && customDeposit <= MAX_SECURITY_DEPOSIT_USD ? customDeposit : null;
   const windows = draft.electricityCutWindows?.length ? draft.electricityCutWindows
     : [{ start: draft.electricityCutsStart, end: draft.electricityCutsEnd }];
   return {

@@ -20,3 +20,21 @@ test('20-unit maximum and building rental restrictions are enforced',()=>{let p=
 test('empty batch is blocked; interrupted photos restore in a recoverable state',()=>{let p=finished();p=m.reduceWizard(p,{type:'remove',id:p.units[0].id});assert.ok(m.screenErrors(p).includes('Add at least one unit'));const saved=m.persistable({...base(),place:{...base().place,photos:[{localId:'x',uri:'blob:lost',status:'uploading'}]}});assert.equal(saved.place.photos[0].status,'error');assert.equal(saved.place.photos[0].uri,'');});
 
 test('parking keeps the existing included-in-rent default and respects an explicit override',()=>{let p=base();p.place.data.amenities=[];p.place.data.parkingIncludedInRent=false;p=m.reduceWizard(p,{type:'place',patch:{amenities:['parking']}});assert.equal(p.place.data.parkingIncludedInRent,true);p=m.reduceWizard(p,{type:'place',patch:{parkingIncludedInRent:false}});p=m.reduceWizard(p,{type:'place',patch:{amenities:['parking','wifi']}});assert.equal(p.place.data.parkingIncludedInRent,false);p=m.reduceWizard(p,{type:'place',patch:{amenities:[]}});assert.equal(p.place.data.parkingIncludedInRent,false);});
+
+test('USD pricing blocks the Gemmayzeh mistake before Review while allowing normal and boundary amounts',()=>{
+  for(const monthlyRentUsd of ['650','10000']) {
+    const p=base();p.units[0].data.monthlyRentUsd=monthlyRentUsd;
+    p.units[0].data.depositPreset='2';
+    assert.deepEqual(m.unitErrors(p,p.units[0].id,'rent'),[]);
+  }
+  for(const monthlyRentUsd of ['234432','10001','0','650.5']) {
+    const p=base();p.units[0].data.monthlyRentUsd=monthlyRentUsd;
+    assert.ok(m.unitErrors(p,p.units[0].id,'rent').includes('monthlyRentUsd'));
+    p.position.screen='rent';
+    assert.equal(m.reduceWizard(p,{type:'next'}),p);
+  }
+  for(const securityDepositUsd of ['234432','20001','-1']) {
+    const p=base();p.units[0].data.depositPreset='custom';p.units[0].data.securityDepositUsd=securityDepositUsd;
+    assert.ok(m.unitErrors(p,p.units[0].id,'rent').includes('securityDepositUsd'));
+  }
+});
