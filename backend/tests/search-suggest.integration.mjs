@@ -84,6 +84,16 @@ try {
     assert.equal((await suggest('ha')).mode,'results');
     const small=await suggest('',2);assert.ok(small.sections.topAreas.length+small.sections.topCampuses.length<=2);
   });
+  await check('default areas rank eligible units without city totals and refresh on eligibility changes',async()=>{
+    const before=await suggest('',20);
+    assert.ok(before.sections.topAreas.every(x=>x.type==='area'));
+    assert.deepEqual(before.sections.topAreas.map(x=>x.canonicalArea),['Hamra','Achrafieh','Dekwaneh','Fanar']);
+    await client`UPDATE places SET hidden=true WHERE id=${hamra.id}`;
+    const hidden=await suggest('',20);
+    assert.deepEqual(hidden.sections.topAreas.map(x=>x.canonicalArea),['Achrafieh','Dekwaneh','Fanar']);
+    await client`UPDATE places SET hidden=false WHERE id=${hamra.id}`;
+    assert.equal((await suggest('',20)).sections.topAreas[0].canonicalArea,'Hamra');
+  });
   await check('Arabic, French accents, transliteration and misspellings return canonical bilingual targets',async()=>{
     for(const [q,label] of [['حمرا','Hamra'],['حَمْرَا','Hamra'],['Fanâr','Fanar'],['Dekouané','Dekwaneh'],['dekwane','Dekwaneh'],['ashrafieh','Achrafieh'],['achrafih','Achrafieh'],['بيروت','Beirut'],['7amra','Hamra']]) {
       const r=await suggest(q);assert.ok(r.results.some(x=>x.label.en===label),q);
@@ -91,6 +101,13 @@ try {
     }
     for(const q of ['Fanar','الدكوانة']) {
       const town=(await suggest(q)).results.find(x=>x.type==='city');assert.equal(town.context.en,'Matn');assert.equal(town.context.ar,'المتن');
+    }
+  });
+  await check('legacy UOB spelling suggests the corrected campus without changing its target',async()=>{
+    for(const q of ['Dekouaneh Campus','UOB Dekouaneh','UOB Dekwaneh']) {
+      const campus=(await suggest(q)).results.find(x=>x.type==='campus' && x.slug==='uob-dekouaneh');
+      assert.ok(campus,q);assert.equal(campus.label.en,'UOB \u2014 Dekwaneh Campus');
+      assert.ok(campus.label.ar);assert.match(campus.url,/universitySlugs=uob-dekouaneh/);
     }
   });
   await check('abbreviations resolve campuses and exact aliases outrank prefixes and fuzzy matches',async()=>{

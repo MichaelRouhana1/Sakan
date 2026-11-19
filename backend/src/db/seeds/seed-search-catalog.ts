@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { searchRows, type SearchExecutor } from '../../modules/search/search-db.js';
 import { institutionSeeds } from './universities.js';
-import { campusNamesAr, institutionExtraAliases, institutionNamesAr, searchLocationSeeds } from './search-catalog.js';
+import { campusDisplayCorrections, campusNamesAr, institutionExtraAliases, institutionNamesAr, searchLocationSeeds } from './search-catalog.js';
 
 /** Run inside the caller's transaction. Never creates inventory or changes pins. */
 export async function seedSearchCatalog(executor: SearchExecutor) {
@@ -37,9 +37,14 @@ export async function seedSearchCatalog(executor: SearchExecutor) {
     for (const campus of inst.campuses) {
       const [row] = await searchRows<{ id: string }>(executor,sql`SELECT id FROM universities WHERE slug=${campus.slug} AND institution_id=${existing.id}::uuid`);
       if (!row) { missingCampuses.push(campus.slug); continue; }
+      const correction = campusDisplayCorrections[campus.slug];
+      if (correction) {
+        await executor.execute(sql`UPDATE universities SET name=${correction.name},city=${correction.city},updated_at=now()
+          WHERE id=${row.id}::uuid AND (name,city) IS DISTINCT FROM (${correction.name},${correction.city})`);
+      }
       await executor.execute(sql`UPDATE universities SET name_ar=${campusNamesAr[campus.slug]}
         WHERE id=${row.id}::uuid AND name_ar IS DISTINCT FROM ${campusNamesAr[campus.slug]}`);
-      for (const alias of institutionExtraAliases[inst.slug] ?? []) {
+      for (const alias of [...(institutionExtraAliases[inst.slug] ?? []), ...(correction?.aliases ?? [])]) {
         await executor.execute(sql`INSERT INTO search_aliases(campus_id,alias,normalized,language,source)
           VALUES (${row.id}::uuid,${alias},'',${/[\u0600-\u06ff]/u.test(alias) ? 'ar' : 'en'},'seed') ON CONFLICT DO NOTHING`);
       }

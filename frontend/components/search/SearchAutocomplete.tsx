@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   Platform,
+  useWindowDimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,8 @@ import { studentlyShadow } from "@/lib/studentlyShadow";
 import { useSearchSuggestions } from "@/features/search/useSearchSuggestions";
 import type { SearchSuggestion, SearchSuggestResult } from '@/features/search/types';
 
+import { DesktopSearchAutocomplete } from './DesktopSearchAutocomplete';
+
 const PILL_HINTS = ["Area", "University", "Landmark"] as const;
 const IS_WEB = Platform.OS === "web";
 
@@ -39,7 +42,8 @@ const createPortal: PortalFn | null = IS_WEB
     (require("react-dom").createPortal as PortalFn)
   : null;
 
-type Props = {
+export type SearchAutocompleteProps = {
+  recentSuggestions?: SearchSuggestion[];
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -180,7 +184,14 @@ function SuggestionsPanel({
   );
 }
 
-export function SearchAutocomplete({
+export function SearchAutocomplete(props: SearchAutocompleteProps) {
+  const { width } = useWindowDimensions();
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => setDesktop(IS_WEB && width >= 900), [width]);
+  return desktop ? <DesktopSearchAutocomplete {...props} /> : <LegacySearchAutocomplete {...props} />;
+}
+
+function LegacySearchAutocomplete({
   value,
   onChangeText,
   placeholder = "Search area, university, listing…",
@@ -193,7 +204,7 @@ export function SearchAutocomplete({
   containerStyle,
   barStyle,
   variant = "bar",
-}: Props) {
+}: SearchAutocompleteProps) {
   const [focused, setFocused] = useState(false);
   const [composing, setComposing] = useState(false);
   const [highlight, setHighlight] = useState(-1);

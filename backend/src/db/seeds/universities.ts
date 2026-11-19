@@ -285,9 +285,9 @@ export const institutionSeeds: InstitutionSeed[] = [
         isMain: true,
       },
       {
-        name: "Dekouaneh Campus",
+        name: "Dekwaneh Campus",
         slug: "uob-dekouaneh",
-        city: "Dekouaneh",
+        city: "Dekwaneh",
         location: "POINT(35.54018 33.87975)",
       },
       {

@@ -63,7 +63,7 @@ export class SearchService {
               (l.kind='city' AND u.area IN(SELECT child.canonical_area FROM search_locations child WHERE child.parent_city_id=l.id AND child.active))) AS popularity
           FROM search_locations l LEFT JOIN search_locations parent ON parent.id=l.parent_city_id
           WHERE l.active AND (l.kind='city' OR parent.active)
-            AND NOT(l.kind='area' AND parent.active AND parent.name_en=l.name_en)
+            ${defaults ? sql`AND l.kind='area'` : sql`AND NOT(l.kind='area' AND parent.active AND parent.name_en=l.name_en)`}
           UNION ALL
           SELECT 'campus:' || u.id::text,'campus',u.id::text,u.slug::text,
             concat_ws(' — ',i.short_name,u.name),concat_ws(' — ',i.name_ar,u.name_ar),
@@ -106,7 +106,7 @@ export class SearchService {
     });
     const value:SearchSuggestResult={query:q,normalizedQuery:normalized,mode:defaults?'defaults':'results',minQueryLength:2,
       results:defaults ? [] : rows.map(toSuggestion),sections:{
-        topAreas:defaults ? rows.filter(r=>(r.type==='city'||r.type==='area') && r.popularity>0).slice(0,Math.ceil(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topAreas'] : [],
+        topAreas:defaults ? rows.filter(r=>r.type==='area' && r.popularity>0).slice(0,Math.ceil(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topAreas'] : [],
         topCampuses:defaults ? rows.filter(r=>r.type==='campus' && r.popularity>0).slice(0,Math.floor(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topCampuses'] : [],
       }};
     this.cache.delete(key);

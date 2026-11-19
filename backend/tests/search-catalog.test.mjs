@@ -142,6 +142,20 @@ test('institution abbreviations retain each campus without rewriting geography',
   await client`UPDATE universities SET active=true WHERE slug='lau-jbeil'`;
 });
 
+test('UOB spelling cleanup preserves its campus identity and pins and keeps old search labels',async()=>{
+  const [before]=await client`SELECT id,slug,ST_AsText(location::geometry) AS pin FROM universities WHERE slug='uob-dekouaneh'`;
+  await client`UPDATE universities SET name='Dekouaneh Campus',city='Dekouaneh' WHERE id=${before.id}`;
+  await executor.transaction(tx=>seedSearchCatalog(tx));
+  const [after]=await client`SELECT id,slug,name,city,ST_AsText(location::geometry) AS pin FROM universities WHERE id=${before.id}`;
+  assert.equal(after.id,before.id);assert.equal(after.slug,before.slug);assert.equal(after.pin,before.pin);
+  assert.equal(after.name,'Dekwaneh Campus');assert.equal(after.city,'Dekwaneh');
+  for(const q of ['Dekouaneh Campus','UOB Dekouaneh','UOB Dekouaneh Campus','University of Balamand Dekouaneh Campus','UOB Dekwaneh Campus']) {
+    const rows=await resolver.resolveCampusAliases(q);
+    const campus=rows.find(c=>c.id===before.id);assert.ok(campus,q);
+    assert.equal(campus.nameEn,'UOB \u2014 Dekwaneh Campus');
+  }
+});
+
 test('aliases are normalized by the database, including updates and untrusted normalized values',async()=>{
   const [alias]=await client`INSERT INTO search_aliases(location_id,alias,normalized) VALUES ('area:hamra','Hâmrâ test','forged') RETURNING id,normalized`;
   assert.equal(alias.normalized,'hamra test');

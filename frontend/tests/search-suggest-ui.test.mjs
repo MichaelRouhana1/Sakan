@@ -30,7 +30,7 @@ test('suggest caller debounces, gates, guards in-flight results and selects type
   let browser;
   try{
     browser=await chromium.launch({channel:'msedge',headless:true});
-    const page=await browser.newPage({viewport:{width:1000,height:800},reducedMotion:'reduce'});
+    const page=await browser.newPage({viewport:{width:800,height:800},reducedMotion:'reduce'});
     const requests=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
     let releaseHamra;const holdHamra=new Promise(resolve=>releaseHamra=resolve);
     await page.route('**/api/search/suggest*',async r=>{
@@ -53,7 +53,7 @@ test('suggest caller debounces, gates, guards in-flight results and selects type
     await expect(page.getByRole('button',{name:'Beirut, Matn',exact:true})).toBeVisible();
     assert.equal(requests.filter(x=>x.q==='Beirutt').length,0);
     await input.fill('حمرا');await expect.poll(()=>requests.some(x=>x.q==='حمرا')).toBe(true);
-    await page.mouse.click(900,700);
+    await page.mouse.click(750,700);
     await expect(page.getByRole('button',{name:'حمرا, Matn',exact:true})).toHaveCount(0);
     assert.deepEqual(errors,[]);
   }finally{if(browser)await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

@@ -128,3 +128,12 @@ export const institutionExtraAliases: Record<string, readonly string[]> = {
   aub: ['A.U.B.','اي يو بي','إيه يو بي'], lau: ['L.A.U.','ال اي يو','إل إيه يو'],
   usj: ['U.S.J.','يو اس جي','Saint Joseph','Saint-Joseph','Saint Joseph University','Universite Saint Joseph'],
 };
+
+/** Targeted spelling correction: preserve public slug/UUID and previous search labels. */
+export const campusDisplayCorrections: Record<string, { name: string; city: string; aliases: readonly string[] }> = {
+  'uob-dekouaneh': {
+    name: 'Dekwaneh Campus', city: 'Dekwaneh',
+    aliases: ['Dekouaneh', 'Dekouaneh Campus', 'UOB Dekouaneh', 'UOB — Dekouaneh Campus',
+      'University of Balamand Dekouaneh Campus'],
+  },
+};
