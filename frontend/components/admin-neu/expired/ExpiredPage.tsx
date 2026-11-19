@@ -206,7 +206,7 @@ export function ExpiredPage() {
               <H className="flex flex-wrap items-center gap-2 border-t border-clay-300/60 px-5 py-4">
                 {phone ? (
                   <>
-                    <NeuButton tone="moss" onClick={() => openWhatsApp(row)}><MessageCircle size={15} /> Open WhatsApp</NeuButton>
+                    <NeuButton tone="moss" className="!text-[#25D366]" onClick={() => openWhatsApp(row)}><MessageCircle size={15} /> Open WhatsApp</NeuButton>
                     <NeuButton onClick={() => void copy(phone, "Contact number copied.")}><Copy size={15} /> Copy number</NeuButton>
                   </>
                 ) : null}

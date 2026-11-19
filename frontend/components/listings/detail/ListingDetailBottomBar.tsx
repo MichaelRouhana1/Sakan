@@ -3,6 +3,7 @@ import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 import {
   hasUsableWhatsAppPhone,
   listingAllowsWhatsApp,
@@ -51,7 +52,7 @@ export function ListingDetailBottomBar({
           accessibilityRole="button"
           accessibilityLabel="Contact on WhatsApp"
           onPress={onWhatsApp}
-          style={styles.primary}
+          style={styles.whatsapp}
         >
           <Ionicons
             name="logo-whatsapp"
@@ -131,6 +132,16 @@ const styles = StyleSheet.create({
     backgroundColor: Studently.color.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Studently.color.border,
+  },
+  whatsapp: {
+    flex: 1.4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: WHATSAPP_GREEN,
+    borderRadius: 12,
+    paddingVertical: 14,
   },
   primary: {
     flex: 1.4,

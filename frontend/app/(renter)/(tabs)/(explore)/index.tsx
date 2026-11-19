@@ -789,7 +789,7 @@ export default function RenterNewHomeScreen() {
               style={styles.helpTile}
             >
               <View style={[styles.helpTileIconBox, { backgroundColor: "#E7F8F3" }]}>
-                <Ionicons name="logo-whatsapp" size={20} color="#128C7E" />
+                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
               </View>
               <Text style={styles.helpTileTitle}>WhatsApp</Text>
               <Text style={styles.helpTileMeta}>Fast replies</Text>

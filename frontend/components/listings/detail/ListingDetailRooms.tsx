@@ -13,6 +13,7 @@ import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
   hasUsableWhatsAppPhone,
   listingAllowsWhatsApp,
+  WHATSAPP_GREEN,
 } from "@/lib/whatsapp";
 import type { Listing, PbsaRoomType } from "@/types/listing";
 
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
   featLabel: { flex: 1, color: Studently.color.ink },
   book: {
     marginTop: 4,
-    backgroundColor: Studently.color.primary,
+    backgroundColor: WHATSAPP_GREEN,
     borderRadius: Studently.radius.md,
     paddingVertical: 12,
     alignItems: "center",
