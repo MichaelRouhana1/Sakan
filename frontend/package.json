@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "admin:css": "tailwindcss -i ./styles/admin.input.css -o ./styles/admin.generated.css && node -e \"const fs=require('fs'); const css=fs.readFileSync('styles/admin.generated.css','utf8'); fs.writeFileSync('styles/adminCssText.ts', 'export const ADMIN_CSS = ' + JSON.stringify(css) + ';\\n');\"",
     "postinstall": "patch-package",
-    "test:lifecycle": "node --test tests/listing-lifecycle-copy.test.mjs"
+    "test:lifecycle": "node --test tests/listing-lifecycle-copy.test.mjs",
+    "test:search-suggest": "node --test tests/search-codecs.test.mjs tests/search-suggest-ui.test.mjs"
   },
   "dependencies": {
     "@clerk/expo": "^4.15.1",

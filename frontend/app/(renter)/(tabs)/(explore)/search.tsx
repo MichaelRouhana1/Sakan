@@ -36,6 +36,8 @@ import {
 } from "@/components/listings/carouselListScroll";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
+import { isSearchLocationError } from '@/features/search/locationError';
+import { UnknownLocationState } from '@/components/search/UnknownLocationState';
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { Studently } from "@/constants/theme";
@@ -59,14 +61,7 @@ import {
   withCampusDistanceSeparator,
   type MixedListingRow,
 } from "@/lib/campusProximity";
-import {
-  resolveCampusFromTypedQuery,
-  universityToSuggestion,
-} from "@/lib/resolveCampusSearch";
-import type {
-  SearchAreaSuggestion,
-  SearchUniversitySuggestion,
-} from "@/features/search/types";
+import type { SearchSuggestion } from '@/features/search/types';
 import type { CampusMeta } from "@/types/listing";
 
 type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance" | "match";
@@ -172,6 +167,8 @@ export default function RenterSearchScreen() {
     setBrowseFilters((prev) => ({
       ...prev,
       areas: [],
+      city: null,
+      placeId: null,
       universitySlugs: [],
       institutionSlug: null,
       campusId: null,
@@ -180,42 +177,12 @@ export default function RenterSearchScreen() {
     setMode("university");
   }, [setBrowseFilters, setMode]);
 
-  const applyArea = useCallback(
-    (s: SearchAreaSuggestion) => {
-      setSearchVal(s.label);
-      setFocusPoint(s.center);
-      setBrowseFilters((prev) => ({
-        ...prev,
-        areas: [s.label],
-        universitySlugs: [],
-        institutionSlug: null,
-        campusId: null,
-        q: null,
-      }));
-      setMode("standard");
-      setMapSearchOpen(false);
-    },
-    [setBrowseFilters, setMode, browse.sort, setSort],
-  );
-
-  const applyUniversity = useCallback(
-    (s: SearchUniversitySuggestion) => {
-      setSearchVal(s.label);
-      setFocusPoint(s.center);
-      setBrowseFilters((prev) => ({
-        ...prev,
-        areas: [],
-        universitySlugs: [s.slug],
-        campusId: s.campusId,
-        q: null,
-        institutionSlug: prev.institutionSlug,
-      }));
-      setMode("university");
-      if (browse.sort !== "match") setSort("distance");
-      setMapSearchOpen(false);
-    },
-    [setBrowseFilters, setMode, browse.sort, setSort],
-  );
+  const applySuggestion = useCallback((suggestion: SearchSuggestion) => {
+    setSearchVal(suggestion.label.en);
+    setFocusPoint(suggestion.center);
+    browse.selectSearch(suggestion);
+    setMapSearchOpen(false);
+  }, [browse.selectSearch]);
 
   const switchMapCampus = useCallback(
     (campus: CampusMeta) => {
@@ -235,48 +202,12 @@ export default function RenterSearchScreen() {
     [setBrowseFilters, setMode, universities.data, browse.sort, setSort],
   );
 
-  const applyTextQuery = useCallback(
-    (text: string) => {
-      const campus = resolveCampusFromTypedQuery(
-        text,
-        universities.data ?? [],
-      );
-      if (campus) {
-        const suggestion = universityToSuggestion(campus);
-        if (suggestion) {
-          applyUniversity(suggestion);
-          return;
-        }
-        setSearchVal(campusFilterLabel(campus));
-        setFocusPoint(null);
-        setBrowseFilters((prev) => ({
-          ...prev,
-          areas: [],
-          universitySlugs: [campus.slug],
-          campusId: campus.id,
-          q: null,
-          institutionSlug: prev.institutionSlug,
-        }));
-        setMode("university");
-        if (browse.sort !== "match") setSort("distance");
-        setMapSearchOpen(false);
-        return;
-      }
-      setSearchVal(text);
-      setFocusPoint(null);
-      setBrowseFilters((prev) => ({
-        ...prev,
-        areas: [],
-        universitySlugs: [],
-        institutionSlug: null,
-        campusId: null,
-        q: text,
-      }));
-      setMode("standard");
-      setMapSearchOpen(false);
-    },
-    [applyUniversity, setBrowseFilters, universities.data, browse.sort, setSort],
-  );
+  const applyTextQuery = useCallback((text: string) => {
+    setSearchVal(text);
+    setFocusPoint(null);
+    browse.submitSearch(text);
+    setMapSearchOpen(false);
+  }, [browse.submitSearch]);
 
   const activeUniSlug = browseFilters.universitySlugs[0] ?? null;
   const activeUni = useMemo(() => {
@@ -302,6 +233,12 @@ export default function RenterSearchScreen() {
     : activeInst
       ? activeInst.shortName
       : "University";
+
+  useEffect(() => {
+    const city = browseFilters.city?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    setSearchVal(browseFilters.q ?? city ?? browseFilters.areas[0] ??
+      (activeUni ? campusFilterLabel(activeUni) : browseFilters.placeId ? 'Selected property' : ''));
+  }, [browseFilters.q, browseFilters.city, browseFilters.placeId, browseFilters.areas.join(','), browseFilters.campusId, activeUni?.id]);
 
   const onCarouselOpenChange = useCallback((open: boolean) => {
     setCarouselOpen(open);
@@ -404,12 +341,7 @@ export default function RenterSearchScreen() {
       value={searchVal}
       onChangeText={setSearchVal}
       placeholder="Search area, university, listing…"
-      onSelectArea={applyArea}
-      onSelectUniversity={applyUniversity}
-      onSelectListing={(s) => {
-        setMapSearchOpen(false);
-        router.push(`/(renter)/listing/${s.id}`);
-      }}
+      onSelect={applySuggestion}
       onSubmitText={applyTextQuery}
       onClear={resetSearch}
       containerStyle={{ flex: 1 }}
@@ -742,6 +674,10 @@ export default function RenterSearchScreen() {
           <LText style={{ marginTop: 12 }} tone="muted">
             Finding student homes...
           </LText>
+        </View>
+      ) : isSearchLocationError(listingsQuery.error) ? (
+        <View style={styles.centerContainer}>
+          <UnknownLocationState onClear={() => { setSearchVal(browse.filters.q ?? ''); setFocusPoint(null); browse.clearLocation(); }} />
         </View>
       ) : listingsQuery.isError ? (
         <View style={styles.centerContainer}>

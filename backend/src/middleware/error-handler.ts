@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { ZodError } from "zod";
 import { AppError } from "../lib/errors.js";
+import { SearchResolutionError } from '../modules/search/search-resolver.js';
 
 export function errorHandler(
   err: unknown,
@@ -18,6 +19,7 @@ export function errorHandler(
       error: {
         message: err.message,
         code: err.code,
+        ...(err instanceof SearchResolutionError ? {details:err.details} : {}),
       },
     });
     return;

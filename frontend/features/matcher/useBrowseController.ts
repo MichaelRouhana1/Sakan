@@ -28,6 +28,8 @@ import {
 } from "./preferences";
 import { saveMatcherPreferences } from "./storage";
 import type { MatcherPreferences } from "./types";
+import { applySearchSelection, applySearchText, clearSearchLocation } from '@/features/search/selection';
+import type { SearchSuggestion } from '@/features/search/types';
 
 /** One source of truth for both Explore renderers; preferences are sent to the server for global scoring. */
 export function useBrowseController() {
@@ -86,7 +88,12 @@ export function useBrowseController() {
       const prev = current.current;
       let filters =
         typeof action === "function" ? action(prev.filters) : action;
+      if (filters.areas.join() !== prev.filters.areas.join() || filters.campusId !== prev.filters.campusId ||
+        filters.universitySlugs.join() !== prev.filters.universitySlugs.join() || filters.institutionSlug !== prev.filters.institutionSlug) {
+        filters={...filters,city:null,placeId:null};
+      }
       const locationChanged =
+        filters.city !== prev.filters.city || filters.placeId !== prev.filters.placeId ||
         filters.campusId !== prev.filters.campusId ||
         filters.universitySlugs.join() !==
           prev.filters.universitySlugs.join() ||
@@ -165,6 +172,9 @@ export function useBrowseController() {
     deferred,
     params,
     setFilters,
+    selectSearch: (suggestion: SearchSuggestion) => commit(applySearchSelection(current.current,suggestion)),
+    submitSearch: (query: string) => commit(applySearchText(current.current,query)),
+    clearLocation: () => commit(clearSearchLocation(current.current)),
     setMode,
     setSort,
     apply,

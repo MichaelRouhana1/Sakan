@@ -10,6 +10,8 @@ import type {
  * (see useListings) — never Axios array serialization.
  */
 export type ListingListFilters = {
+  city?: string;
+  placeId?: string;
   areas?: string[];
   universitySlugs?: string[];
   campusId?: string;

@@ -2,8 +2,8 @@
  * Lebanese neighborhood catalog — keep in sync with
  * frontend/constants/lebanonZones.ts flatten.
  * Used to allowlist `areas` query params and listing.area writes.
- * Suggestion aliases (Arabic / Latin variants) live in areaAliases.ts;
- * canonical labels here stay unchanged.
+ * Runtime aliases and browse resolution live in search_locations/search_aliases.
+ * Canonical write keys remain unchanged; seed coverage is tested against this list.
  */
 export const LEBANON_AREAS = [
   "Achrafieh",

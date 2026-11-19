@@ -4,6 +4,8 @@ import { universitiesRepository } from '../universities/universities.repository.
 import { enrichPlacements } from '../listing-activity/placement.service.js';
 import { AREA_COORDINATES } from '../../constants/areaCoordinates.js';
 import { NotFoundError } from '../../lib/errors.js';
+import { db } from '../../db/index.js';
+import { SearchResolver } from './search-resolver.js';
 import type { ListListingsQuery } from '../listings/listings.schemas.js';
 import { extractMatchFacts } from './matcher.facts.js';
 import { distanceKm, explainWidening, rankListings, type MatchListing } from './matcher.scoring.js';
@@ -44,6 +46,7 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
       location.center = { lat: campus.lat, lng: campus.lng };
       location.label = campus.name;
     } else {
+      location.areas = (await new SearchResolver(db).resolveAreaFilters(location.areas ?? [])).canonicalAreas;
       const center = AREA_COORDINATES[location.areas?.[0] as keyof typeof AREA_COORDINATES];
       location.center = center ? { lat: center.lat, lng: center.lng } : undefined;
     }
@@ -52,7 +55,8 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
   const candidates = result.data.map(row => ({ ...row, matchFacts: extractMatchFacts(row) })) as unknown as SearchUnit[];
   // Distance sorting can use a preferred location without making it a radius requirement.
   for (const row of candidates) {
-    const areaCenter = query.areas.length === 1 ? AREA_COORDINATES[query.areas[0] as keyof typeof AREA_COORDINATES] : undefined;
+    const canonicalAreas = result.resolution?.canonicalAreas ?? query.areas;
+    const areaCenter = canonicalAreas.length === 1 ? AREA_COORDINATES[canonicalAreas[0] as keyof typeof AREA_COORDINATES] : undefined;
     const center = prefs?.location?.value.center ?? areaCenter;
     if (row.distanceMeters == null && center && row.matchFacts?.lat != null && row.matchFacts.lng != null) {
       row.distanceMeters = distanceKm(center, { lat: row.matchFacts.lat, lng: row.matchFacts.lng }) * 1000;
@@ -61,7 +65,9 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
   const ranked = prefs ? rankListings(candidates, prefs) : { listings: candidates, matches: {} };
   const eligible = ranked.listings as SearchUnit[];
   const widening = explainWidening(eligible, prefs ?? { version: 1 });
-  const placed = await enrichPlacements(eligible, query, session ?? randomUUID()) as SearchUnit[];
+  const resolvedQuery = { ...query, matcher: prefs, areas: result.resolution?.canonicalAreas ?? query.areas,
+    q: result.resolution?.remainingQuery || undefined };
+  const placed = await enrichPlacements(eligible, resolvedQuery, session ?? randomUUID()) as SearchUnit[];
   const featured = placed.filter(l => l.promotion?.type === 'featured').sort((a, b) => a.promotion!.position - b.promotion!.position);
   const organic = orderUnits(placed.filter(l => l.promotion?.type !== 'featured'), query.sort, ranked.matches);
   if (query.sort !== 'newest') for (const row of organic) if (row.promotion?.type === 'bump') delete row.promotion;
@@ -71,6 +77,7 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
   const shown = new Set([...data, ...featured].map(l => l.id));
   return {
     data, featured, campuses: result.campuses,
+    searchResolution: result.resolution ?? null,
     matches: Object.fromEntries(Object.entries(ranked.matches).filter(([id]) => shown.has(id))), widening,
     pagination: { page, pageSize: query.pageSize, total, totalMatching: total + featured.length, hasNext: page * query.pageSize < total },
   };

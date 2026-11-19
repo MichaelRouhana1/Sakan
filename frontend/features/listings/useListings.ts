@@ -15,9 +15,12 @@ type ListingsApiResponse = {
   matches?: ListingsQueryData["matches"];
   widening?: ListingsQueryData["widening"];
   pagination?: ListingsQueryData["pagination"];
+  searchResolution?: ListingsQueryData['searchResolution'];
 };
 
 export type ListingsQueryData = {
+  searchResolution: { canonicalAreas: string[] | null; remainingQuery: string;
+    locations: {id:string;kind:'city'|'area';slug:string;nameEn:string;nameAr:string;contextEn:string;contextAr:string}[] } | null;
   listings: Listing[];
   campuses: CampusMeta[];
   featured: Listing[];
@@ -42,6 +45,8 @@ export function useListings(
     queryFn: async (): Promise<ListingsQueryData> => {
       const params: Record<string, string> = {};
       params.promotionSession=(await promotionSession()).id;
+      if (filters.city) params.city=filters.city;
+      if (filters.placeId) params.placeId=filters.placeId;
       if (filters.areas && filters.areas.length > 0) {
         params.areas = filters.areas.join(",");
       }
@@ -95,7 +100,7 @@ export function useListings(
       });
       const normalized = normalizeListingsEnvelope(data);
       const featured = normalizeListingsPayload(data.featured);
-      return { ...normalized, featured, matches: data.matches ?? {},
+      return { ...normalized, featured, matches: data.matches ?? {}, searchResolution:data.searchResolution ?? null,
         widening: data.widening ?? { strictCount: 0, alternativeCount: 0, labels: [], shortfall: true },
         pagination: data.pagination ?? { page: 1, pageSize: 24, total: normalized.listings.length, totalMatching: normalized.listings.length + featured.length, hasNext: false },
       };

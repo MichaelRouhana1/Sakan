@@ -295,6 +295,13 @@
       "when": 1795046400000,
       "tag": "0041_search_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1795046401000,
+      "tag": "0042_search_suggest_cache",
+      "breakpoints": true
     }
   ]
 }

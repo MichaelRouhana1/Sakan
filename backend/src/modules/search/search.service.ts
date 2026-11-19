@@ -1,221 +1,118 @@
-import { and, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
-import { AREA_ALIASES } from "../../constants/areaAliases.js";
-import { AREA_COORDINATES } from "../../constants/areaCoordinates.js";
-import { LEBANON_AREAS, type LebanonArea } from "../../constants/lebanonAreas.js";
-import { db } from "../../db/index.js";
-import { institutions, listingResolved, universities } from "../../db/schema/index.js";
-import {
-  diceCoefficient,
-  levenshtein,
-} from "../../lib/string-similarity.js";
-import type {
-  AreaSuggestion,
-  ListingSuggestion,
-  SearchSuggestionsResult,
-  UniversitySuggestion,
-} from "./search.schemas.js";
+import { sql } from 'drizzle-orm';
+import { db } from '../../db/index.js';
+import { campusHousingRadiusMeters } from '../campus/campus.repository.js';
+import { normalizeSearch } from './search-normalization.js';
+import { searchRows, type SearchExecutor } from './search-db.js';
+import type { SearchSuggestion, SearchSuggestResult } from './search.schemas.js';
 
-const AREA_LIMIT = 6;
-const UNI_LIMIT = 6;
-const LISTING_LIMIT = 6;
-const UUID_PREFIX_RE = /^[0-9a-f-]{2,36}$/i;
-/** pg_trgm: 1–2 char typos on short names; skip for 1–2 letter queries (ILIKE covers those). */
-const TRGM_MIN = 0.22;
-const FUZZY_MIN_Q = 3;
-const DICE_MIN = 0.45;
+type SearchDatabase = SearchExecutor & { transaction<T>(fn: (tx: SearchExecutor) => Promise<T>): Promise<T> };
+type Entity = {
+  targetKey: string; type: SearchSuggestion['type']; id: string; slug: string | null;
+  labelEn: string; labelAr: string; contextEn: string; contextAr: string;
+  canonicalArea: string | null; canonicalAreas: string[]; lat: number | null; lng: number | null;
+  popularity: number;
+};
+type CacheEntry = { revision: string; expiresAt: number; value: SearchSuggestResult };
+const publicUnits = sql`SELECT id,place_id,area,location,expires_at FROM listing_resolved
+  WHERE status='active' AND availability<>'rented' AND hidden_reason IS NULL AND expires_at>now()`;
 
-function parseCoord(value: unknown): number | null {
-  if (value == null || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function fold(s: string): string {
-  return s.normalize("NFC").toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function areaNames(label: LebanonArea): string[] {
-  return [label, ...(AREA_ALIASES[label] ?? [])];
-}
-
-function areaMatchScore(label: LebanonArea, q: string): number | null {
-  const needle = fold(q);
-  if (!needle) return null;
-  let substring = false;
-  let bestDice = 0;
-  let bestLev = Number.POSITIVE_INFINITY;
-  let longest = needle.length;
-  for (const name of areaNames(label)) {
-    const n = fold(name);
-    longest = Math.max(longest, n.length);
-    if (n.includes(needle)) substring = true;
-    bestDice = Math.max(bestDice, diceCoefficient(n, needle));
-    bestLev = Math.min(bestLev, levenshtein(n, needle));
-  }
-  if (substring) return 2 + bestDice;
-  if (needle.length < FUZZY_MIN_Q) return null;
-  const levOk = bestLev <= 2 && bestLev / longest <= 0.4;
-  if (bestDice >= DICE_MIN || levOk) return bestDice;
-  return null;
-}
-
-function matchAreas(q: string): AreaSuggestion[] {
-  const scored: Array<{ label: LebanonArea; score: number; index: number }> =
-    [];
-  for (let index = 0; index < LEBANON_AREAS.length; index += 1) {
-    const label = LEBANON_AREAS[index]!;
-    const score = areaMatchScore(label, q);
-    if (score == null) continue;
-    scored.push({ label, score, index });
-  }
-  scored.sort((a, b) => b.score - a.score || a.index - b.index);
-  return scored.slice(0, AREA_LIMIT).map(({ label }) => {
-    const center = AREA_COORDINATES[label];
-    return {
-      type: "area" as const,
-      label,
-      boundingBox: null,
-      center: { lat: center.lat, lng: center.lng },
-    };
-  });
-}
-
-function useTrigram(q: string): boolean {
-  return q.length >= FUZZY_MIN_Q;
-}
-
-async function matchUniversities(q: string): Promise<UniversitySuggestion[]> {
-  const like = `%${q}%`;
-  const fuzzy = useTrigram(q);
-  const sim = sql<number>`GREATEST(
-    similarity(${universities.name}::text, ${q}),
-    similarity(${universities.slug}::text, ${q}),
-    COALESCE(similarity(${institutions.name}::text, ${q}), 0),
-    COALESCE(similarity(${institutions.shortName}::text, ${q}), 0),
-    COALESCE(similarity(${institutions.slug}::text, ${q}), 0)
-  )`;
-  const fuzzyConds = fuzzy
-    ? [
-        sql`similarity(${universities.name}::text, ${q}) >= ${TRGM_MIN}`,
-        sql`similarity(${universities.slug}::text, ${q}) >= ${TRGM_MIN}`,
-        sql`similarity(COALESCE(${institutions.name}::text, ''), ${q}) >= ${TRGM_MIN}`,
-        sql`similarity(COALESCE(${institutions.shortName}::text, ''), ${q}) >= ${TRGM_MIN}`,
-        sql`similarity(COALESCE(${institutions.slug}::text, ''), ${q}) >= ${TRGM_MIN}`,
-      ]
-    : [];
-
-  const rows = await db
-    .select({
-      id: universities.id,
-      name: universities.name,
-      slug: universities.slug,
-      shortName: institutions.shortName,
-      institutionName: institutions.name,
-      lng: sql<number | null>`ST_X(${universities.location}::geometry)`.as("lng"),
-      lat: sql<number | null>`ST_Y(${universities.location}::geometry)`.as("lat"),
-    })
-    .from(universities)
-    .leftJoin(institutions, eq(universities.institutionId, institutions.id))
-    .where(
-      and(
-        eq(universities.active, true),
-        or(
-          ilike(universities.name, like),
-          ilike(universities.slug, like),
-          ilike(institutions.name, like),
-          ilike(institutions.shortName, like),
-          ilike(institutions.slug, like),
-          ...fuzzyConds,
-        ),
-      ),
-    )
-    .orderBy(desc(sim))
-    .limit(UNI_LIMIT);
-
-  const out: UniversitySuggestion[] = [];
-  for (const row of rows) {
-    const lat = parseCoord(row.lat);
-    const lng = parseCoord(row.lng);
-    if (lat == null || lng == null) continue;
-    const shortName = row.shortName;
-    const label = shortName ? `${shortName} — ${row.name}` : row.name;
-    out.push({
-      type: "university",
-      label,
-      campusId: row.id,
-      slug: row.slug,
-      center: { lat, lng },
-    });
-  }
-  return out;
-}
-
-async function matchListings(q: string): Promise<ListingSuggestion[]> {
-  if (q.length < 2) return [];
-
-  const tokens = q.trim().split(/\s+/).filter(Boolean).slice(0, 12);
-  const looksLikeUuid = UUID_PREFIX_RE.test(q);
-  const idCond = looksLikeUuid
-    ? sql`${listingResolved.id}::text ILIKE ${`${q}%`}`
-    : undefined;
-  const titleSim = sql<number>`similarity(${listingResolved.title}::text, ${q})`;
-  const tokenConds = tokens.map((token) => {
-    const like = `%${token.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
-    return or(
-      ilike(listingResolved.title, like),
-      ilike(listingResolved.buildingName, like),
-      ilike(listingResolved.area, like),
-    )!;
-  });
-  const tokenMatch = tokenConds.length > 0 ? and(...tokenConds) : undefined;
-  const matchCond = tokenMatch && idCond ? or(tokenMatch, idCond) : tokenMatch ?? idCond;
-  if (!matchCond) return [];
-
-  const rows = await db
-    .select({
-      id: listingResolved.id,
-      title: listingResolved.title,
-      lng: sql<number | null>`ST_X(${listingResolved.location}::geometry)`.as("lng"),
-      lat: sql<number | null>`ST_Y(${listingResolved.location}::geometry)`.as("lat"),
-    })
-    .from(listingResolved)
-    .where(
-      and(
-        eq(listingResolved.status, "active"),
-        ne(listingResolved.availability, "rented"),
-        sql`${listingResolved.hiddenReason} IS NULL`,
-        sql`${listingResolved.expiresAt} > now()`,
-        matchCond,
-      ),
-    )
-    .orderBy(desc(titleSim))
-    .limit(LISTING_LIMIT);
-
-  return rows.map((row) => {
-    const lat = parseCoord(row.lat);
-    const lng = parseCoord(row.lng);
-    return {
-      type: "listing" as const,
-      id: row.id,
-      label: row.title || row.id.slice(0, 8),
-      center: lat != null && lng != null ? { lat, lng } : null,
-    };
-  });
+function toSuggestion(row: Entity): SearchSuggestion {
+  const base = { id: row.id, label: {en:row.labelEn,ar:row.labelAr}, context: {en:row.contextEn,ar:row.contextAr},
+    center: row.lat != null && row.lng != null ? {lat:Number(row.lat),lng:Number(row.lng)} : null };
+  if(row.type==='city') return {...base,type:'city',slug:row.slug!,canonicalAreas:row.canonicalAreas,url:`/search?city=${encodeURIComponent(row.slug!)}`};
+  if(row.type==='area') return {...base,type:'area',slug:row.slug!,canonicalArea:row.canonicalArea!,url:`/search?areas=${encodeURIComponent(row.canonicalArea!)}`};
+  if(row.type==='campus') return {...base,type:'campus',slug:row.slug!,url:`/search?campusId=${encodeURIComponent(row.id)}&universitySlugs=${encodeURIComponent(row.slug!)}`};
+  return {...base,type:'place',canonicalArea:row.canonicalArea!,url:`/search?placeId=${encodeURIComponent(row.id)}`};
 }
 
 export class SearchService {
-  async suggestions(q: string): Promise<SearchSuggestionsResult> {
-    const trimmed = q.trim();
-    const [universitiesResult, listingsResult] = await Promise.all([
-      matchUniversities(trimmed),
-      matchListings(trimmed),
-    ]);
-    return {
-      areas: matchAreas(trimmed),
-      universities: universitiesResult,
-      listings: listingsResult,
-    };
+  private readonly cache = new Map<string, CacheEntry>();
+  constructor(private readonly database: SearchDatabase = db) {}
+
+  async suggest(q: string, limit=10): Promise<SearchSuggestResult> {
+    const normalized=await normalizeSearch(this.database,q);
+    const defaults=[...normalized].length<2;
+    const [state]=await searchRows<{revision:string;expiryMs:number|null}>(this.database,sql`
+      SELECT revision::text, (SELECT extract(epoch FROM (min(expires_at)-now()))*1000 FROM (${publicUnits}) u) AS "expiryMs"
+      FROM search_catalog_state WHERE singleton`);
+    const key=defaults ? `defaults:${limit}` : `${normalized}:${limit}`, now=Date.now();
+    const cached=this.cache.get(key);
+    if(cached && cached.revision===state!.revision && cached.expiresAt>now) {
+      this.cache.delete(key); this.cache.set(key,cached);
+      return {...structuredClone(cached.value),query:q,normalizedQuery:normalized};
+    }
+    const rows=await this.database.transaction(async tx=>{
+      await tx.execute(sql`SET LOCAL pg_trgm.similarity_threshold=0.25`);
+      await tx.execute(sql`SET LOCAL pg_trgm.word_similarity_threshold=0.6`);
+      const prefix=normalized.replace(/[\\%_]/g,ch=>`\\${ch}`)+'%';
+      const wordPrefix='% '+prefix;
+      const match=defaults ? sql`true` : sql`(a.normalized=${normalized} OR a.normalized LIKE ${prefix} OR a.normalized LIKE ${wordPrefix}
+        ${[...normalized].length>=3 ? sql`OR a.normalized % ${normalized} OR a.normalized %> ${normalized}` : sql``})`;
+      return searchRows<Entity>(tx,sql`
+        WITH live_units AS MATERIALIZED (${publicUnits}),
+        entities AS (
+          SELECT l.id AS "targetKey",l.kind::text AS type,l.id,l.slug::text,
+            l.name_en AS "labelEn",l.name_ar AS "labelAr",
+            CASE WHEN l.kind='area' AND parent.name_en<>l.district_en THEN parent.name_en || ', ' || l.district_en ELSE l.district_en END AS "contextEn",
+            CASE WHEN l.kind='area' AND parent.name_ar<>l.district_ar THEN parent.name_ar || '، ' || l.district_ar ELSE l.district_ar END AS "contextAr",
+            l.canonical_area::text AS "canonicalArea",
+            CASE WHEN l.kind='area' THEN ARRAY[l.canonical_area::text] ELSE ARRAY(SELECT child.canonical_area::text FROM search_locations child
+              WHERE child.parent_city_id=l.id AND child.active ORDER BY child.canonical_area) END AS "canonicalAreas",
+            l.lat,l.lng,
+            (SELECT count(*)::int FROM live_units u WHERE u.area=l.canonical_area OR
+              (l.kind='city' AND u.area IN(SELECT child.canonical_area FROM search_locations child WHERE child.parent_city_id=l.id AND child.active))) AS popularity
+          FROM search_locations l LEFT JOIN search_locations parent ON parent.id=l.parent_city_id
+          WHERE l.active AND (l.kind='city' OR parent.active)
+            AND NOT(l.kind='area' AND parent.active AND parent.name_en=l.name_en)
+          UNION ALL
+          SELECT 'campus:' || u.id::text,'campus',u.id::text,u.slug::text,
+            concat_ws(' — ',i.short_name,u.name),concat_ws(' — ',i.name_ar,u.name_ar),
+            CASE WHEN loc.name_en IS NOT NULL AND loc.district_en<>loc.name_en THEN loc.name_en || ', ' || loc.district_en ELSE coalesce(u.city,'Lebanon') END,
+            CASE WHEN loc.name_ar IS NOT NULL AND loc.district_ar<>loc.name_ar THEN loc.name_ar || '، ' || loc.district_ar ELSE coalesce(loc.name_ar,'لبنان') END,
+            NULL::text,ARRAY[]::text[],ST_Y(u.location::geometry),ST_X(u.location::geometry),
+            (SELECT count(*)::int FROM live_units x WHERE x.location IS NOT NULL AND ST_DWithin(x.location,u.location,${campusHousingRadiusMeters}))
+          FROM universities u JOIN institutions i ON i.id=u.institution_id
+          LEFT JOIN LATERAL(SELECT l.* FROM search_aliases a JOIN search_locations l ON l.id=a.location_id
+            WHERE a.normalized=search_normalize(u.city) AND l.active ORDER BY l.kind DESC,l.id LIMIT 1) loc ON true
+          WHERE u.active AND i.active AND nullif(btrim(u.name_ar),'') IS NOT NULL AND nullif(btrim(i.name_ar),'') IS NOT NULL
+            AND lower(i.slug)<>'lu' AND lower(u.slug) NOT IN('lu','lu-fanar')
+            AND lower(i.name) NOT LIKE '%lebanese university%' AND lower(u.name) NOT LIKE '%lebanese university%'
+          UNION ALL
+          SELECT 'place:' || p.id::text,'place',p.id::text,NULL::text,
+            coalesce(nullif(btrim(p.building_name),''),CASE WHEN p.kind='building' THEN 'Building in ' ELSE 'Apartment in ' END || p.area),
+            coalesce(nullif(btrim(p.building_name_ar),''),CASE WHEN nullif(btrim(p.building_name),'') IS NOT NULL
+              THEN p.building_name || ' — ' || coalesce(loc.name_ar,p.area)
+              ELSE CASE WHEN p.kind='building' THEN 'مبنى في ' ELSE 'شقة في ' END || coalesce(loc.name_ar,p.area) END),
+            concat_ws(', ',p.area,p.city),concat_ws('، ',loc.name_ar,parent.name_ar),
+            p.area::text,ARRAY[p.area::text],ST_Y(p.location::geometry),ST_X(p.location::geometry),
+            (SELECT count(*)::int FROM live_units x WHERE x.place_id=p.id)
+          FROM places p LEFT JOIN search_locations loc ON loc.canonical_area=p.area AND loc.kind='area'
+          LEFT JOIN search_locations parent ON parent.id=loc.parent_city_id
+          WHERE NOT p.hidden AND EXISTS(SELECT 1 FROM live_units x WHERE x.place_id=p.id)
+        ), matches AS (
+          SELECT a.target_key,
+            min(CASE WHEN a.normalized=${normalized} THEN 0 WHEN a.normalized LIKE ${prefix} OR a.normalized LIKE ${wordPrefix} THEN 1 ELSE 2 END) AS tier,
+            max(CASE WHEN a.normalized=${normalized} OR a.normalized LIKE ${prefix} OR a.normalized LIKE ${wordPrefix} THEN 1
+              ELSE greatest(similarity(a.normalized,${normalized}),word_similarity(${normalized},a.normalized)) END) AS score
+          FROM search_aliases a WHERE ${match} GROUP BY a.target_key
+        )
+        SELECT e.* FROM entities e JOIN matches m ON m.target_key=e."targetKey"
+        -- Known short institution acronyms should not fill the menu with unrelated fuzzy acronyms.
+        WHERE m.tier<2 OR NOT(${normalized} ~ '^[a-z]{2,4}$' AND EXISTS(
+          SELECT 1 FROM search_aliases known WHERE known.normalized=${normalized} AND known.source='institution'))
+        ORDER BY ${defaults ? sql`e.popularity DESC,e."labelEn",e."targetKey"` : sql`m.tier,m.score DESC,e.popularity DESC,e."labelEn",e."targetKey"`}
+        ${defaults ? sql`` : sql`LIMIT ${limit}`}
+      `);
+    });
+    const value:SearchSuggestResult={query:q,normalizedQuery:normalized,mode:defaults?'defaults':'results',minQueryLength:2,
+      results:defaults ? [] : rows.map(toSuggestion),sections:{
+        topAreas:defaults ? rows.filter(r=>(r.type==='city'||r.type==='area') && r.popularity>0).slice(0,Math.ceil(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topAreas'] : [],
+        topCampuses:defaults ? rows.filter(r=>r.type==='campus' && r.popularity>0).slice(0,Math.floor(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topCampuses'] : [],
+      }};
+    this.cache.delete(key);
+    if(this.cache.size>=500) this.cache.delete(this.cache.keys().next().value!);
+    this.cache.set(key,{revision:state!.revision,expiresAt:now+Math.min(60_000,Math.max(0,Number(state!.expiryMs ?? 60_000))),value});
+    return structuredClone(value);
   }
 }
-
-export const searchService = new SearchService();
+export const searchService=new SearchService();

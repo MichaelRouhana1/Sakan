@@ -10,6 +10,8 @@ export function toListFilters(
   sort: ListingSort,
 ): ListingListFilters {
   const property: ListingListFilters = {
+    city: browse.city ?? undefined,
+    placeId: browse.placeId ?? undefined,
     sort,
     electricity:
       browse.electricity.length > 0 ? browse.electricity : undefined,

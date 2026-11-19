@@ -6,6 +6,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import postgres from 'postgres';
 import { exposeCurrentRuntimeView } from './current-runtime-view.mjs';
+import { exposeSearchRuntime } from './search-runtime.mjs';
 const url = new URL(process.env.DATABASE_URL);
 if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) throw new Error('Loopback required');
 const name = 'studently_search_test_' + randomUUID().replaceAll('-', '');
@@ -26,6 +27,7 @@ try {
     await client`INSERT INTO drizzle.__drizzle_migrations(hash,created_at) VALUES (${createHash('sha256').update(body).digest('hex')},${entry.when})`;
   }
   await exposeCurrentRuntimeView(client);
+  await exposeSearchRuntime(client);
   const { searchUnits } = await import('../dist/modules/search/unit-search.service.js');
   const { listListingsQuerySchema: schema } = await import('../dist/modules/listings/listings.schemas.js');
   const { listingsService } = await import('../dist/modules/listings/listings.service.js');
@@ -192,8 +194,8 @@ try {
       units.slice(1,8).forEach(l => assert.ok(!found.has(l.id)));
     }
     assert.deepEqual(await listingsService.listNearby(units[0].id),[]);
-    const suggestions = await searchService.suggestions('Search unit');
-    assert.ok(suggestions.listings.every(l => !units.slice(1,8).some(u=>u.id===l.id)));
+    const suggestions = await searchService.suggest('Hamra');
+    assert.ok(suggestions.results.filter(l=>l.type==='place').every(l => !units.slice(5,8).some(u=>u.place_id===l.id)));
   });
   await check('HTTP validates pagination/matcher and returns server metadata', async () => {
     const { default:express } = await import('express');

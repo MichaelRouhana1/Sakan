@@ -24,12 +24,7 @@ import {
 import { Studently } from "@/constants/theme";
 import { studentlyShadow } from "@/lib/studentlyShadow";
 import { useSearchSuggestions } from "@/features/search/useSearchSuggestions";
-import type {
-  SearchAreaSuggestion,
-  SearchListingSuggestion,
-  SearchSuggestion,
-  SearchUniversitySuggestion,
-} from "@/features/search/types";
+import type { SearchSuggestion, SearchSuggestResult } from '@/features/search/types';
 
 const PILL_HINTS = ["Area", "University", "Landmark"] as const;
 const IS_WEB = Platform.OS === "web";
@@ -49,9 +44,7 @@ type Props = {
   onChangeText: (text: string) => void;
   placeholder?: string;
   suggestionsEnabled?: boolean;
-  onSelectArea: (s: SearchAreaSuggestion) => void;
-  onSelectUniversity: (s: SearchUniversitySuggestion) => void;
-  onSelectListing: (s: SearchListingSuggestion) => void;
+  onSelect: (suggestion: SearchSuggestion) => void;
   onSubmitText: (q: string) => void;
   onClear: () => void;
   autoFocus?: boolean;
@@ -72,57 +65,21 @@ type FlatRow =
 
 type AnchorRect = { top: number; left: number; width: number };
 
-function flattenSuggestions(data: {
-  areas: SearchAreaSuggestion[];
-  universities: SearchUniversitySuggestion[];
-  listings: SearchListingSuggestion[];
-} | undefined): FlatRow[] {
-  if (!data) return [];
-  const rows: FlatRow[] = [];
-  let flatIndex = 0;
-  const pushGroup = (
-    title: string,
-    icon: keyof typeof Ionicons.glyphMap,
-    key: string,
-    items: SearchSuggestion[],
-    itemKey: (s: SearchSuggestion) => string,
-  ) => {
-    if (items.length === 0) return;
-    rows.push({ kind: "header", key: `h-${key}`, title, icon });
-    for (const s of items) {
-      rows.push({
-        kind: "item",
-        key: itemKey(s),
-        suggestion: s,
-        flatIndex: flatIndex++,
-      });
-    }
-  };
-  pushGroup("Areas & Cities", "location-outline", "areas", data.areas, (s) =>
-    s.type === "area" ? `a-${s.label}` : "a",
-  );
-  pushGroup(
-    "Universities & Campuses",
-    "school-outline",
-    "uni",
-    data.universities,
-    (s) => (s.type === "university" ? `u-${s.campusId}` : "u"),
-  );
-  pushGroup("Listings", "home-outline", "list", data.listings, (s) =>
-    s.type === "listing" ? `l-${s.id}` : "l",
-  );
-  return rows;
+function flattenSuggestions(data: SearchSuggestResult | undefined): FlatRow[] {
+  return (data?.results ?? []).map((suggestion,flatIndex)=>({
+    kind:'item',key:`${suggestion.type}:${suggestion.id}`,suggestion,flatIndex,
+  }));
 }
 
 function suggestionLabel(s: SearchSuggestion): string {
-  return s.label;
+  return s.label.en;
 }
 
 function suggestionIcon(
   type: SearchSuggestion["type"],
 ): keyof typeof Ionicons.glyphMap {
-  if (type === "area") return "location-outline";
-  if (type === "university") return "school-outline";
+  if (type === "area" || type === 'city') return "location-outline";
+  if (type === "campus") return "school-outline";
   return "home-outline";
 }
 
@@ -178,7 +135,7 @@ function SuggestionsPanel({
             onHoverIn={IS_WEB ? () => setHighlight(item.flatIndex) : undefined}
             style={[styles.row, active && styles.rowActive]}
             accessibilityRole="button"
-            accessibilityLabel={suggestionLabel(item.suggestion)}
+            accessibilityLabel={`${suggestionLabel(item.suggestion)}, ${item.suggestion.context.en}`}
           >
             <View
               style={[styles.rowIconWrap, active && styles.rowIconWrapActive]}
@@ -195,11 +152,9 @@ function SuggestionsPanel({
             >
               {suggestionLabel(item.suggestion)}
             </Text>
-            {item.suggestion.type === "listing" ? (
-              <Text style={styles.rowMeta} numberOfLines={1}>
-                Listing
-              </Text>
-            ) : null}
+            <Text style={styles.rowMeta} numberOfLines={1}>
+              {{city:'City',area:'Area',campus:'Campus',place:'Property'}[item.suggestion.type]} · {item.suggestion.context.en}
+            </Text>
           </Pressable>
         );
       })}
@@ -230,9 +185,7 @@ export function SearchAutocomplete({
   onChangeText,
   placeholder = "Search area, university, listing…",
   suggestionsEnabled = true,
-  onSelectArea,
-  onSelectUniversity,
-  onSelectListing,
+  onSelect,
   onSubmitText,
   onClear,
   autoFocus,
@@ -242,18 +195,21 @@ export function SearchAutocomplete({
   variant = "bar",
 }: Props) {
   const [focused, setFocused] = useState(false);
+  const [composing, setComposing] = useState(false);
   const [highlight, setHighlight] = useState(-1);
   const [hintIndex, setHintIndex] = useState(0);
   const [anchor, setAnchor] = useState<AnchorRect | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (blurTimer.current) clearTimeout(blurTimer.current); }, []);
   const wrapRef = useRef<RNView | null>(null);
   const barRef = useRef<RNView | null>(null);
   const reactId = useId().replace(/:/g, "");
   const anchorDomId = `studently-search-anchor-${reactId}`;
   const { data, isFetching } = useSearchSuggestions(
     value,
-    suggestionsEnabled && focused && value.trim().length >= 1,
+    suggestionsEnabled && focused && !composing,
   );
 
   const rows = useMemo(() => flattenSuggestions(data), [data]);
@@ -265,7 +221,7 @@ export function SearchAutocomplete({
     [rows],
   );
   const showDropdown =
-    focused && value.trim().length >= 1 && (rows.length > 0 || isFetching);
+    focused && !composing && value.trim().length >= 2 && (Boolean(data) || isFetching);
   const isPill = variant === "pill";
   const showPillHint = isPill && !value && !focused;
 
@@ -331,9 +287,7 @@ export function SearchAutocomplete({
   function applySuggestion(s: SearchSuggestion) {
     setFocused(false);
     inputRef.current?.blur();
-    if (s.type === "area") onSelectArea(s);
-    else if (s.type === "university") onSelectUniversity(s);
-    else onSelectListing(s);
+    onSelect(s);
   }
 
   function submitPlainText() {
@@ -344,13 +298,14 @@ export function SearchAutocomplete({
   }
 
   function handleSubmitFromKeyboard() {
+    if (composing) return;
     const trimmed = value.trim();
     if (!trimmed) {
       submitPlainText();
       return;
     }
-    if (highlight >= 0 && highlight < items.length) {
-      applySuggestion(items[highlight]!.suggestion);
+    if (items.length > 0) {
+      applySuggestion(items[Math.max(0,highlight)]!.suggestion);
       return;
     }
     submitPlainText();
@@ -465,6 +420,7 @@ export function SearchAutocomplete({
             </View>
           ) : null}
           <TextInput
+            {...(IS_WEB ? {onCompositionStart:()=>setComposing(true),onCompositionEnd:()=>setComposing(false)} : {})}
             ref={inputRef}
             value={value}
             onChangeText={onChangeText}
@@ -472,11 +428,12 @@ export function SearchAutocomplete({
             placeholderTextColor={Studently.color.inkFaint}
             style={[styles.input, isPill && styles.inputPill, style]}
             onFocus={() => {
+              if (blurTimer.current) clearTimeout(blurTimer.current);
               setFocused(true);
               requestAnimationFrame(() => measureAnchor());
             }}
             onBlur={() => {
-              setTimeout(() => setFocused(false), 200);
+              blurTimer.current = setTimeout(() => setFocused(false), 200);
             }}
             onSubmitEditing={handleSubmitFromKeyboard}
             returnKeyType="search"
@@ -509,7 +466,7 @@ export function SearchAutocomplete({
 
         {isPill ? (
           <Pressable
-            onPress={submitPlainText}
+            onPress={handleSubmitFromKeyboard}
             style={styles.searchCircle}
             accessibilityRole="button"
             accessibilityLabel="Search"

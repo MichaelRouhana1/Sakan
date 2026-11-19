@@ -313,6 +313,7 @@ const GENDER_FILTER_SET = new Set<string>(GENDER_FILTER_VALUES);
 
 /** Property filters ANDed with area / campus browse queries. */
 export type ListingPropertyFilters = {
+  placeId?: string;
   electricity: ElectricityFilter[];
   water: WaterFilter[];
   /** When true, require wifi_included; when false, no wifi filter. */
@@ -410,8 +411,10 @@ export const listListingsQuerySchema = z
     universitySlug: z.string().optional(),
     /** Campus UUID — preferred over universitySlugs when both set. */
     campusId: z.string().optional(),
+    city: z.string().trim().max(100).optional(),
+    placeId: z.preprocess(value => value === '' ? undefined : value, z.string().uuid().optional()),
     /** Free-text match on title / description / area / landmark / address. */
-    q: z.string().max(128).optional(),
+    q: z.string().refine(value => [...value].length <= 128, 'q must be at most 128 characters').optional(),
     /** WGS84 pin for radius filter (requires lng). */
     lat: z.string().optional(),
     lng: z.string().optional(),
@@ -479,11 +482,10 @@ export const listListingsQuerySchema = z
       return z.NEVER;
     }
 
-    const unknown = areas.filter((a) => !LEBANON_AREA_SET.has(a));
-    if (unknown.length > 0) {
+    if (areas.some(a => [...a].length > 128)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `Unknown area(s): ${unknown.join(", ")}`,
+        message: 'Area names must be at most 128 characters',
       });
       return z.NEVER;
     }
@@ -621,6 +623,8 @@ export const listListingsQuerySchema = z
 
     return {
       areas,
+      city: raw.city || undefined,
+      placeId: raw.placeId,
       universitySlugs,
       campusId,
       q,

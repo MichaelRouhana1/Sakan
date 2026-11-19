@@ -26,15 +26,12 @@ import { useHostingNavState } from "@/features/listings/useHostingNavState";
 import { campusFilterLabel } from "@/features/universities/useInstitutions";
 import { useUniversities } from "@/features/universities/useUniversities";
 import {
-  browseSearchSetParams,
   homeBrowseHref,
   parseCsvParam,
 } from "@/lib/browseSearchUrl";
-import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
-import type {
-  SearchAreaSuggestion,
-  SearchUniversitySuggestion,
-} from "@/features/search/types";
+import { applySearchSelection, applySearchText } from '@/features/search/selection';
+import { parseBrowseState, serializeBrowseState, type BrowseState, type BrowseParams } from '@/features/matcher/browseState';
+import type { SearchSuggestion } from '@/features/search/types';
 
 type Props = {
   showSearch?: boolean;
@@ -43,12 +40,7 @@ type Props = {
 export function WebTopNav({ showSearch = false }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useLocalSearchParams<{
-    q?: string;
-    campusId?: string;
-    areas?: string;
-    universitySlugs?: string;
-  }>();
+  const params = useLocalSearchParams() as BrowseParams;
   const onBrowse = pathname.includes("/search");
   const universities = useUniversities();
   const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
@@ -74,6 +66,11 @@ export function WebTopNav({ showSearch = false }: Props) {
       setSearchVal(q);
       return;
     }
+    if (typeof params.city === 'string' && params.city) {
+      setSearchVal(params.city.split('-').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' '));
+      return;
+    }
+    if (params.placeId) { setSearchVal(value=>value || 'Selected property'); return; }
     if (areas.length > 0) {
       setSearchVal(areas[0]!);
       return;
@@ -91,103 +88,26 @@ export function WebTopNav({ showSearch = false }: Props) {
   }, [
     showSearch,
     params.q,
+    params.city,
+    params.placeId,
     params.areas,
     params.campusId,
     params.universitySlugs,
     universities.data,
   ]);
 
-  const writeBrowse = useCallback(
-    (next: {
-      q?: string | null;
-      campusId?: string | null;
-      areas?: string[];
-      universitySlugs?: string[];
-      label?: string;
-    }) => {
-      if (next.label != null) setSearchVal(next.label);
-      else if (next.q) setSearchVal(next.q);
-      else if (next.areas?.[0]) setSearchVal(next.areas[0]);
-      else if (!next.campusId && !next.universitySlugs?.length && !next.q) {
-        setSearchVal("");
-      }
-
-      if (onBrowse) {
-        router.setParams(browseSearchSetParams(next) as never);
-        return;
-      }
-      router.push(
-        homeBrowseHref({
-          q: next.q ?? undefined,
-          campusId: next.campusId ?? undefined,
-          areas: next.areas,
-          universitySlugs: next.universitySlugs,
-        }) as never,
-      );
-    },
-    [onBrowse, router],
-  );
-
-  const onSelectArea = useCallback(
-    (s: SearchAreaSuggestion) => {
-      writeBrowse({
-        label: s.label,
-        areas: [s.label],
-        campusId: null,
-        universitySlugs: [],
-        q: null,
-      });
-    },
-    [writeBrowse],
-  );
-
-  const onSelectUniversity = useCallback(
-    (s: SearchUniversitySuggestion) => {
-      writeBrowse({
-        label: s.label,
-        campusId: s.campusId,
-        universitySlugs: [s.slug],
-        areas: [],
-        q: null,
-      });
-    },
-    [writeBrowse],
-  );
-
-  const onSubmitText = useCallback(
-    (q: string) => {
-      const campus = resolveCampusFromTypedQuery(
-        q,
-        universities.data ?? [],
-      );
-      if (campus) {
-        writeBrowse({
-          label: campusFilterLabel(campus),
-          campusId: campus.id,
-          universitySlugs: [campus.slug],
-          areas: [],
-          q: null,
-        });
-        return;
-      }
-      writeBrowse({
-        label: q,
-        q,
-        campusId: null,
-        universitySlugs: [],
-        areas: [],
-      });
-    },
-    [universities.data, writeBrowse],
-  );
-
-  const onClearSearch = useCallback(() => {
-    setSearchVal("");
-    if (onBrowse) {
-      router.replace("/search" as never);
-      return;
-    }
-  }, [onBrowse, router]);
+  const writeSearch = useCallback((next: BrowseState, label: string) => {
+    setSearchVal(label);
+    if (onBrowse) router.setParams(serializeBrowseState(next) as never);
+    else router.push(homeBrowseHref(next.filters) as never);
+  }, [onBrowse,router]);
+  const onSelectSearch = useCallback((suggestion: SearchSuggestion) => {
+    writeSearch(applySearchSelection(parseBrowseState(params),suggestion),suggestion.label.en);
+  }, [params,writeSearch]);
+  const onSubmitText = useCallback((query: string) => {
+    writeSearch(applySearchText(parseBrowseState(params),query),query);
+  }, [params,writeSearch]);
+  const onClearSearch = useCallback(() => onSubmitText(''), [onSubmitText]);
 
   const handleProfileTriggerClick = () => {
     setMenuOpen((prev) => !prev);
@@ -237,11 +157,7 @@ export function WebTopNav({ showSearch = false }: Props) {
               value={searchVal}
               onChangeText={setSearchVal}
               placeholder="Search by city, area, university, or listing"
-              onSelectArea={onSelectArea}
-              onSelectUniversity={onSelectUniversity}
-              onSelectListing={(s) => {
-                router.push(`/listing/${s.id}` as never);
-              }}
+              onSelect={onSelectSearch}
               onSubmitText={onSubmitText}
               onClear={onClearSearch}
               containerStyle={styles.searchAutocomplete}

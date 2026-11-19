@@ -1,74 +1,24 @@
-import type { Href } from "expo-router";
-
-/** Browse URL query keys for search hydrate / sync. */
-export type BrowseSearchUrlParams = {
-  q?: string | null;
-  campusId?: string | null;
-  areas?: string | null;
-  universitySlugs?: string | null;
+import type { Href } from 'expo-router';
+export type BrowseDestination = {
+  q?: string | null; city?: string | null; placeId?: string | null; campusId?: string | null;
+  areas?: string[]; universitySlugs?: string[];
 };
-
-/** Build params object omitting empty keys (for router.setParams / push). */
-export function browseSearchParams(input: {
-  q?: string | null;
-  campusId?: string | null;
-  areas?: string[];
-  universitySlugs?: string[];
-}): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (input.q?.trim()) out.q = input.q.trim();
-  if (input.campusId?.trim()) out.campusId = input.campusId.trim();
-  if (input.areas && input.areas.length > 0) {
-    out.areas = input.areas.join(",");
-  }
-  if (input.universitySlugs && input.universitySlugs.length > 0) {
-    out.universitySlugs = input.universitySlugs.join(",");
-  }
+export type BrowseSearchUrlParams = { q?: string | null; city?: string | null; placeId?: string | null;
+  campusId?: string | null; areas?: string | null; universitySlugs?: string | null };
+export function browseSearchParams(input: BrowseDestination): Record<string,string> {
+  const out:Record<string,string>={};
+  for(const key of ['q','city','placeId','campusId'] as const) if(input[key]?.trim()) out[key]=input[key]!.trim();
+  for(const key of ['areas','universitySlugs'] as const) if(input[key]?.length) out[key]=input[key]!.join(',');
   return out;
 }
-
-/** Expo Router needs undefined to clear — pass empty string cleared keys as undefined. */
-export function browseSearchSetParams(input: {
-  q?: string | null;
-  campusId?: string | null;
-  areas?: string[];
-  universitySlugs?: string[];
-}): Record<string, string | undefined> {
-  return {
-    q: input.q?.trim() || undefined,
-    campusId: input.campusId?.trim() || undefined,
-    areas:
-      input.areas && input.areas.length > 0
-        ? input.areas.join(",")
-        : undefined,
-    universitySlugs:
-      input.universitySlugs && input.universitySlugs.length > 0
-        ? input.universitySlugs.join(",")
-        : undefined,
-  };
+export function browseSearchSetParams(input: BrowseDestination): Record<string,string|undefined> {
+  return {q:undefined,city:undefined,placeId:undefined,campusId:undefined,areas:undefined,universitySlugs:undefined,...browseSearchParams(input)};
 }
-
-export function homeBrowseHref(input: {
-  q?: string;
-  campusId?: string;
-  areas?: string[];
-  universitySlugs?: string[];
-}): Href {
-  const params = browseSearchParams(input);
-  if (Object.keys(params).length === 0) {
-    return "/search" as Href;
-  }
-  return { pathname: "/search", params } as Href;
+export function homeBrowseHref(input: BrowseDestination): Href {
+  const params=browseSearchParams(input);
+  return Object.keys(params).length ? {pathname:'/search',params} as Href : '/search' as Href;
 }
-
-export function parseCsvParam(value: string | string[] | undefined): string[] {
-  if (value == null) return [];
-  const raw = Array.isArray(value) ? value.join(",") : value;
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+export function parseCsvParam(value: string|string[]|undefined): string[] {
+  return (Array.isArray(value) ? value.join(',') : value ?? '').split(',').map(s=>s.trim()).filter(Boolean);
 }
-
-/** Full browse state codec used by both Explore renderers, including guided preferences. */
-export { parseBrowseState, serializeBrowseState } from "@/features/matcher/browseState";
+export {parseBrowseState,serializeBrowseState} from '@/features/matcher/browseState';

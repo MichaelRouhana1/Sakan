@@ -33,8 +33,8 @@ import { Studently } from "@/constants/theme";
 import { LText } from "@/components/lister/Typography";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
-import { browseSearchParams } from "@/lib/browseSearchUrl";
-import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
+import { browseSearchParams, type BrowseDestination } from "@/lib/browseSearchUrl";
+import { searchDestination } from '@/features/search/selection';
 import { useUniversities } from "@/features/universities/useUniversities";
 import {
   AREA_REGIONS,
@@ -91,12 +91,7 @@ function HeroBottomCurve({ width }: { width: number }) {
   );
 }
 
-function pushSearch(params?: {
-  q?: string;
-  campusId?: string;
-  areas?: string[];
-  universitySlugs?: string[];
-}) {
+function pushSearch(params?: BrowseDestination) {
   router.push({
     pathname: SEARCH_PATH,
     params: browseSearchParams(params ?? {}),
@@ -357,30 +352,8 @@ export default function RenterNewHomeScreen() {
                   ? `Near ${campusLabel}`
                   : "Search area, university, listing…"
               }
-              onSelectArea={(s) => pushSearch({ areas: [s.label] })}
-              onSelectUniversity={(s) =>
-                pushSearch({
-                  campusId: s.campusId,
-                  universitySlugs: [s.slug],
-                })
-              }
-              onSelectListing={(s) => {
-                router.push(`/(renter)/listing/${s.id}` as never);
-              }}
-              onSubmitText={(q) => {
-                const campus = resolveCampusFromTypedQuery(
-                  q,
-                  universities.data ?? [],
-                );
-                if (campus) {
-                  pushSearch({
-                    campusId: campus.id,
-                    universitySlugs: [campus.slug],
-                  });
-                  return;
-                }
-                pushSearch({ q });
-              }}
+              onSelect={(s) => pushSearch(searchDestination(s))}
+              onSubmitText={(q) => pushSearch({q})}
               onClear={() => setSearchQuery("")}
             />
           </View>

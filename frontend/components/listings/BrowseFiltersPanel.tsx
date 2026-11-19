@@ -121,6 +121,7 @@ export function browseFilterBadgeCount(
 ): number {
   return (
     value.areas.length +
+      (value.city ? 1 : 0) + (value.placeId ? 1 : 0) +
     value.universitySlugs.length +
     (value.q?.trim() ? 1 : 0) +
     value.electricity.length +
@@ -217,6 +218,8 @@ export function BrowseFiltersPanel({
 
   const draftValue: BrowseFiltersValue = useMemo(
     () => ({
+      city: applied.city,
+      placeId: applied.placeId,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,
@@ -236,6 +239,8 @@ export function BrowseFiltersPanel({
       draftSlugs,
       draftInstSlug,
       applied.campusId,
+      applied.city,
+      applied.placeId,
       applied.q,
       draftElectricity,
       draftWater,
@@ -362,6 +367,8 @@ export function BrowseFiltersPanel({
     setRentError(null);
     setConfirmDiscard(false);
     onApply({
+      city: draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join() ? applied.city : null,
+      placeId: draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join() ? applied.placeId : null,
       radiusKm: applied.radiusKm,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),

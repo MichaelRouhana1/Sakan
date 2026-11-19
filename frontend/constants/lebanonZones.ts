@@ -1,7 +1,7 @@
 /**
  * Cities browse catalog — governorate → district → neighborhood.
  * Flattened names are LEBANON_AREAS (keep backend lebanonAreas.ts in sync).
- * Search suggestion aliases (Arabic / alt Latin) live on the backend only.
+ * Runtime search aliases and city relationships are resolved by the backend DB.
  */
 export type LebanonZoneDistrict = {
   slug: string;

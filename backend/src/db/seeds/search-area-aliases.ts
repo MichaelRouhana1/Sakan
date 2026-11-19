@@ -1,8 +1,8 @@
-import type { LebanonArea } from "./lebanonAreas.js";
+import type { LebanonArea } from "../../constants/lebanonAreas.js";
 
 /**
- * Suggestion-only alt spellings / Arabic for canonical LEBANON_AREAS labels.
- * Backend search suggestions are the source of truth. Frontend catalog
+ * Seed input only. Runtime location lookup reads search_aliases.
+ * Historical spellings retained for idempotent DB seeding. Frontend catalog
  * (`lebanonZones.ts`) stays canonical English for pickers and filter chips.
  * Do not add aliases that are not in LEBANON_AREAS.
  */

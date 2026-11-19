@@ -13,12 +13,10 @@ import {
   desc,
   eq,
   gte,
-  ilike,
   inArray,
   isNotNull,
   lte,
   ne,
-  or,
   sql,
   type SQL,
 } from "drizzle-orm";
@@ -177,14 +175,9 @@ function likePattern(token: string): string {
 function textSearchDrizzleConditions(q: string | undefined): SQL[] {
   return searchTokens(q).map((token) => {
     const like = likePattern(token);
-    return or(
-      ilike(listingResolved.title, like),
-      ilike(listingResolved.buildingName, like),
-      ilike(listingResolved.area, like),
-      ilike(listingResolved.description, like),
-      ilike(listingResolved.landmark, like),
-      ilike(listingResolved.addressLine, like),
-    )!;
+    return sql`(${sql.join([listingResolved.title,listingResolved.buildingName,listingResolved.area,
+      listingResolved.description,listingResolved.landmark,listingResolved.addressLine]
+      .map(column => sql`search_normalize(coalesce(${column},'')) LIKE ${like}`),sql` OR `)})`;
   });
 }
 
@@ -196,12 +189,12 @@ function textSearchSqlFragment(q: string | undefined): SQL {
     tokens.map((token) => {
       const like = likePattern(token);
       return sql`AND (
-        l.title ILIKE ${like}
-        OR COALESCE(l.building_name, '') ILIKE ${like}
-        OR l.area ILIKE ${like}
-        OR COALESCE(l.description, '') ILIKE ${like}
-        OR COALESCE(l.landmark, '') ILIKE ${like}
-        OR COALESCE(l.address_line, '') ILIKE ${like}
+        search_normalize(l.title) LIKE ${like}
+        OR search_normalize(l.building_name) LIKE ${like}
+        OR search_normalize(l.area) LIKE ${like}
+        OR search_normalize(l.description) LIKE ${like}
+        OR search_normalize(l.landmark) LIKE ${like}
+        OR search_normalize(l.address_line) LIKE ${like}
       )`;
     }),
     sql` `,
@@ -213,6 +206,7 @@ function propertyDrizzleConditions(
   filters: ListingPropertyFilters,
 ): SQL[] {
   const out: SQL[] = [];
+  if (filters.placeId) out.push(eq(listingResolved.placeId,filters.placeId));
   if (filters.electricity.length > 0) {
     out.push(inArray(listingResolved.electricity, filters.electricity));
   }
@@ -243,6 +237,7 @@ function propertyDrizzleConditions(
 /** Raw-SQL AND fragments for the hub distance query (alias `l`). */
 function propertySqlFragments(filters: ListingPropertyFilters): SQL {
   const parts: SQL[] = [];
+  if (filters.placeId) parts.push(sql`AND l.place_id=${filters.placeId}::uuid`);
   if (filters.electricity.length > 0) {
     parts.push(
       sql`AND l.electricity IN (${sql.join(

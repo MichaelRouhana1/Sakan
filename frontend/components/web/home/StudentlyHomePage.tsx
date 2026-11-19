@@ -48,8 +48,8 @@ import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { useHomePopular } from "@/features/listings/useHomePopular";
 import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
-import { homeBrowseHref } from "@/lib/browseSearchUrl";
-import { resolveCampusFromTypedQuery } from "@/lib/resolveCampusSearch";
+import { homeBrowseHref, type BrowseDestination } from "@/lib/browseSearchUrl";
+import { searchDestination } from '@/features/search/selection';
 import { InsightsMarquee } from "./InsightsMarquee";
 import { homeRevealProps, useHomeScrollReveal } from "./useHomeScrollReveal";
 import type { Listing } from "@/types/listing";
@@ -185,12 +185,7 @@ function UniCityCard({
   );
 }
 
-function goBrowse(params?: {
-  q?: string;
-  campusId?: string;
-  areas?: string[];
-  universitySlugs?: string[];
-}) {
+function goBrowse(params?: BrowseDestination) {
   router.push(homeBrowseHref(params ?? {}) as never);
 }
 
@@ -421,7 +416,6 @@ function HomeNav({
 
 function SearchPill() {
   const [query, setQuery] = useState("");
-  const universities = useUniversities();
 
   return (
     <SearchAutocomplete
@@ -429,27 +423,8 @@ function SearchPill() {
       value={query}
       onChangeText={setQuery}
       placeholder={HERO.searchPlaceholder}
-      onSelectArea={(s) => goBrowse({ areas: [s.label] })}
-      onSelectUniversity={(s) =>
-        goBrowse({ campusId: s.campusId, universitySlugs: [s.slug] })
-      }
-      onSelectListing={(s) => {
-        router.push(`/listing/${s.id}` as never);
-      }}
-      onSubmitText={(q) => {
-        const campus = resolveCampusFromTypedQuery(
-          q,
-          universities.data ?? [],
-        );
-        if (campus) {
-          goBrowse({
-            campusId: campus.id,
-            universitySlugs: [campus.slug],
-          });
-          return;
-        }
-        goBrowse({ q });
-      }}
+      onSelect={(s) => router.push(homeBrowseHref(searchDestination(s)) as never)}
+      onSubmitText={(q) => goBrowse({q})}
       onClear={() => setQuery("")}
     />
   );

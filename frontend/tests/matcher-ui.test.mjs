@@ -61,6 +61,7 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
     write: false,
     platform: "browser",
     jsx: "automatic",
+    loader: { '.css': 'empty' },
     resolveExtensions: [
       ".web.tsx",
       ".web.ts",
@@ -83,6 +84,8 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
       {
         name: "test-boundaries",
         setup(b) {
+          b.onResolve({filter:/NativeSvgSoundModule/},()=>({path:'svg-sound',namespace:'sound-stub'}));
+          b.onLoad({filter:/.*/,namespace:'sound-stub'},()=>({contents:'export default {};'}));
           b.onResolve(
             {
               filter:
@@ -93,14 +96,14 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
           b.onResolve(
             {
               filter:
-                /^(@expo\/vector-icons|@\/components\/listings\/ListingCardCarousel)$/,
+                /^(@expo\/vector-icons|@react-native\/assets-registry\/registry|@\/components\/listings\/ListingCardCarousel)$/,
             },
             (args) => ({ path: args.path, namespace: "stub" }),
           );
           b.onLoad({ filter: /.*/, namespace: "stub" }, (args) => ({
             resolveDir: frontend,
             loader: "tsx",
-            contents: args.path.includes("ListingCardCarousel")
+            contents: args.path.includes('assets-registry') ? 'export const getAssetByID=()=>undefined;' : args.path.includes("ListingCardCarousel")
               ? 'import {View} from "react-native";export const ListingCardCarousel=()=> <View style={{height:180,backgroundColor:"#dce6ed"}} />;'
               : "export const Ionicons=()=>null;",
           }));
@@ -159,19 +162,23 @@ test("guided matcher browser flow", { timeout: 180000 }, async (t) => {
     await page.route("**/api/universities", (r) =>
       r.fulfill({ json: { data: options.campuses ?? [uni] } }),
     );
-    await page.route("**/api/search/suggestions*", (r) =>
+    await page.route("**/api/search/suggest*", (r) =>
       r.fulfill({
         json: {
           data: {
-            areas: [
+            query: 'Hamra', normalizedQuery: 'hamra', mode: 'results', minQueryLength: 2,
+            results: new URL(r.request().url()).searchParams.get('q')?.toLowerCase().includes('lau') ? [{
+              type: 'campus', id: uni.id, slug: uni.slug, label: {en:'LAU Beirut',ar:'الجامعة اللبنانية الأميركية — بيروت'},
+              context: {en:'Beirut',ar:'بيروت'}, center: {lat:uni.lat,lng:uni.lng}, url:'/search?campusId='+uni.id,
+            }] : [
               {
                 type: "area",
-                label: "Hamra",
+                id: 'area:hamra', slug: 'hamra', canonicalArea: 'Hamra',
+                label: { en: 'Hamra', ar: 'الحمرا' }, context: { en: 'Beirut', ar: 'بيروت' }, url: '/search?areas=Hamra',
                 center: { lat: 33.9, lng: 35.48 },
               },
             ],
-            universities: [],
-            listings: [],
+            sections: { topAreas: [], topCampuses: [] },
           },
         },
       }),

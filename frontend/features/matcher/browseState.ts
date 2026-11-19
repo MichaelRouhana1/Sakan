@@ -20,6 +20,8 @@ export type BrowseState = {
 export type BrowseParams = Record<string, string | string[] | undefined>;
 export const BROWSE_URL_KEYS = [
   "q",
+  "city",
+  "placeId",
   "campusId",
   "areas",
   "universitySlugs",
@@ -49,6 +51,8 @@ export function parseBrowseState(params: BrowseParams): BrowseState {
   const f: BrowseFiltersValue = {
     ...EMPTY_BROWSE_FILTERS,
     q: one(params.q)?.trim() || null,
+    city: one(params.city)?.trim() || null,
+    placeId: one(params.placeId)?.trim() || null,
     campusId: one(params.campusId) || null,
     areas: csv(params.areas).slice(0, 15),
     universitySlugs: csv(params.universitySlugs).slice(0, 1),
@@ -118,7 +122,7 @@ export function serializeBrowseState(
     "genderRestrictions",
   ] as const)
     out[key] = f[key].length ? f[key].join(",") : undefined;
-  for (const key of ["q", "campusId"] as const) out[key] = f[key] || undefined;
+  for (const key of ["q", "city", "placeId", "campusId"] as const) out[key] = f[key] || undefined;
   for (const key of ["minRentUsd", "maxRentUsd", "radiusKm"] as const)
     out[key] = f[key] != null ? String(f[key]) : undefined;
   for (const key of ["wifiIncluded", "studentsOnly"] as const)

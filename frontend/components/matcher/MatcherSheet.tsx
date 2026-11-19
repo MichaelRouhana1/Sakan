@@ -242,14 +242,16 @@ function LocationPicker({
   const suggestions = useSearchSuggestions(
     query || (value?.kind === "area" ? (value.areas?.[0] ?? "") : ""),
   );
-  const hydratedArea = suggestions.data?.areas.find(
+  const locationSuggestions = (suggestions.data?.mode === 'results' ? suggestions.data.results : suggestions.data?.sections.topAreas ?? [])
+    .filter(item => item.type === 'area' || item.type === 'city');
+  const hydratedArea = locationSuggestions.find(
     (area) =>
       value?.kind === "area" &&
       value.areas?.length === 1 &&
-      area.label === value.areas[0],
+      (area.type === 'area' ? area.canonicalArea === value.areas[0] : area.canonicalAreas.length===1 && area.canonicalAreas[0]===value.areas[0]),
   );
   useEffect(() => {
-    if (hydratedArea && value && !value.center)
+    if (hydratedArea?.center && value && !value.center)
       onSelect({ ...value, center: hydratedArea.center });
   }, [hydratedArea, value]);
   useEffect(() => {
@@ -263,9 +265,15 @@ function LocationPicker({
     return () => clearTimeout(timer);
   }, [searching, kind]);
   const needle = query.trim().toLowerCase();
+  const typedResults = suggestions.data?.mode === 'results' ? suggestions.data.results : [];
+  const remoteChoices: MatchLocation[] = kind === 'campus'
+    ? typedResults.filter(item=>item.type==='campus').map(item=>({kind:'campus',label:item.label.en,campusId:item.id,slug:item.slug,center:item.center ?? undefined}))
+    : locationSuggestions.map(item=>({kind:'area',label:item.label.en,
+      areas:item.type==='area' ? [item.canonicalArea] : item.canonicalAreas,center:item.center ?? undefined}));
   const choices: MatchLocation[] =
     kind === "anywhere"
       ? []
+      : [...query.trim()].length >= 2 ? remoteChoices.slice(0,mobile ? 6 : 3)
       : kind === "campus"
       ? (universities.data ?? [])
           .filter((university) =>
@@ -285,8 +293,7 @@ function LocationPicker({
             kind: "area",
             label: area,
             areas: [area],
-            center: suggestions.data?.areas.find((item) => item.label === area)
-              ?.center,
+            center: locationSuggestions.find(item => item.type==='area' ? item.canonicalArea===area : item.canonicalAreas.includes(area))?.center ?? undefined,
           }));
 
   const segment = (

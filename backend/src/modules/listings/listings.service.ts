@@ -31,6 +31,8 @@ import {
   snapshotFromWrite,
 } from "./listing-update-snapshot.js";
 import { recordActivity } from '../listing-activity/listing-activity.service.js';
+import { db } from '../../db/index.js';
+import { SearchResolver, type ResolvedSearchQuery } from '../search/search-resolver.js';
 import type { ActivityInput } from '../listing-activity/activity-policy.js';
 import type {
   CreateListingInput,
@@ -42,6 +44,7 @@ import type {
 export type ListingsListResult = {
   data: ListingWithPhotos[];
   campuses: CampusMeta[];
+  resolution?: ResolvedSearchQuery;
 };
 
 export type HostAnalyticsListing = {
@@ -158,6 +161,8 @@ export class ListingsService {
 
   async list(params: {
     areas?: string[];
+    city?: string;
+    placeId?: string;
     universitySlugs?: string[];
     campusId?: string;
     q?: string;
@@ -174,9 +179,12 @@ export class ListingsService {
     studentsOnly?: boolean;
     genderRestrictions?: ListingPropertyFilters["genderRestrictions"];
   }): Promise<ListingsListResult> {
-    const areas = params.areas ?? [];
+    const resolution = await new SearchResolver(db).resolveBrowse({q:params.q,areas:params.areas,city:params.city});
+    if (resolution.canonicalAreas?.length === 0) return {data:[],campuses:[],resolution};
+    const areas = resolution.canonicalAreas ?? [];
     let universitySlugs = params.universitySlugs ?? [];
     const property: ListingPropertyFilters = {
+      placeId: params.placeId,
       electricity: params.electricity ?? [],
       water: params.water ?? [],
       wifiIncluded: params.wifiIncluded ?? false,
@@ -186,7 +194,7 @@ export class ListingsService {
       studentsOnly: params.studentsOnly ?? false,
       genderRestrictions: params.genderRestrictions ?? [],
     };
-    const q = params.q;
+    const q = resolution.remainingQuery || undefined;
     const DEFAULT_RADIUS_KM = 2;
 
     if (params.campusId) {
@@ -213,7 +221,7 @@ export class ListingsService {
         property,
         q,
       );
-      return { data, campuses: [] };
+      return { data, campuses: [], resolution };
     }
 
     if (universitySlugs.length > 0) {
@@ -226,7 +234,7 @@ export class ListingsService {
         ),
         universitiesRepository.campusMetaBySlugs(universitySlugs),
       ]);
-      return { data, campuses };
+      return { data, campuses, resolution };
     }
 
     const data = await listingsRepository.listActiveByAreas(
@@ -235,7 +243,7 @@ export class ListingsService {
       property,
       q,
     );
-    return { data, campuses: [] };
+    return { data, campuses: [], resolution };
   }
 
   async listMine(posterId: string) {

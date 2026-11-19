@@ -1,8 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, doublePrecision, foreignKey, index, pgTable, primaryKey, text, timestamp, unique, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { bigint, boolean, check, doublePrecision, foreignKey, index, pgTable, primaryKey, text, timestamp, unique, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { universities } from './universities.js';
 import { places } from './places.js';
 import { users } from './users.js';
+
+export const searchCatalogState = pgTable('search_catalog_state', {
+  singleton: boolean('singleton').primaryKey().default(true),
+  revision: bigint('revision', {mode:'number'}).notNull().default(0),
+}, t => [check('search_catalog_state_singleton_check', sql`${t.singleton}`)]);
 
 export const searchLocations = pgTable('search_locations', {
   id: text('id').primaryKey(),

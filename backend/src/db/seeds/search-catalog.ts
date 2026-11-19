@@ -1,5 +1,5 @@
 import { AREA_COORDINATES } from '../../constants/areaCoordinates.js';
-import { AREA_ALIASES } from '../../constants/areaAliases.js';
+import { AREA_ALIASES } from './search-area-aliases.js';
 import type { LebanonArea } from '../../constants/lebanonAreas.js';
 
 /** Existing stored area keys remain untouched. These are browse relationships, not polygons. */

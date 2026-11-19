@@ -50,6 +50,8 @@ import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useSearchListings } from "@/features/listings/useSearchListings";
+import { isSearchLocationError } from '@/features/search/locationError';
+import { UnknownLocationState } from '@/components/search/UnknownLocationState';
 import { useStableWebMapListings, webMapIdentityKey } from "@/lib/webMapData.web";
 import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -76,6 +78,8 @@ function apiSortFromBrowse(sort: BrowseSortKey): ListingSort {
 }
 
 function cityLabelFromFilters(filters: BrowseFiltersValue): string {
+  if (filters.city) return filters.city.split('-').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');
+  if (filters.placeId) return 'Selected property';
   if (filters.areas.length === 1) return filters.areas[0]!;
   return "Lebanon";
 }
@@ -130,6 +134,8 @@ export function FindBrowse() {
     setFilters((prev) => ({
       ...prev,
       areas: [],
+      city: null,
+      placeId: null,
       universitySlugs: [],
       institutionSlug: null,
       campusId: null,
@@ -153,6 +159,7 @@ export function FindBrowse() {
 
   const search = useSearchListings(listFilters, mapOpen || isDesktop);
   const { data, isLoading, isError, refetch, isFetching } = search;
+  const locationError = isSearchLocationError(search.error);
   const mapUpdating = search.mapLoading || isLoading;
   // First load only. A focus refetch has data already, so the results stay up.
   const loading = useDevSearchLoadingDelay(isLoading);
@@ -189,7 +196,7 @@ export function FindBrowse() {
   const mapLocationKey = JSON.stringify([
     webMapIdentityKey(deferredFilters.areas),
     webMapIdentityKey(deferredFilters.universitySlugs),
-    deferredFilters.campusId, deferredFilters.institutionSlug,
+    deferredFilters.campusId, deferredFilters.institutionSlug, deferredFilters.city, deferredFilters.placeId,
     deferredFilters.q?.trim() || null, deferredFilters.radiusKm,
   ]);
   const ranked = { listings: rawListings, matches: data?.matches ?? {} };
@@ -257,7 +264,7 @@ export function FindBrowse() {
       : "standard";
   const filterCount = browseFilterBadgeCount(filters, badgeMode);
   const hasActiveFilters = filterCount > 0 || browseSort !== "newest";
-  const cityLabel = cityLabelFromFilters(filters);
+  const cityLabel = search.data?.searchResolution?.locations[0]?.nameEn ?? cityLabelFromFilters(filters);
   const isNationwide = filters.areas.length !== 1;
   const isMap = mapOpen;
   /** Map rail always uses grid card chrome; list/grid choice is restored on close. */
@@ -486,7 +493,7 @@ export function FindBrowse() {
       <FindResultsGrid listings={featured} matches={matching ? ranked.matches : undefined} variant={cardVariant} columns={isMap || cardVariant === "list" ? 1 : isDesktop ? 3 : bp === "tablet" ? 2 : 1} onHoverListing={isMap ? onHoverListing : undefined} />
       <LText variant="subtitle">All results</LText>
     </> : null}
-    <FindResultsGrid
+    {locationError ? <UnknownLocationState onClear={() => { setFocusPoint(null); browse.clearLocation(); }} /> : <FindResultsGrid
       listings={listingsForDisplay}
       matches={matching ? ranked.matches : undefined}
       loading={loading}
@@ -507,7 +514,7 @@ export function FindBrowse() {
       onHoverListing={isMap ? onHoverListing : undefined}
       showDistanceSplit={showDistanceSplit}
       universityLabel={universityLabel}
-    />
+    />}
     {data && !isError ? <SearchPagination {...data.pagination} loading={isFetching} onPage={(page) => {
       search.setPage(page);
       if (typeof window !== "undefined") {

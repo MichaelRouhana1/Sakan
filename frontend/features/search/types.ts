@@ -1,32 +1,16 @@
-export type SearchAreaSuggestion = {
-  type: "area";
-  label: string;
-  boundingBox: null;
-  center: { lat: number; lng: number };
+export type SearchLabel = { en: string; ar: string };
+export type SearchCenter = { lat: number; lng: number } | null;
+type SuggestionBase = { id: string; label: SearchLabel; context: SearchLabel; url: string; center: SearchCenter };
+export type CitySuggestion = SuggestionBase & { type: 'city'; slug: string; canonicalAreas: string[] };
+export type AreaSuggestion = SuggestionBase & { type: 'area'; slug: string; canonicalArea: string };
+export type CampusSuggestion = SuggestionBase & { type: 'campus'; slug: string };
+export type PlaceSuggestion = SuggestionBase & { type: 'place'; canonicalArea: string };
+export type SearchSuggestion = CitySuggestion | AreaSuggestion | CampusSuggestion | PlaceSuggestion;
+export type SearchSuggestResult = {
+  query: string;
+  normalizedQuery: string;
+  mode: 'defaults' | 'results';
+  minQueryLength: 2;
+  results: SearchSuggestion[];
+  sections: { topAreas: (CitySuggestion | AreaSuggestion)[]; topCampuses: CampusSuggestion[] };
 };
-
-export type SearchUniversitySuggestion = {
-  type: "university";
-  label: string;
-  campusId: string;
-  slug: string;
-  center: { lat: number; lng: number };
-};
-
-export type SearchListingSuggestion = {
-  type: "listing";
-  id: string;
-  label: string;
-  center: { lat: number; lng: number } | null;
-};
-
-export type SearchSuggestionsData = {
-  areas: SearchAreaSuggestion[];
-  universities: SearchUniversitySuggestion[];
-  listings: SearchListingSuggestion[];
-};
-
-export type SearchSuggestion =
-  | SearchAreaSuggestion
-  | SearchUniversitySuggestion
-  | SearchListingSuggestion;

@@ -5,6 +5,8 @@ import type {
 } from "@/types/listing";
 
 export type BrowseFiltersValue = {
+  city: string | null;
+  placeId: string | null;
   areas: string[];
   universitySlugs: string[];
   /** Institution kept while campus is still being chosen. */
@@ -28,6 +30,8 @@ export type BrowseFiltersValue = {
 };
 
 export const EMPTY_BROWSE_FILTERS: BrowseFiltersValue = {
+  city: null,
+  placeId: null,
   areas: [],
   universitySlugs: [],
   institutionSlug: null,

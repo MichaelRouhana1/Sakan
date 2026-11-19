@@ -34,6 +34,8 @@
     "db:inventory:apply": "node ops/places/apply-inventory.mjs",
     "test:search": "npm run build && node tests/unit-search.integration.mjs",
     "test:search-catalog": "npm run build && node --test tests/search-catalog.test.mjs",
+    "test:search-suggest": "npm run build && node tests/search-suggest.integration.mjs && node --test ../frontend/tests/search-codecs.test.mjs",
+    "db:search:suggest-apply": "node ops/search/apply-suggest-cache.mjs",
     "db:search:apply": "node --import tsx ops/search/apply-catalog.mjs",
     "db:wizard:apply": "node ops/places/apply-wizard.mjs",
     "test:wizard": "npm run build && node tests/unit-wizard.integration.mjs"
