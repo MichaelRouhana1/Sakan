@@ -31,11 +31,19 @@ const FIELD_MESSAGES: Record<string, string> = {
   bedsAvailable: "Confirm available beds between 1 and the total",
   sharedPhotos: "Finish uploading the shared photos (maximum 15)",
   monthlyRentUsd: "Enter a valid monthly rent",
+  priceBasis: "Choose how rent is listed",
+  depositPreset: "Choose a security deposit",
   securityDepositUsd: "Enter a valid security deposit",
-  availableFrom: "Pick an available-from date",
+  leaseTerm: "Choose a minimum lease",
+  availableFrom: "Choose available immediately or pick a date",
+  paymentModality: "Choose how rent is paid",
   title: `Title must be ${COPY_TITLE_MIN}–${COPY_TITLE_MAX} characters`,
   description: `Description must be ${COPY_DESCRIPTION_MIN}–4000 characters`,
   listingPosterRole: "Choose your role",
+  targetAudience: "Choose a tenant mix",
+  smokingPolicy: "Choose a smoking rule",
+  petsPolicy: "Choose a pets rule",
+  guestsPolicy: "Choose an overnight guests rule",
   contactName: "Enter a contact name",
   contactPhone: "Enter a valid phone number",
 };
@@ -124,8 +132,14 @@ export function stepFieldErrors(
       if (!draft.water) errors.push("water");
       return errors;
     }
-    case 4:
-      return [];
+    case 4: {
+      const errors: string[] = [];
+      if (!draft.targetAudience) errors.push("targetAudience");
+      if (!draft.smokingPolicy) errors.push("smokingPolicy");
+      if (!draft.petsPolicy) errors.push("petsPolicy");
+      if (!draft.guestsPolicy) errors.push("guestsPolicy");
+      return errors;
+    }
     case 5: {
       const ready = countReadyPhotos(draft);
       if (ready < 3 || draft.photos.length>15 || draft.photos.some((p) => !isPhotoReady(p))) {
@@ -136,17 +150,18 @@ export function stepFieldErrors(
     case 6: {
       const errors: string[] = [];
       const rent = Number(draft.monthlyRentUsd);
+      if (!draft.priceBasis) errors.push("priceBasis");
       if (!Number.isInteger(rent) || rent <= 0) errors.push("monthlyRentUsd");
+      if (!draft.depositPreset) errors.push("depositPreset");
       if (draft.depositPreset === "custom") {
         const dep = Number(draft.securityDepositUsd);
         if (!Number.isInteger(dep) || dep < 0) errors.push("securityDepositUsd");
       }
-      if (
-        !draft.availableImmediate &&
-        !/^\d{4}-\d{2}-\d{2}$/.test(draft.availableFrom)
-      ) {
+      if (!draft.leaseTerm) errors.push("leaseTerm");
+      if (draft.availableImmediate !== true && !/^\d{4}-\d{2}-\d{2}$/.test(draft.availableFrom)) {
         errors.push("availableFrom");
       }
+      if (!draft.paymentModality) errors.push("paymentModality");
       return errors;
     }
     case 7: {

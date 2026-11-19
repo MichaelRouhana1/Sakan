@@ -32,6 +32,13 @@ export function unitData(source: Partial<CreateListingDraft> = INITIAL_DRAFT): P
   return JSON.parse(JSON.stringify(Object.fromEntries(UNIT_KEYS.filter(k => source[k] !== undefined).map(k => [k, source[k]]))));
 }
 
+export function ensureWizardUnit(state: WizardV2Draft): WizardV2Draft {
+  if (state.units.some(unit => unit.id === state.position.unitId)) return state;
+  if (state.units.length) return { ...state, position: { ...state.position, unitId: state.units[0].id } };
+  const id = crypto.randomUUID();
+  return { ...state, units: [{ id, data: unitData(), finished: false }], position: { ...state.position, unitId: id } };
+}
+
 export function newWizard(unitId: string, placeId?: string): WizardV2Draft {
   return { version: 2, place: { id: placeId, kind: null, data: {}, photos: [] }, contact: {},
     units: [{ id: unitId, data: unitData(), finished: false }],
@@ -142,6 +149,10 @@ export function reduceWizard(state: WizardV2Draft, action: Action): WizardV2Draf
       if (ui > 0) return { ...state, position: { ...state.position, screen: UNIT_SCREENS[ui - 1] } };
       if (state.position.screen === 'another') return { ...state, position: { ...state.position, screen: 'copy' } };
       if (state.position.screen === 'review' && state.units.length) return { ...state, position: { screen: 'another', unitId: state.units.at(-1)!.id } };
+      if (state.position.screen === 'review') {
+        const id = crypto.randomUUID();
+        return { ...state, units: [{ id, data: unitData(), finished: false }], position: { screen: 'layout', unitId: id }, returnTo: null };
+      }
       const unitIndex = state.units.findIndex(u => u.id === state.position.unitId);
       if (ui === 0 && unitIndex > 0) return { ...state, position: { screen: 'another', unitId: state.units[unitIndex - 1].id } };
       if (ui === 0 && !state.place.id) return { ...state, position: { ...state.position, screen: 'building-photos' } };
@@ -163,8 +174,11 @@ export function reduceWizard(state: WizardV2Draft, action: Action): WizardV2Draf
     case 'review': return { ...state, position: { ...state.position, screen: 'review' }, reviewVisited: true, returnTo: null };
     case 'editUnit': return state.units.some(u => u.id === action.id) ? { ...state,
       returnTo: state.returnTo ?? state.position, position: { screen: 'layout', unitId: action.id } } : state;
-    case 'editPlace': return state.place.id ? state : { ...state, returnTo: state.returnTo ?? state.position,
-      position: { ...state.position, screen: 'place-type' } };
+    case 'editPlace': {
+      if (state.place.id) return state;
+      const ready = ensureWizardUnit(state);
+      return { ...ready, returnTo: state.returnTo ?? state.position, position: { ...ready.position, screen: 'place-type' } };
+    }
     case 'remove': {
       const units = state.units.filter(u => u.id !== action.id);
       return { ...state, units, position: { screen: 'review', unitId: units[0]?.id ?? '' }, returnTo: null };

@@ -16,7 +16,10 @@ import type {
 } from "@/types/listing";
 
 export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
-  const { draft, patch } = useListingForm();
+  const form = useListingForm();
+  const { draft, patch } = form;
+  const ruleMissing = (field: string) =>
+    typeof form.fieldInvalid === "function" ? form.fieldInvalid(field) : false;
   return (
     <View style={{ gap: 16 }}>
       {!sharedOnly ? <LockedCluster fields={["genderRestriction"]}>
@@ -59,6 +62,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
             { value: "anyone", label: "Families / anyone" },
           ]}
           value={draft.targetAudience}
+          error={ruleMissing("targetAudience")}
           onChange={(v) => patch({ targetAudience: v as TargetAudience })}
         />
       </Enter>
@@ -73,6 +77,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
             { value: "inside", label: "Inside OK" },
           ]}
           value={draft.smokingPolicy}
+          error={ruleMissing("smokingPolicy")}
           onChange={(v) => patch({ smokingPolicy: v as SmokingPolicy })}
         />
       </Enter>
@@ -86,6 +91,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
             { value: "yes", label: "Yes" },
           ]}
           value={draft.petsPolicy}
+          error={ruleMissing("petsPolicy")}
           onChange={(v) => patch({ petsPolicy: v as PetsPolicy })}
         />
       </Enter>
@@ -99,6 +105,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
             { value: "no", label: "No" },
           ]}
           value={draft.guestsPolicy}
+          error={ruleMissing("guestsPolicy")}
           onChange={(v) => patch({ guestsPolicy: v as GuestsPolicy })}
         />
       </Enter>

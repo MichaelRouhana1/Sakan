@@ -44,7 +44,7 @@ export type CreateListingDraft = {
   step: number;
   spaceType: SpaceType | null;
   propertyType: PropertyType | null;
-  priceBasis: PriceBasis;
+  priceBasis: PriceBasis | null;
   area: LebanonArea | null;
   addressLine: string;
   buildingName: string;
@@ -79,19 +79,19 @@ export type CreateListingDraft = {
   parkingIncludedInRent: boolean;
   amenities: string[];
   genderRestriction: GenderRestriction;
-  targetAudience: TargetAudience;
-  smokingPolicy: SmokingPolicy;
-  petsPolicy: PetsPolicy;
-  guestsPolicy: GuestsPolicy;
+  targetAudience: TargetAudience | null;
+  smokingPolicy: SmokingPolicy | null;
+  petsPolicy: PetsPolicy | null;
+  guestsPolicy: GuestsPolicy | null;
   quietHours: boolean;
   photos: DraftPhoto[];
   monthlyRentUsd: string;
-  depositPreset: "none" | "1" | "2" | "custom";
+  depositPreset: "none" | "1" | "2" | "custom" | null;
   securityDepositUsd: string;
-  leaseTerm: LeaseTerm;
-  availableImmediate: boolean;
+  leaseTerm: LeaseTerm | null;
+  availableImmediate: boolean | null;
   availableFrom: string;
-  paymentModality: PaymentModality;
+  paymentModality: PaymentModality | null;
   title: string;
   description: string;
   highlightTags: string[];
@@ -110,7 +110,7 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   step: 0,
   spaceType: null,
   propertyType: null,
-  priceBasis: "per_unit_month",
+  priceBasis: null,
   area: null,
   addressLine: "",
   buildingName: "",
@@ -144,19 +144,19 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   parkingIncludedInRent: false,
   amenities: [],
   genderRestriction: "anyone",
-  targetAudience: "students_only",
-  smokingPolicy: "no",
-  petsPolicy: "no",
-  guestsPolicy: "restricted",
+  targetAudience: null,
+  smokingPolicy: null,
+  petsPolicy: null,
+  guestsPolicy: null,
   quietHours: false,
   photos: [],
   monthlyRentUsd: "",
-  depositPreset: "1",
+  depositPreset: null,
   securityDepositUsd: "",
-  leaseTerm: "semester",
-  availableImmediate: true,
+  leaseTerm: null,
+  availableImmediate: null,
   availableFrom: "",
-  paymentModality: "monthly",
+  paymentModality: null,
   title: "",
   description: "",
   highlightTags: [],
