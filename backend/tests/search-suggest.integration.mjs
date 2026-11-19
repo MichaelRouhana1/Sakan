@@ -67,7 +67,14 @@ try {
   const {listingsController}=await import('../dist/modules/listings/listings.controller.js');
   const {errorHandler}=await import('../dist/middleware/error-handler.js');
   const {default:express}=await import('express');
-  const app=express(); app.use('/api/search',searchRouter);
+  const {searchController}=await import('../dist/modules/search/search.controller.js');
+  const {searchRecentsService}=await import('../dist/modules/search/search-recents.service.js');
+  const app=express();app.use(express.json());app.use('/api/search',searchRouter);
+  // Isolated harness authenticates one seeded user; production routes still require Clerk.
+  app.use('/test/recents',(req,res,next)=>{req.user={id:owner.id,role:'poster',clerkId:'test'};next();});
+  app.get('/test/recents',(req,res,next)=>searchController.recents(req,res,next));
+  app.post('/test/recents',(req,res,next)=>searchController.remember(req,res,next));
+  app.delete('/test/recents',(req,res,next)=>searchController.clearRecents(req,res,next));
   app.get('/api/listings',(req,res,next)=>listingsController.list(req,res,next)); app.use(errorHandler);
   server=app.listen(0,'127.0.0.1'); await once(server,'listening');
   const base='http://127.0.0.1:'+server.address().port;
@@ -177,6 +184,38 @@ try {
     for(const qs of ['placeId=bad','city=unknown-city','areas=unknown-area']) assert.equal((await fetch(base+'/api/listings?'+qs)).status,400,qs);
     assert.deepEqual((await suggest("'; DROP TABLE listings; --")).results,[]);
     assert.equal((await suggest('qwertyuiozx')).results.length,0);
+  });
+  await check('recent destinations are canonical, bounded, deduplicated and isolated by account',async()=>{
+    const [other]=await client`INSERT INTO users(role) VALUES ('renter') RETURNING id`;
+    const http=async(method,body)=>fetch(base+'/test/recents',{method,headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
+    assert.equal((await fetch(base+'/api/search/recents')).status,401);
+    assert.equal((await fetch(base+'/api/search/recents',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})).status,401);
+    for(const body of [{type:'city',id:'area:hamra'},{type:'area',id:'area:hamra',userId:other.id},{type:'campus',id:'bad'},
+      {type:'area',id:'area:hamra',label:{en:'forged'},url:'https://evil.test'}])assert.equal((await http('POST',body)).status,400);
+    assert.equal((await http('POST',{type:'place',id:unavailable[0].id})).status,404);
+    const rows=await client`SELECT id,kind FROM search_locations ORDER BY id LIMIT 11`;
+    await Promise.all(rows.map(row=>searchRecentsService.remember(owner.id,{type:row.kind,id:row.id})));
+    assert.equal((await client`SELECT count(*)::int AS n FROM user_search_recents WHERE user_id=${owner.id}`)[0].n,8);
+    let response=await http('POST',{type:'area',id:'area:hamra'});assert.equal(response.status,200);
+    assert.match(response.headers.get('cache-control'),/private.*no-store/);
+    let payload=await response.json();assert.equal(payload.data[0].id,'area:hamra');assert.equal(payload.data[0].label.en,'Hamra');
+    await http('POST',{type:'area',id:'area:hamra'});
+    assert.equal((await searchRecentsService.list(owner.id)).filter(x=>x.id==='area:hamra').length,1);
+    await searchRecentsService.remember(other.id,{type:'city',id:'city:dekwaneh'});
+    assert.deepEqual((await searchRecentsService.list(other.id)).map(x=>x.id),['city:dekwaneh']);
+    assert.equal((await searchRecentsService.list(other.id))[0].context.en,'Matn');
+    const [campus]=await client`SELECT id FROM universities WHERE slug='uob-dekouaneh'`;
+    await http('POST',{type:'campus',id:campus.id});
+    await client`UPDATE universities SET name='Canonical live rename' WHERE id=${campus.id}`;
+    payload=await (await http('GET')).json();assert.match(payload.data[0].label.en,/Canonical live rename/);
+    await client`UPDATE universities SET name='Dekwaneh Campus' WHERE id=${campus.id}`;
+    await http('POST',{type:'place',id:hamra.id});
+    await client`UPDATE places SET hidden=true WHERE id=${hamra.id}`;
+    assert.ok(!(await searchRecentsService.list(owner.id)).some(x=>x.type==='place'&&x.id===hamra.id));
+    await client`UPDATE places SET hidden=false WHERE id=${hamra.id}`;
+    assert.equal((await http('DELETE')).status,204);
+    assert.deepEqual(await searchRecentsService.list(owner.id),[]);
+    assert.equal((await searchRecentsService.list(other.id)).length,1);
   });
   console.log('Suggest scenarios passed: '+passed);
 } catch(error) {console.error(error);process.exitCode=1;}

@@ -1,4 +1,4 @@
-// Contract smoke test for the existing component. Visual redesign is step 3/4.
+// Mobile sheet contract: real component and guarded suggest hook, controlled network.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createServer } from 'node:http';
@@ -37,24 +37,31 @@ test('suggest caller debounces, gates, guards in-flight results and selects type
       const q=new URL(r.request().url()).searchParams.get('q');requests.push({q,time:Date.now()});
       if(q==='Hamra')await holdHamra;
       const label=q==='Fanar'?'Fanar':q==='Hamra'?'Hamra':q;
-      await r.fulfill({json:{data:{query:q,normalizedQuery:q?.toLowerCase(),mode:q?'results':'defaults',minQueryLength:2,results:q?[{type:'city',id:'city:'+q,slug:q.toLowerCase(),canonicalAreas:[label],label:{en:label,ar:label},context:{en:'Matn',ar:'المتن'},url:'/search?city='+q.toLowerCase(),center:{lat:33.89,lng:35.48}}]:[],sections:{topAreas:[],topCampuses:[]}}}});
+      await r.fulfill({json:{data:{query:q,normalizedQuery:q?.toLowerCase(),mode:q?'results':'defaults',minQueryLength:2,results:q?[{type:'city',id:'city:'+q.toLowerCase(),slug:q.toLowerCase(),canonicalAreas:[label],label:{en:label,ar:label},context:{en:'Matn',ar:'المتن'},url:'/search?city='+q.toLowerCase(),center:{lat:33.89,lng:35.48}}]:[],sections:{topAreas:[],topCampuses:[]}}}});
     });
     await page.goto('http://127.0.0.1:'+server.address().port);
-    const input=page.getByRole('textbox',{name:'Search',exact:true});await input.click();
+    const trigger=page.getByRole('button',{name:'Open search',exact:true});
+    const resting=await trigger.textContent();await page.waitForTimeout(2300);await expect(trigger).toHaveText(resting);
+    await page.getByRole('button',{name:'Open search',exact:true}).click();
+    const input=page.getByRole('combobox',{name:'Search',exact:true});await input.click();
     await expect.poll(()=>requests.length).toBe(1);assert.equal(requests[0].q,'');
     await input.fill('H');await page.waitForTimeout(260);assert.equal(requests.length,1);
     const start=Date.now();await input.fill('Hamra');await page.waitForTimeout(100);assert.equal(requests.length,1);
     await expect.poll(()=>requests.some(x=>x.q==='Hamra')).toBe(true);assert.ok(requests.find(x=>x.q==='Hamra').time-start>=185);
     await input.fill('Fanar');releaseHamra();
-    await page.waitForTimeout(100);await expect(page.getByRole('button',{name:'Hamra, Matn',exact:true})).toHaveCount(0);
-    const fanar=page.getByRole('button',{name:'Fanar, Matn',exact:true});await expect(fanar).toBeVisible();
+    await page.waitForTimeout(100);await expect(page.getByRole('option',{name:'Hamra, Matn, City',exact:true})).toHaveCount(0);
+    const fanar=page.getByRole('option',{name:'Fanar, Matn, City',exact:true});await expect(fanar).toBeVisible();
     await input.press('ArrowDown');await input.press('Enter');await expect(page.locator('output')).toHaveText('/search?city=fanar');
-    await input.click();await input.fill('Beirut');await page.waitForTimeout(60);await input.fill('Beirutt');await page.waitForTimeout(60);await input.fill('Beirut');
-    await expect(page.getByRole('button',{name:'Beirut, Matn',exact:true})).toBeVisible();
+    await page.getByRole('button',{name:'Open search',exact:true}).click();await input.fill('Beirut');await page.waitForTimeout(60);await input.fill('Beirutt');await page.waitForTimeout(60);await input.fill('Beirut');
+    await expect(page.getByRole('option',{name:'Beirut, Matn, City',exact:true})).toBeVisible();
     assert.equal(requests.filter(x=>x.q==='Beirutt').length,0);
     await input.fill('حمرا');await expect.poll(()=>requests.some(x=>x.q==='حمرا')).toBe(true);
-    await page.mouse.click(750,700);
-    await expect(page.getByRole('button',{name:'حمرا, Matn',exact:true})).toHaveCount(0);
+    await input.press('Escape');await expect(page.getByRole('dialog',{name:'Search Lebanon'})).toBeVisible();
+    await input.click();await input.dispatchEvent('compositionstart');await input.fill('USJ');await page.waitForTimeout(300);
+    assert.equal(requests.filter(x=>x.q==='USJ').length,0);await input.dispatchEvent('compositionend');
+    await expect.poll(()=>requests.some(x=>x.q==='USJ')).toBe(true);
+    await page.getByRole('button',{name:'Back from search',exact:true}).click();
+    await expect(page.getByRole('option',{name:'حمرا, Matn, City',exact:true})).toHaveCount(0);
     assert.deepEqual(errors,[]);
   }finally{if(browser)await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });

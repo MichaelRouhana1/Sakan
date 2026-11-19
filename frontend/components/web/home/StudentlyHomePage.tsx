@@ -216,6 +216,7 @@ function HomeNav({
   solid: boolean;
   onRequestAuth: () => void;
 }) {
+  const mobile = useWindowDimensions().width < 900;
   const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const displayName = user
@@ -253,21 +254,22 @@ function HomeNav({
   };
 
   return (
-    <View style={[styles.nav, solid && styles.navSolid]} accessibilityRole="header">
-      <View style={styles.navInner}>
+    <View testID="home-page-header" style={[styles.nav, solid && styles.navSolid, mobile && mobileHeaderStyles.home]} accessibilityRole="header">
+      <View style={[styles.navInner, mobile && mobileHeaderStyles.inner]}>
         <Pressable
           onPress={() => router.push("/" as never)}
-          style={styles.navBrand}
+          style={[styles.navBrand, mobile && mobileHeaderStyles.brand]}
           accessibilityRole="link"
           accessibilityLabel="Studently home"
         >
-          <StudentlyLogo size={40} tone={solid ? "color" : "white"} />
+          <StudentlyLogo size={mobile ? 32 : 40} tone={solid ? "color" : "white"} />
           <Text style={[styles.navBrandText, solid && styles.navBrandTextSolid]}>
             Studently
           </Text>
         </Pressable>
 
-        <View style={styles.navRight}>
+        <View style={[styles.navRight, mobile && mobileHeaderStyles.links]}>
+          {!mobile && <>
           <ProductSwitchControl
             variant="toCampus"
             textStyle={[
@@ -314,11 +316,14 @@ function HomeNav({
             </Pressable>
           ) : null}
 
+          </>}
+
           <View style={{ position: "relative" }}>
             <Pressable
               onPress={handleProfileClick}
-              style={[styles.navLogin, solid && styles.navLoginSolid]}
+              style={[styles.navLogin, solid && styles.navLoginSolid, mobile && mobileHeaderStyles.account]}
               accessibilityRole="button"
+              accessibilityLabel="Account menu"
             >
               <Ionicons
                 name="person-outline"
@@ -2031,4 +2036,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     marginVertical: 4,
   },
+});
+
+const mobileHeaderStyles = StyleSheet.create({
+  home: { height: 64, minHeight: 64, maxWidth: '100%' },
+  inner: { height: 64, paddingHorizontal: 16, paddingVertical: 10, gap: 12, minWidth: 0 },
+  brand: { flexShrink: 0 },
+  links: { gap: 0, flexShrink: 0 },
+  account: { width: 44, height: 44, borderRadius: 22 },
 });

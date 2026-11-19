@@ -5,6 +5,7 @@ import { useReducedMotion } from '@/lib/useReducedMotion';
 import { useSearchSuggestions } from '@/features/search/useSearchSuggestions';
 import type { SearchSuggestion } from '@/features/search/types';
 import type { SearchAutocompleteProps } from './SearchAutocomplete';
+import { searchChipLabel as chipLabel } from './searchDisplay';
 import { DESKTOP_SEARCH_CSS } from './desktopSearchStyles';
 
 const WORDS = ['City', 'University', 'Property'];
@@ -41,13 +42,6 @@ function usePlaceholderWord(enabled: boolean, reduced: boolean) {
 
 type Position = { left: number; top: number; width: number; panelHeight: number };
 const keyFor = (item: SearchSuggestion) => `${item.type}:${item.id}`;
-function chipLabel(item: SearchSuggestion): string {
-  if (item.type !== 'campus') return item.label.en;
-  const [institution, ...parts] = item.label.en.split(/\s+[\u2014\u2013]\s+/);
-  if (!parts.length) return institution;
-  const campus = parts.join(' \u00b7 ').replace(/\bcampus\b/gi, '').replace(/\s+/g, ' ').trim();
-  return campus ? `${institution} \u00b7 ${campus}` : institution;
-}
 
 const unique = (items: SearchSuggestion[]) => [...new Map(items.map(item => [keyFor(item), item])).values()];
 
@@ -57,7 +51,7 @@ export function DesktopSearchAutocomplete(props: SearchAutocompleteProps) {
     <DesktopDesignProvider enabled><DesktopSearchContent {...props} /></DesktopDesignProvider>;
 }
 
-function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onClear, autoFocus, suggestionsEnabled = true, variant = 'bar', recentSuggestions = [] }: SearchAutocompleteProps) {
+function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onClear, autoFocus, suggestionsEnabled = true, variant = 'bar', recentSuggestions = [], onClearRecents, recentsError, onRetryRecents, onOpenSearch }: SearchAutocompleteProps) {
   const { scale, size } = useDesktopDesign();
   const reduced = useReducedMotion();
   const hero = variant === 'pill';
@@ -104,7 +98,7 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
       launcher.current?.querySelector<HTMLElement>('input,button')?.focus({ preventScroll: true });
     });
   }, [hero]);
-  const openSearch = useCallback(() => { if (skipFocus.current) { skipFocus.current = false; return; } measure(); setOpen(true); }, [measure]);
+  const openSearch = useCallback(() => { if (skipFocus.current) { skipFocus.current = false; return; } measure(); setOpen(true); onOpenSearch?.(); }, [measure,onOpenSearch]);
   const select = (item: SearchSuggestion) => { close(); onSelect(item); };
   const submit = () => { close(); onSubmitText(value.trim()); };
 
@@ -149,7 +143,7 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
   function section(label: string, icon: IconName, entries: SearchSuggestion[]) {
     if (!entries.length) return null;
     return <section aria-label={label} role="group">
-      <h3 className="sds-section-title"><Icon name={icon} size={size(14)} />{label}</h3>
+      <h3 className="sds-section-title"><Icon name={icon} size={size(14)} />{label}{label==='Recently searched'&&onClearRecents&&<button className="sds-clear-recents" onClick={onClearRecents}>Clear all</button>}</h3>
       <div className="sds-chip-grid">{entries.map(item => <button key={keyFor(item)} className="sds-chip" data-type={item.type} {...optionProps(item, true)}>
         <span className="sds-chip-label">{chipLabel(item)}</span>
         {item.type !== 'campus' && <>
@@ -195,7 +189,7 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
                 <div className="sds-empty"><span className="sds-empty-icon"><Icon name="search" /></span><strong>Suggestions are taking a moment</strong><p>You can try again or search for your own words.</p><button className="sds-retry" onClick={() => void query.refetch()}>Try again</button></div> : typed ? items.length ? items.map(item => <button className="sds-row" key={keyFor(item)} {...optionProps(item)}>
                   <span className="sds-tile"><Icon name={item.type} size={size(21)} /></span><span className="sds-copy"><span className="sds-titles"><bdi className="sds-title" dir={arabic ? 'rtl' : 'ltr'} lang={arabic ? 'ar' : 'en'}>{arabic ? item.label.ar : item.label.en}</bdi><bdi className="sds-alias" dir={arabic ? 'ltr' : 'rtl'} lang={arabic ? 'en' : 'ar'}>{arabic ? item.label.en : item.label.ar}</bdi></span><span className="sds-context">{item.context.en}<span className="sds-separator">·</span><bdi dir="rtl" lang="ar">{item.context.ar}</bdi></span></span><span className="sds-type">{TYPE_LABEL[item.type]}</span>
                 </button>) : <div className="sds-empty"><span className="sds-empty-icon"><Icon name="search" /></span><strong>No places found.</strong><p>Try another spelling, city, area or university.</p></div> : <>
-                  {section('Recently searched', 'history', recents)}{section('Top areas', 'area', areas)}{section('Top universities & campuses', 'campus', campuses)}
+                  {recentsError&&<div className="sds-empty" role="status">Recent searches unavailable. <button onClick={onRetryRecents}>Retry</button></div>}{section('Recently searched', 'history', recents)}{section('Top areas', 'area', areas)}{section('Top universities & campuses', 'campus', campuses)}
                   {!areas.length && !campuses.length && !recents.length && <div className="sds-empty"><strong>Where would you like to live?</strong><p>Type a city, area or university to find your place in Lebanon.</p></div>}
                 </>}
             </div>

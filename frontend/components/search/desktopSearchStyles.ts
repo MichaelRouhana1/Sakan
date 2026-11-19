@@ -38,6 +38,7 @@ export const DESKTOP_SEARCH_CSS = String.raw`
 @keyframes sds-caret{0%,50%{opacity:1}51%,100%{opacity:0}}
 @keyframes sds-dropdown{from{opacity:0;transform:translateY(-8px) scaleY(.97)}to{opacity:1;transform:translateY(0) scaleY(1)}}
 @keyframes sds-header{from{opacity:.6;transform:scale(.72,.85)}to{opacity:1;transform:none}}
+.sds-clear-recents{margin-left:auto;border:0;background:none;color:#b82736;font:inherit;cursor:pointer;padding:4px 0;text-transform:none;letter-spacing:0}.sds-clear-recents:focus-visible{outline:2px solid #ea3f4a;outline-offset:3px}
 @keyframes sds-focus{from{transform:translateY(calc(12px * var(--ds)))}to{transform:translateY(0)}}
 @keyframes sds-veil{from{opacity:0}to{opacity:1}}
 @keyframes sds-shimmer{to{background-position:-150% 0}}

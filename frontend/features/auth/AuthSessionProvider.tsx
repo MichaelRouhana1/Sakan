@@ -242,3 +242,8 @@ export function useAuthSession(): AuthSessionContextValue {
   }
   return ctx;
 }
+
+/** Shared widgets also render in isolated previews without an auth provider. */
+export function useOptionalAuthSession(): AuthSessionContextValue | null {
+  return useContext(AuthSessionContext);
+}

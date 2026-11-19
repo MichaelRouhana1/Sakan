@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
@@ -38,6 +39,7 @@ type Props = {
 };
 
 export function WebTopNav({ showSearch = false }: Props) {
+  const mobile = useWindowDimensions().width < 900;
   const router = useRouter();
   const pathname = usePathname();
   const params = useLocalSearchParams() as BrowseParams;
@@ -138,21 +140,22 @@ export function WebTopNav({ showSearch = false }: Props) {
 
 
   return (
-    <View style={styles.bar}>
-      <View style={[styles.inner, showSearch && styles.innerSearch]}>
+    <View testID="search-page-header" style={[styles.bar, mobile && mobileHeaderStyles.bar]}>
+      <View style={[styles.inner, showSearch && styles.innerSearch, mobile && mobileHeaderStyles.inner]}>
         <Link href="/" asChild>
           <Pressable
             onPress={() => router.push("/")}
             accessibilityRole="link"
-            style={styles.brandHit}
+            accessibilityLabel="Studently home"
+            style={StyleSheet.flatten([styles.brandHit, mobile && mobileHeaderStyles.brand])}
           >
-            <StudentlyLogo size={40} />
-            <Text style={styles.brand}>Studently</Text>
+            <StudentlyLogo size={mobile ? 32 : 40} />
+            {(!mobile || !showSearch) && <Text style={styles.brand}>Studently</Text>}
           </Pressable>
         </Link>
 
         {showSearch ? (
-          <View style={styles.searchWrap}>
+          <View style={[styles.searchWrap, mobile && mobileHeaderStyles.search]}>
             <SearchAutocomplete
               value={searchVal}
               onChangeText={setSearchVal}
@@ -165,7 +168,8 @@ export function WebTopNav({ showSearch = false }: Props) {
           </View>
         ) : null}
 
-        <View style={styles.links}>
+        <View style={[styles.links, mobile && mobileHeaderStyles.links]}>
+          {!mobile && <>
           <ProductSwitchControl variant="toCampus" />
           <DownloadAppButton />
 
@@ -195,12 +199,15 @@ export function WebTopNav({ showSearch = false }: Props) {
             </Pressable>
           ) : null}
 
+          </>}
+
           {/* PROFILE & LOGIN HEADER CONTAINER */}
-          <View style={styles.profileNavWrap}>
+          <View style={[styles.profileNavWrap, mobile && mobileHeaderStyles.profile]}>
             <Pressable
               onPress={handleProfileTriggerClick}
               style={({ pressed }) => [
                 styles.profileAvatarTrigger,
+                mobile && mobileHeaderStyles.account,
                 pressed && styles.pressed,
               ]}
               accessibilityRole="button"
@@ -521,4 +528,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     marginVertical: 4,
   },
+});
+
+const mobileHeaderStyles = StyleSheet.create({
+  bar: { height: 64, minHeight: 64 },
+  inner: { minHeight: 64, height: 64, paddingHorizontal: 12, paddingVertical: 10, gap: 10 },
+  brand: { minWidth: 36, height: 44, paddingRight: 0, paddingVertical: 0, flexShrink: 0, justifyContent: 'center' },
+  search: { minWidth: 0, flexShrink: 1 },
+  links: { gap: 0, marginLeft: 0 },
+  profile: { marginLeft: 0 },
+  account: { width: 44, height: 44, borderRadius: 22 },
 });

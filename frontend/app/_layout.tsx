@@ -1,3 +1,4 @@
+import { SearchRecentsProvider } from '@/features/search/SearchRecentsProvider';
 import { DarkTheme, DefaultTheme, ThemeProvider } from "expo-router/react-navigation";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
@@ -119,6 +120,7 @@ function RootLayoutNav() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <SearchRecentsProvider>
       <NotificationBootstrap />
       <SaveAuthPrompt />
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -132,6 +134,7 @@ function RootLayoutNav() {
         </Stack>
       </ThemeProvider>
       <SavedListingToast />
+      </SearchRecentsProvider>
     </QueryClientProvider>
   );
 }

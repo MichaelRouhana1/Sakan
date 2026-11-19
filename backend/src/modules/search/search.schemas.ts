@@ -21,3 +21,11 @@ export type SearchSuggestResult = {
   results: SearchSuggestion[];
   sections: { topAreas: (CitySuggestion | AreaSuggestion)[]; topCampuses: CampusSuggestion[] };
 };
+
+export const searchRecentSchema = z.discriminatedUnion('type',[
+  z.object({type:z.literal('city'),id:z.string().max(128).regex(/^city:[a-z0-9]+(?:-[a-z0-9]+)*$/)}).strict(),
+  z.object({type:z.literal('area'),id:z.string().max(128).regex(/^area:[a-z0-9]+(?:-[a-z0-9]+)*$/)}).strict(),
+  z.object({type:z.literal('campus'),id:z.uuid()}).strict(),
+  z.object({type:z.literal('place'),id:z.uuid()}).strict(),
+]);
+export type SearchRecentInput = z.infer<typeof searchRecentSchema>;
