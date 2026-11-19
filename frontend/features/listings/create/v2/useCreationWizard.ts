@@ -8,7 +8,7 @@ import { eventId } from '@/features/promotions/activity';
 import { useAuthSession } from '@/features/auth/AuthSessionProvider';
 import { placeToDraft } from '../placeToDraft';
 import { mapDraftToBody } from '../mapDraftToBody';
-import { formDraft, newWizard, persistable, reduceWizard, type Action, type WizardV2Draft } from './model';
+import { ensureWizardUnit, formDraft, newWizard, persistable, reduceWizard, type Action, type WizardV2Draft } from './model';
 
 export type PublishedResult = { placeId: string; listingIds: string[]; credits: number[]; total: number };
 export type CreationDraftRecord = { id: string; revision: number; status: 'active' | 'published' | 'discarded'; payload: WizardV2Draft; result: PublishedResult | null; updatedAt: string };
@@ -71,6 +71,8 @@ export function useCreationWizard({ userId, draftId, placeId, fresh = false }: {
   const persist = useCallback(async () => {
     const work = tail.current.catch(() => null).then(async () => {
       if (!dirty.current || !stored.current || !current.current || stored.current.status !== 'active') return stored.current;
+      const repaired = ['review', 'success'].includes(current.current.position.screen) ? current.current : ensureWizardUnit(current.current);
+      if (repaired !== current.current) { current.current = repaired; if (alive.current) setState(repaired); }
       const snapshot = current.current;
       if (alive.current) setSaveState('saving');
       try {

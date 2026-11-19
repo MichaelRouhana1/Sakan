@@ -23,7 +23,10 @@ export function CreateStepPricing() {
   const guide = usePriceGuide(draft);
   const rentInvalid = useWizardFieldInvalid("monthlyRentUsd");
   const depositInvalid = useWizardFieldInvalid("securityDepositUsd");
+  const depositChoiceInvalid = useWizardFieldInvalid("depositPreset");
+  const leaseInvalid = useWizardFieldInvalid("leaseTerm");
   const availableInvalid = useWizardFieldInvalid("availableFrom");
+  const paymentInvalid = useWizardFieldInvalid("paymentModality");
 
   return (
     <View style={{ gap: 16 }}>
@@ -57,6 +60,7 @@ export function CreateStepPricing() {
             { value: "custom", label: "Custom $" },
           ]}
           value={draft.depositPreset}
+          error={depositChoiceInvalid}
           onChange={(v) =>
             patch({ depositPreset: v as typeof draft.depositPreset })
           }
@@ -84,18 +88,19 @@ export function CreateStepPricing() {
         <SegmentedPills
           options={LEASE_TERM_OPTIONS}
           value={draft.leaseTerm}
+          error={leaseInvalid}
           onChange={(v) => patch({ leaseTerm: v as LeaseTerm })}
         />
       </Enter>
       <Enter delay={180}>
         <SelectableCard
-          selected={draft.availableImmediate}
+          selected={draft.availableImmediate === true}
           title="Available immediately"
           icon="time-outline"
           onPress={() => patch({ availableImmediate: true, availableFrom: "" })}
         />
         <View style={{ height: 8 }} />
-        <WizardFieldLabel required={!draft.availableImmediate}>
+        <WizardFieldLabel required={draft.availableImmediate !== true}>
           Or a specific date (YYYY-MM-DD)
         </WizardFieldLabel>
         <TextInput
@@ -106,7 +111,7 @@ export function CreateStepPricing() {
           onChangeText={(availableFrom) =>
             patch({ availableFrom, availableImmediate: false })
           }
-          style={wizardInputStyle(!draft.availableImmediate && availableInvalid)}
+          style={wizardInputStyle(draft.availableImmediate !== true && availableInvalid)}
         />
       </Enter>
       <Enter delay={220}>
@@ -115,6 +120,7 @@ export function CreateStepPricing() {
         <SegmentedPills
           options={PAYMENT_MODALITY_OPTIONS}
           value={draft.paymentModality}
+          error={paymentInvalid}
           onChange={(v) => patch({ paymentModality: v as PaymentModality })}
         />
       </Enter>
