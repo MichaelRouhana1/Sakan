@@ -1,5 +1,9 @@
 const APP_NAME = "Studently";
 
+/** Official WhatsApp app green, and the darker green used while pressed. */
+export const WHATSAPP_GREEN = "#25D366";
+export const WHATSAPP_GREEN_PRESSED = "#1DA851";
+
 export type WhatsAppInquiryAnswers = {
   moveInDate?: string;
   household?: string;

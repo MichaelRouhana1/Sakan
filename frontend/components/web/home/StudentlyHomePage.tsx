@@ -1133,7 +1133,7 @@ function HomePageContent() {
               {...homeRevealProps("card", 60, "help")}
             >
               <View style={[styles.helpIcon, { backgroundColor: "#E7F8F3" }]}>
-                <Ionicons name="logo-whatsapp" size={24} color="#128C7E" />
+                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
               </View>
               <Text style={styles.helpTitle}>WhatsApp</Text>
               <Text style={styles.helpMeta}>Fastest reply</Text>

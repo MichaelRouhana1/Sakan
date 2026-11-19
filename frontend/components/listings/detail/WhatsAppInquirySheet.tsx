@@ -11,7 +11,7 @@ import { WhatsAppMessagePreview } from "@/components/listings/detail/WhatsAppMes
 import { Studently } from "@/constants/theme";
 import type { WhatsAppInquiryController } from "@/features/listings/useWhatsAppInquiry";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import type { WhatsAppInquiryAnswers } from "@/lib/whatsapp";
+import { WHATSAPP_GREEN, type WhatsAppInquiryAnswers } from "@/lib/whatsapp";
 
 const FIELDS: { key: keyof WhatsAppInquiryAnswers; label: string; placeholder: string }[] = [
   { key: "moveInDate", label: "Move-in date", placeholder: "e.g. mid-November" },
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   preview: { gap: 9, marginTop: 4 },
   error: { color: Studently.color.danger, backgroundColor: Studently.color.dangerSoft, padding: 12, borderRadius: 10, marginBottom: 10 },
   actions: { borderTopWidth: 1, borderTopColor: Studently.color.border, paddingHorizontal: 20, paddingTop: 14 },
-  primary: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: Studently.color.primary, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9 },
+  primary: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: WHATSAPP_GREEN, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9 },
   primaryText: { color: "#FFFFFF" },
   disabled: { opacity: 0.65 },
   skip: { minHeight: 44, justifyContent: "center", alignItems: "center", paddingVertical: 10 },

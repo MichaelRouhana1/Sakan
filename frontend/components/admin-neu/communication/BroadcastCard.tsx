@@ -102,6 +102,7 @@ export function BroadcastCard({
               label="WhatsApp"
               hint="PRD contact path"
               icon={<MessageCircle size={15} strokeWidth={1.75} />}
+              activeClassName="bg-[#25D366] text-white"
               onToggle={() => onToggleChannel("whatsapp")}
             />
           </H>
@@ -251,12 +252,14 @@ function ChannelCheck({
   label,
   hint,
   icon,
+  activeClassName,
   onToggle,
 }: {
   checked: boolean;
   label: string;
   hint: string;
   icon: ReactNode;
+  activeClassName?: string;
   onToggle: () => void;
 }) {
   return (
@@ -267,8 +270,9 @@ function ChannelCheck({
       aria-checked={checked}
       onClick={onToggle}
       className={[
-        "flex min-w-[9.5rem] flex-1 cursor-pointer items-center gap-3 rounded-neu-md bg-clay-100 px-3 py-2.5 text-left transition-shadow duration-press",
+        "flex min-w-[9.5rem] flex-1 cursor-pointer items-center gap-3 rounded-neu-md px-3 py-2.5 text-left transition-shadow duration-press",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moss",
+        checked && activeClassName ? activeClassName : "bg-clay-100 text-clay-900",
         checked ? "shadow-press" : "shadow-neu-sm",
       ].join(" ")}
     >

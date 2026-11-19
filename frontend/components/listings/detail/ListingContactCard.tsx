@@ -6,6 +6,7 @@ import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStac
 import { ListingTocRail, type ListingTocItem } from "@/components/listings/detail/ListingTocRail";
 import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
+import { WHATSAPP_GREEN, WHATSAPP_GREEN_PRESSED } from "@/lib/whatsapp";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { labelPosterRole } from "@/lib/listingLabels";
 import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
@@ -181,8 +182,8 @@ export function ListingContactCard({
               accessibilityRole="button"
               accessibilityLabel="WhatsApp the poster"
               style={({ hovered, pressed }) => [
-                styles.solid,
-                (hovered || pressed) && styles.solidHover,
+                styles.whatsapp,
+                (hovered || pressed) && styles.whatsappPressed,
               ]}
             >
               <Ionicons name="logo-whatsapp" size={18} color="#fff" />
@@ -395,6 +396,23 @@ const styles = StyleSheet.create({
   actions: {
     gap: 8,
   },
+  whatsapp: {
+    minHeight: 48,
+    borderRadius: 12,
+    backgroundColor: WHATSAPP_GREEN,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    ...(IS_WEB
+      ? ({
+          cursor: "pointer",
+          transitionProperty: "background-color",
+          transitionDuration: "160ms",
+        } as object)
+      : null),
+  },
+  whatsappPressed: { backgroundColor: WHATSAPP_GREEN_PRESSED },
   solid: {
     minHeight: 48,
     borderRadius: 12,

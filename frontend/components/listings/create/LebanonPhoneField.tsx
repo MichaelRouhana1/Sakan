@@ -10,6 +10,7 @@ import {
   type ContactNumber,
   type PhoneKind,
 } from "@/lib/lebanonPhone";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 
 type Props = {
   value: ContactNumber;
@@ -153,6 +154,7 @@ export function LebanonPhoneField({
             icon="logo-whatsapp"
             label="WhatsApp"
             selected={value.whatsapp}
+            tone="whatsapp"
             onPress={toggleWhatsApp}
           />
         </View>
@@ -188,11 +190,13 @@ function UseChip({
   icon,
   label,
   selected,
+  tone = "brand",
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   selected: boolean;
+  tone?: "brand" | "whatsapp";
   onPress: () => void;
 }) {
   return (
@@ -200,7 +204,7 @@ function UseChip({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[styles.use, selected && styles.useOn]}
+      style={[styles.use, selected && (tone === "whatsapp" ? styles.useWhatsApp : styles.useOn)]}
     >
       <Ionicons
         name={icon}
@@ -315,6 +319,10 @@ const styles = StyleSheet.create({
   useOn: {
     borderColor: Lister.color.primary,
     backgroundColor: Lister.color.primary,
+  },
+  useWhatsApp: {
+    borderColor: WHATSAPP_GREEN,
+    backgroundColor: WHATSAPP_GREEN,
   },
   useText: { fontFamily: Lister.type.bodySemi, color: Lister.color.inkMuted },
   useTextOn: { fontFamily: Lister.type.bodySemi, color: "#FFFFFF" },
