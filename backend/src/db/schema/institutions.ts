@@ -4,6 +4,7 @@ import { boolean, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg
 export const institutions = pgTable("institutions", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
+  nameAr: text("name_ar"),
   shortName: varchar("short_name", { length: 32 }).notNull(),
   slug: varchar("slug", { length: 64 }).notNull().unique(),
   website: varchar("website", { length: 512 }),

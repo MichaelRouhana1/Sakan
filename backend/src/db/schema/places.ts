@@ -17,6 +17,7 @@ export const places = pgTable("places", {
   landmark: varchar('landmark', { length: 256 }),
   addressLine: varchar('address_line', { length: 256 }),
   buildingName: varchar('building_name', { length: 128 }),
+  buildingNameAr: varchar('building_name_ar', { length: 256 }),
   primaryCampusId: uuid('primary_campus_id').references(() => universities.id, { onDelete: 'set null' }),
   location: geographyPoint('location'),
   electricity: electricityStatusEnum('electricity').notNull(),

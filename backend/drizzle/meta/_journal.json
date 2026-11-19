@@ -288,6 +288,13 @@
       "when": 1794570000000,
       "tag": "0040_creation_drafts",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1795046400000,
+      "tag": "0041_search_catalog",
+      "breakpoints": true
     }
   ]
 }

@@ -19,6 +19,7 @@ export const universities = pgTable("universities", {
     onDelete: "restrict",
   }),
   name: text("name").notNull(),
+  nameAr: text("name_ar"),
   slug: varchar("slug", { length: 64 }).notNull().unique(),
   city: varchar("city", { length: 128 }),
   address: varchar("address", { length: 256 }),

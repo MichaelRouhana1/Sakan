@@ -19,3 +19,4 @@ export * from "./listing-activity.js";
 export * from "./unit-publish-batches.js";
 
 export * from "./creation-drafts.js";
+export * from "./search.js";

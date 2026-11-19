@@ -33,6 +33,8 @@
     "test:inventory": "npm run build && node tests/unit-inventory.integration.mjs",
     "db:inventory:apply": "node ops/places/apply-inventory.mjs",
     "test:search": "npm run build && node tests/unit-search.integration.mjs",
+    "test:search-catalog": "npm run build && node --test tests/search-catalog.test.mjs",
+    "db:search:apply": "node --import tsx ops/search/apply-catalog.mjs",
     "db:wizard:apply": "node ops/places/apply-wizard.mjs",
     "test:wizard": "npm run build && node tests/unit-wizard.integration.mjs"
   },
