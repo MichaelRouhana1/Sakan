@@ -1,3 +1,4 @@
+import { desktopSize } from "@/constants/desktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -636,7 +637,7 @@ export function StudentlyHomePage() {
               ))}
             </View>
 
-            <View style={styles.heroSearchWrap}>
+            <View style={[styles.heroSearchWrap, { maxWidth: isNarrow ? 720 : desktopSize(720) }]}>
               <SearchPill />
             </View>
 
