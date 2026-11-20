@@ -27,3 +27,9 @@ test('city, area, campus and property keep separate identities and canonical fil
  assert.equal(rows[0].url,'/search?city=hamra');assert.match(rows[2].url,/campusId=.*universitySlugs=aub/);
  assert.match(rows[3].url,/placeId=/);
 });
+
+test('restart keeps thumbnail, count and campus radius metadata while rejecting unsafe media URLs',()=>{
+ const campus={...area(),type:'campus',id:'10000000-0000-4000-8000-000000000001',slug:'aub',nearbyRadiusMeters:2500,eligibleUnitCount:6,thumbnailUrl:'/uploads/cover.jpg'};
+ const [restored]=parseRecentSearches(raw([campus]));assert.equal(restored.eligibleUnitCount,6);assert.equal(restored.thumbnailUrl,'/uploads/cover.jpg');assert.equal(restored.nearbyRadiusMeters,2500);assert.match(restored.url,/radiusKm=2.5/);
+ const [unsafe]=parseRecentSearches(raw([{...area(),thumbnailUrl:'javascript:alert(1)',eligibleUnitCount:-1}]));assert.equal(unsafe.thumbnailUrl,null);assert.equal(unsafe.eligibleUnitCount,undefined);
+});

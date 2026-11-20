@@ -22,7 +22,7 @@ test('suggest caller debounces, gates, guards in-flight results and selects type
       b.onResolve({filter:/^(@\/lib\/api|@expo\/vector-icons)$/},args=>({path:args.path,namespace:'stub'}));
       b.onLoad({filter:/.*/,namespace:'stub'},args=>({resolveDir:frontend,loader:'tsx',contents:args.path.includes('api')?
         // Deliberately ignore AbortSignal: the response guard must also protect older transports.
-        `export const api={get:async(url,{params})=>({data:await(await fetch(url+'?'+new URLSearchParams(params))).json()})};`:
+        `export const API_BASE_URL='http://127.0.0.1:3006';export const api={get:async(url,{params})=>({data:await(await fetch(url+'?'+new URLSearchParams(params))).json()})};`:
         `import React from 'react';export const Ionicons=()=>null;`}));
     }}]});
   const server=createServer((req,res)=>{res.setHeader('content-type',req.url==='/app.js'?'text/javascript':'text/html');res.end(req.url==='/app.js'?bundle.outputFiles[0].contents:'<div id="root"></div><script src="/app.js"></script>');});

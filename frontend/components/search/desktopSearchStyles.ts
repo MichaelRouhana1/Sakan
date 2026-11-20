@@ -39,6 +39,7 @@ export const DESKTOP_SEARCH_CSS = String.raw`
 @keyframes sds-dropdown{from{opacity:0;transform:translateY(-8px) scaleY(.97)}to{opacity:1;transform:translateY(0) scaleY(1)}}
 @keyframes sds-header{from{opacity:.6;transform:scale(.72,.85)}to{opacity:1;transform:none}}
 .sds-clear-recents{margin-left:auto;border:0;background:none;color:#b82736;font:inherit;cursor:pointer;padding:4px 0;text-transform:none;letter-spacing:0}.sds-clear-recents:focus-visible{outline:2px solid #ea3f4a;outline-offset:3px}
+.sds-recent-head{display:flex;align-items:center;gap:8px;margin:0;padding:calc(16px * var(--ds)) calc(24px * var(--ds)) calc(8px * var(--ds));font-size:calc(14px * var(--ds));font-weight:400;color:#667085}.sds-recent-list{padding:0 calc(16px * var(--ds)) calc(12px * var(--ds))}.sds-recent-row{display:flex;width:100%;border:0;border-radius:10px;padding:calc(8px * var(--ds));background:#fff;text-align:left;cursor:pointer}.sds-recent-row:hover,.sds-recent-row[aria-selected=true]{background:#fff1f2}.sds-recent-head .sds-clear-recents{color:#ea3f4a}
 @keyframes sds-focus{from{transform:translateY(calc(12px * var(--ds)))}to{transform:translateY(0)}}
 @keyframes sds-veil{from{opacity:0}to{opacity:1}}
 @keyframes sds-shimmer{to{background-position:-150% 0}}

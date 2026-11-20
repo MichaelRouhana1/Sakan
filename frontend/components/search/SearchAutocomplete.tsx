@@ -1,3 +1,6 @@
+import {searchDebug} from '@/features/search/searchDebug';
+import {searchDestination} from '@/features/search/selection';
+import {API_BASE_URL} from '@/lib/api';
 import React, { useEffect, useState } from 'react';
 import { Platform, useWindowDimensions, type TextInputProps, type StyleProp, type ViewStyle } from 'react-native';
 import type { SearchSuggestion } from '@/features/search/types';
@@ -9,6 +12,7 @@ export type SearchAutocompleteProps = {
   recentSuggestions?: SearchSuggestion[];
   onOpenSearch?: () => void;
   onClearRecents?: () => void;
+  recentPersistenceError?: boolean;
   recentsError?: boolean;
   onRetryRecents?: () => void;
   value: string;
@@ -32,9 +36,9 @@ export function SearchAutocomplete(props: SearchAutocompleteProps) {
   const recents=useSearchRecents();
   const [clearError,setClearError]=useState(false);
   const connected={...props,recentSuggestions:props.recentSuggestions??recents.items,
-    onOpenSearch:()=>{props.onOpenSearch?.();recents.retry();},
-    onSelect:(item:SearchSuggestion)=>{recents.remember(item);props.onSelect(item);},
+    onOpenSearch:()=>{searchDebug('sheet.open',{apiBaseUrl:API_BASE_URL,providerReady:!!recents.providerReady,recents:recents.items,persistenceError:recents.persistenceError});props.onOpenSearch?.();recents.retry();},
+    onSelect:(item:SearchSuggestion)=>{searchDebug('select.handler',{destination:searchDestination(item),item,apiBaseUrl:API_BASE_URL,providerReady:!!recents.providerReady});recents.remember(item);searchDebug('select.navigate',{destination:searchDestination(item)});props.onSelect(item);},
     onClearRecents:()=>{setClearError(false);void Promise.resolve(recents.clear()).catch(()=>setClearError(true));},
-    recentsError:recents.isError||clearError,onRetryRecents:()=>{setClearError(false);recents.retry();}};
+    recentPersistenceError:recents.persistenceError,recentsError:recents.isError||clearError,onRetryRecents:()=>{setClearError(false);recents.retry();}};
   return desktop?<DesktopSearchAutocomplete {...connected}/>:<MobileSearchAutocomplete {...connected}/>;
 }

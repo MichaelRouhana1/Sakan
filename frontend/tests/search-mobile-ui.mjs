@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
 import {mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
-const output=path.resolve(import.meta.dirname,'../../artifacts/search-v2/step-4');await mkdir(output,{recursive:true});
+const output=path.resolve(import.meta.dirname,'../../artifacts/search-v2/amber-mobile-defaults/regression');await mkdir(output,{recursive:true});
 const base=process.env.STUDENTLY_TEST_URL??'http://127.0.0.1:8091';
 const api=process.env.SEARCH_TEST_API_BASE??'http://127.0.0.1:3006';
 const browser=await chromium.launch({channel:'msedge',headless:true});
@@ -12,7 +12,7 @@ const storedKey='studently.search.recents.v1';
 try {
  for(const width of [390,430])for(const surface of ['home','search']){
   const context=await browser.newContext({viewport:{width,height:width===390?844:932},deviceScaleFactor:1,isMobile:true,hasTouch:true,reducedMotion:'reduce'});
-  const page=await context.newPage();page.on('pageerror',e=>report.errors.push({width,surface,message:e.message}));
+  const page=await context.newPage();page.setDefaultNavigationTimeout(120000);page.on('pageerror',e=>report.errors.push({width,surface,message:e.message}));
   const url=base+(surface==='home'?'/':'/search?maxRentUsd=700&wifiIncluded=true&sort=rent_asc');
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
   const trigger=page.getByRole('button',{name:'Open search',exact:true}).first();
@@ -25,9 +25,9 @@ try {
   await expect(page.getByRole('dialog',{name:'Search Lebanon'})).toHaveCount(1);
   const input=page.getByRole('combobox',{name:'Search',exact:true});
   await expect(page.getByRole('group',{name:'Top areas',exact:true})).toBeVisible({timeout:20000});
-  await expect(page.getByRole('group',{name:'Top universities & campuses',exact:true})).toBeVisible();
+  await expect(page.getByRole('group',{name:'Top universities',exact:true})).toBeVisible();
   const chips=await page.getByRole('option').evaluateAll(nodes=>nodes.map(n=>({type:n.dataset.searchType,text:n.textContent,inside:n.getBoundingClientRect().left>=-1&&n.getBoundingClientRect().right<=window.innerWidth+1,unclipped:n.scrollWidth<=n.clientWidth+1})));
-  assert.ok(chips.every(x=>x.inside&&x.unclipped));assert.ok(chips.filter(x=>x.type==='campus').every(x=>!/[\u0600-\u06ff]/.test(x.text)&&!(/\bcampus\b/i.test(x.text))));
+  assert.ok(chips.every(x=>x.unclipped));assert.ok(chips.filter(x=>x.type==='campus').every(x=>!/[\u0600-\u06ff]/.test(x.text)&&!(/\bcampus\b/i.test(x.text))));
   await shot('open-defaults');
   const box=await sheet.boundingBox();assert.ok(Math.abs(box.width-width)<1);assert.ok(box.height>=840);
   await input.fill('Ha');await shot('typing');

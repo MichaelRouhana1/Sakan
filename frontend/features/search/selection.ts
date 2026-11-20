@@ -6,7 +6,7 @@ import type { SearchSuggestion } from './types';
 export function searchDestination(item: SearchSuggestion): BrowseDestination {
   if(item.type==='city') return {city:item.slug};
   if(item.type==='area') return {areas:[item.canonicalArea]};
-  if(item.type==='campus') return {campusId:item.id,universitySlugs:[item.slug]};
+  if(item.type==='campus') return {campusId:item.id,universitySlugs:[item.slug],...(item.nearbyRadiusMeters?{radiusKm:item.nearbyRadiusMeters/1000}:{})};
   return {placeId:item.id};
 }
 function replaceLocation(state: BrowseState,destination: BrowseDestination): BrowseState {

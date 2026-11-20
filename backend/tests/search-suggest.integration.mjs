@@ -85,19 +85,42 @@ try {
   await check('empty and one-character queries return inventory-backed defaults',async()=>{
     for(const q of ['','a','ب','َ']) {
       const r=await suggest(q);assert.equal(r.mode,'defaults');assert.deepEqual(r.results,[]);
-      assert.ok(r.sections.topAreas.length>0);assert.ok(r.sections.topCampuses.length>0);
+      assert.ok(r.sections.topAreas.length>=6&&r.sections.topAreas.length<=10);assert.ok(r.sections.topCampuses.length>=6&&r.sections.topCampuses.length<=10);
       assert.ok(r.sections.topAreas.every(x=>['area','city'].includes(x.type)));
     }
     assert.equal((await suggest('ha')).mode,'results');
-    const small=await suggest('',2);assert.ok(small.sections.topAreas.length+small.sections.topCampuses.length<=2);
+    const small=await suggest('',2);assert.equal(small.sections.topAreas.length,6);assert.equal(small.sections.topCampuses.length,6);
+  });
+  await check('defaults expose live unit counts, campus-radius counts and eligible listing thumbnails',async()=>{
+    await client`INSERT INTO listing_photos(listing_id,url,sort_order) VALUES (${hamra.unitId},'/uploads/public-cover.jpg',0),(${unavailable[0].unitId},'/uploads/private-cover.jpg',0)`;
+    await client`UPDATE listings SET updated_at=now() WHERE id=${hamra.unitId}`;
+    const defaults=await suggest('',20);
+    for(const area of defaults.sections.topAreas) {
+      const [count]=await client`SELECT count(*)::int AS n FROM listing_resolved WHERE area=${area.canonicalArea}
+        AND status='active' AND availability<>'rented' AND hidden_reason IS NULL AND expires_at>now()`;
+      assert.equal(area.eligibleUnitCount,count.n);assert.ok(area.eligibleUnitCount>=0);
+      assert.notEqual(area.thumbnailUrl,'/uploads/private-cover.jpg');
+    }
+    assert.equal(defaults.sections.topAreas.find(x=>x.canonicalArea==='Hamra').thumbnailUrl,'/uploads/public-cover.jpg');
+    const {campusHousingRadiusMeters}=await import('../dist/modules/campus/campus.repository.js');
+    for(const campus of defaults.sections.topCampuses) {
+      const [count]=await client`SELECT count(*)::int AS n FROM listing_resolved l JOIN universities u ON u.id=${campus.id}
+        WHERE l.status='active' AND l.availability<>'rented' AND l.hidden_reason IS NULL AND l.expires_at>now()
+          AND l.location IS NOT NULL AND ST_DWithin(l.location,u.location,${campusHousingRadiusMeters})`;
+      assert.equal(campus.eligibleUnitCount,count.n);assert.equal(campus.thumbnailUrl,null);
+      assert.equal(campus.nearbyRadiusMeters,campusHousingRadiusMeters);
+      const target=new URL(campus.url,'http://test');assert.equal(Number(target.searchParams.get('radiusKm')),campusHousingRadiusMeters/1000);
+      assert.equal((await browse(Object.fromEntries(target.searchParams))).pagination.totalMatching,count.n);
+    }
   });
   await check('default areas rank eligible units without city totals and refresh on eligibility changes',async()=>{
     const before=await suggest('',20);
     assert.ok(before.sections.topAreas.every(x=>x.type==='area'));
-    assert.deepEqual(before.sections.topAreas.map(x=>x.canonicalArea),['Hamra','Achrafieh','Dekwaneh','Fanar']);
+    assert.deepEqual(before.sections.topAreas.filter(x=>x.eligibleUnitCount>0).map(x=>x.canonicalArea),['Hamra','Achrafieh','Dekwaneh','Fanar']);
     await client`UPDATE places SET hidden=true WHERE id=${hamra.id}`;
     const hidden=await suggest('',20);
-    assert.deepEqual(hidden.sections.topAreas.map(x=>x.canonicalArea),['Achrafieh','Dekwaneh','Fanar']);
+    assert.deepEqual(hidden.sections.topAreas.filter(x=>x.eligibleUnitCount>0).map(x=>x.canonicalArea),['Achrafieh','Dekwaneh','Fanar']);
+    assert.equal(hidden.sections.topAreas.find(x=>x.canonicalArea==='Hamra').eligibleUnitCount,0);
     await client`UPDATE places SET hidden=false WHERE id=${hamra.id}`;
     assert.equal((await suggest('',20)).sections.topAreas[0].canonicalArea,'Hamra');
   });

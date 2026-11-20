@@ -47,10 +47,16 @@ export class SearchService {
         ${defaults ? sql`` : sql`LIMIT ${limit}`}
       `);
     });
+    // Keep live inventory first; fill the two-row rails from the existing catalog.
+    // Defaults have 6-10 cards per section; typed results retain the requested total limit.
+    const sectionLimit=Math.min(10,Math.max(6,limit));
+    const majorAreas=['hamra','achrafieh','gemmayzeh','mar-mikhael','verdun','badaro','jounieh','dekwaneh','byblos','zahle'];
+    const areaRows=rows.filter(r=>r.type==='area'&&(r.popularity>0||majorAreas.includes(r.slug??'')));
+    areaRows.sort((a,b)=>b.popularity-a.popularity || (a.popularity>0 ? a.labelEn.localeCompare(b.labelEn) : majorAreas.indexOf(a.slug??'')-majorAreas.indexOf(b.slug??'')) || a.labelEn.localeCompare(b.labelEn));
     const value:SearchSuggestResult={query:q,normalizedQuery:normalized,mode:defaults?'defaults':'results',minQueryLength:2,
       results:defaults ? [] : rows.map(toSuggestion),sections:{
-        topAreas:defaults ? rows.filter(r=>r.type==='area' && r.popularity>0).slice(0,Math.ceil(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topAreas'] : [],
-        topCampuses:defaults ? rows.filter(r=>r.type==='campus' && r.popularity>0).slice(0,Math.floor(limit/2)).map(toSuggestion) as SearchSuggestResult['sections']['topCampuses'] : [],
+        topAreas:defaults ? areaRows.slice(0,sectionLimit).map(toSuggestion) as SearchSuggestResult['sections']['topAreas'] : [],
+        topCampuses:defaults ? rows.filter(r=>r.type==='campus').slice(0,sectionLimit).map(toSuggestion) as SearchSuggestResult['sections']['topCampuses'] : [],
       }};
     this.cache.delete(key);
     if(this.cache.size>=500) this.cache.delete(this.cache.keys().next().value!);

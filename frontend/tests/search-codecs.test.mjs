@@ -66,3 +66,14 @@ test('unknown-location recovery preserves text/property filters and non-location
   assert.equal(next.filters.maxRentUsd,700);assert.equal(next.filters.wifiIncluded,true);assert.equal(next.sort,'rent_asc');
   assert.equal(next.prefs.location,undefined);assert.deepEqual(next.prefs.wifi,old.prefs.wifi);
 });
+
+test('campus nearby count radius survives selection, URL codecs and replacing the location',()=>{
+ const item={...fixtures[2],nearbyRadiusMeters:2500,eligibleUnitCount:6};
+ const destination=m.searchDestination(item);assert.equal(destination.radiusKm,2.5);
+ const params=m.browseSearchParams(destination);assert.equal(params.radiusKm,'2.5');
+ const old=m.parseBrowseState({maxRentUsd:'700',wifiIncluded:'true'});
+ const selected=m.applySearchSelection(old,item);assert.equal(selected.filters.radiusKm,2.5);assert.equal(selected.filters.maxRentUsd,700);assert.equal(selected.filters.wifiIncluded,true);
+ assert.equal(m.parseBrowseState(m.serializeBrowseState(selected)).filters.radiusKm,2.5);
+ assert.equal(m.applySearchSelection(selected,fixtures[1]).filters.radiusKm,null);
+ assert.equal(m.browseSearchSetParams(m.searchDestination(fixtures[1])).radiusKm,undefined);
+});
