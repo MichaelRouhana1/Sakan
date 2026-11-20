@@ -32,8 +32,6 @@ import {
   DIRECTORY_UNIS,
   HERO,
   HOME_DISCOVER_TABS,
-  POPULAR_SEARCHES,
-  popularSearchBrowseParams,
   PROMO_CARDS,
   RAIL_PILLS,
   SEARCH_HINTS,
@@ -642,20 +640,6 @@ export function StudentlyHomePage() {
               <SearchPill />
             </View>
 
-            <View style={styles.popularSearches}>
-              <Text style={styles.popularLabel}>Top areas: </Text>
-              {POPULAR_SEARCHES.map((s, i) => (
-                <Pressable
-                  key={s.label}
-                  onPress={() => goBrowse(popularSearchBrowseParams(s))}
-                >
-                  <Text style={styles.popularLink}>
-                    {s.label}
-                    {i < POPULAR_SEARCHES.length - 1 ? ", " : ""}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
           </View>
         </View>
 
@@ -1392,26 +1376,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  popularSearches: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 45,
-    marginTop: -4,
-  },
-  popularLabel: {
-    fontFamily: Studently.type.body,
-    fontSize: 13,
-    color: "rgba(255,255,255,0.8)",
-  },
-  popularLink: {
-    fontFamily: Studently.type.bodyMedium,
-    fontSize: 13,
-    color: "#fff",
-    textDecorationLine: "underline",
-  },
-
   section: {
     paddingVertical: 56,
     width: "100%",
