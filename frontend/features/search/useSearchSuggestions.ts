@@ -4,7 +4,7 @@ import { CanceledError } from 'axios';
 import { api } from '@/lib/api';
 import type { SearchSuggestResult } from './types';
 
-export const searchKeys={all:['search'] as const,suggestions:(q:string)=>['search','suggest',2,q] as const};
+export const searchKeys={all:['search'] as const,suggestions:(q:string)=>['search','suggest',3,q] as const};
 function searchLength(value:string) {
   return [...value.normalize('NFKC').replace(/[\p{M}\u0640\u200b-\u200f\ufeff]/gu,'')].length;
 }

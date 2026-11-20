@@ -33,3 +33,9 @@ test('restart keeps thumbnail, count and campus radius metadata while rejecting 
  const [restored]=parseRecentSearches(raw([campus]));assert.equal(restored.eligibleUnitCount,6);assert.equal(restored.thumbnailUrl,'/uploads/cover.jpg');assert.equal(restored.nearbyRadiusMeters,2500);assert.match(restored.url,/radiusKm=2.5/);
  const [unsafe]=parseRecentSearches(raw([{...area(),thumbnailUrl:'javascript:alert(1)',eligibleUnitCount:-1}]));assert.equal(unsafe.thumbnailUrl,null);assert.equal(unsafe.eligibleUnitCount,undefined);
 });
+
+test('location recents discard legacy listing covers but preserve curated photos',()=>{
+ const [legacy]=parseRecentSearches(raw([{...area(),thumbnailUrl:'/uploads/old-cover.jpg'}]));assert.equal(legacy.thumbnailUrl,null);
+ const [curated]=parseRecentSearches(raw([{...area(),thumbnailSource:'curated',thumbnailUrl:'/assets/search/areas/hamra.jpg'}]));assert.equal(curated.thumbnailUrl,'/assets/search/areas/hamra.jpg');assert.equal(curated.thumbnailSource,'curated');
+
+});

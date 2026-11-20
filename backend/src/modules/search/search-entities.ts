@@ -12,7 +12,7 @@ export const publicUnits = sql`SELECT id,place_id,area,location,expires_at FROM 
   WHERE status='active' AND availability<>'rented' AND hidden_reason IS NULL AND expires_at>now()`;
 
 export function toSuggestion(row: Entity): SearchSuggestion {
-  const base = { eligibleUnitCount: Number(row.popularity), thumbnailUrl: row.thumbnailUrl ?? null, id: row.id, label: {en:row.labelEn,ar:row.labelAr}, context: {en:row.contextEn,ar:row.contextAr},
+  const base = { thumbnailSource: row.thumbnailUrl ? (row.type==='city'||row.type==='area' ? 'curated' as const : 'listing' as const) : null, eligibleUnitCount: Number(row.popularity), thumbnailUrl: row.thumbnailUrl ?? null, id: row.id, label: {en:row.labelEn,ar:row.labelAr}, context: {en:row.contextEn,ar:row.contextAr},
     center: row.lat != null && row.lng != null ? {lat:Number(row.lat),lng:Number(row.lng)} : null };
   if(row.type==='city') return {...base,type:'city',slug:row.slug!,canonicalAreas:row.canonicalAreas,url:`/search?city=${encodeURIComponent(row.slug!)}`};
   if(row.type==='area') return {...base,type:'area',slug:row.slug!,canonicalArea:row.canonicalArea!,url:`/search?areas=${encodeURIComponent(row.canonicalArea!)}`};
@@ -34,12 +34,7 @@ export function searchEntities(scope: 'defaults' | 'typed' | 'all') {
             l.lat,l.lng,
             (SELECT count(*)::int FROM live_units u WHERE u.area=l.canonical_area OR
               (l.kind='city' AND u.area IN(SELECT child.canonical_area FROM search_locations child WHERE child.parent_city_id=l.id AND child.active))) AS popularity,
-            (SELECT photo.url FROM live_units unit JOIN LATERAL (
-              SELECT lp.url FROM listing_photos lp WHERE lp.listing_id=unit.id AND NOT lp.flagged
-              ORDER BY lp.sort_order,lp.created_at,lp.id LIMIT 1
-            ) photo ON true WHERE unit.area=l.canonical_area OR
-              (l.kind='city' AND unit.area IN(SELECT child.canonical_area FROM search_locations child WHERE child.parent_city_id=l.id AND child.active))
-              ORDER BY unit.expires_at DESC,unit.id LIMIT 1) AS "thumbnailUrl"
+            nullif(btrim(l.image_url),'') AS "thumbnailUrl"
           FROM search_locations l LEFT JOIN search_locations parent ON parent.id=l.parent_city_id
           WHERE l.active AND (l.kind='city' OR parent.active)
             ${scope==='defaults' ? sql`AND l.kind='area'` : scope==='typed' ? sql`AND NOT(l.kind='area' AND parent.active AND parent.name_en=l.name_en)` : sql``}

@@ -15,6 +15,7 @@ export const searchLocations = pgTable('search_locations', {
   slug: varchar('slug', { length: 100 }).notNull(),
   nameEn: text('name_en').notNull(),
   nameAr: text('name_ar').notNull(),
+  imageUrl: text('image_url'),
   districtEn: text('district_en').notNull(),
   districtAr: text('district_ar').notNull(),
   parentCityId: text('parent_city_id').references((): AnyPgColumn => searchLocations.id, { onDelete: 'restrict' }),

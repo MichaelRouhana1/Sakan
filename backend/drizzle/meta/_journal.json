@@ -302,6 +302,13 @@
       "when": 1795046401000,
       "tag": "0042_search_suggest_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1795176000000,
+      "tag": "0043_search_location_images",
+      "breakpoints": true
     }
   ]
 }

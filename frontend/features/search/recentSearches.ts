@@ -15,7 +15,7 @@ export function parseRecentSearches(raw:string|null):SearchSuggestion[] {
       const thumbnail=typeof x.thumbnailUrl==='string'&&x.thumbnailUrl.length<=2048&&
         (/^https?:\/\//i.test(x.thumbnailUrl)||/^\/(uploads|assets)\//.test(x.thumbnailUrl))?x.thumbnailUrl:null;
       const base={eligibleUnitCount:Number.isSafeInteger(x.eligibleUnitCount)&&x.eligibleUnitCount>=0?x.eligibleUnitCount:undefined,
-        thumbnailUrl:thumbnail,id:x.id,label:{en:x.label.en,ar:x.label.ar},context:{en:x.context.en,ar:x.context.ar},center:
+        thumbnailSource:x.thumbnailSource==='curated'?'curated' as const:x.thumbnailSource==='listing'?'listing' as const:null,thumbnailUrl:(x.type==='area'||x.type==='city')&&x.thumbnailSource!=='curated'?null:thumbnail,id:x.id,label:{en:x.label.en,ar:x.label.ar},context:{en:x.context.en,ar:x.context.ar},center:
         Number.isFinite(x.center?.lat)&&Number.isFinite(x.center?.lng)&&Math.abs(x.center.lat)<=90&&Math.abs(x.center.lng)<=180?{lat:x.center.lat,lng:x.center.lng}:null};
       let item:SearchSuggestion;
       if((x.type==='city'||x.type==='area')&&typeof x.slug==='string'&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(x.slug)&&x.id===`${x.type}:${x.slug}`) {

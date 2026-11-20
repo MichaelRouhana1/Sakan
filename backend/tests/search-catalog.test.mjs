@@ -47,6 +47,8 @@ async function bootstrap() {
     await exposeCurrentRuntimeView(client);
     const migration=await readFile(new URL('../drizzle/0041_search_catalog.sql',import.meta.url),'utf8');
     for(const part of migration.split('--> statement-breakpoint')) await client.unsafe(part);
+    const imagesMigration=await readFile(new URL('../drizzle/0043_search_location_images.sql',import.meta.url),'utf8');
+    for(const part of imagesMigration.split('--> statement-breakpoint'))await client.unsafe(part);
     for(const inst of institutionSeeds) {
       const [parent]=await client`INSERT INTO institutions(name,short_name,slug) VALUES (${inst.name},${inst.shortName},${inst.slug}) RETURNING id`;
       for(const campus of inst.campuses) await client`INSERT INTO universities(institution_id,name,slug,city,is_main,location)

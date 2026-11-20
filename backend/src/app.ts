@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import cors from "cors";
 import express from "express";
 import { loadEnv } from "./config/env.js";
@@ -31,6 +33,13 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }));
 
   app.use("/uploads", express.static(UPLOADS_ROOT, {
+    maxAge: "7d",
+    fallthrough: true,
+  }));
+
+  const bundledAreaPhotos=resolve(__dirname,"assets/search/areas");
+  const areaPhotos=existsSync(bundledAreaPhotos)?bundledAreaPhotos:resolve(__dirname,"../assets/search/areas");
+  app.use("/assets/search/areas", express.static(areaPhotos, {
     maxAge: "7d",
     fallthrough: true,
   }));

@@ -91,7 +91,7 @@ try {
     assert.equal((await suggest('ha')).mode,'results');
     const small=await suggest('',2);assert.equal(small.sections.topAreas.length,6);assert.equal(small.sections.topCampuses.length,6);
   });
-  await check('defaults expose live unit counts, campus-radius counts and eligible listing thumbnails',async()=>{
+  await check('defaults expose live counts, campus-radius counts and curated location photos',async()=>{
     await client`INSERT INTO listing_photos(listing_id,url,sort_order) VALUES (${hamra.unitId},'/uploads/public-cover.jpg',0),(${unavailable[0].unitId},'/uploads/private-cover.jpg',0)`;
     await client`UPDATE listings SET updated_at=now() WHERE id=${hamra.unitId}`;
     const defaults=await suggest('',20);
@@ -99,9 +99,11 @@ try {
       const [count]=await client`SELECT count(*)::int AS n FROM listing_resolved WHERE area=${area.canonicalArea}
         AND status='active' AND availability<>'rented' AND hidden_reason IS NULL AND expires_at>now()`;
       assert.equal(area.eligibleUnitCount,count.n);assert.ok(area.eligibleUnitCount>=0);
-      assert.notEqual(area.thumbnailUrl,'/uploads/private-cover.jpg');
+      const [location]=await client`SELECT image_url FROM search_locations WHERE id=${area.id}`;
+      assert.equal(area.thumbnailUrl,location.image_url);assert.equal(area.thumbnailSource,location.image_url?'curated':null);
+      assert.notEqual(area.thumbnailUrl,'/uploads/private-cover.jpg');assert.notEqual(area.thumbnailUrl,'/uploads/public-cover.jpg');
     }
-    assert.equal(defaults.sections.topAreas.find(x=>x.canonicalArea==='Hamra').thumbnailUrl,'/uploads/public-cover.jpg');
+    assert.equal(defaults.sections.topAreas.find(x=>x.canonicalArea==='Hamra').thumbnailUrl,'/assets/search/areas/hamra.jpg');
     const {campusHousingRadiusMeters}=await import('../dist/modules/campus/campus.repository.js');
     for(const campus of defaults.sections.topCampuses) {
       const [count]=await client`SELECT count(*)::int AS n FROM listing_resolved l JOIN universities u ON u.id=${campus.id}
@@ -112,6 +114,21 @@ try {
       const target=new URL(campus.url,'http://test');assert.equal(Number(target.searchParams.get('radiusKm')),campusHousingRadiusMeters/1000);
       assert.equal((await browse(Object.fromEntries(target.searchParams))).pagination.totalMatching,count.n);
     }
+  });
+  await check('curated image edits invalidate cache and never fall back to a listing cover',async()=>{
+    const before=(await suggest('Hamra')).results.find(x=>x.id==='area:hamra');
+    await client`UPDATE search_locations SET image_url=NULL WHERE id='area:hamra'`;
+    const cleared=(await suggest('Hamra')).results.find(x=>x.id==='area:hamra');
+    assert.equal(cleared.thumbnailUrl,null);assert.equal(cleared.thumbnailSource,null);assert.equal(cleared.eligibleUnitCount,before.eligibleUnitCount);
+    await client`UPDATE search_locations SET image_url='https://images.example.test/curated-hamra.jpg' WHERE id='area:hamra'`;
+    assert.equal((await suggest('Hamra')).results.find(x=>x.id==='area:hamra').thumbnailUrl,'https://images.example.test/curated-hamra.jpg');
+    await client`UPDATE search_locations SET image_url='/assets/search/areas/hamra.jpg' WHERE id='area:hamra'`;
+    const {seedSearchLocationImages}=await import('../dist/db/seeds/search-location-images.js');
+    await client`UPDATE search_locations SET image_url='https://images.example.test/custom.jpg' WHERE id='area:badaro'`;
+    await drizzle(client).transaction(tx=>seedSearchLocationImages(tx));
+    assert.equal((await client`SELECT image_url FROM search_locations WHERE id='area:badaro'`)[0].image_url,'https://images.example.test/custom.jpg');
+    const photos=await client`SELECT image_url FROM search_locations WHERE kind='area' AND image_url IS NOT NULL`;
+    assert.equal(photos.length,10);
   });
   await check('default areas rank eligible units without city totals and refresh on eligibility changes',async()=>{
     const before=await suggest('',20);
