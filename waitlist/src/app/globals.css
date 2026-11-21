@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sk-primary: #ea3f4a;
+  --sk-primary-pressed: #c0343d;
+  --sk-primary-mist: #fdecee;
+  --sk-primary-soft: #f7b7bc;
+  --sk-ink: #1a1a1a;
+  --sk-muted: #5e5a55;
+  --sk-faint: #8a847c;
+  --sk-bg: #f7f5f3;
+  --sk-surface: #ffffff;
+  --sk-border: #e4e0db;
+  --sk-wash-a: #fff5f5;
+  --sk-wash-b: #f0ebe6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--sk-ink);
+  background: var(--sk-bg);
+  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--sk-primary) 28%, white);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .font-display {
+    font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .atmosphere {
+    background:
+      radial-gradient(1200px 600px at 12% -10%, var(--sk-wash-a), transparent 55%),
+      radial-gradient(900px 500px at 90% 8%, #ffe8ea, transparent 50%),
+      linear-gradient(180deg, #faf8f6 0%, var(--sk-bg) 40%, #efebe7 100%);
+  }
+
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+    opacity: 0.035;
+    pointer-events: none;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-rise {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise-delay-1 {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.animate-rise-delay-2 {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+.animate-float {
+  animation: float-y 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay-1,
+  .animate-rise-delay-2,
+  .animate-float {
+    animation: none;
+  }
+}

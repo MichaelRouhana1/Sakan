@@ -1,0 +1,16 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='390' height='844' viewBox='0 0 390 844'>
+  <defs>
+    <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='#FDECEE'/>
+      <stop offset='100%' stop-color='#EA3F4A'/>
+    </linearGradient>
+  </defs>
+  <rect width='390' height='844' fill='url(#g)'/>
+  <rect x='24' y='64' width='342' height='56' rx='16' fill='white' fill-opacity='0.92'/>
+  <rect x='24' y='144' width='342' height='180' rx='20' fill='white' fill-opacity='0.85'/>
+  <rect x='24' y='348' width='164' height='120' rx='16' fill='white' fill-opacity='0.75'/>
+  <rect x='202' y='348' width='164' height='120' rx='16' fill='white' fill-opacity='0.75'/>
+  <rect x='24' y='492' width='342' height='88' rx='16' fill='white' fill-opacity='0.7'/>
+  <text x='195' y='760' text-anchor='middle' font-family='Arial,sans-serif' font-size='18' fill='white' font-weight='700'>Studently</text>
+  <text x='195' y='790' text-anchor='middle' font-family='Arial,sans-serif' font-size='14' fill='white' fill-opacity='0.9'>Screenshot 2 placeholder</text>
+</svg>
