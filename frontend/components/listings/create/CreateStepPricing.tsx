@@ -42,7 +42,7 @@ export function CreateStepPricing() {
           style={wizardInputStyle(rentInvalid)}
         />
       </Enter>
-      {guide ? (
+      {guide && draft.priceBasis ? (
         <PriceGuideCard
           guide={guide}
           priceBasis={draft.priceBasis}
