@@ -1,0 +1,35 @@
+/** Measured Amber desktop motion; milliseconds/ratios never receive desktop scaling. */
+export const DESKTOP_SEARCH_MOTION = {
+  ease: 'cubic-bezier(.22,1,.36,1)',
+  fadeEase: 'ease', linearEase: 'linear', shimmerEase: 'ease-in-out', caretEase: 'steps(1)',
+  headerSlideMs: 350,
+  headerVisibleTransform: 'translateY(0)',
+  chipActiveTransform: 'translateY(1px)',
+  headerFadeMs: 250,
+  headerHiddenTransform: 'translateY(-100%)',
+  growMs: 300,
+  dropdownMs: 260,
+  heroFocusMs: 360,
+  heroLift: 12,
+  sweepMs: 2800,
+  launcherHoverMs: 200,
+  scrimMs: 250,
+  caretMs: 1000,
+  shimmerMs: 1400,
+  iconMs: 1500,
+  scrollCloseDistance: 80,
+  typeMs: 55, holdMs: 2000, deleteMs: 28, wordPauseMs: 400,
+  ringRestClip: 'inset(0 50% round 999px)',
+  ringFullClip: 'inset(0 round 999px)',
+  ringFrames: '0%{clip-path:inset(0 50% round 999px);opacity:0;animation-timing-function:cubic-bezier(.37,0,.18,1)}12%{opacity:1;animation-timing-function:ease-out}36%{clip-path:inset(0 round 999px);animation-timing-function:linear}60%{opacity:1;animation-timing-function:cubic-bezier(.45,0,.55,1)}100%{opacity:0;clip-path:inset(0 round 999px)}',
+  growFrames: 'from{opacity:.6;transform:scale(.72,.85)}to{opacity:1;transform:none}',
+  dropdownFrames: 'from{opacity:0;transform:translateY(calc(-8px * var(--ds))) scaleY(.97)}to{opacity:1;transform:none}',
+  caretFrames: '0%,50%{opacity:1}51%,100%{opacity:0}',
+  scrimFrames: 'from{opacity:0}to{opacity:1}',
+  shimmerFrames: 'to{background-position:-150% 0}',
+  lensFrames: '0%{transform:rotate(0deg) scale(1);animation-timing-function:cubic-bezier(.3,0,.35,1)}12%{transform:rotate(60deg) scale(.8);animation-timing-function:cubic-bezier(.55,0,.45,1)}22%{transform:rotate(98deg) scale(.86);animation-timing-function:cubic-bezier(.3,0,.3,1)}40%{transform:rotate(-20deg) scale(1.05)}55%{transform:rotate(4deg) scale(.99)}70%{transform:rotate(-1deg) scale(1)}100%{transform:rotate(0deg) scale(1)}',
+  sparkFrames: '0%{transform:rotate(0deg) scale(1)}12%{transform:rotate(-200deg) scale(0)}22%{transform:rotate(-110deg) scale(0)}40%{transform:rotate(10deg) scale(1.3)}55%{transform:rotate(-3deg) scale(.94)}70%,100%{transform:rotate(0deg) scale(1)}',
+} as const;
+
+/** Desktop chrome only; the shared mobile 70px fallback is intentionally unchanged. */
+export const DESKTOP_SEARCH_HEADER = { height: 73, innerHeight: 72, closedWidth: 480, openWidth: 640 } as const;

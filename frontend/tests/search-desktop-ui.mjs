@@ -4,7 +4,7 @@ import { mkdir,writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium,expect } from '@playwright/test';
 const frontend=path.resolve(import.meta.dirname,'..');
-const output=path.resolve(frontend,'../artifacts/search-v2/step-3');await mkdir(output,{recursive:true});
+const output=process.env.STUDENTLY_SEARCH_UI_ARTIFACTS??path.resolve(frontend,'../artifacts/search-v2/step-3');await mkdir(output,{recursive:true});
 const base=process.env.STUDENTLY_TEST_URL??'http://127.0.0.1:8091';
 const api=process.env.SEARCH_TEST_API_BASE??'http://127.0.0.1:3006';
 if(!['localhost','127.0.0.1'].includes(new URL(api).hostname))throw new Error('Loopback API required');
@@ -30,14 +30,14 @@ async function prepare(context){
 }
 async function ready(page,surface){
   await page.goto(base+(surface==='home'?'/':'/search?maxRentUsd=700&wifiIncluded=true&sort=rent_asc'),{timeout:180000,waitUntil:'domcontentloaded'});
-  await expect(page.locator('[data-desktop-search]')).toBeVisible({timeout:120000});
+  await expect(page.locator(surface==='home'?'.sds-hero':'.sdh .sds-launch')).toBeVisible({timeout:120000});
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForTimeout(1400);
   if(surface==='search')await expect(page.getByText('No listings match',{exact:true})).toBeVisible({timeout:15000});
 }
 async function open(page,surface){
   if(!await page.getByTestId('desktop-search-panel').count()){
-    const launcher=page.locator('[data-desktop-search]');
+    const launcher=page.locator(surface==='home'?'[data-variant=pill][data-desktop-search]':'.sdh [data-desktop-search]');
     if(surface==='home')await launcher.getByRole('combobox').click();
     else await launcher.getByRole('button',{name:/search/i}).click();
   }
@@ -65,7 +65,7 @@ try{
       assert.ok(popup.x>=brand.x+brand.width,'Expanded search must not cover the brand');
     }
     await shot(page,width,surface,'defaults');
-    const sizes=await page.locator('.sds-open-bar').evaluate(node=>({height:node.getBoundingClientRect().height,font:getComputedStyle(node.querySelector('input')).fontFamily,focusAnimation:getComputedStyle(node).animationDuration,panelAnimation:getComputedStyle(document.querySelector('.sds-panel')).animationDuration,red:getComputedStyle(node.closest('.sds')).getPropertyValue('--red')}));
+    const sizes=await page.locator('.sds-open-bar').evaluate(node=>({height:node.getBoundingClientRect().height,font:getComputedStyle(node.querySelector('input')).fontFamily,focusAnimation:node.classList.contains('sds-hero')?getComputedStyle(node).transitionDuration.split(',')[0].trim():getComputedStyle(node).animationDuration,panelAnimation:getComputedStyle(document.querySelector('.sds-panel')).animationDuration,red:getComputedStyle(node.closest('.sds')).getPropertyValue('--red')}));
     assert.ok(Math.abs(sizes.height-77)<1);
     if(surface==='home')assert.ok((await page.locator('.sds-surface').boundingBox()).width>700);assert.match(sizes.font,/DMSans/);assert.equal(sizes.red.trim(),'#ea3f4a');
     assert.equal(sizes.focusAnimation,surface==='home'?'0.36s':'0.3s');assert.equal(sizes.panelAnimation,'0.26s');
@@ -97,7 +97,7 @@ try{
   // Changing the OS preference must stop the JS typewriter and all search CSS motion.
   const reducedContext=await browser.newContext({viewport:{width:1600,height:1111},deviceScaleFactor:.9,reducedMotion:'reduce'});
   const reducedPage=await prepare(reducedContext);await ready(reducedPage,'home');
-  const word=reducedPage.getByTestId('search-placeholder-word');await expect(word).toHaveText('City, university or property');
+  const word=reducedPage.locator('.sds-hero [data-testid=search-placeholder-word]');await expect(word).toHaveText('City, university or property');
   await reducedPage.waitForTimeout(2300);await expect(word).toHaveText('City, university or property');
   await shot(reducedPage,1440,'home','reduced-motion-rest');
   await open(reducedPage,'home');await settled(reducedPage);await expect(reducedPage.locator('.sds-open-bar')).toHaveCSS('animation-name','none');await expect(reducedPage.locator('.sds-panel')).toHaveCSS('animation-name','none');
@@ -105,7 +105,7 @@ try{
   // The desktop surface also fits an unzoomed 1280 CSS-pixel viewport.
   const narrowContext=await browser.newContext({viewport:{width:1280,height:1000},reducedMotion:'reduce'});const narrow=await prepare(narrowContext);await ready(narrow,'search');await open(narrow,'search');await settled(narrow);
   const box=await narrow.locator('.sds-surface').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=1280);await narrow.screenshot({path:path.join(output,'1280-css-search-fit.png')});report.checks.push({unzoomed1280Fits:true});await narrowContext.close();
-  const mobileContext=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const mobile=await prepare(mobileContext);await mobile.goto(base+'/');await expect(mobile.getByRole('textbox',{name:'Search',exact:true})).toBeVisible({timeout:30000});assert.equal(await mobile.locator('[data-desktop-search]').count(),0);report.checks.push({mobile390:'legacy renderer; no desktop surface'});await mobileContext.close();
+  const mobileContext=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});const mobile=await prepare(mobileContext);await mobile.goto(base+'/');await expect(mobile.getByRole('button',{name:'Open search',exact:true}).first()).toBeVisible({timeout:30000});assert.equal(await mobile.locator('[data-desktop-search]').count(),0);report.checks.push({mobile390:'mobile sheet launcher; no desktop surface'});await mobileContext.close();
   const unexpected=report.errors.filter(message=>!/Minified React error #418|Hydration failed/.test(message));assert.deepEqual(unexpected,[]);
   console.log(JSON.stringify({checks:report.checks,screenshots:report.screenshots.length,hydrationWarnings:report.errors.length},null,2));
 }finally{

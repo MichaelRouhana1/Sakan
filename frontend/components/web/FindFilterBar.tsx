@@ -1,3 +1,5 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
+import { DESKTOP_SEARCH_HEADER as H } from "@/constants/desktopSearchMotion";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -188,6 +190,7 @@ export function FindFilterBar({
   sticky = true,
   matchAvailable = false,
 }: Props) {
+  const {size:designSize,isDesktop}=useDesktopDesign();
   const [menu, setMenu] = useState<MenuId | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
@@ -219,7 +222,7 @@ export function FindFilterBar({
   const filteredAreas = useMemo(() => areaGroups, [areaGroups]);
 
   return (
-    <View style={[styles.bar, !sticky && styles.barStatic]}>
+    <View style={[styles.bar,isDesktop && sticky && {top:designSize(H.height)}, !sticky && styles.barStatic]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { DesktopDesignProvider, useDesktopDesign } from '@/components/ui/DesktopDesign';
 import { useReducedMotion } from '@/lib/useReducedMotion';
@@ -7,6 +7,7 @@ import type { SearchSuggestion } from '@/features/search/types';
 import type { SearchAutocompleteProps } from './SearchAutocomplete';
 import { SearchDestinationContent } from './SearchDestinationContent';
 import { searchChipLabel as chipLabel } from './searchDisplay';
+import { DESKTOP_SEARCH_MOTION as M } from '@/constants/desktopSearchMotion';
 import { DESKTOP_SEARCH_CSS } from './desktopSearchStyles';
 
 const WORDS = ['City', 'University', 'Property'];
@@ -31,7 +32,7 @@ function usePlaceholderWord(enabled: boolean, reduced: boolean) {
   useEffect(() => {
     if (!enabled || reduced) return;
     const text = WORDS[frame.word];
-    const delay = frame.deleting ? (frame.count ? 28 : 400) : (frame.count === text.length ? 2000 : 55);
+    const delay = frame.deleting ? (frame.count ? M.deleteMs : M.wordPauseMs) : (frame.count === text.length ? M.holdMs : M.typeMs);
     const timer = setTimeout(() => setFrame(current => {
       if (current.deleting) return current.count ? { ...current, count: current.count - 1 } : { word: (current.word + 1) % WORDS.length, count: 0, deleting: false };
       return current.count === WORDS[current.word].length ? { ...current, deleting: true } : { ...current, count: current.count + 1 };
@@ -41,7 +42,7 @@ function usePlaceholderWord(enabled: boolean, reduced: boolean) {
   return reduced ? 'City, university or property' : WORDS[frame.word].slice(0, frame.count);
 }
 
-type Position = { left: number; top: number; width: number; panelHeight: number };
+type Position = { left: number; top: number; width: number; panelHeight: number; scaleX: number; scaleY: number };
 const keyFor = (item: SearchSuggestion) => `${item.type}:${item.id}`;
 
 const unique = (items: SearchSuggestion[]) => [...new Map(items.map(item => [keyFor(item), item])).values()];
@@ -52,7 +53,7 @@ export function DesktopSearchAutocomplete(props: SearchAutocompleteProps) {
     <DesktopDesignProvider enabled><DesktopSearchContent {...props} /></DesktopDesignProvider>;
 }
 
-function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onClear, autoFocus, suggestionsEnabled = true, variant = 'bar', recentSuggestions = [], onClearRecents, recentsError, recentPersistenceError, onRetryRecents, onOpenSearch }: SearchAutocompleteProps) {
+function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onClear, autoFocus, suggestionsEnabled = true, variant = 'bar', recentSuggestions = [], onClearRecents, recentsError, recentPersistenceError, onRetryRecents, onOpenSearch, desktopActive = true, desktopSelectionLabel }: SearchAutocompleteProps) {
   const { scale, size } = useDesktopDesign();
   const reduced = useReducedMotion();
   const hero = variant === 'pill';
@@ -62,6 +63,7 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
   const [position, setPosition] = useState<Position | null>(null);
   const launcher = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   const skipFocus = useRef(false);
   const reactId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
@@ -77,20 +79,26 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
   const areas = (data?.sections.topAreas ?? []).filter(item => !recentKeys.has(keyFor(item)));
   const campuses = (data?.sections.topCampuses ?? []).filter(item => !recentKeys.has(keyFor(item)));
   const items = useMemo(() => typed ? data?.results ?? [] : unique([...recents, ...areas, ...campuses]), [typed, data, recentSuggestions]);
-  const word = usePlaceholderWord(!open && !value, reduced);
+  const launcherValue=desktopSelectionLabel??value;
+  const word = usePlaceholderWord(desktopActive && !open && !(hero?value:launcherValue), reduced);
   const vars = { '--ds': scale } as CSSProperties;
 
   const measure = useCallback(() => {
-    const rect = launcher.current?.getBoundingClientRect();
-    if (!rect) return;
-    const width = Math.min(hero ? rect.width : size(640), window.innerWidth - size(32));
-    const brand = hero ? null : launcher.current?.parentElement?.parentElement?.querySelector<HTMLElement>('a[href="/"]')?.getBoundingClientRect();
-    const minLeft = Math.max(size(16), brand ? brand.right + size(16) : 0);
-    const left = Math.max(minLeft, Math.min(rect.left + (rect.width - width) / 2, window.innerWidth - width - size(16)));
-    const top = Math.max(size(8), rect.top - (reduced ? 0 : hero ? size(12) : size(11)));
-    const panelHeight = Math.max(size(120), Math.min(size(460), window.innerHeight - top - size(70 + 8 + 44 + 16)));
-    setPosition(previous => previous && previous.left === left && previous.top === top && previous.width === width && previous.panelHeight === panelHeight ? previous : { left, top, width, panelHeight });
-  }, [hero, size, reduced]);
+    const element=bar.current??launcher.current;
+    const rect=element?.getBoundingClientRect();
+    if(!element||!rect?.width)return;
+    const inner=bar.current?.querySelector('.sds-bar-inner')?.getBoundingClientRect();
+    const style=getComputedStyle(element);
+    const layoutWidth=parseFloat(style.width)||rect.width;
+    const layoutHeight=parseFloat(style.height)||rect.height;
+    const scaleX=rect.width/layoutWidth;
+    const scaleY=rect.height/layoutHeight;
+    const left=Math.max(size(8),inner?.left??rect.left+size(3));
+    const width=Math.max(0,Math.min(layoutWidth,(window.innerWidth-left-size(8))/scaleX));
+    const top=inner?inner.bottom+size(8):rect.bottom+size(5);
+    const panelHeight=Math.max(0,Math.min(size(460),(window.innerHeight-top)/scaleY-size(80)));
+    setPosition(previous=>previous&&Math.abs(previous.left-left)<.1&&Math.abs(previous.top-top)<.1&&Math.abs(previous.width-width)<.1&&Math.abs(previous.panelHeight-panelHeight)<.1&&Math.abs(previous.scaleX-scaleX)<.001&&Math.abs(previous.scaleY-scaleY)<.001?previous:{left,top,width,panelHeight,scaleX,scaleY});
+  },[size]);
 
   const close = useCallback((restore = false) => {
     setOpen(false); setActive(-1);
@@ -100,26 +108,34 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
       launcher.current?.querySelector<HTMLElement>('input,button')?.focus({ preventScroll: true });
     });
   }, [hero]);
-  const openSearch = useCallback(() => { if (skipFocus.current) { skipFocus.current = false; return; } measure(); setOpen(true); onOpenSearch?.(); }, [measure,onOpenSearch]);
+  const openSearch = useCallback(() => { if (!desktopActive || open) return; if (skipFocus.current) { skipFocus.current = false; return; } measure(); setOpen(true); window.dispatchEvent(new CustomEvent('studently:desktop-search-open',{detail:listId})); onOpenSearch?.(); }, [measure,onOpenSearch,desktopActive,open,listId]);
   const select = (item: SearchSuggestion) => { close(); onSelect(item); };
   const submit = () => { close(); onSubmitText(value.trim()); };
 
   useEffect(() => { if (autoFocus) openSearch(); }, []);
+  useEffect(() => { if (!desktopActive && open) close(); }, [desktopActive,open,close]);
+  useEffect(() => { const other=(event:Event)=>{if((event as CustomEvent).detail!==listId)close();};window.addEventListener('studently:desktop-search-open',other);return()=>window.removeEventListener('studently:desktop-search-open',other);},[listId,close]);
+  useLayoutEffect(() => {
+    if (!open) return;
+    measure(); let frame=0; const started=performance.now();
+    const tick=()=>{measure();if(performance.now()-started<Math.max(M.heroFocusMs,M.headerSlideMs))frame=requestAnimationFrame(tick);};
+    frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame);
+  },[open,measure]);
   useEffect(() => { setActive(-1); }, [value, data]);
   useEffect(() => {
     if (!open) return;
     const frame = requestAnimationFrame(() => { input.current?.focus({ preventScroll: true }); if (!hero) input.current?.select(); });
-    const scrollOwner = launcher.current?.closest('#studently-web-shell');
+    const scrollOwner = launcher.current?.closest('#studently-web-shell,#studently-home-scroll');
     const initialScroll = scrollOwner?.scrollTop ?? window.scrollY;
     const onOutside = (event: PointerEvent) => { if (!surface.current?.contains(event.target as Node) && !launcher.current?.contains(event.target as Node)) close(); };
     const onScroll = (event: Event) => {
       if (surface.current?.contains(event.target as Node)) return;
       const scroll = scrollOwner?.scrollTop ?? window.scrollY;
-      if (!hero && Math.abs(scroll - initialScroll) > 80) close(); else measure();
+      if (!hero && Math.abs(scroll - initialScroll) > M.scrollCloseDistance) close(); else measure();
     };
     document.addEventListener('pointerdown', onOutside, true);
     window.addEventListener('resize', measure); window.addEventListener('scroll', onScroll, true);
-    const observer = new ResizeObserver(measure); if (launcher.current) observer.observe(launcher.current);
+    const observer = new ResizeObserver(measure); if (launcher.current) observer.observe(launcher.current); if(bar.current)observer.observe(bar.current);
     return () => { cancelAnimationFrame(frame); observer.disconnect(); document.removeEventListener('pointerdown', onOutside, true); window.removeEventListener('resize', measure); window.removeEventListener('scroll', onScroll, true); };
   }, [open, close, measure, hero]);
   useEffect(() => { if (active >= 0) document.getElementById(`${listId}-${active}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, [active, listId]);
@@ -160,33 +176,31 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
     </section>;
   }
 
-  const action = (small = false) => <span className="sds-action"><Icon name="search" size={size(small ? 20 : 24)} animate={!reduced} /></span>;
   const clear = <button type="button" className="sds-action sds-clear" aria-label="Clear search" onMouseDown={event => event.preventDefault()} onClick={() => { onChangeText(''); onClear(); input.current?.focus(); }}><Icon name="close" size={size(23)} /></button>;
   const hints = <div className="sds-hints" aria-hidden="true"><span><kbd>↑</kbd><kbd>↓</kbd> Explore</span><span><kbd>↵</kbd> Select</span><span><kbd>esc</kbd> Close</span></div>;
-
+  const blur = (event: React.FocusEvent) => {
+    const next=event.relatedTarget as Node|null;
+    if(next&&(launcher.current?.contains(next)||surface.current?.contains(next)))return;
+    close();
+  };
+  const editor = <div ref={bar} className={hero ? `sds-hero${open ? ' sds-open-bar' : ''}` : 'sds-open-bar'} data-open={open}>
+    <span className="sds-ring" /><div className="sds-bar-inner">
+      <input ref={input} className="sds-input" aria-label="Search" role="combobox" aria-expanded={open} aria-autocomplete="list" aria-controls={open?listId:undefined} aria-activedescendant={open&&active>=0?`${listId}-${active}`:undefined}
+        aria-describedby={open?`${listId}-status`:undefined} autoComplete="off" spellCheck={false} dir="auto" maxLength={64} placeholder={open?'Search a city, area, university or property':undefined}
+        value={value} onFocus={openSearch} onClick={openSearch} onChange={event=>{onChangeText(event.target.value);if(!open)openSearch();}} onKeyDown={open?keyboard:undefined} onCompositionStart={()=>setComposing(true)} onCompositionEnd={()=>setComposing(false)} />
+      {!open&&!value&&<span className="sds-placeholder" aria-hidden="true">Search by <span className="sds-word" data-testid="search-placeholder-word">{word}<i className="sds-caret" /></span></span>}
+      {value?clear:<button type="button" className="sds-action" aria-label={open?'Search all homes':'Open search'} onMouseDown={event=>event.preventDefault()} onClick={open?submit:openSearch}><Icon name="search" size={size(24)} animate={!open&&!reduced}/></button>}
+    </div>
+  </div>;
   return <>
     <style>{DESKTOP_SEARCH_CSS}</style>
-    <div className="sds" style={{ ...vars, width: '100%', minWidth: 0 }} data-desktop-search="true" data-open={open} ref={launcher}>
-      <div style={open ? { visibility: 'hidden' } : undefined}>
-        {hero ? <div className="sds-hero"><span className="sds-ring" /><div className="sds-bar-inner">
-          <input aria-label="Search" role="combobox" aria-expanded={false} autoComplete="off" className="sds-input" value={value} onFocus={openSearch} onClick={openSearch} onChange={event => { onChangeText(event.target.value); openSearch(); }} />
-          {!value && <span className="sds-placeholder" aria-hidden="true">Search by <span className="sds-word" data-testid="search-placeholder-word">{word}<i className="sds-caret" /></span></span>}
-          {value ? clear : <button className="sds-action" aria-label="Open search" onClick={openSearch}><Icon name="search" size={size(24)} animate={!reduced} /></button>}
-        </div></div> : <button className="sds-launch" aria-label={value ? `Search: ${value}` : 'Open search'} aria-haspopup="listbox" aria-expanded={false} onClick={openSearch}>
-          <span className="sds-launch-label" data-empty={!value}>{value || <>Search by <span className="sds-word" data-testid="search-placeholder-word">{word}<i className="sds-caret" /></span></>}</span>{action(true)}
-        </button>}
-      </div>
+    <div className="sds" style={{...vars,width:'100%',maxWidth:hero?undefined:size(640),minWidth:0,height:size(70),marginInline:'auto'}} data-desktop-search="true" inert={!desktopActive||undefined} aria-hidden={!desktopActive||undefined} data-variant={variant} data-open={open} ref={launcher} onBlur={blur}>
+      {hero?editor:<div className="sds-editor-host">{open?editor:<button type="button" className="sds-launch" aria-label={launcherValue?`Search: ${launcherValue}`:'Open search'} aria-haspopup="listbox" aria-expanded={false} onClick={openSearch}>
+        <span className="sds-launch-label" data-empty={!launcherValue}>{launcherValue||<>Search by <span className="sds-word" data-testid="search-placeholder-word">{word}<i className="sds-caret" /></span></>}</span><span className="sds-action"><Icon name="search" size={size(20)} animate={!reduced}/></span>
+      </button>}</div>}
     </div>
-    {open && position && createPortal(<>
-      {hero && <div className="sds-veil" />}
-      <div className="sds sds-surface" data-variant={variant} style={{ ...vars, left: position.left, top: position.top, width: position.width, '--panel-height': `${position.panelHeight}px` } as CSSProperties} ref={surface}
-        onBlur={event => { if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget as Node)) close(); }}>
-        <div className="sds-open-bar"><span className="sds-ring" /><div className="sds-bar-inner">
-          <input ref={input} className="sds-input" aria-label="Search" role="combobox" aria-expanded={true} aria-autocomplete="list" aria-controls={listId} aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
-            aria-describedby={`${listId}-status`} autoComplete="off" spellCheck={false} dir="auto" maxLength={64} placeholder="Search a city, area, university or property"
-            value={value} onChange={event => onChangeText(event.target.value)} onKeyDown={keyboard} onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} />
-          {value ? clear : <button className="sds-action" aria-label="Search all homes" onMouseDown={event => event.preventDefault()} onClick={submit}><Icon name="search" size={size(24)} /></button>}
-        </div></div>
+    {open&&position&&createPortal(<>
+      <div className="sds sds-surface" data-variant={variant} style={{...vars,left:position.left,top:position.top,width:position.width,transform:`scale(${position.scaleX},${position.scaleY})`,transformOrigin:'top left','--panel-height':`${position.panelHeight}px`} as CSSProperties} ref={surface} onBlur={blur}>
         <div className="sds-panel" data-testid="desktop-search-panel">
           <div className="sds-scroll">
             <div className="sds-panel-top"><strong><Icon name="globe" size={size(15)} />{typed ? 'Suggested places' : 'Explore Lebanon'}</strong></div>
@@ -204,6 +218,6 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
         </div>
         <span className="sds-sr" id={`${listId}-status`} role="status" aria-live="polite">{query.isFetching ? 'Searching Lebanon' : typed ? `${items.length} suggestions available` : 'Popular locations and campuses. Use the arrow keys to explore.'}</span>
       </div>
-    </>, document.body)}
+    </>,document.body)}
   </>;
 }

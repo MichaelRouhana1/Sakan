@@ -1,4 +1,5 @@
-import { StyleSheet, View } from "react-native";
+import { DesktopDesignProvider } from "@/components/ui/DesktopDesign";
+import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
 import { WebFooter } from "@/components/web/WebFooter";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { WebTopNav } from "@/components/web/WebTopNav";
@@ -18,7 +19,12 @@ type Props = {
  * page scroller (same pattern as CampusShell). Map mode sets `lockScroll`
  * to freeze the shell and scroll only the list column.
  */
-export function WebShell({ children, showNavSearch = false, showFooter }: Props) {
+export function WebShell(props: Props) {
+  const {width}=useWindowDimensions();
+  return <DesktopDesignProvider enabled={Platform.OS==='web'&&width>=900}><WebShellContent {...props}/></DesktopDesignProvider>;
+}
+
+function WebShellContent({ children, showNavSearch = false, showFooter }: Props) {
   const { fullBleed, hideFooter, lockScroll } = useWebShellChrome();
   const shouldHideFooter = showFooter === false || hideFooter;
 

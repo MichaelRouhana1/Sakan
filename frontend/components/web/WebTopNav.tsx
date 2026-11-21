@@ -1,7 +1,9 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocalSearchParams, usePathname, useRouter } from "expo-router";
 import {
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -9,6 +11,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { DesktopSearchHeader, FloatingDesktopScaleControl } from "./DesktopSearchHeader";
+import { DESKTOP_SEARCH_HEADER as H } from "@/constants/desktopSearchMotion";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
@@ -36,10 +40,16 @@ import type { SearchSuggestion } from '@/features/search/types';
 
 type Props = {
   showSearch?: boolean;
+  homeSearch?: { value: string; onChangeText: (value: string) => void };
+  homeHeaderVisible?: boolean;
 };
 
-export function WebTopNav({ showSearch = false }: Props) {
+export function WebTopNav({ showSearch = false, homeSearch, homeHeaderVisible = true }: Props) {
   const mobile = useWindowDimensions().width < 900;
+  const desktop = Platform.OS === "web" && !mobile;
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+
   const router = useRouter();
   const pathname = usePathname();
   const params = useLocalSearchParams() as BrowseParams;
@@ -55,9 +65,16 @@ export function WebTopNav({ showSearch = false }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [searchVal, setSearchVal] = useState("");
+  const [selectedPlace,setSelectedPlace]=useState<{id:string;label:string}|null>(null);
+  const selectedAreas=parseCsvParam(params.areas);
+  const selectedCity=typeof params.city==='string'?params.city:'';
+  const selectedCampus=universities.data?.find(u=>u.id===params.campusId||parseCsvParam(params.universitySlugs).includes(u.slug));
+  const selectionLabel=homeSearch?'':selectedAreas[0]||(selectedCity?selectedCity.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '):'')||
+    (selectedCampus?.displayName??selectedCampus?.name)||
+    (params.placeId?(selectedPlace?.id===params.placeId?selectedPlace.label:'Selected property'):'');
 
   useEffect(() => {
-    if (!showSearch) return;
+    if (!showSearch || homeSearch) return;
     const q = typeof params.q === "string" ? params.q.trim() : "";
     const areas = parseCsvParam(params.areas);
     const slugs = parseCsvParam(params.universitySlugs);
@@ -104,7 +121,9 @@ export function WebTopNav({ showSearch = false }: Props) {
     else router.push(homeBrowseHref(next.filters) as never);
   }, [onBrowse,router]);
   const onSelectSearch = useCallback((suggestion: SearchSuggestion) => {
-    writeSearch(applySearchSelection(parseBrowseState(params),suggestion),suggestion.label.en);
+    const next=applySearchSelection(parseBrowseState(params),suggestion);
+    setSelectedPlace(suggestion.type==='place'&&next.filters.placeId?{id:next.filters.placeId,label:suggestion.label.en}:null);
+    writeSearch(next,suggestion.label.en);
   }, [params,writeSearch]);
   const onSubmitText = useCallback((query: string) => {
     writeSearch(applySearchText(parseBrowseState(params),query),query);
@@ -139,26 +158,27 @@ export function WebTopNav({ showSearch = false }: Props) {
   };
 
 
-  return (
-    <View testID="search-page-header" style={[styles.bar, mobile && mobileHeaderStyles.bar]}>
-      <View style={[styles.inner, showSearch && styles.innerSearch, mobile && mobileHeaderStyles.inner]}>
+  const content = (
+    <View testID="search-page-header" style={[styles.bar, mobile && mobileHeaderStyles.bar, desktop && { position: 'relative', height: designSize(H.height), minHeight: designSize(H.height) }]}>
+      <View style={[styles.inner, showSearch && styles.innerSearch, mobile && mobileHeaderStyles.inner, desktop && { height: designSize(H.innerHeight), minHeight: designSize(H.innerHeight), paddingVertical: 0 }]}>
         <Link href="/" asChild>
           <Pressable
             onPress={() => router.push("/")}
             accessibilityRole="link"
             accessibilityLabel="Studently home"
-            style={StyleSheet.flatten([styles.brandHit, mobile && mobileHeaderStyles.brand])}
+            style={StyleSheet.flatten([styles.brandHit, mobile && mobileHeaderStyles.brand, desktop && { flexShrink: 0 }])}
           >
-            <StudentlyLogo size={mobile ? 32 : 40} />
+            <StudentlyLogo size={mobile ? 32 : designSize(40)} />
             {(!mobile || !showSearch) && <Text style={styles.brand}>Studently</Text>}
           </Pressable>
         </Link>
 
         {showSearch ? (
-          <View style={[styles.searchWrap, mobile && mobileHeaderStyles.search]}>
+          <View style={[styles.searchWrap, mobile && mobileHeaderStyles.search, desktop && { minWidth: 0, maxWidth: "100%" }]}>
             <SearchAutocomplete
-              value={searchVal}
-              onChangeText={setSearchVal}
+              value={homeSearch?.value ?? searchVal}
+              onChangeText={homeSearch?.onChangeText ?? setSearchVal}
+              {...(desktop ? {desktopActive:homeHeaderVisible,desktopSelectionLabel:selectionLabel} : {})}
               placeholder="Search by city, area, university, or listing"
               onSelect={onSelectSearch}
               onSubmitText={onSubmitText}
@@ -168,7 +188,7 @@ export function WebTopNav({ showSearch = false }: Props) {
           </View>
         ) : null}
 
-        <View style={[styles.links, mobile && mobileHeaderStyles.links]}>
+        <View nativeID={desktop ? "studently-header-controls" : undefined} style={[styles.links, mobile && mobileHeaderStyles.links]}>
           {!mobile && <>
           <ProductSwitchControl variant="toCampus" />
           <DownloadAppButton />
@@ -216,7 +236,7 @@ export function WebTopNav({ showSearch = false }: Props) {
               <View style={styles.avatarFallback}>
                 <Ionicons
                   name="person-outline"
-                  size={18}
+                  size={designSize(18)}
                   color={Studently.color.ink}
                 />
               </View>
@@ -271,7 +291,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                   >
                     <Ionicons
                       name="person-outline"
-                      size={20}
+                      size={designSize(20)}
                       color="#334155"
                       style={styles.menuIcon}
                     />
@@ -294,7 +314,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                   >
                     <Ionicons
                       name="heart-outline"
-                      size={20}
+                      size={designSize(20)}
                       color="#334155"
                       style={styles.menuIcon}
                     />
@@ -312,7 +332,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                   >
                     <Ionicons
                       name="download-outline"
-                      size={20}
+                      size={designSize(20)}
                       color="#334155"
                       style={styles.menuIcon}
                     />
@@ -332,7 +352,7 @@ export function WebTopNav({ showSearch = false }: Props) {
                       >
                         <Ionicons
                           name="log-out-outline"
-                          size={20}
+                          size={designSize(20)}
                           color="#334155"
                           style={styles.menuIcon}
                         />
@@ -355,9 +375,10 @@ export function WebTopNav({ showSearch = false }: Props) {
       />
     </View>
   );
+  return desktop ? <><DesktopSearchHeader home={!!homeSearch} visible={homeHeaderVisible}>{content}</DesktopSearchHeader><FloatingDesktopScaleControl/></> : content;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
     top: 0,

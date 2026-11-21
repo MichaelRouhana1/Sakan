@@ -1,8 +1,9 @@
-import { desktopSize } from "@/constants/desktopDesign";
+import { DesktopDesignProvider, useDesktopDesign } from "@/components/ui/DesktopDesign";
+import { WebTopNav } from "@/components/web/WebTopNav";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Image,
   Linking,
@@ -39,7 +40,6 @@ import {
   STEPS,
   TESTIMONIALS,
   VALUE_PROPS,
-  areaTileImage,
   type HomeDiscoverTabId,
 } from "./homeData";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
@@ -49,6 +49,8 @@ import { useListings } from "@/features/listings/useListings";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { homeBrowseHref, type BrowseDestination } from "@/lib/browseSearchUrl";
 import { searchDestination } from '@/features/search/selection';
+import { useSearchSuggestions } from '@/features/search/useSearchSuggestions';
+import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { InsightsMarquee } from "./InsightsMarquee";
 import { homeRevealProps, useHomeScrollReveal } from "./useHomeScrollReveal";
 import type { Listing } from "@/types/listing";
@@ -84,14 +86,20 @@ function AreaCityCard({
   fillCell = false,
 }: {
   name: string;
-  image: string;
+  image: string | null;
   size: number;
   onPress: () => void;
   /** Web grid: stretch to 1fr cell instead of fixed px (avoids clip). */
   fillCell?: boolean;
 }) {
+  const { size: designSize } = useDesktopDesign();
+  const uri=resolveMediaUrl(image);
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[uri]);
+  const hasImage=!!uri&&!failed;
   return (
     <Pressable
+      testID={`home-area-card-${name}`}
       {...(IS_WEB ? ({ className: "sk-city-card" } as object) : {})}
       style={[
         styles.tile,
@@ -103,13 +111,16 @@ function AreaCityCard({
       accessibilityRole="link"
       accessibilityLabel={name}
     >
-      <Image
-        source={{ uri: image }}
+      {hasImage ? <Image
+        onError={()=>setFailed(true)}
+        source={{ uri: uri! }}
         style={styles.tileImage}
         resizeMode="cover"
         accessibilityLabel={name}
-      />
-      {IS_WEB ? (
+      /> : <View testID="home-area-image-fallback" style={[styles.tileImage,{backgroundColor:'#fff1f2',alignItems:'center',justifyContent:'center'}]}>
+        <Ionicons name="location-outline" size={Math.min(size*.25,designSize(56))} color="#c64a56"/>
+      </View>}
+      {hasImage && (IS_WEB ? (
         <View
           {...({ className: "sk-city-card__overlay" } as object)}
           style={styles.tileOverlayHost}
@@ -120,10 +131,10 @@ function AreaCityCard({
           locations={[0.366, 1]}
           style={styles.tileOverlayHost}
         />
-      )}
+      ))}
       <Text
         {...(IS_WEB ? ({ className: "sk-city-card__text" } as object) : {})}
-        style={styles.tileLabel}
+        style={[styles.tileLabel,!hasImage&&{color:'#892c3a',textShadowColor:'transparent'}]}
         numberOfLines={2}
       >
         {name}
@@ -216,6 +227,8 @@ function HomeNav({
   onRequestAuth: () => void;
 }) {
   const mobile = useWindowDimensions().width < 900;
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const displayName = user
@@ -261,7 +274,7 @@ function HomeNav({
           accessibilityRole="link"
           accessibilityLabel="Studently home"
         >
-          <StudentlyLogo size={mobile ? 32 : 40} tone={solid ? "color" : "white"} />
+          <StudentlyLogo size={mobile ? 32 : designSize(40)} tone={solid ? "color" : "white"} />
           <Text style={[styles.navBrandText, solid && styles.navBrandTextSolid]}>
             Studently
           </Text>
@@ -271,6 +284,7 @@ function HomeNav({
           {!mobile && <>
           <ProductSwitchControl
             variant="toCampus"
+            style={styles.homeHostCta}
             textStyle={[
               styles.navLink,
               solid && styles.navLinkSolid,
@@ -326,7 +340,7 @@ function HomeNav({
             >
               <Ionicons
                 name="person-outline"
-                size={18}
+                size={designSize(18)}
                 color={solid ? Studently.color.ink : "#fff"}
               />
             </Pressable>
@@ -369,7 +383,7 @@ function HomeNav({
                       }
                     }}
                   >
-                    <Ionicons name="person-outline" size={18} color="#334155" />
+                    <Ionicons name="person-outline" size={designSize(18)} color="#334155" />
                     <Text style={styles.homeMenuText}>Profile</Text>
                   </Pressable>
 
@@ -384,7 +398,7 @@ function HomeNav({
                       }
                     }}
                   >
-                    <Ionicons name="heart-outline" size={18} color="#334155" />
+                    <Ionicons name="heart-outline" size={designSize(18)} color="#334155" />
                     <Text style={styles.homeMenuText}>Shortlist</Text>
                   </Pressable>
 
@@ -392,7 +406,7 @@ function HomeNav({
                     style={styles.homeMenuItem}
                     onPress={() => setMenuOpen(false)}
                   >
-                    <Ionicons name="download-outline" size={18} color="#334155" />
+                    <Ionicons name="download-outline" size={designSize(18)} color="#334155" />
                     <Text style={styles.homeMenuText}>Download App</Text>
                   </Pressable>
 
@@ -403,7 +417,7 @@ function HomeNav({
                         style={styles.homeMenuItem}
                         onPress={handleLogoutClick}
                       >
-                        <Ionicons name="log-out-outline" size={18} color="#334155" />
+                        <Ionicons name="log-out-outline" size={designSize(18)} color="#334155" />
                         <Text style={styles.homeMenuText}>Logout</Text>
                       </Pressable>
                     </>
@@ -418,12 +432,15 @@ function HomeNav({
   );
 }
 
-function SearchPill() {
-  const [query, setQuery] = useState("");
+function SearchPill({value,onChangeText,desktopActive}: {value?:string;onChangeText?:(value:string)=>void;desktopActive?:boolean} = {}) {
+  const [localQuery, setLocalQuery] = useState("");
+  const query=value??localQuery;
+  const setQuery=onChangeText??setLocalQuery;
 
   return (
     <SearchAutocomplete
       variant="pill"
+      {...(desktopActive===undefined ? {} : {desktopActive})}
       value={query}
       onChangeText={setQuery}
       placeholder={HERO.searchPlaceholder}
@@ -450,14 +467,53 @@ function ListingCard({
 
 export function StudentlyHomePage() {
   const { width } = useWindowDimensions();
+  return (
+    <DesktopDesignProvider enabled={width >= 900}>
+      <HomePageContent />
+    </DesktopDesignProvider>
+  );
+}
+
+
+function HomePageContent() {
+  const {size:designSize,isDesktop,scale}=useDesktopDesign();
+  const { width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
+  const heroSearchRef = useRef<View>(null);
+  const [desktopQuery,setDesktopQuery]=useState("");
   useHomeScrollReveal(scrollRef);
   const [navSolid, setNavSolid] = useState(false);
+  useLayoutEffect(() => {
+    if (!IS_WEB || !isDesktop) return;
+    const scroller=scrollRef.current?.getScrollableNode() as HTMLElement|undefined;
+    const hero=heroSearchRef.current as unknown as HTMLElement|null;
+    if(!scroller||!hero)return;
+    let frame=0;let mounted=true;
+    const measure=()=>{frame=0;if(mounted)setNavSolid(hero.getBoundingClientRect().bottom<=scroller.getBoundingClientRect().top);};
+    const schedule=()=>{if(!frame)frame=requestAnimationFrame(measure);};
+    const intersection=new IntersectionObserver(schedule,{root:scroller,threshold:0});intersection.observe(hero);
+    const resize=new ResizeObserver(schedule);resize.observe(scroller);resize.observe(hero);
+    scroller.addEventListener('scroll',schedule,{passive:true});window.addEventListener('resize',schedule);
+    void document.fonts.ready.then(schedule);measure();
+    return()=>{mounted=false;cancelAnimationFrame(frame);intersection.disconnect();resize.disconnect();scroller.removeEventListener('scroll',schedule);window.removeEventListener('resize',schedule);};
+  },[isDesktop,scale]);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
   const [railPill, setRailPill] = useState<string>("All areas");
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
   const homePopular = useHomePopular();
+  // This is the same cached catalogue used by search: only DB-curated images qualify.
+  const areaDefaults=useSearchSuggestions('');
+  const curatedAreaImages=useMemo(()=>{
+    const images=new Map<string,string>();
+    for(const item of areaDefaults.data?.sections.topAreas??[]){
+      if(item.thumbnailSource!=='curated'||!item.thumbnailUrl)continue;
+      const names=[item.label.en,...(item.type==='area'?[item.canonicalArea]:item.canonicalAreas)];
+      for(const name of names)images.set(name.trim().toLowerCase(),item.thumbnailUrl);
+    }
+    return images;
+  },[areaDefaults.data]);
+
   const universities = useUniversities();
   const homeListings = useListings({
     sort: "newest",
@@ -478,7 +534,7 @@ export function StudentlyHomePage() {
       return live.map((a) => ({
         key: a.name,
         label: a.name,
-        image: areaTileImage(a.name),
+        image: curatedAreaImages.get(a.name.trim().toLowerCase())??null,
         kind: "area" as const,
         areas: [a.name],
       }));
@@ -487,11 +543,11 @@ export function StudentlyHomePage() {
     return (AREA_REGIONS[0]?.areas ?? []).slice(0, 10).map((a) => ({
       key: a.name,
       label: a.name,
-      image: a.image,
+      image: curatedAreaImages.get(a.name.trim().toLowerCase())??null,
       kind: "area" as const,
       areas: [a.name],
     }));
-  }, [homePopular.data?.areas]);
+  }, [homePopular.data?.areas,curatedAreaImages]);
 
   const uniTiles = useMemo(() => {
     const live = homePopular.data?.universities ?? [];
@@ -593,18 +649,20 @@ export function StudentlyHomePage() {
 
   return (
     <View style={styles.root}>
-      <HomeNav solid={navSolid} onRequestAuth={openAuth} />
+      {isDesktop ? <WebTopNav showSearch homeSearch={{value:desktopQuery,onChangeText:setDesktopQuery}} homeHeaderVisible={navSolid}/> : <HomeNav solid={navSolid} onRequestAuth={openAuth} />}
 
       <ScrollView
+        nativeID={isDesktop ? "studently-home-scroll" : undefined}
         ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={(e) => setNavSolid(e.nativeEvent.contentOffset.y > 280)}
+        onScroll={(e) => {if(!isDesktop)setNavSolid(e.nativeEvent.contentOffset.y > 280);}}
         scrollEventThrottle={16}
       >
         {/* ─── 1. HERO ─── */}
         <View style={[styles.hero, isNarrow && styles.heroNarrow]}>
+          {isDesktop && <HomeNav solid={false} onRequestAuth={openAuth}/>}
           <View style={styles.heroMedia}>
             <Image
               source={{ uri: HERO.heroImage }}
@@ -637,8 +695,8 @@ export function StudentlyHomePage() {
               ))}
             </View>
 
-            <View style={[styles.heroSearchWrap, { maxWidth: isNarrow ? 720 : desktopSize(720) }]}>
-              <SearchPill />
+            <View ref={heroSearchRef} testID={isDesktop ? "home-hero-search" : undefined} style={[styles.heroSearchWrap, { maxWidth: isNarrow ? 720 : designSize(720) }]}>
+              <SearchPill {...(isDesktop ? {value:desktopQuery,onChangeText:setDesktopQuery,desktopActive:!navSolid} : {})}/>
             </View>
 
           </View>
@@ -2002,6 +2060,8 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
 });
+
+const baseStyles = styles;
 
 const mobileHeaderStyles = StyleSheet.create({
   home: { height: 64, minHeight: 64, maxWidth: '100%' },

@@ -9,6 +9,10 @@ import { DesktopSearchAutocomplete } from './DesktopSearchAutocomplete';
 import { MobileSearchAutocomplete } from './MobileSearchAutocomplete';
 
 export type SearchAutocompleteProps = {
+  /** Desktop host visibility; ignored by the mobile/native renderer. */
+  desktopActive?: boolean;
+  /** Closed desktop launcher label; independent of the editable draft. */
+  desktopSelectionLabel?: string;
   recentSuggestions?: SearchSuggestion[];
   onOpenSearch?: () => void;
   onClearRecents?: () => void;

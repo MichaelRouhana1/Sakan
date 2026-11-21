@@ -1,3 +1,5 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
+import { DESKTOP_SEARCH_HEADER as H } from "@/constants/desktopSearchMotion";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -203,10 +205,11 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
  * + trust accordion flush underneath.
  */
 export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
+  const {size:designSize,isDesktop}=useDesktopDesign();
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <View style={styles.sticky}>
+    <View style={[styles.sticky,isDesktop && {top:WEB_SIDEBAR_STICKY_TOP+designSize(H.height)-70}]}>
       <View style={styles.cardShadow}>
         <View style={styles.card}>
           {/* Edge-to-edge map header */}
