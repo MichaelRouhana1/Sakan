@@ -20,7 +20,6 @@ import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { FindMyPlaceFab } from "@/components/web/FindMyPlaceFab";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
-import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
 import { Studently } from "@/constants/theme";
@@ -53,7 +52,7 @@ import { useSearchSuggestions } from '@/features/search/useSearchSuggestions';
 import { resolveMediaUrl } from '@/lib/mediaUrl';
 import { InsightsMarquee } from "./InsightsMarquee";
 import { homeRevealProps, useHomeScrollReveal } from "./useHomeScrollReveal";
-import type { Listing } from "@/types/listing";
+import { HomePropertyRail } from "./HomePropertyRail";
 
 const IS_WEB = Platform.OS === "web";
 const PAD_X = 80;
@@ -73,10 +72,7 @@ function fitCityTileSize(
 
 /** Area/uni tiles stay card-sized. Filling the row is only for a full set. */
 const CITY_TILE_MAX = 300;
-const LISTING_CARD_GAP = 12;
-const LISTING_CARD_IDEAL = 240;
-/** Floor so 5–6 desktop cards still fit; narrower viewports scroll instead. */
-const LISTING_CARD_MIN = 168;
+const HOME_LISTING_LIMIT = 10;
 
 function AreaCityCard({
   name,
@@ -451,20 +447,6 @@ function SearchPill({value,onChangeText,desktopActive}: {value?:string;onChangeT
   );
 }
 
-function ListingCard({
-  item,
-  width = LISTING_CARD_IDEAL,
-}: {
-  item: Listing;
-  width?: number;
-}) {
-  return (
-    <View {...homeRevealProps("card", 60, "listings")} testID={`home-listing-${item.id}`} style={{ width, flexShrink: 0 }}>
-      <ListingResultCard listing={item} badgeLimit={3} />
-    </View>
-  );
-}
-
 export function StudentlyHomePage() {
   const { width } = useWindowDimensions();
   return (
@@ -517,7 +499,7 @@ function HomePageContent() {
   const universities = useUniversities();
   const homeListings = useListings({
     sort: "newest",
-    pageSize: 6,
+    pageSize: HOME_LISTING_LIMIT,
     areas: railPill === "All areas" ? undefined : [railPill],
   });
 
@@ -630,22 +612,8 @@ function HomePageContent() {
         seen.add(listing.id);
         return true;
       })
-      .slice(0, 6);
+      .slice(0, HOME_LISTING_LIMIT);
   }, [homeListings.data]);
-
-  /** Keep short rows card-sized; fit a full row when space allows. */
-  const listingCount = railListings.length;
-  const listingFitAll =
-    listingCount > 0 &&
-    listingCount * LISTING_CARD_MIN +
-      (listingCount - 1) * LISTING_CARD_GAP <=
-      innerW;
-  const listingCardW = listingFitAll
-    ? Math.min(LISTING_CARD_IDEAL, fitCityTileSize(innerW, listingCount, LISTING_CARD_GAP))
-    : Math.min(
-        LISTING_CARD_IDEAL,
-        Math.max(LISTING_CARD_MIN, Math.floor(innerW * 0.72)),
-      );
 
   return (
     <View style={styles.root}>
@@ -828,83 +796,46 @@ function HomePageContent() {
         </View>
 
         {/* ─── 4. LISTING RAIL ─── */}
-        <View style={[styles.section, { paddingHorizontal: padX }]}>
+        <View style={[styles.section, { maxWidth: "100%", paddingHorizontal: 48 }]}>
           <SectionHeader
             title="Places across Lebanon"
             subtitle="Studios, private rooms, shared beds, and apartments — priced in USD / month."
           />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pillRow}
-          >
-            {railPills.map((p) => {
-              const active = p === railPill;
-              return (
-                <Pressable
-                  key={p}
-                  {...homeRevealProps("soft", 35, "listing-pills")}
-                  onPress={() => setRailPill(p)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  style={[styles.railPill, active && styles.railPillActive]}
-                >
-                  <Text
-                    style={[
-                      styles.railPillText,
-                      active && styles.railPillTextActive,
-                    ]}
-                  >
-                    {p}
-                  </Text>
+          <HomePropertyRail
+            listings={railListings}
+            area={railPill}
+            filters={
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillRow}>
+                {railPills.map((p) => {
+                  const active = p === railPill;
+                  return (
+                    <Pressable
+                      key={p}
+                      {...homeRevealProps("soft", 35, "listing-pills")}
+                      onPress={() => setRailPill(p)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={[styles.railPill, active && styles.railPillActive]}
+                    >
+                      <Text style={[styles.railPillText, active && styles.railPillTextActive]}>{p}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            }
+            status={homeListings.isLoading ? (
+              <Text style={styles.sectionSub} accessibilityLiveRegion="polite">Loading places…</Text>
+            ) : homeListings.isError ? (
+              <View style={{ gap: designSize(8), alignItems: "flex-start" }}>
+                <Text style={styles.sectionSub} accessibilityRole="alert">Places could not be loaded.</Text>
+                <Pressable accessibilityRole="button" onPress={() => { void homeListings.refetch(); }} style={styles.railPill}>
+                  <Text style={styles.railPillText}>Try again</Text>
                 </Pressable>
-              );
-            })}
-          </ScrollView>
-          {homeListings.isLoading ? (
-            <Text style={styles.sectionSub} accessibilityLiveRegion="polite">Loading places…</Text>
-          ) : homeListings.isError ? (
-            <View style={{ gap: 8, alignItems: "flex-start" }}>
-              <Text style={styles.sectionSub} accessibilityRole="alert">Places could not be loaded.</Text>
-              <Pressable accessibilityRole="button" onPress={() => { void homeListings.refetch(); }} style={styles.railPill}>
-                <Text style={styles.railPillText}>Try again</Text>
-              </Pressable>
-            </View>
-          ) : railListings.length === 0 ? (
-            <Text style={styles.sectionSub}>No live listings in this area yet.</Text>
-          ) : listingFitAll ? (
-            <View
-              style={[
-                styles.cardRailFit,
-                { gap: LISTING_CARD_GAP, width: "100%" },
-              ]}
-            >
-              {railListings.map((item) => (
-                <ListingCard
-                  key={item.id}
-                  item={item}
-                  width={listingCardW}
-                />
-              ))}
-            </View>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={[
-                styles.cardRail,
-                { gap: LISTING_CARD_GAP, paddingRight: LISTING_CARD_GAP },
-              ]}
-            >
-              {railListings.map((item) => (
-                <ListingCard
-                  key={item.id}
-                  item={item}
-                  width={listingCardW}
-                />
-              ))}
-            </ScrollView>
-          )}
+              </View>
+            ) : railListings.length === 0 ? (
+              <Text style={styles.sectionSub}>No live listings in this area yet.</Text>
+            ) : undefined}
+          />
         </View>
 
         {/* ─── 5. SOCIAL PROOF (mint band — Amber TrustPilotBanner slot) ─── */}
@@ -1607,15 +1538,6 @@ const styles = StyleSheet.create({
   },
   railPillTextActive: { color: "#fff" },
 
-  /** Non-scroll row: cards sized to fill section content width (balanced L/R). */
-  cardRailFit: {
-    flexDirection: "row",
-    flexWrap: "nowrap",
-    paddingVertical: 4,
-    overflow: "hidden",
-  },
-  /** Scroll fallback for narrow viewports — end padding keeps last card clear. */
-  cardRail: { flexDirection: "row", paddingVertical: 4 },
   card: {
     backgroundColor: "#fff",
     borderWidth: 1,

@@ -32,6 +32,8 @@ type Props = {
   minHeight?: number;
   /** Stretch to the parent column (list cards whose body can grow). */
   fill?: boolean;
+  /** Home uses the same photo track with controls revealed by its card stylesheet. */
+  presentation?: "home";
 };
 
 function stopCardNav(e?: GestureResponderEvent) {
@@ -46,6 +48,7 @@ export function ListingCardCarousel({
   onPressCard,
   minHeight = 0,
   fill = false,
+  presentation,
 }: Props) {
   const photos = resolveMediaUrls(urls).slice(0, MAX_PHOTOS);
   const [index, setIndex] = useState(0);
@@ -54,6 +57,7 @@ export function ListingCardCarousel({
   const [hovered, setHovered] = useState(false);
   const count = photos.length;
   const isWeb = Platform.OS === "web";
+  const home = isWeb && presentation === "home";
   const coarsePointer = useCoarsePointer();
   const scrollRef = useRef<ScrollView>(null);
   const lockedRef = useRef(false);
@@ -123,9 +127,9 @@ export function ListingCardCarousel({
     if (dx > 8 && dx > dy) setParentLocked(true);
   };
 
-  const arrowsVisible = isWeb && count > 1 && (alwaysShowArrows || hovered);
+  const arrowsVisible = isWeb && count > 1 && (home || alwaysShowArrows || hovered);
 
-  const webHoverHandlers = isWeb
+  const webHoverHandlers = isWeb && !home
     ? {
         onMouseEnter: () => setHovered(true),
         onMouseLeave: () => setHovered(false),
@@ -137,9 +141,10 @@ export function ListingCardCarousel({
   return (
     <View
       collapsable={false}
+      {...(home ? { dataSet: { homeCarousel: "" } } : {})}
       style={[
         styles.root,
-        isWeb && coarsePointer ? ({ touchAction: "pan-x" } as ViewStyle) : null,
+        isWeb && coarsePointer && !home ? ({ touchAction: "pan-x" } as ViewStyle) : null,
         fill
           ? styles.fill
           : cardHeight > 0
@@ -166,20 +171,23 @@ export function ListingCardCarousel({
     >
       {isWeb && count > 0 ? (
         <View
-          style={styles.viewport}
+          style={[styles.viewport, home && count > 1 ? ({ touchAction: "pan-y" } as ViewStyle) : null]}
           onTouchStart={onTouchStart}
           onTouchEnd={(e) => {
             if (count < 2) return;
             const t =
               e.nativeEvent.changedTouches?.[0] ?? e.nativeEvent;
             const dx = t.pageX - startX.current;
+            if (home && Math.abs(dx) <= Math.abs(t.pageY - startY.current)) return;
             if (dx > 40) go(-1);
             else if (dx < -40) go(1);
           }}
         >
           <View
+            {...(home ? { dataSet: { carouselTrack: "" } } : {})}
             style={[
               styles.webTrack,
+              !home && styles.webTrackMotion,
               count > 1
                 ? {
                     width: `${count * 100}%`,
@@ -194,6 +202,7 @@ export function ListingCardCarousel({
               <Pressable
                 key={`${url}-${i}`}
                 onPress={onPressCard}
+                {...(home ? { tabIndex: -1 as const } : {})}
                 style={[
                   styles.webSlide,
                   { width: count > 1 ? `${100 / count}%` : "100%" },
@@ -284,19 +293,26 @@ export function ListingCardCarousel({
             contentFit="cover"
           />
         </Pressable>
+      ) : home && onPressCard ? (
+        <Pressable tabIndex={-1} style={[StyleSheet.absoluteFill, styles.fallback]} onPress={onPressCard} />
       ) : (
         <View
           style={[StyleSheet.absoluteFill, styles.fallback, { pointerEvents: "none" }]}
         />
       )}
 
-      <View style={[styles.overlay, { pointerEvents: "box-none" }]}>
+      <View
+        {...(home ? { dataSet: { carouselOverlay: "" } } : {})}
+        style={[styles.overlay, { pointerEvents: "box-none" }]}
+      >
         {arrowsVisible ? (
           <>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Previous photo"
-              hitSlop={8}
+              {...(home
+                ? { disabled: index === 0, dataSet: { carouselArrow: "previous" } }
+                : { hitSlop: 8 })}
               onPress={(e) => {
                 stopCardNav(e);
                 go(-1);
@@ -305,8 +321,8 @@ export function ListingCardCarousel({
               style={({ hovered: arrowHover, pressed }) => [
                 styles.arrow,
                 styles.arrowLeft,
-                styles.arrowMotion,
-                {
+                !home && styles.arrowMotion,
+                !home && {
                   opacity: 1,
                   transform: [{ scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 }],
                 },
@@ -318,7 +334,9 @@ export function ListingCardCarousel({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Next photo"
-              hitSlop={8}
+              {...(home
+                ? { disabled: index === count - 1, dataSet: { carouselArrow: "next" } }
+                : { hitSlop: 8 })}
               onPress={(e) => {
                 stopCardNav(e);
                 go(1);
@@ -327,8 +345,8 @@ export function ListingCardCarousel({
               style={({ hovered: arrowHover, pressed }) => [
                 styles.arrow,
                 styles.arrowRight,
-                styles.arrowMotion,
-                {
+                !home && styles.arrowMotion,
+                !home && {
                   opacity: 1,
                   transform: [{ scale: pressed ? 0.95 : arrowHover ? 1.05 : 1 }],
                 },
@@ -340,15 +358,20 @@ export function ListingCardCarousel({
         ) : null}
 
         {count > 1 ? (
-          <View style={[styles.dots, { pointerEvents: "none" }]}>
+          <View
+            {...(home ? { dataSet: { carouselDots: "" } } : {})}
+            style={[styles.dots, { pointerEvents: "none" }]}
+          >
             {photos.map((_, i) => {
               const active = i === index;
               return (
                 <View
                   key={i}
+                  {...(home && active ? { dataSet: { carouselDotActive: "" } } : {})}
                   style={[
                     styles.dot,
-                    isWeb ? styles.dotMotion : null,
+                    (!home || !active) && styles.dotWhite,
+                    isWeb && !home ? styles.dotMotion : null,
                     active ? styles.dotActive : styles.dotIdle,
                   ]}
                 />
@@ -396,6 +419,8 @@ const styles = StyleSheet.create({
   webTrack: {
     height: "100%",
     flexDirection: "row",
+  },
+  webTrackMotion: {
     ...(Platform.OS === "web"
       ? ({
           transitionProperty: "transform",
@@ -469,8 +494,10 @@ const styles = StyleSheet.create({
   dot: {
     height: 6,
     borderRadius: 999,
-    backgroundColor: "#FFFFFF",
     ...studentlyShadow({ color: "#000000", y: 1, blur: 2, opacity: 0.35, elevation: 2 }),
+  },
+  dotWhite: {
+    backgroundColor: "#FFFFFF",
   },
   dotMotion: webTransition("width"),
   dotIdle: {

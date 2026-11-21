@@ -1,0 +1,170 @@
+{
+  "375": {
+    "rest": {
+      "card": {
+        "rect": [
+          16,
+          353,
+          240,
+          294
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "0px",
+        "font": "\"Times New Roman\"",
+        "fontSize": "16px",
+        "weight": "400",
+        "display": "flex",
+        "visibility": "visible",
+        "text": "★4.8(12)Sunny one-bedroom apartment near Sassine SquareAchrafiehFrom$650/month Solar PowerUPS Wi-Fi24/7 Water"
+      },
+      "media": {
+        "rect": [
+          17,
+          354,
+          238,
+          149
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "0px",
+        "font": "\"Times New Roman\"",
+        "fontSize": "16px",
+        "weight": "400",
+        "display": "flex",
+        "visibility": "visible",
+        "text": "★4.8(12)"
+      },
+      "image": {
+        "rect": [
+          17,
+          354,
+          238,
+          149
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "0px",
+        "font": "\"Times New Roman\"",
+        "fontSize": "16px",
+        "weight": "400",
+        "display": "block",
+        "visibility": "visible",
+        "text": ""
+      },
+      "title": null,
+      "heart": {
+        "rect": [
+          204,
+          367,
+          38,
+          38
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "20px",
+        "font": "Arial",
+        "fontSize": "13.3333px",
+        "weight": "400",
+        "display": "flex",
+        "visibility": "visible",
+        "text": ""
+      },
+      "arrows": [],
+      "dots": null
+    },
+    "errors": []
+  },
+  "430": {
+    "rest": {
+      "card": {
+        "rect": [
+          16,
+          353,
+          240,
+          294
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "0px",
+        "font": "\"Times New Roman\"",
+        "fontSize": "16px",
+        "weight": "400",
+        "display": "flex",
+        "visibility": "visible",
+        "text": "★4.8(12)Sunny one-bedroom apartment near Sassine SquareAchrafiehFrom$650/month Solar PowerUPS Wi-Fi24/7 Water"
+      },
+      "media": {
+        "rect": [
+          17,
+          354,
+          238,
+          149
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "0px",
+        "font": "\"Times New Roman\"",
+        "fontSize": "16px",
+        "weight": "400",
+        "display": "flex",
+        "visibility": "visible",
+        "text": "★4.8(12)"
+      },
+      "image": {
+        "rect": [
+          17,
+          354,
+          238,
+          149
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "0px",
+        "font": "\"Times New Roman\"",
+        "fontSize": "16px",
+        "weight": "400",
+        "display": "block",
+        "visibility": "visible",
+        "text": ""
+      },
+      "title": null,
+      "heart": {
+        "rect": [
+          204,
+          367,
+          38,
+          38
+        ],
+        "opacity": "1",
+        "transform": "none",
+        "transition": "all",
+        "shadow": "none",
+        "radius": "20px",
+        "font": "Arial",
+        "fontSize": "13.3333px",
+        "weight": "400",
+        "display": "flex",
+        "visibility": "visible",
+        "text": ""
+      },
+      "arrows": [],
+      "dots": null
+    },
+    "errors": []
+  }
+}
