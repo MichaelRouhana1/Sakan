@@ -18,7 +18,8 @@ export const AREA_COORDINATES: Record<LebanonArea, LatLng> = {
   Antelias: { lng: 35.598, lat: 33.917 },
   Fanar: { lng: 35.58, lat: 33.879 },
   Dekwaneh: { lng: 35.544, lat: 33.876 },
-  Jounieh: { lng: 35.648, lat: 33.981 },
+  // Coastal town centre (Jounieh Municipality / serail); the old point sat 1.5 km inland near Harissa.
+  Jounieh: { lng: 35.634, lat: 33.985 },
   Kaslik: { lng: 35.618, lat: 33.982 },
   "Zouk Mosbeh": { lng: 35.614, lat: 33.951 },
   Byblos: { lng: 35.648, lat: 34.123 },

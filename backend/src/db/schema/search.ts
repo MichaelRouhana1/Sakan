@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { bigint, boolean, check, doublePrecision, foreignKey, index, pgTable, primaryKey, text, timestamp, unique, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { geographyMultiLine } from '../types/geography.js';
+import { bigint, boolean, check, doublePrecision, foreignKey, index, integer, pgTable, primaryKey, text, timestamp, unique, uuid, varchar, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { universities } from './universities.js';
 import { places } from './places.js';
 import { users } from './users.js';
@@ -11,7 +12,7 @@ export const searchCatalogState = pgTable('search_catalog_state', {
 
 export const searchLocations = pgTable('search_locations', {
   id: text('id').primaryKey(),
-  kind: varchar('kind', { length: 8 }).$type<'city' | 'area'>().notNull(),
+  kind: varchar('kind', { length: 8 }).$type<'city' | 'area' | 'street' | 'hood'>().notNull(),
   slug: varchar('slug', { length: 100 }).notNull(),
   nameEn: text('name_en').notNull(),
   nameAr: text('name_ar').notNull(),
@@ -24,14 +25,27 @@ export const searchLocations = pgTable('search_locations', {
   lat: doublePrecision('lat'),
   lng: doublePrecision('lng'),
   active: boolean('active').notNull().default(true),
+  source: varchar('source', { length: 8 }).$type<'manual' | 'osm'>().notNull().default('manual'),
+  radiusM: integer('radius_m').notNull().default(800),
+  parentAreaId: text('parent_area_id'),
+  parentAreaKind: varchar('parent_area_kind', { length: 8 }).generatedAlwaysAs(sql`CASE WHEN parent_area_id IS NOT NULL THEN 'area' END`),
+  geom: geographyMultiLine('geom'),
+  osmIds: text('osm_ids').array(),
+  multiArea: boolean('multi_area').notNull().default(false),
 }, t => [
   unique('search_locations_kind_slug_uq').on(t.kind, t.slug),
   unique('search_locations_id_kind_uq').on(t.id, t.kind),
+  unique('search_locations_id_kind_city_uq').on(t.id, t.kind, t.parentCityId),
   foreignKey({ name: 'search_locations_parent_city_fk', columns: [t.parentCityId, t.parentCityKind], foreignColumns: [t.id, t.kind] }),
-  check('search_locations_shape', sql`(${t.kind} = 'city' AND ${t.parentCityId} IS NULL AND ${t.canonicalArea} IS NULL) OR (${t.kind} = 'area' AND ${t.parentCityId} IS NOT NULL AND ${t.canonicalArea} IS NOT NULL)`),
+  foreignKey({ name: 'search_locations_parent_area_fk', columns: [t.parentAreaId, t.parentAreaKind, t.parentCityId], foreignColumns: [t.id, t.kind, t.parentCityId] }),
+  check('search_locations_shape', sql`(${t.kind} = 'city' AND ${t.parentCityId} IS NULL AND ${t.canonicalArea} IS NULL AND ${t.parentAreaId} IS NULL AND ${t.geom} IS NULL) OR (${t.kind} = 'area' AND ${t.parentCityId} IS NOT NULL AND ${t.canonicalArea} IS NOT NULL AND ${t.parentAreaId} IS NULL AND ${t.geom} IS NULL) OR (${t.kind} = 'street' AND ${t.parentCityId} IS NOT NULL AND ${t.parentAreaId} IS NOT NULL AND ${t.canonicalArea} IS NULL AND ${t.geom} IS NOT NULL AND ${t.lat} IS NOT NULL) OR (${t.kind} = 'hood' AND ${t.parentCityId} IS NOT NULL AND ${t.parentAreaId} IS NOT NULL AND ${t.canonicalArea} IS NULL AND ${t.geom} IS NULL AND ${t.lat} IS NOT NULL)`),
+  check('search_locations_source', sql`${t.source} IN ('manual','osm')`),
+  check('search_locations_radius', sql`${t.radiusM} BETWEEN 100 AND 5000`),
   check('search_locations_names', sql`length(btrim(${t.nameEn})) > 0 AND length(btrim(${t.nameAr})) > 0`),
   check('search_locations_coordinates', sql`(${t.lat} IS NULL AND ${t.lng} IS NULL) OR (${t.lat} IS NOT NULL AND ${t.lng} IS NOT NULL AND ${t.lat} BETWEEN -90 AND 90 AND ${t.lng} BETWEEN -180 AND 180)`),
   index('search_locations_parent_idx').on(t.parentCityId),
+  index('search_locations_parent_area_idx').on(t.parentAreaId),
+  index('search_locations_geom_idx').using('gist', t.geom),
 ]);
 
 export const searchAliases = pgTable('search_aliases', {
@@ -43,11 +57,11 @@ export const searchAliases = pgTable('search_aliases', {
   alias: text('alias').notNull(),
   normalized: text('normalized').notNull(),
   language: varchar('language', { length: 16 }).notNull().default('und'),
-  source: varchar('source', { length: 16 }).$type<'canonical' | 'institution' | 'seed' | 'curated'>().notNull().default('curated'),
+  source: varchar('source', { length: 16 }).$type<'canonical' | 'institution' | 'seed' | 'curated' | 'osm'>().notNull().default('curated'),
 }, t => [
   check('search_aliases_one_target', sql`num_nonnulls(${t.locationId}, ${t.campusId}, ${t.placeId}) = 1`),
   check('search_aliases_nonempty', sql`length(${t.normalized}) > 0`),
-  check('search_aliases_source', sql`${t.source} IN ('canonical','institution','seed','curated')`),
+  check('search_aliases_source', sql`${t.source} IN ('canonical','institution','seed','curated','osm')`),
   unique('search_aliases_target_alias_source_uq').on(t.targetKey, t.alias, t.source),
   index('search_aliases_normalized_idx').on(t.normalized.asc().op('text_pattern_ops')),
   index('search_aliases_trgm_idx').using('gin', t.normalized.op('gin_trgm_ops')),
@@ -58,12 +72,12 @@ export const searchAliases = pgTable('search_aliases', {
 
 export const userSearchRecents = pgTable('user_search_recents', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  entityType: varchar('entity_type', { length: 8 }).$type<'city' | 'area' | 'campus' | 'place'>().notNull(),
+  entityType: varchar('entity_type', { length: 8 }).$type<'city' | 'area' | 'campus' | 'place' | 'street' | 'hood'>().notNull(),
   entityId: text('entity_id').notNull(),
   lastSelectedAt: timestamp('last_selected_at', { withTimezone: true }).notNull().defaultNow(),
 }, t => [
   primaryKey({ columns: [t.userId, t.entityType, t.entityId] }),
-  check('user_search_recents_type', sql`${t.entityType} IN ('city','area','campus','place')`),
+  check('user_search_recents_type', sql`${t.entityType} IN ('city','area','campus','place','street','hood')`),
   check('user_search_recents_id', sql`length(btrim(${t.entityId})) > 0`),
   index('user_search_recents_latest_idx').on(t.userId, t.lastSelectedAt.desc()),
 ]);

@@ -5,7 +5,7 @@ import { seedSearchCatalog } from '../dist/db/seeds/seed-search-catalog.js';
 
 /** Add the search migrations and canonical catalog to disposable runtime fixtures. */
 export async function exposeSearchRuntime(client) {
-  for (const tag of ['0041_search_catalog','0042_search_suggest_cache','0043_search_location_images']) {
+  for (const tag of ['0041_search_catalog','0042_search_suggest_cache','0043_search_location_images','0044_search_osm_streets']) {
     const body = await readFile(new URL('../drizzle/'+tag+'.sql',import.meta.url),'utf8');
     for (const statement of body.split('--> statement-breakpoint')) await client.unsafe(statement);
   }

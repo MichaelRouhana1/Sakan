@@ -49,6 +49,8 @@ async function bootstrap() {
     for(const part of migration.split('--> statement-breakpoint')) await client.unsafe(part);
     const imagesMigration=await readFile(new URL('../drizzle/0043_search_location_images.sql',import.meta.url),'utf8');
     for(const part of imagesMigration.split('--> statement-breakpoint'))await client.unsafe(part);
+    const osmMigration=await readFile(new URL('../drizzle/0044_search_osm_streets.sql',import.meta.url),'utf8');
+    for(const part of osmMigration.split('--> statement-breakpoint'))await client.unsafe(part);
     for(const inst of institutionSeeds) {
       const [parent]=await client`INSERT INTO institutions(name,short_name,slug) VALUES (${inst.name},${inst.shortName},${inst.slug}) RETURNING id`;
       for(const campus of inst.campuses) await client`INSERT INTO universities(institution_id,name,slug,city,is_main,location)
@@ -59,10 +61,10 @@ async function bootstrap() {
       VALUES (${owner.id},'Hamra','Bliss House','solar','state_well_24_7') RETURNING id`;
     const executor=drizzle(client), resolver=new SearchResolver(executor);
     const seeded=await executor.transaction(tx=>seedSearchCatalog(tx));
-    return {owner,place,executor,resolver,seeded,migration};
+    return {owner,place,executor,resolver,seeded,migration,osmMigration};
   } catch(error) { await cleanup(); throw error; }
 }
-const {owner,place,executor,resolver,seeded,migration}=await bootstrap();
+const {owner,place,executor,resolver,seeded,migration,osmMigration}=await bootstrap();
 
 test('all existing areas, institutions and campuses have curated bilingual records',async()=>{
   assert.deepEqual(new Set(searchLocationSeeds.filter(r=>r.kind==='area').map(r=>r.canonicalArea)),new Set(LEBANON_AREAS));
@@ -220,7 +222,7 @@ test('inactive locations and cities do not resolve, and input is bounded/paramet
 test('additive migration can be reapplied without changing rows or curated aliases',async()=>{
   const snapshot=async()=>JSON.stringify(await client`SELECT id,target_key,alias,normalized,source FROM search_aliases ORDER BY id`);
   const before=await snapshot();
-  for(const part of migration.split('--> statement-breakpoint')) await client.unsafe(part);
+  for(const body of [migration,osmMigration]) for(const part of body.split('--> statement-breakpoint')) await client.unsafe(part);
   assert.equal(await snapshot(),before);
   assert.deepEqual((await resolver.resolveAreaFilters(['7amra'])).canonicalAreas,['Hamra']);
 });

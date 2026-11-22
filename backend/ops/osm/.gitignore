@@ -1,0 +1,5 @@
+.venv/
+.cache/
+__pycache__/
+out/*
+!out/area-polygons.geojson

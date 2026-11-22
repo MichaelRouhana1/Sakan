@@ -12,15 +12,15 @@ export async function seedSearchCatalog(executor: SearchExecutor) {
   if (missingTranslations.length) throw new Error(`Missing curated translations: ${missingTranslations.join(', ')}`);
   for (const l of searchLocationSeeds) {
     await executor.execute(sql`
-      INSERT INTO search_locations(id,kind,slug,name_en,name_ar,district_en,district_ar,parent_city_id,canonical_area,lat,lng)
-      VALUES (${l.id},${l.kind},${l.slug},${l.nameEn},${l.nameAr},${l.districtEn},${l.districtAr},${l.parentCityId},${l.canonicalArea},${l.lat},${l.lng})
+      INSERT INTO search_locations(id,kind,slug,name_en,name_ar,district_en,district_ar,parent_city_id,canonical_area,lat,lng,radius_m)
+      VALUES (${l.id},${l.kind},${l.slug},${l.nameEn},${l.nameAr},${l.districtEn},${l.districtAr},${l.parentCityId},${l.canonicalArea},${l.lat},${l.lng},${l.radiusM})
       ON CONFLICT(id) DO UPDATE SET slug=excluded.slug,name_en=excluded.name_en,name_ar=excluded.name_ar,
         district_en=excluded.district_en,district_ar=excluded.district_ar,parent_city_id=excluded.parent_city_id,
-        canonical_area=excluded.canonical_area,lat=excluded.lat,lng=excluded.lng
+        canonical_area=excluded.canonical_area,lat=excluded.lat,lng=excluded.lng,radius_m=excluded.radius_m
       WHERE (search_locations.slug,search_locations.name_en,search_locations.name_ar,search_locations.district_en,search_locations.district_ar,
-        search_locations.parent_city_id,search_locations.canonical_area,search_locations.lat,search_locations.lng)
+        search_locations.parent_city_id,search_locations.canonical_area,search_locations.lat,search_locations.lng,search_locations.radius_m)
         IS DISTINCT FROM (excluded.slug,excluded.name_en,excluded.name_ar,excluded.district_en,excluded.district_ar,
-        excluded.parent_city_id,excluded.canonical_area,excluded.lat,excluded.lng)
+        excluded.parent_city_id,excluded.canonical_area,excluded.lat,excluded.lng,excluded.radius_m)
     `);
     for (const alias of new Set(l.aliases)) {
       await executor.execute(sql`INSERT INTO search_aliases(location_id,alias,normalized,language,source)

@@ -38,7 +38,10 @@ export type SearchLocationSeed = {
   id: string; kind: 'city' | 'area'; slug: string; nameEn: string; nameAr: string;
   districtEn: string; districtAr: string; parentCityId: string | null;
   canonicalArea: string | null; lat: number | null; lng: number | null; aliases: readonly string[];
+  /** Nearby radius inherited by streets and neighbourhoods under this area. */
+  radiusM: number;
 };
+const radiusForCity = (city: string) => city === 'Beirut' ? 400 : 800;
 
 const extraAliases: Partial<Record<LebanonArea, readonly string[]>> = {
   Achrafieh: ['Achrafieh','Ashrafiyeh','Ashrafiye','Achrafiye','Achrafié','2ashrafiye','2ashrafieh','اشرفية','أشرفية'],
@@ -53,7 +56,7 @@ const extraAliases: Partial<Record<LebanonArea, readonly string[]>> = {
 
 export const searchAreaSeeds: SearchLocationSeed[] = rows.map(([nameEn,nameAr,city,districtEn,districtAr]) => ({
   id: `area:${locationSlug(nameEn)}`, kind: 'area', slug: locationSlug(nameEn), nameEn,nameAr,districtEn,districtAr,
-  parentCityId: `city:${locationSlug(city)}`, canonicalArea: nameEn,
+  parentCityId: `city:${locationSlug(city)}`, canonicalArea: nameEn, radiusM: radiusForCity(city),
   ...AREA_COORDINATES[nameEn], aliases: [...(AREA_ALIASES[nameEn] ?? []), ...(extraAliases[nameEn] ?? [])],
 }));
 
@@ -65,7 +68,7 @@ export const searchCitySeeds: SearchLocationSeed[] = cityNames.map(nameEn => {
     id: `city:${locationSlug(nameEn)}`, kind: 'city', slug: locationSlug(nameEn), nameEn,
     nameAr: nameEn === 'Beirut' ? 'بيروت' : own!.nameAr,
     districtEn: child[3], districtAr: child[4], parentCityId: null, canonicalArea: null,
-    lat: own?.lat ?? null, lng: own?.lng ?? null,
+    lat: own?.lat ?? null, lng: own?.lng ?? null, radiusM: radiusForCity(nameEn),
     aliases: nameEn === 'Beirut' ? ['Beyrouth','Bayrut','Bayrout','Beirout','بيروت'] : own!.aliases,
   };
 });

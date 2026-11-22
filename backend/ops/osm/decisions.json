@@ -1,0 +1,26 @@
+{
+  "_comment": "Source of truth for gate-1 decisions (user-approved). REVIEW.md renders these as checkboxes; `node osm_review.mjs --sync-ticks` copies ticks edited in REVIEW.md back here. The seed only contains what is approved here.",
+  "includeNumberedOnlyStreets": false,
+  "approvedHoods": [
+    "hood:monot",
+    "hood:ain-el-tineh", "hood:tallet-khayat", "hood:moussaitbeh", "hood:aicha-bakkar",
+    "hood:manara", "hood:qoreitem", "hood:raoucheh", "hood:ayn-el-mrayseh", "hood:snoubra", "hood:qantari",
+    "hood:furn-el-hayek", "hood:mar-mitr", "hood:syoufi", "hood:karm-el-zeitoun", "hood:adliyeh",
+    "hood:tell-chiha",
+    "hood:zahrieh"
+  ],
+  "approvedAliasAdds": [
+    "alias+:area:verdun:فيردان",
+    "alias+:area:gemmayzeh:جميزة",
+    "alias+:area:mar-mikhael:Mar Mkhayel"
+  ],
+  "extraStreetAliases": {
+    "street:rue-sassine-achrafieh": [{ "alias": "Sassine", "language": "en", "reason": "user: find the street by 'sassine'; Sassine is not a hood" }]
+  },
+  "extraHoodAliases": {
+    "hood:adliyeh": [{ "alias": "Palais de Justice", "language": "fr", "reason": "user: same place as the Badaro 'Palais de Justice' hood, which is dropped" }]
+  },
+  "dropStreets": [
+    "street:monot-achrafieh"
+  ]
+}

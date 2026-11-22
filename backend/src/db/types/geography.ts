@@ -9,3 +9,10 @@ export const geographyPoint = customType<{ data: string; driverData: string }>({
     return "geography(Point, 4326)";
   },
 });
+
+/** PostGIS geography MultiLineString in WGS84 (OSM street geometry). */
+export const geographyMultiLine = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return "geography(MultiLineString, 4326)";
+  },
+});

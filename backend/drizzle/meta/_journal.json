@@ -309,6 +309,13 @@
       "when": 1795176000000,
       "tag": "0043_search_location_images",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1795867200000,
+      "tag": "0044_search_osm_streets",
+      "breakpoints": true
     }
   ]
 }
