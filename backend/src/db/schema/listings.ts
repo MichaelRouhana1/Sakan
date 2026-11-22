@@ -27,6 +27,7 @@ import {
 } from "./enums.js";
 import { users } from "./users.js";
 import { places, type PlaceOverrides } from "./places.js";
+import type { ContactNumber } from "../../lib/lebanonPhone.js";
 import { unitTypeEnum, bathroomPrivacyEnum, unitGenderRuleEnum } from "./enums.js";
 
 export const listings = pgTable("listings", {
@@ -92,16 +93,7 @@ export const listings = pgTable("listings", {
   contactPhone: varchar("contact_phone", { length: 32 }),
   whatsappNumber: varchar("whatsapp_number", { length: 32 }),
   contactNumbers: jsonb("contact_numbers")
-    .$type<
-      {
-        kind: "mobile" | "landline";
-        prefix: string;
-        subscriber: string;
-        e164: string;
-        calls: boolean;
-        whatsapp: boolean;
-      }[]
-    >()
+    .$type<ContactNumber[]>()
     .notNull()
     .default(sql`'[]'::jsonb`),
   viewCount: integer("view_count").notNull().default(0),
