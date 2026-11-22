@@ -418,6 +418,9 @@ export const listListingsQuerySchema = z
     campusId: z.string().optional(),
     city: z.string().trim().max(100).optional(),
     placeId: z.preprocess(value => value === '' ? undefined : value, z.string().uuid().optional()),
+    /** Street or neighbourhood id from search suggestions; `kind` must match its prefix. */
+    locationId: z.string().max(128).optional(),
+    kind: z.enum(["street", "hood"]).optional(),
     /** Free-text match on title / description / area / landmark / address. */
     q: z.string().refine(value => [...value].length <= 128, 'q must be at most 128 characters').optional(),
     /** WGS84 pin for radius filter (requires lng). */
@@ -626,10 +629,31 @@ export const listListingsQuerySchema = z
       radiusKm = n;
     }
 
+    let nearLocation: { id: string; kind: "street" | "hood" } | undefined;
+    if (raw.locationId || raw.kind) {
+      const id = raw.locationId?.trim() ?? "";
+      if (!raw.kind || !new RegExp(`^${raw.kind}:[a-z0-9]+(?:-[a-z0-9]+)*$`).test(id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "locationId and kind (street or hood) must be provided together and match",
+        });
+        return z.NEVER;
+      }
+      if (lat != null || campusId || universitySlugs.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "locationId cannot be combined with lat/lng or campus filters",
+        });
+        return z.NEVER;
+      }
+      nearLocation = { id, kind: raw.kind };
+    }
+
     return {
       areas,
       city: raw.city || undefined,
       placeId: raw.placeId,
+      nearLocation,
       universitySlugs,
       campusId,
       q,

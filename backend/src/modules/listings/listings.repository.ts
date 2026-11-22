@@ -594,18 +594,41 @@ export class ListingsRepository {
     property: ListingPropertyFilters = EMPTY_PROPERTY_FILTERS,
     q?: string,
   ) {
-    const meters = radiusKm * 1000;
+    return this.listActiveNearGeography(
+      sql`ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography`,
+      radiusKm * 1000, areas, property, q,
+    );
+  }
+
+  /** Active listings within `meters` of a street line or neighbourhood point, sorted by distance to it. */
+  async listActiveNearLocation(
+    locationId: string,
+    meters: number,
+    areas: string[] = [],
+    property: ListingPropertyFilters = EMPTY_PROPERTY_FILTERS,
+    q?: string,
+  ) {
+    return this.listActiveNearGeography(
+      sql`(SELECT coalesce(s.geom, ST_SetSRID(ST_MakePoint(s.lng, s.lat), 4326)::geography)
+        FROM search_locations s WHERE s.id = ${locationId})`,
+      meters, areas, property, q,
+    );
+  }
+
+  private async listActiveNearGeography(
+    target: SQL,
+    meters: number,
+    areas: string[],
+    property: ListingPropertyFilters,
+    q?: string,
+  ) {
     const conditions = [
       eq(listingResolved.status, "active"),
       ne(listingResolved.availability, "rented"),
       sql`${listingResolved.hiddenReason} IS NULL`,
       sql`${listingResolved.expiresAt} > now()`,
       isNotNull(listingResolved.location),
-      sql`ST_DWithin(
-        ${listingResolved.location},
-        ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
-        ${meters}
-      )`,
+      sql`ST_DWithin(${listingResolved.location}, ${target}, ${meters})`,
       ...propertyDrizzleConditions(property),
       ...textSearchDrizzleConditions(q),
     ];
@@ -613,10 +636,7 @@ export class ListingsRepository {
       conditions.push(inArray(listingResolved.area, areas));
     }
 
-    const distanceSql = sql<number>`ST_Distance(
-      ${listingResolved.location},
-      ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
-    )`;
+    const distanceSql = sql<number>`ST_Distance(${listingResolved.location}, ${target})`;
 
     const rows = await db
       .select({

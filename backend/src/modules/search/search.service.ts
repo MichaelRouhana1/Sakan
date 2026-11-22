@@ -29,22 +29,39 @@ export class SearchService {
       await tx.execute(sql`SET LOCAL pg_trgm.word_similarity_threshold=0.6`);
       const prefix=normalized.replace(/[\\%_]/g,ch=>`\\${ch}`)+'%';
       const wordPrefix='% '+prefix;
+      const typedLength=[...normalized].length;
       const match=defaults ? sql`true` : sql`(a.normalized=${normalized} OR a.normalized LIKE ${prefix} OR a.normalized LIKE ${wordPrefix}
-        ${[...normalized].length>=3 ? sql`OR a.normalized % ${normalized} OR a.normalized %> ${normalized}` : sql``})`;
-      return searchRows<Entity>(tx,sql`
-        ${searchEntities(defaults ? 'defaults' : 'typed')}, matches AS (
+        ${typedLength>=3 ? sql`OR a.normalized % ${normalized} OR a.normalized %> ${normalized}` : sql``})`;
+      const matches=sql`matches AS (
           SELECT a.target_key,
             min(CASE WHEN a.normalized=${normalized} THEN 0 WHEN a.normalized LIKE ${prefix} OR a.normalized LIKE ${wordPrefix} THEN 1 ELSE 2 END) AS tier,
             max(CASE WHEN a.normalized=${normalized} OR a.normalized LIKE ${prefix} OR a.normalized LIKE ${wordPrefix} THEN 1
               ELSE greatest(similarity(a.normalized,${normalized}),word_similarity(${normalized},a.normalized)) END) AS score
           FROM search_aliases a WHERE ${match} GROUP BY a.target_key
-        )
+        )`;
+      if(defaults) return searchRows<Entity>(tx,sql`${searchEntities('defaults')}, ${matches}
         SELECT e.* FROM entities e JOIN matches m ON m.target_key=e."targetKey"
-        -- Known short institution acronyms should not fill the menu with unrelated fuzzy acronyms.
-        WHERE m.tier<2 OR NOT(${normalized} ~ '^[a-z]{2,4}$' AND EXISTS(
-          SELECT 1 FROM search_aliases known WHERE known.normalized=${normalized} AND known.source='institution'))
-        ORDER BY ${defaults ? sql`e.popularity DESC,e."labelEn",e."targetKey"` : sql`m.tier,m.score DESC,e.popularity DESC,e."labelEn",e."targetKey"`}
-        ${defaults ? sql`` : sql`LIMIT ${limit}`}
+        ORDER BY e.popularity DESC,e."labelEn",e."targetKey"`);
+      // Exact area/city/neighbourhood/campus, then exact street, then exact property, then the rest by
+      // tier and kind (area > campus > property > street), boosted by live unit count. At most 3 streets.
+      // Exact and prefix matches keep that kind order. Only the fuzzy (trigram) tier ranks by similarity
+      // first, then kind, so a close spelling of a street beats a loose match on an area.
+      const order=sql`bucket,tier,(CASE WHEN tier=2 THEN score END) DESC NULLS LAST,kind_rank,boosted DESC,popularity DESC,"labelEn","targetKey"`;
+      return searchRows<Entity>(tx,sql`
+        ${searchEntities('typed',sql`SELECT a.target_key FROM search_aliases a WHERE a.location_id IS NOT NULL AND ${match}`)}, ${matches},
+        ranked AS (
+          SELECT e.*,m.tier,m.score,
+            CASE WHEN m.tier>0 THEN 3 WHEN e.type IN ('city','area','hood','campus') THEN 0 WHEN e.type='street' THEN 1 ELSE 2 END AS bucket,
+            CASE e.type WHEN 'campus' THEN 1 WHEN 'place' THEN 2 WHEN 'street' THEN 3 ELSE 0 END AS kind_rank,
+            m.score+0.05*ln(1+e.popularity) AS boosted
+          FROM entities e JOIN matches m ON m.target_key=e."targetKey"
+          -- Known short institution acronyms should not fill the menu with unrelated fuzzy acronyms.
+          WHERE (m.tier<2 OR NOT(${normalized} ~ '^[a-z]{2,4}$' AND EXISTS(
+            SELECT 1 FROM search_aliases known WHERE known.normalized=${normalized} AND known.source='institution')))
+            ${typedLength>=3 ? sql`` : sql`AND e.type<>'street'`}
+        ), capped AS (SELECT r.*,row_number() OVER (PARTITION BY r.type ORDER BY ${order}) AS kind_position FROM ranked r)
+        SELECT * FROM capped WHERE type<>'street' OR kind_position<=3
+        ORDER BY ${order} LIMIT ${limit}
       `);
     });
     // Keep live inventory first; fill the two-row rails from the existing catalog.

@@ -16,13 +16,29 @@ export type ResolvedSearchQuery = {
   normalizedQuery: string; remainingQuery: string; locations: ResolvedLocation[];
   /** null = no location constraint; [] = conflicting constraints, never "all areas". */
   canonicalAreas: string[] | null;
+  nearby?: NearbyResolution;
+};
+export type NearbyLocation = {
+  id: string; kind: 'street' | 'hood'; label: { en: string; ar: string }; context: { en: string; ar: string };
+  parentAreaId: string; canonicalArea: string; parentLabel: { en: string; ar: string };
+  /** The parent area's radius: the default and the server-side maximum. */
+  radiusMeters: number;
+};
+export type NearbyResolution = NearbyLocation & {
+  appliedRadiusMeters: number; count: number;
+  /** Set when nothing is within the radius and results come from the parent area instead. */
+  fallback: { canonicalArea: string; label: { en: string; ar: string }; count: number } | null;
 };
 export type ResolvedCampus = { id: string; slug: string; nameEn: string; nameAr: string; city: string | null };
 
+/** "Hamra, Beirut"; just "Beirut" when a street spans areas or the area is the town itself. Aliases l, area, city. */
+export const nearbyContext = sql`json_build_object(
+  'en',CASE WHEN l.multi_area OR area.name_en=city.name_en THEN city.name_en ELSE area.name_en || ', ' || city.name_en END,
+  'ar',CASE WHEN l.multi_area OR area.name_ar=city.name_ar THEN city.name_ar ELSE area.name_ar || '، ' || city.name_ar END)`;
 const intersect = (a: string[] | null, b: string[] | null) => a === null ? b : b === null ? a : a.filter(area => b.includes(area));
 const uniqueLocations = (rows: AliasLocation[]) => [...new Map(rows.map(({ matched: _matched, ...row }) => [row.id,row])).values()];
 
-/** Exact alias resolution only. Fuzzy autocomplete ranking belongs to step 2. */
+/** Exact alias resolution only. Free text never resolves to a street or neighbourhood; those arrive as explicit locationIds. */
 export class SearchResolver {
   constructor(private readonly executor: SearchExecutor) {}
 
@@ -45,12 +61,12 @@ export class SearchResolver {
       SELECT DISTINCT a.normalized AS matched, l.id,l.kind,l.slug,l.name_en AS "nameEn",l.name_ar AS "nameAr",
         l.district_en AS "contextEn",l.district_ar AS "contextAr",l.parent_city_id AS "parentCityId",
         CASE WHEN l.kind='area' THEN ARRAY[l.canonical_area] ELSE ARRAY(
-          SELECT child.canonical_area FROM search_locations child WHERE child.parent_city_id=l.id AND child.active ORDER BY child.canonical_area
+          SELECT child.canonical_area FROM search_locations child WHERE child.parent_city_id=l.id AND child.kind='area' AND child.active ORDER BY child.canonical_area
         ) END AS "canonicalAreas"
       FROM search_aliases a JOIN search_locations l ON l.id=a.location_id
       LEFT JOIN search_locations parent ON parent.id=l.parent_city_id
       WHERE a.normalized IN (${sql.join(phrases.map(p => sql`${p}`),sql`,`)}) AND l.active
-        AND (l.kind='city' OR parent.active)
+        AND l.kind IN ('city','area') AND (l.kind='city' OR parent.active)
         ${kind ? sql`AND l.kind=${kind}` : sql``}
         ${cityId ? sql`AND (l.parent_city_id=${cityId} OR l.id=${cityId})` : sql``}
       ORDER BY l.id
@@ -106,6 +122,18 @@ export class SearchResolver {
     const areaKeys = areas.length ? [...new Set(areas.flatMap(l => l.canonicalAreas))] : null;
     return {normalizedQuery,remainingQuery:tokens.filter((_,i) => !used.has(i)).join(' '),
       locations:[...new Map(locations.map(l => [l.id,l])).values()],canonicalAreas:intersect(cityAreas,areaKeys)};
+  }
+
+  async resolveNearLocation(id: string, kind: 'street' | 'hood'): Promise<NearbyLocation | null> {
+    const [row] = await searchRows<NearbyLocation>(this.executor,sql`
+      SELECT l.id,l.kind,json_build_object('en',l.name_en,'ar',l.name_ar) AS label,
+        ${nearbyContext} AS context,
+        area.id AS "parentAreaId",area.canonical_area AS "canonicalArea",
+        json_build_object('en',area.name_en,'ar',area.name_ar) AS "parentLabel",area.radius_m AS "radiusMeters"
+      FROM search_locations l JOIN search_locations area ON area.id=l.parent_area_id
+      JOIN search_locations city ON city.id=l.parent_city_id
+      WHERE l.id=${id} AND l.kind=${kind} AND l.active AND area.active AND city.active`);
+    return row ?? null;
   }
 
   async resolveBrowse(input: { q?: string; areas?: string[]; city?: string }): Promise<ResolvedSearchQuery> {

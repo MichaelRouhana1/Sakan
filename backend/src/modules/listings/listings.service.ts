@@ -163,6 +163,7 @@ export class ListingsService {
     areas?: string[];
     city?: string;
     placeId?: string;
+    nearLocation?: { id: string; kind: "street" | "hood" };
     universitySlugs?: string[];
     campusId?: string;
     q?: string;
@@ -179,7 +180,8 @@ export class ListingsService {
     studentsOnly?: boolean;
     genderRestrictions?: ListingPropertyFilters["genderRestrictions"];
   }): Promise<ListingsListResult> {
-    const resolution = await new SearchResolver(db).resolveBrowse({q:params.q,areas:params.areas,city:params.city});
+    const resolver = new SearchResolver(db);
+    const resolution = await resolver.resolveBrowse({q:params.q,areas:params.areas,city:params.city});
     if (resolution.canonicalAreas?.length === 0) return {data:[],campuses:[],resolution};
     const areas = resolution.canonicalAreas ?? [];
     let universitySlugs = params.universitySlugs ?? [];
@@ -196,6 +198,24 @@ export class ListingsService {
     };
     const q = resolution.remainingQuery || undefined;
     const DEFAULT_RADIUS_KM = 2;
+
+    if (params.nearLocation) {
+      const location = await resolver.resolveNearLocation(params.nearLocation.id, params.nearLocation.kind);
+      if (!location) throw new NotFoundError("This search location is no longer available");
+      const appliedRadiusMeters = Math.min(location.radiusMeters,
+        params.radiusKm != null ? Math.round(params.radiusKm * 1000) : location.radiusMeters);
+      const near = await listingsRepository.listActiveNearLocation(location.id, appliedRadiusMeters, areas, property, q);
+      if (near.length > 0) {
+        return { data: near, campuses: [], resolution: { ...resolution,
+          nearby: { ...location, appliedRadiusMeters, count: near.length, fallback: null } } };
+      }
+      const parentAreas = areas.length ? areas.filter(area => area === location.canonicalArea) : [location.canonicalArea];
+      const data = parentAreas.length
+        ? await listingsRepository.listActiveByAreas(parentAreas, params.sort ?? "newest", property, q)
+        : [];
+      return { data, campuses: [], resolution: { ...resolution, nearby: { ...location, appliedRadiusMeters, count: 0,
+        fallback: { canonicalArea: location.canonicalArea, label: location.parentLabel, count: data.length } } } };
+    }
 
     if (params.campusId) {
       const campus = await universitiesRepository.findById(params.campusId);

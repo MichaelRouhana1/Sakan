@@ -57,6 +57,8 @@ export class ListingsController {
         campusId: queryString(req.query.campusId),
         city: queryString(req.query.city),
         placeId: queryString(req.query.placeId),
+        locationId: queryString(req.query.locationId),
+        kind: queryString(req.query.kind),
         q: queryString(req.query.q),
         lat: queryString(req.query.lat),
         lng: queryString(req.query.lng),
