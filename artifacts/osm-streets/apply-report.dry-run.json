@@ -3,7 +3,7 @@
   "migration": "0044_search_osm_streets",
   "alreadyApplied": true,
   "dryRun": true,
-  "seedSha256": "8d0951593509c35c484db2f0dad28d5f356f64a7487d1f1bdb949cfea1bcada5",
+  "seedSha256": "c647e5ec4e64ed44cf248f6fd6e1a00ec092c889f29625576deb84ae5610e5f8",
   "decisions": {
     "includeNumberedOnlyStreets": false,
     "approvedHoods": [
@@ -32,7 +32,8 @@
       "alias+:area:mar-mikhael:Mar Mkhayel"
     ],
     "dropStreets": [
-      "street:monot-achrafieh"
+      "street:monot-achrafieh",
+      "street:manara-ras-beirut"
     ],
     "extraHoodAliases": {
       "hood:adliyeh": [
@@ -48,43 +49,15 @@
       },
       {
         "kind": "street",
-        "count": 686
+        "count": 689
       }
     ],
-    "inserted": 42,
+    "inserted": 4,
     "updated": 2,
     "deleted": [
-      "street:street-aley",
-      "street:street-baalbek",
-      "street:street-baalbek-301459575",
-      "street:monot-achrafieh",
-      "street:503-achrafieh",
-      "street:ghosta-street-jounieh",
-      "street:street-jounieh",
-      "street:monastery-street-jounieh",
-      "street:shaileh-hrissa-road-jounieh",
-      "street:street-jounieh-304092513",
-      "street:street-saida",
-      "street:street-saida-26708632",
-      "street:street-saida-33779116",
-      "street:street-saida-437052649",
-      "street:street-saida-437054551",
-      "street:street-saida-437055844",
-      "street:street-saida-1553993715",
-      "street:street-tripoli",
-      "street:street-tripoli-114315394",
-      "street:street-tripoli-114315398",
-      "street:street-tripoli-114315400",
-      "street:street-tripoli-114315408",
-      "street:street-tripoli-114315416",
-      "street:street-tripoli-114315419",
-      "street:street-tripoli-114315421",
-      "street:street-tripoli-326187496",
-      "street:street-tripoli-452314651",
-      "street:street-tripoli-1017781669",
-      "street:street-zahle"
+      "street:manara-ras-beirut"
     ],
-    "aliasesAdded": 15,
+    "aliasesAdded": 3,
     "aliasesRemoved": 0,
     "manualFingerprint": {
       "locations": "7df55fbc87fea793483514bcfd2f0cb5",

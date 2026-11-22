@@ -3,7 +3,7 @@
   "migration": "0044_search_osm_streets",
   "alreadyApplied": true,
   "dryRun": false,
-  "seedSha256": "8d0951593509c35c484db2f0dad28d5f356f64a7487d1f1bdb949cfea1bcada5",
+  "seedSha256": "c647e5ec4e64ed44cf248f6fd6e1a00ec092c889f29625576deb84ae5610e5f8",
   "decisions": {
     "includeNumberedOnlyStreets": false,
     "approvedHoods": [
@@ -32,7 +32,8 @@
       "alias+:area:mar-mikhael:Mar Mkhayel"
     ],
     "dropStreets": [
-      "street:monot-achrafieh"
+      "street:monot-achrafieh",
+      "street:manara-ras-beirut"
     ],
     "extraHoodAliases": {
       "hood:adliyeh": [
@@ -48,7 +49,7 @@
       },
       {
         "kind": "street",
-        "count": 686
+        "count": 689
       }
     ],
     "inserted": 0,

@@ -21,6 +21,7 @@
     "hood:adliyeh": [{ "alias": "Palais de Justice", "language": "fr", "reason": "user: same place as the Badaro 'Palais de Justice' hood, which is dropped" }]
   },
   "dropStreets": [
-    "street:monot-achrafieh"
+    "street:monot-achrafieh",
+    "street:manara-ras-beirut"
   ]
 }

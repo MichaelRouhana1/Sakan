@@ -11,17 +11,17 @@ Data: Geofabrik `lebanon-latest.osm.pbf` (md5 `141868449a859420e76b9bad4f13dbd8`
 | | |
 |---|---|
 | Named highway ways read (residential and above, plus pedestrian/living_street, no service) | 8716 |
-| Ways entirely outside every mapped curated-area polygon | 6327 |
-| Streets after merging same-name pieces per city | 995 |
-| Numbered-only streets ("Rue 83") | 308 (excluded) |
-| **Streets in the seed** | **686** |
+| Ways entirely outside every mapped curated-area polygon | 6315 |
+| Streets after merging same-name pieces per city | 1000 |
+| Numbered-only streets ("Rue 83") | 309 (excluded) |
+| **Streets in the seed** | **689** |
 | of which span more than one area (shown with the city only) | 34 |
 | Merged streets dropped for being shorter than 30 m | 14 |
 | Neighbourhood candidates | 56: 49 proposable, 7 dupes |
 | **Neighbourhoods in the seed (ticked)** | **18** (hood:aicha-bakkar, hood:ain-el-tineh, hood:tallet-khayat, hood:moussaitbeh, hood:ayn-el-mrayseh, hood:qantari, hood:manara, hood:qoreitem, hood:raoucheh, hood:snoubra, hood:furn-el-hayek, hood:mar-mitr, hood:monot, hood:syoufi, hood:karm-el-zeitoun, hood:adliyeh, hood:tell-chiha, hood:zahrieh) |
 | Alias additions to existing entries in the seed (ticked) | 3 |
 | Existing catalog aliases compared against (areas, cities, campuses; en/ar/fr) | 1375 |
-| Seed file size | 436 KB |
+| Seed file size | 438 KB |
 
 Scope: every named street inside a curated area's mapped polygon. Same-name pieces within one city are one entry with one MultiLineString geometry, parented to the area holding most of the length; different cities stay separate. Anchor density (places + campuses within 750 m) only ranks.
 
@@ -46,11 +46,11 @@ Beirut areas **400 m**; Matn and all towns **800 m**.
 | Gemmayzeh (`area:gemmayzeh`) | Beirut | 400 m | osm-polygon | `osm:r7073578` | 0.157 | 21 | OSM sector named Jumayza (Gemmayzeh) |
 | Hamra (`area:hamra`) | Beirut | 400 m | osm-polygon | `osm:r7120346` | 0.546 | 40 | OSM sector 'El Hamra' (admin_level 8) |
 | Jnah (`area:jnah`) | Beirut | 400 m | derived-circle | `derived:curated:700m` | 0.212 | 6 | No OSM polygon or node; 700 m circle around the curated centroid, inside Beirut governorate |
-| Jounieh (`area:jounieh`) | Jounieh | 800 m | derived-circle | `derived:curated:1800m` | 10.162 | 8 | No OSM polygon found for Jounieh; 1.8 km circle around the curated centroid, now moved to the coastal town centre (OSM Jounieh Municipality w-way at 33.9848,35.6340; AUL Jounieh campus is 350 m away). Kaslik/Sarba carves out first |
-| Kaslik (`area:kaslik`) | Jounieh | 800 m | osm-polygon | `osm:r8548470` | 1.962 | 4 | OSM municipality Sarba, which contains the curated Kaslik centroid |
+| Jounieh (`area:jounieh`) | Jounieh | 800 m | derived-circle | `derived:curated:2500m` | 19.603 | 13 | No OSM polygon found for Jounieh; 2.5 km circle around the curated centroid, now moved to the coastal town centre (OSM Jounieh Municipality w-way at 33.9848,35.6340; AUL Jounieh campus is 350 m away). Kaslik/Sarba carves out first |
+| Kaslik (`area:kaslik`) | Jounieh | 800 m | osm-polygon | `osm:r8548470` | 1.962 | 3 | OSM municipality Sarba, which contains the curated Kaslik centroid |
 | Mar Mikhael (`area:mar-mikhael`) | Beirut | 400 m | osm-polygon | `osm:r7080256` | 0.522 | 22 | OSM sector 'Mar Mikhael' (admin_level 8) |
 | Nabatieh (`area:nabatieh`) | Nabatieh | 800 m | osm-polygon | `osm:r14911748+r17810844` | 15.436 | 15 | Nabatieh Et Tahta + El Fawqa |
-| Ras Beirut (`area:ras-beirut`) | Beirut | 400 m | osm-polygon | `osm:r3074298` | 2.498 | 67 | Cadastral quartier Ras Beirut (admin_level 7); Hamra and Verdun carve out first |
+| Ras Beirut (`area:ras-beirut`) | Beirut | 400 m | osm-polygon | `osm:r3074298` | 2.498 | 66 | Cadastral quartier Ras Beirut (admin_level 7); Hamra and Verdun carve out first |
 | Saida (`area:saida`) | Saida | 800 m | osm-polygon | `osm:r16414025` | 8.24 | 40 |  |
 | Tariq El Jdide (`area:tariq-el-jdide`) | Beirut | 400 m | osm-polygon | `osm:r7122723` | 0.371 | 30 | OSM sector Tariq El Jdideh |
 | Tripoli (`area:tripoli`) | Tripoli | 800 m | osm-polygon | `osm:r4869639` | 21.292 | 48 |  |
@@ -101,35 +101,35 @@ Maps of the derived circles: `artifacts/osm-streets/maps/`.
 
 | Approve | id | English / Arabic | Parent area | Nearest existing area | Flags |
 |---|---|---|---|---|---|
-| - [x] `hood:aicha-bakkar` | Aicha Bakkar / عائشة بكار | Verdun, Beirut | Verdun (0.7 km) | parent-by-proximity-48m; near "Rue Aicha Bakkar" (Rue Aicha Bakkar, 1) |
-| - [x] `hood:ain-el-tineh` | Ain El Tineh / عين التينة | Verdun, Beirut | Verdun (0.3 km) |  |
-| - [x] `hood:tallet-khayat` | Tallet Khayat / تلة الخيّاط | Verdun, Beirut | Verdun (0.5 km) |  |
+| - [x] `hood:aicha-bakkar` | Aicha Bakkar / عائشة بكار | Verdun, Beirut | Verdun (0.7 km) | parent-by-proximity-48m; near "Aicha Bakkar" (Aicha Bakkar, 1); near "Rue Aicha Bakkar" (Rue Aicha Bakkar, 1) |
+| - [x] `hood:ain-el-tineh` | Ain El Tineh / عين التينة | Verdun, Beirut | Verdun (0.3 km) | near "Ain El Tineh" (Ain El Tineh, 1) |
+| - [x] `hood:tallet-khayat` | Tallet Khayat / تلة الخيّاط | Verdun, Beirut | Verdun (0.5 km) | near "Tallet Khayat" (Tallet Khayat, 1) |
 | - [ ] `hood:dar-al-fatwa` | Dar Al Fatwa / دار الفتوى | Verdun, Beirut | Verdun (0.5 km) |  |
-| - [x] `hood:moussaitbeh` | Moussaitbeh / المصيطبة | Verdun, Beirut | Verdun (0.6 km) | parent-by-proximity-16m |
-| - [ ] `hood:palais-de-justice` | Palais de Justice / العدلية | Badaro, Beirut | Badaro (0.3 km) | near "Place du Palais de Justice" (Place du Palais de Justice, 0.75) |
+| - [x] `hood:moussaitbeh` | Moussaitbeh / المصيطبة | Verdun, Beirut | Verdun (0.6 km) | parent-by-proximity-16m; near "Moussaitbeh" (Moussaitbeh, 1) |
+| - [ ] `hood:palais-de-justice` | Palais de Justice / العدلية | Badaro, Beirut | Badaro (0.3 km) | near "Palais de Justice" (Adliyeh, 1); near "Place du Palais de Justice" (Place du Palais de Justice, 0.75) |
 | - [ ] `hood:park` | Park / البارك | Badaro, Beirut | Badaro (0.5 km) |  |
 | - [ ] `hood:nabatieh-et-tahta` | Nabatieh et Tahta / نبطية التحتى | Nabatieh | Nabatieh (0.1 km) |  |
 | - [ ] `hood:american-university` | American University / الجامعة الأمريكية | Hamra, Beirut | Hamra (0.4 km) | parent-by-proximity-116m; near "American University Street" (American University Street, 1) |
-| - [x] `hood:ayn-el-mrayseh` | Ayn El Mrayseh / عين المريسة | Ras Beirut, Beirut | Hamra (0.8 km) | parent-by-proximity-97m |
-| - [x] `hood:qantari` | Qantari / القنطاري | Ras Beirut, Beirut | Hamra (1.0 km) | parent-by-proximity-76m |
-| - [x] `hood:manara` | Manara / المنارة | Ras Beirut, Beirut | Ras Beirut (0.7 km) | near "Manara" (Manara, 1) |
-| - [x] `hood:qoreitem` | Qoreitem / قريطم | Ras Beirut, Beirut | Hamra (0.8 km) |  |
-| - [x] `hood:raoucheh` | Raoucheh / الروشة | Ras Beirut, Beirut | Verdun (0.9 km) |  |
-| - [x] `hood:snoubra` | Snoubra / الصنوبرة | Ras Beirut, Beirut | Hamra (0.6 km) |  |
+| - [x] `hood:ayn-el-mrayseh` | Ayn El Mrayseh / عين المريسة | Ras Beirut, Beirut | Hamra (0.8 km) | parent-by-proximity-97m; near "Ayn El Mrayseh" (Ayn El Mrayseh, 1) |
+| - [x] `hood:qantari` | Qantari / القنطاري | Ras Beirut, Beirut | Hamra (1.0 km) | parent-by-proximity-76m; near "Qantari" (Qantari, 1) |
+| - [x] `hood:manara` | Manara / المنارة | Ras Beirut, Beirut | Ras Beirut (0.7 km) | near "Manara" (Manara, 1); near "Manara" (Manara, 1) |
+| - [x] `hood:qoreitem` | Qoreitem / قريطم | Ras Beirut, Beirut | Hamra (0.8 km) | near "Qoreitem" (Qoreitem, 1) |
+| - [x] `hood:raoucheh` | Raoucheh / الروشة | Ras Beirut, Beirut | Verdun (0.9 km) | near "Raoucheh" (Raoucheh, 1) |
+| - [x] `hood:snoubra` | Snoubra / الصنوبرة | Ras Beirut, Beirut | Hamra (0.6 km) | near "Snoubra" (Snoubra, 1) |
 | - [ ] `hood:janbulat` | Janbulat / جنبلاط | Ras Beirut, Beirut | Hamra (0.7 km) |  |
 | - [ ] `hood:tel-druze` | Tel Druze / تلة الدروز | Ras Beirut, Beirut | Hamra (0.7 km) | parent-by-proximity-60m |
 | - [ ] `hood:yesouiyeh` | Yesouiyeh / اليسوعية | Achrafieh, Beirut | Gemmayzeh (0.9 km) | parent-by-proximity-139m |
-| - [x] `hood:furn-el-hayek` | Furn El Hayek / فرن الحايك | Achrafieh, Beirut | Achrafieh (0.5 km) | near "Furn El-Hayek" (Furn El-Hayek, 1) |
+| - [x] `hood:furn-el-hayek` | Furn El Hayek / فرن الحايك | Achrafieh, Beirut | Achrafieh (0.5 km) | near "Furn El Hayek" (Furn El Hayek, 1); near "Furn El-Hayek" (Furn El-Hayek, 1) |
 | - [ ] `hood:nasrah` | Nasrah / الناصرة | Achrafieh, Beirut | Badaro (0.7 km) |  |
-| - [x] `hood:mar-mitr` | Mar Mitr / مار متر | Achrafieh, Beirut | Achrafieh (0.3 km) | near "Mar Mitr Street" (Mar Mitr Street, 1) |
-| - [x] `hood:monot` | Monot / مونو | Achrafieh, Beirut | Gemmayzeh (1.0 km) | parent-by-proximity-99m; near "Monot" (Monot, 1); near "Monot" (Monot, 1) |
-| - [x] `hood:syoufi` | Syoufi / السيوفي | Achrafieh, Beirut | Achrafieh (0.8 km) | near "شارع السيوفي" (Sioufi, 1) |
-| - [x] `hood:karm-el-zeitoun` | Karm El Zeitoun / كرم الزيتون | Achrafieh, Beirut | Mar Mikhael (0.7 km) |  |
+| - [x] `hood:mar-mitr` | Mar Mitr / مار متر | Achrafieh, Beirut | Achrafieh (0.3 km) | near "Mar Mitr" (Mar Mitr, 1); near "Mar Mitr Street" (Mar Mitr Street, 1) |
+| - [x] `hood:monot` | Monot / مونو | Achrafieh, Beirut | Gemmayzeh (1.0 km) | parent-by-proximity-99m; near "Monot" (Monot, 1) |
+| - [x] `hood:syoufi` | Syoufi / السيوفي | Achrafieh, Beirut | Achrafieh (0.8 km) | near "Syoufi" (Syoufi, 1); near "شارع السيوفي" (Sioufi, 1) |
+| - [x] `hood:karm-el-zeitoun` | Karm El Zeitoun / كرم الزيتون | Achrafieh, Beirut | Mar Mikhael (0.7 km) | near "Karm El Zeitoun" (Karm El Zeitoun, 1) |
 | - [ ] `hood:hood-n4807377638` | بيضون / بيضون | Achrafieh, Beirut | Achrafieh (0.7 km) | no-latin-name |
-| - [x] `hood:adliyeh` | Adliyeh / العدلية | Achrafieh, Beirut | Badaro (0.4 km) |  |
+| - [x] `hood:adliyeh` | Adliyeh / العدلية | Achrafieh, Beirut | Badaro (0.4 km) | near "Adliyeh" (Adliyeh, 1) |
 | - [ ] `hood:al-bass` | Al Bass / البص | Tyre | Tyre (1.8 km) |  |
 | - [ ] `hood:rassiyeh` | Rassiyeh / الرصية | Zahle | Zahle (1.1 km) |  |
-| - [x] `hood:tell-chiha` | Tell Chiha / تل شيحا | Zahle | Zahle (0.7 km) |  |
+| - [x] `hood:tell-chiha` | Tell Chiha / تل شيحا | Zahle | Zahle (0.7 km) | near "Tell Chiha" (Tell Chiha, 1) |
 | - [ ] `hood:berbara` | Berbara / بربارة | Zahle | Zahle (1.2 km) |  |
 | - [ ] `hood:saydet-en-najat` | Saydet En Najat / Saydet En Najat | Zahle | Zahle (0.7 km) | no-arabic-name |
 | - [ ] `hood:qobbeh` | Qobbeh / القبة | Tripoli | Tripoli (1.1 km) |  |
@@ -137,7 +137,7 @@ Maps of the derived circles: `artifacts/osm-streets/maps/`.
 | - [ ] `hood:bab-al-tabbaneh` | Bab Al Tabbaneh / باب التبانة | Tripoli | Tripoli (1.1 km) |  |
 | - [ ] `hood:abou-samra` | Abou Samra / Abou Samra | Tripoli | Tripoli (1.5 km) | no-arabic-name |
 | - [ ] `hood:bab-al-ramel` | Bab Al Ramel / باب الرمل | Tripoli | Tripoli (1.3 km) |  |
-| - [x] `hood:zahrieh` | Zahrieh / الزهرية | Tripoli | Tripoli (0.3 km) |  |
+| - [x] `hood:zahrieh` | Zahrieh / الزهرية | Tripoli | Tripoli (0.3 km) | near "Zahrieh" (Zahrieh, 1) |
 | - [ ] `hood:tall-al-zaatar` | Tall Al Zaatar / تل الزعتر | Dekwaneh | Dekwaneh (0.9 km) |  |
 | - [ ] `hood:el-sharawneh` | El Sharawneh / El Sharawneh | Baalbek | Baalbek (1.0 km) | no-arabic-name |
 | - [ ] `hood:bustan-al-quds` | Bustan Al Quds / بستان القدس | Saida | Saida (2.2 km) |  |
@@ -194,12 +194,11 @@ Ranking puts the area/campus first; tests pin "Hamra" vs "Hamra Street".
 
 Same-city duplicate check after normalize: none.
 
-## 7b. Ticked neighbourhoods that share a normalized name with a street in the same city (5)
+## 7b. Ticked neighbourhoods that share a normalized name with a street in the same city (4)
 
-Dropped streets (decisions.dropStreets): `street:monot-achrafieh`. Anything below still shows both rows; add the street id to `dropStreets` to keep one.
+Dropped streets (decisions.dropStreets): `street:monot-achrafieh`, `street:manara-ras-beirut`. Anything below still shows both rows; add the street id to `dropStreets` to keep one.
 
 - `hood:aicha-bakkar` Aicha Bakkar (Verdun, Beirut) and `street:rue-aicha-bakkar-verdun` Rue Aicha Bakkar (Verdun, Beirut)
-- `hood:manara` Manara (Ras Beirut, Beirut) and `street:manara-ras-beirut` Manara (Ras Beirut, Beirut)
 - `hood:furn-el-hayek` Furn El Hayek (Achrafieh, Beirut) and `street:furn-el-hayek-achrafieh` Furn El-Hayek (Achrafieh, Beirut)
 - `hood:mar-mitr` Mar Mitr (Achrafieh, Beirut) and `street:mar-mitr-street-achrafieh` Mar Mitr Street (Achrafieh, Beirut)
 - `hood:syoufi` Syoufi (Achrafieh, Beirut) and `street:sioufi-achrafieh` Sioufi (Achrafieh, Beirut)
@@ -241,20 +240,20 @@ Dropped streets (decisions.dropStreets): `street:monot-achrafieh`. Anything belo
 | `street:rue-69-beirut` | Rue 69 · Beirut | Achrafieh | Achrafieh 197 m, Verdun 122 m |
 | `street:rue-khalid-ibn-al-walid-beirut` | Rue Khalid ibn al-Walid · Beirut | Ras Beirut | Ras Beirut 622 m, Verdun 376 m |
 | `street:khaled-ibn-el-walid-beirut` | Khaled Ibn-El Walid · Beirut | Ras Beirut | Ras Beirut 346 m, Verdun 131 m |
-| `street:sea-road-jounieh` | Sea Road · Jounieh | Kaslik | Kaslik 3222 m, Jounieh 3128 m |
+| `street:sea-road-jounieh` | Sea Road · Jounieh | Jounieh | Jounieh 4473 m, Kaslik 3222 m |
 
 ## 9. Data quality (streets in the seed)
 
 | Flag | Streets | Meaning |
 |---|---|---|
 | english-name-from-french | 66 | No usable name:en; the French name is the English display name. No translation. |
-| no-arabic-name | 103 | Arabic display falls back to the English text. No transliteration. |
+| no-arabic-name | 104 | Arabic display falls back to the English text. No transliteration. |
 | no-latin-name | 25 | English display falls back to the Arabic text |
 | junk-name:en-ignored | 9 | A name:en like "Street 60" was ignored as display name |
 
-- [ ] Include numbered-only streets (308)
+- [ ] Include numbered-only streets (309)
 
-## 10. Streets by area (686)
+## 10. Streets by area (689)
 
 Grouped by parent area, sorted by anchor score then length.
 
@@ -680,22 +679,26 @@ Grouped by parent area, sorted by anchor score then length.
 
 </details>
 
-<details><summary><b>Jounieh</b>: 8 streets, radius 800 m</summary>
+<details><summary><b>Jounieh</b>: 13 streets, radius 800 m</summary>
 
+- `street:sea-road-jounieh` Sea Road / طريق البحر · Jounieh, 7692 m, anchors 0+3
 - `street:jounieh-osm-304092513` شارع خوري وبارود / شارع خوري وبارود · Jounieh, 374 m, anchors 0+1, no-latin-name
 - `street:jounieh-osm-26405382` شارع فينيقيا / شارع فينيقيا · Jounieh, 223 m, anchors 0+1, no-latin-name
+- `street:route-jounieh-chnanir-jounieh` Route Jounieh - Chnanir / طريق جونية الجديدة · Jounieh, 211 m, anchors 0+1
 - `street:rue-khoury-et-baroud-jounieh` Rue Khoury et Baroud / Rue Khoury et Baroud · Jounieh, 88 m, anchors 0+1, no-arabic-name
+- `street:street-a2-jounieh` Street A2 / شارع أ 2 · Jounieh, 72 m, anchors 0+1
 - `street:rue-fouad-chehab-jounieh` Rue Fouad Chehab / شارع فؤاد شهاب · Jounieh, 68 m, anchors 0+1, english-name-from-french
+- `street:harissa-road-jounieh` Harissa Road / طريق حريصا · Jounieh, 1399 m, anchors 0+0
 - `street:jardin-public-de-jounieh-jounieh` Jardin Public de Jounieh / Jardin Public de Jounieh · Jounieh, 843 m, anchors 0+0, no-arabic-name
 - `street:hopital-saint-louis-street-jounieh` Hôpital Saint Louis Street / Hôpital Saint Louis Street · Jounieh, 644 m, anchors 0+0, no-arabic-name
-- `street:harissa-road-jounieh` Harissa Road / طريق حريصا · Jounieh, 489 m, anchors 0+0
 - `street:deutsche-schule-street-jounieh` Deutsche Schule Street / Deutsche Schule Street · Jounieh, 139 m, anchors 0+0, no-arabic-name
+- `street:ghosta-street-jounieh` Ghosta Street / طريق غوسطا · Jounieh, 91 m, anchors 0+0
+- `street:monastery-street-jounieh` Monastery street / Monastery street · Jounieh, 58 m, anchors 0+0, no-arabic-name
 
 </details>
 
-<details><summary><b>Kaslik</b>: 4 streets, radius 800 m</summary>
+<details><summary><b>Kaslik</b>: 3 streets, radius 800 m</summary>
 
-- `street:sea-road-jounieh` Sea Road / طريق البحر · Jounieh, 6347 m, anchors 0+3
 - `street:sheer-street-kaslik` Sheer Street / شارع شير · Kaslik, Jounieh, 95 m, anchors 0+2
 - `street:kaslik-shopping-street-kaslik` Kaslik Shopping Street / شارع الكسليك للتسوق · Kaslik, Jounieh, 793 m, anchors 0+1
 - `street:hospital-notre-dame-street-kaslik` Hospital Notre Dame Street / شارع مستشفى نوتردام · Kaslik, Jounieh, 121 m, anchors 0+1
@@ -749,7 +752,7 @@ Grouped by parent area, sorted by anchor score then length.
 
 </details>
 
-<details><summary><b>Ras Beirut</b>: 67 streets, radius 400 m</summary>
+<details><summary><b>Ras Beirut</b>: 66 streets, radius 400 m</summary>
 
 - `street:abdel-rahman-itani-ras-beirut` Abdel Rahman Itani / شارع عبد الرحمن العيتاني · Ras Beirut, Beirut, 304 m, anchors 3+5
 - `street:amine-mneimne-ras-beirut` Amine Mneimné / شارع أمين منيمنة · Ras Beirut, Beirut, 229 m, anchors 2+5
@@ -771,7 +774,6 @@ Grouped by parent area, sorted by anchor score then length.
 - `street:labbane-ras-beirut` Labbane / شارع اللبان · Ras Beirut, Beirut, 409 m, anchors 3+2
 - `street:rue-justinien-ras-beirut` Rue Justinien / شارع جستنيان · Ras Beirut, Beirut, 370 m, anchors 0+3
 - `street:tannoukhiyne-ras-beirut` Tannoukhiyne / شارع التنوخيين · Ras Beirut, Beirut, 315 m, anchors 3+2
-- `street:manara-ras-beirut` Manara / شارع المنارة · Ras Beirut, Beirut, 307 m, anchors 3+2
 - `street:mansour-jurdak-ras-beirut` Mansour Jurdak / شارع منصور جرداق · Ras Beirut, Beirut, 289 m, anchors 3+2
 - `street:adonis-ras-beirut` Adonis / شارع أدونيس · Ras Beirut, Beirut, 283 m, anchors 3+2
 - `street:adel-el-solh-ras-beirut` Adel El-Solh / شارع عادل الصلح · Ras Beirut, Beirut, 217 m, anchors 3+2

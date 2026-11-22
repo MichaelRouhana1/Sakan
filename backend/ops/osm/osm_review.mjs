@@ -54,7 +54,8 @@ try {
       FROM search_aliases a
       LEFT JOIN search_locations l ON l.id = a.location_id
       LEFT JOIN universities u ON u.id = a.campus_id
-      WHERE a.place_id IS NULL AND (l.id IS NULL OR l.kind IN ('city','area'))`);
+      WHERE a.place_id IS NULL AND (l.id IS NULL OR l.kind IN ('city','area'))
+        AND a.source IS DISTINCT FROM 'osm'`); // review the manual catalog only, so reruns after an import give the same result
     const exByNorm = new Map();
     for (const e of existing) {
       if (!exByNorm.has(e.n)) exByNorm.set(e.n, []);
@@ -80,7 +81,7 @@ try {
         const rows = await tx.unsafe(`
           SELECT DISTINCT ON (e.target_key) e.alias, e.target_key, coalesce(l.name_en,u.name) AS target_name, similarity(h.n, e.n) AS sim
           FROM unnest($1::text[]) h(n)
-          JOIN (SELECT a.alias, a.target_key, a.location_id, a.campus_id, ${fn}(a.alias) AS n FROM search_aliases a WHERE a.place_id IS NULL) e
+          JOIN (SELECT a.alias, a.target_key, a.location_id, a.campus_id, ${fn}(a.alias) AS n FROM search_aliases a WHERE a.place_id IS NULL AND a.source IS DISTINCT FROM 'osm') e
             ON similarity(h.n, e.n) >= ${NEAR_THRESHOLD}
           LEFT JOIN search_locations l ON l.id = e.location_id LEFT JOIN universities u ON u.id = e.campus_id
           ORDER BY e.target_key, similarity(h.n, e.n) DESC`, [ns]);

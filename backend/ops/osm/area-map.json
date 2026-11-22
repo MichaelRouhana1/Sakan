@@ -15,7 +15,7 @@
   "area:antelias": { "osm": ["r7322344"], "buffer_m": 0 },
   "area:fanar": { "osm": ["r9106590"], "buffer_m": 0 },
   "area:dekwaneh": { "osm": ["r7371104"], "buffer_m": 0 },
-  "area:jounieh": { "derive": { "center": "curated", "radius_m": 1800 }, "note": "No OSM polygon found for Jounieh; 1.8 km circle around the curated centroid, now moved to the coastal town centre (OSM Jounieh Municipality w-way at 33.9848,35.6340; AUL Jounieh campus is 350 m away). Kaslik/Sarba carves out first" },
+  "area:jounieh": { "derive": { "center": "curated", "radius_m": 2500 }, "note": "No OSM polygon found for Jounieh; 2.5 km circle around the curated centroid, now moved to the coastal town centre (OSM Jounieh Municipality w-way at 33.9848,35.6340; AUL Jounieh campus is 350 m away). Kaslik/Sarba carves out first" },
   "area:kaslik": { "osm": ["r8548470"], "buffer_m": 0, "note": "OSM municipality Sarba, which contains the curated Kaslik centroid" },
   "area:zouk-mosbeh": { "osm": ["r7696383"], "buffer_m": 0 },
   "area:byblos": { "osm": ["r9204616"], "buffer_m": 0 },

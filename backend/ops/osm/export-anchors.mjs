@@ -14,8 +14,9 @@ try {
   const live = await sql`SELECT count(*)::int AS n FROM listing_resolved
     WHERE status='active' AND availability<>'rented' AND hidden_reason IS NULL AND expires_at>now()`;
   const areas = await sql`SELECT l.id, l.kind, l.slug, l.name_en, l.name_ar, l.district_en, l.parent_city_id, l.canonical_area, l.lat, l.lng,
-      coalesce((SELECT array_agg(DISTINCT a.alias ORDER BY a.alias) FROM search_aliases a WHERE a.location_id=l.id),'{}') AS aliases
-    FROM search_locations l ORDER BY l.kind, l.id`;
+      coalesce((SELECT array_agg(DISTINCT a.alias ORDER BY a.alias) FROM search_aliases a
+                WHERE a.location_id=l.id AND a.source IS DISTINCT FROM 'osm'),'{}') AS aliases
+    FROM search_locations l WHERE l.source IS DISTINCT FROM 'osm' ORDER BY l.kind, l.id`; // manual catalog only: stable across re-imports
   const anchors = [
     ...places.map(r => ({ type: 'place', id: r.id, lat: Number(r.lat), lng: Number(r.lng) })),
     ...campuses.map(r => ({ type: 'campus', id: r.id, slug: r.slug, lat: Number(r.lat), lng: Number(r.lng) })),
