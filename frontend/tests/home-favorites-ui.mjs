@@ -56,7 +56,13 @@ createRoot(document.getElementById('root')).render(<QueryClientProvider client={
 const stubs = {
   api: `import axios from 'axios';export const API_BASE_URL=location.origin;export const api=axios.create({baseURL:location.origin,headers:{Authorization:'Bearer test-session'}});`,
   auth: `import {useSyncExternalStore} from 'react';const params=new URLSearchParams(location.search);let state={isSignedIn:!params.has('signedout'),isLoading:params.has('loading')};const listeners=new Set();window.setAuth=next=>{state={...state,...next};listeners.forEach(fn=>fn());};export const useAuthSession=()=>{const auth=useSyncExternalStore(fn=>{listeners.add(fn);return()=>listeners.delete(fn);},()=>state);return {...auth,hasClerkSession:auth.isSignedIn,session:auth.isSignedIn?{userId:'renter'}:null,user:auth.isSignedIn?{email:'renter@example.com'}:null,logout:async()=>window.setAuth({isSignedIn:false})};};`,
-  router: `export const router={push:url=>{(window.navigations??=[]).push(url);}};export const useRouter=()=>router;export const usePathname=()=>location.pathname;`,
+  router: `
+    export const router={push:url=>{(window.navigations??=[]).push(url);}};
+    export const useRouter=()=>router;
+    export const usePathname=()=>location.pathname;
+    export const useLocalSearchParams=()=>({});
+    export const Link=({href,children,...props})=><a {...props} href={href}>{children}</a>;
+  `,
   authModal: `export const StudentlyAuthModal=({visible,title,onClose})=>visible?<div role="dialog" aria-label={title||'Sign in to Studently'}><button onClick={onClose}>Close sign in</button></div>:null;`,
   storage: `export default {getItem:async key=>localStorage.getItem(key),setItem:async(key,value)=>localStorage.setItem(key,value),removeItem:async key=>localStorage.removeItem(key)};`,
   haptics: `export const ImpactFeedbackStyle={Light:'light',Medium:'medium'};export const impactAsync=async()=>{};`,
@@ -110,6 +116,9 @@ const server = createServer(async (req, res) => {
   if (url.pathname.startsWith('/api/')) {
     res.setHeader('content-type', 'application/json');
     const reply = data => res.end(JSON.stringify(data));
+    if (url.pathname === '/api/search/suggest') {
+      reply({ data: { sections: { topAreas: [], topCampuses: [] }, results: [] } }); return;
+    }
     if (url.pathname === '/api/listings/home-popular') {
       reply({ data: { areas: ['Achrafieh', 'Hamra', 'Byblos'].map(name => ({ name, count: 1 })), universities: [] } }); return;
     }
@@ -146,13 +155,31 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://**/*', route => route.abort());
   const homeCard = id => page.getByTestId('home-listing-' + id);
+  async function clickHomeFavorite(id, name) {
+    const card = homeCard(id);
+    await card.scrollIntoViewIfNeeded();
+    await card.evaluate(async node => {
+      // Scrolling starts the entrance animation on the next observer frame.
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await Promise.all(node.getAnimations({subtree:true})
+        .filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime))
+        .map(animation => animation.finished.catch(() => {})));
+    });
+    const button = card.getByRole('button', {name, exact:true});
+    await expect.poll(() => button.evaluate(node => {
+      const bounds = node.getBoundingClientRect();
+      return node.contains(document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2));
+    })).toBe(true);
+    await button.click();
+  }
+
   const first = listings[0].id;
   await page.goto(origin);
   await expect(homeCard(first)).toHaveCount(1);
   await expect(homeCard(first)).toContainText('Live Achrafieh apartment');
   await expect(page.getByText('Sunny 1BR near Sassine', { exact: true })).toHaveCount(0);
   assert.ok((await homeCard(first).boundingBox()).width <= 240);
-  await homeCard(first).getByRole('button', { name: 'Save listing', exact: true }).click();
+  await clickHomeFavorite(first, 'Save listing');
   await expect(homeCard(first).getByRole('button', { name: 'Remove from saved', exact: true })).toBeVisible();
   await expect.poll(() => writes.length).toBe(1);
   assert.deepEqual(writes[0], { method: 'POST', id: first });
@@ -168,7 +195,7 @@ try {
   assert.deepEqual(writes[1], { method: 'DELETE', id: first });
   await page.evaluate(() => window.setSurface('home'));
   await expect(homeCard(first).getByRole('button', { name: 'Save listing', exact: true })).toBeVisible();
-  await homeCard(first).getByRole('button', { name: 'Save listing', exact: true }).click();
+  await clickHomeFavorite(first, 'Save listing');
   await expect.poll(() => writes.length).toBe(3);
   await page.reload();
   await expect(homeCard(first).getByRole('button', { name: 'Remove from saved', exact: true })).toBeVisible();
@@ -186,14 +213,14 @@ try {
 
   const beforeSignedOut = writes.length;
   await page.goto(origin + '?signedout');
-  await homeCard(first).getByRole('button', { name: 'Save listing', exact: true }).click();
+  await clickHomeFavorite(first, 'Save listing');
   await expect(page.getByRole('dialog', { name: 'Sign in to save listings' })).toBeVisible();
   assert.equal(writes.length, beforeSignedOut);
   checks.push('signed-out saves still request sign-in without writing favorites');
 
   await page.setViewportSize({ width: 375, height: 844 });
   await page.goto(origin);
-  await homeCard(first).getByRole('button', { name: 'Remove from saved', exact: true }).click();
+  await clickHomeFavorite(first, 'Remove from saved');
   await expect(homeCard(first).getByRole('button', { name: 'Save listing', exact: true })).toBeVisible();
   await expect.poll(() => writes.length).toBe(beforeSignedOut + 1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -298,12 +325,15 @@ try {
   await page.evaluate(()=>window.setSurface('preview'));heart=page.getByTestId('favorite-example').locator('.studently-favorite-pulse');
   const beforePreview=writes.length;await expect(heart).toBeDisabled();await heart.click({force:true});assert.equal(writes.length,beforePreview);
   checks.push('preview hearts remain disabled');
-  await page.goto(origin+'?signedout');heart=homeCard(first).locator('.studently-favorite-pulse');await heart.click();
+  await page.goto(origin+'?signedout');heart=homeCard(first).getByRole('button',{name:'Save listing',exact:true});await clickHomeFavorite(first,'Save listing');
   await expect(page.getByRole('dialog',{name:'Sign in to save listings'})).toBeVisible();await expect(heart).toHaveAttribute('data-liked','false');await expect(heart).not.toHaveAttribute('data-running','');
   checks.push('signed-out clicks open sign-in without a false saved animation');
 
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ checks, writes, errors }, null, 2));
+} catch (error) {
+  console.error(JSON.stringify({ checks, writes, errors }, null, 2));
+  throw error;
 } finally {
   await browser.close();
   await new Promise(resolve => server.close(resolve));
