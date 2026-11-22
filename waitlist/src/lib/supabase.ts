@@ -7,6 +7,7 @@ export type WaitlistSignupRow = {
   email: string;
   whatsapp: string | null;
   university: string | null;
+  campus: string | null;
   housing_timing: string | null;
   area_city: string | null;
   unit_count: string | null;

@@ -1,4 +1,5 @@
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { parseCampusFilter } from "@/lib/universities";
 import {
   getSupabaseAdmin,
   isSupabaseConfigured,
@@ -24,6 +25,8 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role");
+  const university = searchParams.get("university");
+  const campusFilter = parseCampusFilter(searchParams.get("campus") ?? "");
 
   const supabase = getSupabaseAdmin();
   let query = supabase
@@ -33,6 +36,12 @@ export async function GET(request: Request) {
 
   if (role === "student" || role === "landlord") {
     query = query.eq("role", role);
+  }
+  if (university) query = query.eq("university", university);
+  if (campusFilter) {
+    query = query
+      .eq("university", campusFilter.university)
+      .eq("campus", campusFilter.campus);
   }
 
   const { data, error } = await query.limit(10000);
@@ -48,6 +57,7 @@ export async function GET(request: Request) {
     "email",
     "whatsapp",
     "university",
+    "campus",
     "housing_timing",
     "area_city",
     "unit_count",
@@ -70,6 +80,7 @@ export async function GET(request: Request) {
         r.email,
         r.whatsapp,
         r.university,
+        r.campus,
         r.housing_timing,
         r.area_city,
         r.unit_count,

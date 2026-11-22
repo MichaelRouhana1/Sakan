@@ -10,6 +10,7 @@ create table if not exists public.waitlist_signups (
   email text not null,
   whatsapp text,
   university text,
+  campus text,
   housing_timing text,
   area_city text,
   unit_count text,
@@ -34,6 +35,14 @@ create index if not exists waitlist_signups_referred_by_idx
 create index if not exists waitlist_signups_university_idx
   on public.waitlist_signups (university)
   where university is not null;
+
+-- Migration: campus for databases created before this column existed.
+alter table public.waitlist_signups
+  add column if not exists campus text;
+
+create index if not exists waitlist_signups_campus_idx
+  on public.waitlist_signups (campus)
+  where campus is not null;
 
 create index if not exists waitlist_signups_area_city_idx
   on public.waitlist_signups (area_city)

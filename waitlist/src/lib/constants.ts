@@ -1,17 +1,3 @@
-export const UNIVERSITIES = [
-  "AUB",
-  "LAU",
-  "USJ",
-  "NDU",
-  "USEK",
-  "LU",
-  "BAU",
-  "UOB",
-  "Other",
-] as const;
-
-export type University = (typeof UNIVERSITIES)[number];
-
 export const HOUSING_TIMINGS = [
   "This semester",
   "Next semester",

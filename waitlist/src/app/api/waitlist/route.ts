@@ -3,6 +3,7 @@ import { sendConfirmationEmail } from "@/lib/email";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { buildReferralUrl, createReferralCode } from "@/lib/referral";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { resolveStoredPlace } from "@/lib/universities";
 import {
   normalizeWhatsApp,
   signupSchema,
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const place = resolveStoredPlace({
+    ...data,
+    universityRequired: data.role === "student",
+  });
+  if (!place.ok) {
+    return NextResponse.json({ error: place.message }, { status: 400 });
+  }
 
   // Honeypot filled → pretend success
   if (data.website && data.website.length > 0) {
@@ -78,10 +86,8 @@ export async function POST(request: Request) {
     full_name: data.fullName,
     email: data.email,
     whatsapp,
-    university:
-      data.role === "student"
-        ? data.university
-        : data.university || null,
+    university: place.place.university,
+    campus: place.place.campus,
     housing_timing: data.role === "student" ? data.housingTiming : null,
     area_city: data.role === "landlord" ? data.areaCity : null,
     unit_count: data.role === "landlord" ? data.unitCount : null,

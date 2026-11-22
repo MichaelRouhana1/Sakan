@@ -27,9 +27,8 @@ export const STUDENT_CONTENT: PageContent = {
   role: "student",
   altRoleHref: "/landlords",
   altRoleLabel: "Are you a landlord? List your units",
-  headline: "Studently",
-  valueSentence:
-    "Find your dorm in Lebanon, and get student discounts around campus.",
+  headline: "Find your dorm in Lebanon.",
+  valueSentence: "Get student discounts around campus.",
   formCta: "Join the waitlist",
   checkboxLabel: "I want to be a beta tester",
   screenshotDir: "/screenshots/students",
@@ -60,8 +59,8 @@ export const LANDLORD_CONTENT: PageContent = {
   role: "landlord",
   altRoleHref: "/",
   altRoleLabel: "Looking for a dorm? Join as a student",
-  headline: "Studently",
-  valueSentence: "Fill your units with students, without the hassle.",
+  headline: "Fill your units with students.",
+  valueSentence: "Without the hassle.",
   formCta: "Join as a landlord",
   checkboxLabel: "I want early access to list my units",
   screenshotDir: "/screenshots/landlords",
@@ -97,12 +96,12 @@ export const TESTIMONIALS: Array<{
 }> = [];
 
 export const ABOUT = {
-  name: "Michael Rouhana",
+  name: "Tony & Michael",
   photo: "/founder-placeholder.svg",
   /** Swap to /founder.jpg when you add a real photo in public/ */
   paragraphs: [
-    "I’m building Studently (started as Sakan) because finding a dorm in Lebanon shouldn’t mean endless WhatsApp groups, unclear photos, and last-minute stress before the semester.",
-    "As a student, I watched friends waste weeks hunting for a place near campus — and landlords struggle to reach the right people. Studently connects both sides in one simple app.",
+    "We’re building Studently because finding a dorm in Lebanon shouldn’t mean endless WhatsApp groups, unclear photos, and last-minute stress before the semester.",
+    "As students, we watched friends waste weeks hunting for a place near campus, while landlords struggled to reach the right people. Studently connects both sides in one simple app.",
     "Join the waitlist and help us shape the first version for Lebanese universities.",
   ],
 };

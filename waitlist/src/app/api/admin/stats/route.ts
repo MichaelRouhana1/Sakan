@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { parseCampusFilter } from "@/lib/universities";
 import {
   getSupabaseAdmin,
   isSupabaseConfigured,
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const university = searchParams.get("university");
+  const campusFilter = parseCampusFilter(searchParams.get("campus") ?? "");
   const area = searchParams.get("area");
   const betaOnly = searchParams.get("beta") === "1";
 
@@ -40,6 +42,11 @@ export async function GET(request: Request) {
   if (from) query = query.gte("created_at", from);
   if (to) query = query.lte("created_at", `${to}T23:59:59.999Z`);
   if (university) query = query.eq("university", university);
+  if (campusFilter) {
+    query = query
+      .eq("university", campusFilter.university)
+      .eq("campus", campusFilter.campus);
+  }
   if (area) query = query.ilike("area_city", `%${area}%`);
   if (betaOnly) query = query.eq("beta_tester", true);
 
@@ -53,6 +60,7 @@ export async function GET(request: Request) {
 
   const byDay = new Map<string, number>();
   const studentsByUniversity = new Map<string, number>();
+  const byCampus = new Map<string, number>();
   const landlordsByArea = new Map<string, number>();
   const landlordsByUnits = new Map<string, number>();
   const referrerCounts = new Map<string, number>();
@@ -88,6 +96,11 @@ export async function GET(request: Request) {
       }
     }
 
+    if (row.university && row.campus) {
+      const label = `${row.university} — ${row.campus}`;
+      byCampus.set(label, (byCampus.get(label) ?? 0) + 1);
+    }
+
     if (row.beta_tester) betaTesters += 1;
     if (row.referred_by) {
       referrerCounts.set(
@@ -121,6 +134,9 @@ export async function GET(request: Request) {
     studentsByUniversity: [...studentsByUniversity.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({ name, count })),
+    byCampus: [...byCampus.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count })),
     landlordsByArea: [...landlordsByArea.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({ name, count })),
@@ -135,6 +151,7 @@ export async function GET(request: Request) {
       fullName: r.full_name,
       email: r.email,
       university: r.university,
+      campus: r.campus,
       areaCity: r.area_city,
       unitCount: r.unit_count,
       betaTester: r.beta_tester,

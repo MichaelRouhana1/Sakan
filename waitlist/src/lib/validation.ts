@@ -2,9 +2,9 @@ import { z } from "zod";
 import {
   HOUSING_TIMINGS,
   UNIT_COUNTS,
-  UNIVERSITIES,
   type WaitlistRole,
 } from "./constants";
+import { resolveStoredPlace } from "./universities";
 
 const emailSchema = z
   .string()
@@ -41,36 +41,54 @@ const baseFields = {
   utmCampaign: z.string().trim().max(120).optional(),
 };
 
-export const studentSignupSchema = z.object({
-  ...baseFields,
-  role: z.literal("student"),
-  whatsapp: whatsappSchema.optional().default(""),
-  university: z.enum(UNIVERSITIES, {
-    message: "Select your university",
-  }),
-  housingTiming: z.enum(HOUSING_TIMINGS, {
-    message: "Select when you need housing",
-  }),
-  betaTester: z.boolean().default(false),
-});
+const placeFields = {
+  university: z.string().trim().max(32).optional().default(""),
+  universityOther: z.string().trim().max(120).optional().default(""),
+  campus: z.string().trim().max(160).optional().default(""),
+};
 
-export const landlordSignupSchema = z.object({
-  ...baseFields,
-  role: z.literal("landlord"),
-  whatsapp: whatsappSchema.refine((v) => v.length >= 8, {
-    message: "WhatsApp number is required",
-  }),
-  areaCity: z
-    .string()
-    .trim()
-    .min(2, "Area / city is required")
-    .max(120),
-  unitCount: z.enum(UNIT_COUNTS, {
-    message: "Select number of units",
-  }),
-  university: z.union([z.enum(UNIVERSITIES), z.literal("")]).optional(),
-  betaTester: z.boolean().default(false),
-});
+export const studentSignupSchema = z
+  .object({
+    ...baseFields,
+    ...placeFields,
+    role: z.literal("student"),
+    whatsapp: whatsappSchema.optional().default(""),
+    housingTiming: z.enum(HOUSING_TIMINGS, {
+      message: "Select when you need housing",
+    }),
+    betaTester: z.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    const resolved = resolveStoredPlace({ ...data, universityRequired: true });
+    if (!resolved.ok) {
+      ctx.addIssue({ code: "custom", message: resolved.message });
+    }
+  });
+
+export const landlordSignupSchema = z
+  .object({
+    ...baseFields,
+    ...placeFields,
+    role: z.literal("landlord"),
+    whatsapp: whatsappSchema.refine((v) => v.length >= 8, {
+      message: "WhatsApp number is required",
+    }),
+    areaCity: z
+      .string()
+      .trim()
+      .min(2, "Area / city is required")
+      .max(120),
+    unitCount: z.enum(UNIT_COUNTS, {
+      message: "Select number of units",
+    }),
+    betaTester: z.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    const resolved = resolveStoredPlace(data);
+    if (!resolved.ok) {
+      ctx.addIssue({ code: "custom", message: resolved.message });
+    }
+  });
 
 export const signupSchema = z.discriminatedUnion("role", [
   studentSignupSchema,

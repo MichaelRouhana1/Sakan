@@ -6,10 +6,16 @@ import { usePostHog } from "posthog-js/react";
 import {
   HOUSING_TIMINGS,
   UNIT_COUNTS,
-  UNIVERSITIES,
   type WaitlistRole,
 } from "@/lib/constants";
 import type { PageContent } from "@/lib/content";
+import { SearchSelect } from "@/components/SearchSelect";
+import {
+  INSTITUTIONS_BY_SHORT_NAME,
+  OTHER_UNIVERSITY,
+  institutionByShortName,
+  resolveStoredPlace,
+} from "@/lib/universities";
 
 type SignupFormProps = {
   content: PageContent;
@@ -20,6 +26,8 @@ type FormState = {
   email: string;
   whatsapp: string;
   university: string;
+  universityOther: string;
+  campus: string;
   housingTiming: string;
   areaCity: string;
   unitCount: string;
@@ -32,6 +40,8 @@ const initial = (role: WaitlistRole): FormState => ({
   email: "",
   whatsapp: "+961",
   university: "",
+  universityOther: "",
+  campus: "",
   housingTiming: "",
   areaCity: "",
   unitCount: "",
@@ -83,19 +93,61 @@ export function SignupForm({ content }: SignupFormProps) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function selectUniversity(next: string) {
+    markStarted();
+    setForm((prev) => {
+      if (prev.university === next) return prev;
+      const institution = institutionByShortName(next);
+      const campus =
+        institution && institution.campuses.length === 1
+          ? institution.campuses[0].name
+          : "";
+      return {
+        ...prev,
+        university: next,
+        universityOther: "",
+        campus,
+      };
+    });
+  }
+
+  const universityOptions = [
+    ...(content.role === "landlord"
+      ? [{ value: "", label: "No preference" }]
+      : []),
+    ...INSTITUTIONS_BY_SHORT_NAME.map((institution) => ({
+      value: institution.shortName,
+      label: `${institution.shortName} — ${institution.name}`,
+    })),
+    { value: OTHER_UNIVERSITY, label: OTHER_UNIVERSITY },
+  ];
+  const selectedInstitution = institutionByShortName(form.university);
+  const campusOptions =
+    selectedInstitution && selectedInstitution.campuses.length > 1
+      ? selectedInstitution.campuses.map((campus) => ({
+          value: campus.name,
+          label: campus.name,
+        }))
+      : [];
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const payload =
+    const place = {
+    university: form.university,
+    universityOther: form.universityOther,
+    campus: form.campus,
+  };
+  const payload =
       content.role === "student"
         ? {
             role: "student" as const,
             fullName: form.fullName,
             email: form.email,
             whatsapp: form.whatsapp,
-            university: form.university,
+            ...place,
             housingTiming: form.housingTiming,
             betaTester: form.betaTester,
             website: form.website,
@@ -108,7 +160,7 @@ export function SignupForm({ content }: SignupFormProps) {
             whatsapp: form.whatsapp,
             areaCity: form.areaCity,
             unitCount: form.unitCount,
-            university: form.university || undefined,
+            ...place,
             betaTester: form.betaTester,
             website: form.website,
             ...utm,
@@ -134,10 +186,14 @@ export function SignupForm({ content }: SignupFormProps) {
         waitlist_role: content.role,
       });
 
+      const stored = resolveStoredPlace({
+        ...place,
+        universityRequired: content.role === "student",
+      });
       posthog?.capture("waitlist_signup", {
         role: content.role,
-        university:
-          content.role === "student" ? form.university : form.university || undefined,
+        university: stored.ok ? stored.place.university ?? undefined : undefined,
+        campus: stored.ok ? stored.place.campus ?? undefined : undefined,
         area: content.role === "landlord" ? form.areaCity : undefined,
         unit_count: content.role === "landlord" ? form.unitCount : undefined,
         beta_tester: form.betaTester,
@@ -257,24 +313,16 @@ export function SignupForm({ content }: SignupFormProps) {
 
         {content.role === "student" ? (
           <>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-ink-muted">
-                University
-              </span>
-              <select
-                className={field}
-                required
-                value={form.university}
-                onChange={(e) => update("university", e.target.value)}
-              >
-                <option value="">Select…</option>
-                {UNIVERSITIES.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <UniversityFields
+              form={form}
+              universityOptions={universityOptions}
+              campusOptions={campusOptions}
+              onUniversity={selectUniversity}
+              onCampus={(campus) => update("campus", campus)}
+              onOther={(universityOther) => update("universityOther", universityOther)}
+              fieldClass={field}
+              universityLabel="University"
+            />
 
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium text-ink-muted">
@@ -330,23 +378,16 @@ export function SignupForm({ content }: SignupFormProps) {
               </select>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-ink-muted">
-                Nearest university (optional)
-              </span>
-              <select
-                className={field}
-                value={form.university}
-                onChange={(e) => update("university", e.target.value)}
-              >
-                <option value="">Select…</option>
-                {UNIVERSITIES.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <UniversityFields
+              form={form}
+              universityOptions={universityOptions}
+              campusOptions={campusOptions}
+              onUniversity={selectUniversity}
+              onCampus={(campus) => update("campus", campus)}
+              onOther={(universityOther) => update("universityOther", universityOther)}
+              fieldClass={field}
+              universityLabel="Nearest university (optional)"
+            />
           </>
         )}
 
@@ -388,5 +429,71 @@ export function SignupForm({ content }: SignupFormProps) {
         {loading ? "Joining…" : content.formCta}
       </button>
     </form>
+  );
+}
+
+function UniversityFields({
+  form,
+  universityOptions,
+  campusOptions,
+  onUniversity,
+  onCampus,
+  onOther,
+  fieldClass,
+  universityLabel,
+}: {
+  form: FormState;
+  universityOptions: { value: string; label: string }[];
+  campusOptions: { value: string; label: string }[];
+  onUniversity: (value: string) => void;
+  onCampus: (value: string) => void;
+  onOther: (value: string) => void;
+  fieldClass: string;
+  universityLabel: string;
+}) {
+  return (
+    <>
+      <div className="block">
+        <span className="mb-1.5 block text-xs font-medium text-ink-muted">
+          {universityLabel}
+        </span>
+        <SearchSelect
+          ariaLabel={universityLabel}
+          searchPlaceholder="Search universities"
+          value={form.university}
+          options={universityOptions}
+          onChange={onUniversity}
+        />
+      </div>
+      {form.university === OTHER_UNIVERSITY ? (
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-medium text-ink-muted">
+            University name
+          </span>
+          <input
+            className={fieldClass}
+            required
+            value={form.universityOther}
+            onChange={(event) => onOther(event.target.value)}
+            placeholder="Your university"
+            data-ph-mask
+          />
+        </label>
+      ) : null}
+      {campusOptions.length > 0 ? (
+        <div className="block">
+          <span className="mb-1.5 block text-xs font-medium text-ink-muted">
+            Campus
+          </span>
+          <SearchSelect
+            ariaLabel="Campus"
+            searchPlaceholder="Search campuses"
+            value={form.campus}
+            options={campusOptions}
+            onChange={onCampus}
+          />
+        </div>
+      ) : null}
+    </>
   );
 }

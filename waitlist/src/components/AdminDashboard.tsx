@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { UNIVERSITIES } from "@/lib/constants";
+import {
+  CAMPUS_FILTER_OPTIONS,
+  INSTITUTIONS_BY_SHORT_NAME,
+} from "@/lib/universities";
 
 type Stats = {
   total: number;
@@ -10,6 +13,7 @@ type Stats = {
   betaTesters: number;
   byDay: { date: string; count: number }[];
   studentsByUniversity: { name: string; count: number }[];
+  byCampus: { name: string; count: number }[];
   landlordsByArea: { name: string; count: number }[];
   landlordsByUnits: { name: string; count: number }[];
   topReferrers: { code: string; count: number; email: string | null }[];
@@ -19,6 +23,7 @@ type Stats = {
     fullName: string;
     email: string;
     university: string | null;
+    campus: string | null;
     areaCity: string | null;
     unitCount: string | null;
     betaTester: boolean;
@@ -33,6 +38,7 @@ type Filters = {
   from: string;
   to: string;
   university: string;
+  campus: string;
   area: string;
   beta: boolean;
 };
@@ -42,6 +48,7 @@ const emptyFilters: Filters = {
   from: "",
   to: "",
   university: "",
+  campus: "",
   area: "",
   beta: false,
 };
@@ -63,6 +70,7 @@ export function AdminDashboard() {
     if (f.from) params.set("from", f.from);
     if (f.to) params.set("to", f.to);
     if (f.university) params.set("university", f.university);
+    if (f.campus) params.set("campus", f.campus);
     if (f.area) params.set("area", f.area);
     if (f.beta) params.set("beta", "1");
 
@@ -153,7 +161,16 @@ export function AdminDashboard() {
     );
   }
 
-  const exportUrl = `/api/admin/export?role=${filters.role === "all" ? "" : filters.role}`;
+  const exportParams = new URLSearchParams();
+  if (filters.role !== "all") exportParams.set("role", filters.role);
+  if (filters.university) exportParams.set("university", filters.university);
+  if (filters.campus) exportParams.set("campus", filters.campus);
+  const exportUrl = `/api/admin/export?${exportParams.toString()}`;
+  const campusOptions = filters.university
+    ? CAMPUS_FILTER_OPTIONS.filter((option) =>
+        option.value.startsWith(`${filters.university}:::`),
+      )
+    : CAMPUS_FILTER_OPTIONS;
 
   return (
     <div className="min-h-screen bg-wash px-4 py-8 sm:px-6 lg:px-8">
@@ -234,13 +251,39 @@ export function AdminDashboard() {
               className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
               value={filters.university}
               onChange={(e) =>
-                setFilters((f) => ({ ...f, university: e.target.value }))
+                setFilters((f) => ({
+                  ...f,
+                  university: e.target.value,
+                  campus:
+                    f.campus &&
+                    e.target.value &&
+                    !f.campus.startsWith(`${e.target.value}:::`)
+                      ? ""
+                      : f.campus,
+                }))
               }
             >
               <option value="">Any</option>
-              {UNIVERSITIES.map((u) => (
-                <option key={u} value={u}>
-                  {u}
+              {INSTITUTIONS_BY_SHORT_NAME.map((institution) => (
+                <option key={institution.slug} value={institution.shortName}>
+                  {institution.shortName} — {institution.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-ink-muted">
+            Campus
+            <select
+              className="mt-1 w-full rounded-lg border border-black/10 px-2 py-2 text-sm"
+              value={filters.campus}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, campus: e.target.value }))
+              }
+            >
+              <option value="">Any</option>
+              {campusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
@@ -303,6 +346,9 @@ export function AdminDashboard() {
               <Panel title="Students by university">
                 <SimpleBars items={stats.studentsByUniversity} />
               </Panel>
+              <Panel title="By campus">
+                <SimpleBars items={stats.byCampus} />
+              </Panel>
               <Panel title="Landlords by area">
                 <SimpleBars items={stats.landlordsByArea} />
               </Panel>
@@ -359,8 +405,10 @@ export function AdminDashboard() {
                         <td className="py-2 pr-3">{r.email}</td>
                         <td className="py-2 pr-3 text-ink-muted">
                           {r.role === "student"
-                            ? r.university
-                            : [r.areaCity, r.unitCount].filter(Boolean).join(" · ")}
+                            ? [r.university, r.campus].filter(Boolean).join(" · ")
+                            : [r.areaCity, r.unitCount, r.university, r.campus]
+                                .filter(Boolean)
+                                .join(" · ")}
                         </td>
                         <td className="py-2">{r.betaTester ? "Yes" : ""}</td>
                       </tr>

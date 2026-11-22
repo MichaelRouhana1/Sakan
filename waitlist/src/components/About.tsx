@@ -17,7 +17,7 @@ export function About() {
         </div>
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.14em] text-brand">
-            About the builder
+            About the builders
           </p>
           <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
             {ABOUT.name}
