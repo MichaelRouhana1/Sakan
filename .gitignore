@@ -1,5 +1,11 @@
 node_modules/
 dist/
+web-build/
+.next/
+.cache/
+.parcel-cache/
+.turbo/
+.vite/
 .env
 .env.local
 .expo/
@@ -13,6 +19,50 @@ backend/.email-outbox/
 # Vendor dumps scraped for research — may contain third-party tokens.
 research/_amber-*
 tmp-img/
+
+# Local browser profiles, test output and generated exports.
+.browser-profile/
+playwright-report/
+/frontend/test-results/
+/artifacts/search-v2/**/native-export/
+
+# Local captures and archives from the existing research and QA runs.
+/airbnb-*.har
+/airbnb-*.png
+/airbnb-evidence.json
+/amber-*.png
+/amber-evidence.json
+/amber-provider-evidence.json
+/*-research-evidence.zip
+/artifacts/**/*.zip
+/artifacts/amber-search/data/rea/
+/artifacts/amber-search/frames/
+/artifacts/amber-search/recordings/
+/artifacts/amber-search/screenshots/
+/artifacts/home-header-rea/recordings/
+/artifacts/home-header-rea/screenshots/
+/artifacts/home-header-rea/implementation/recordings/
+/artifacts/home-header-rea/implementation/screenshots/
+/artifacts/home-header-rea/implementation/search-regression/
+/artifacts/home-header-rea/implementation/recording-audit.png
+/artifacts/search-v2/**/*.png
+/artifacts/desktop-scale/**/*.png
+/artifacts/homepage-scale/**/*.png
+/artifacts/listings-workspace/*.png
+/artifacts/pulse-heart/*.png
+/artifacts/renew-ux/*.png
+/artifacts/rubber-segment/*.png
+/artifacts/university-map*/*.png
+/artifacts/**/*-typecheck.txt
+/artifacts/**/*-build.txt
+/artifacts/**/typescript.txt
+/research/amber-clusters-*/*.png
+/research/amber-clusters-*/*.current.js
+/research/amber-origin-storage/**/*.body
+/research/amber-origin-storage/**/*.headers.txt
+/research/map-pin-comparison/*.desktop.js
+/research/map-pin-comparison/*.mobile.js
+/research/map-pin-comparison/*.png
 
 # Brand working files stay local: logo exploration, renders, generators and scratch.
 # Only the exported kit and the source of the shipped app mark are tracked.
