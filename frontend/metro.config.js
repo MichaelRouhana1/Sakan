@@ -94,6 +94,24 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     };
   }
 
+  // The ESM entry imports metadata.min.json.js, which Metro cannot resolve.
+  // The CommonJS entry loads the same metadata as JSON.
+  if (moduleName === "libphonenumber-js") {
+    return {
+      filePath: path.resolve(__dirname, "node_modules/libphonenumber-js/index.cjs"),
+      type: "sourceFile",
+    };
+  }
+  if (
+    moduleName === "libphonenumber-js/examples.mobile.json" ||
+    moduleName === "libphonenumber-js/mobile/examples"
+  ) {
+    return {
+      filePath: path.resolve(__dirname, "node_modules/libphonenumber-js/examples.mobile.json"),
+      type: "sourceFile",
+    };
+  }
+
   // Default resolver
   if (originalResolveRequest) {
     return originalResolveRequest(context, moduleName, platform);

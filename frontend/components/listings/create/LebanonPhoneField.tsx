@@ -1,339 +1,496 @@
-import { useDesktopDesign } from "@/components/ui/DesktopDesign";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LText } from "@/components/lister/Typography";
-import { Lister } from "@/constants/listerTheme";
-import { WHATSAPP_GREEN } from "@/lib/whatsapp";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  formatSubscriber,
-  LANDLINE_PREFIX_HINT,
-  prefixesFor,
-  sanitizeSubscriber,
+  Animated,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+  type View as ViewType,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Lister } from "@/constants/listerTheme";
+import {
+  callingCode,
+  countryName,
+  examplePlaceholder,
+  formatForCountry,
+  isFixedLine,
+  maxNationalDigits,
+  nationalFromInput,
+  phoneError,
+  rankCountryChoices,
+  samePhone,
+  toE164,
   type ContactNumber,
-  type PhoneKind,
+  type CountryChoice,
 } from "@/lib/lebanonPhone";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
+import { getCountries, getCountryCallingCode } from "libphonenumber-js";
+
+function Flag({ code }: { code: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return <Ionicons name="earth-outline" size={16} color={Lister.color.inkMuted} />;
+  }
+  return (
+    <Image
+      accessibilityIgnoresInvertColors
+      source={{ uri: `https://flagcdn.com/w40/${code.toLowerCase()}.png` }}
+      style={styles.flag}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+const COUNTRY_LIST: CountryChoice[] = (() => {
+  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  return getCountries().map((code) => ({
+    code,
+    name: names.of(code) ?? code,
+    calling: getCountryCallingCode(code),
+  }));
+})();
+
+function WhatsAppSwitch({
+  value,
+  disabled,
+  label,
+  onValueChange,
+}: {
+  value: boolean;
+  disabled?: boolean;
+  label: string;
+  onValueChange: (next: boolean) => void;
+}) {
+  const travel = useRef(new Animated.Value(value ? 18 : 0)).current;
+  useEffect(() => {
+    Animated.timing(travel, {
+      toValue: value ? 18 : 0,
+      duration: 140,
+      useNativeDriver: Platform.OS !== "web",
+    }).start();
+  }, [travel, value]);
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
+      disabled={disabled}
+      onPress={() => onValueChange(!value)}
+      style={styles.switchHit}
+    >
+      <View style={[styles.track, value ? styles.trackOn : styles.trackOff, disabled && styles.switchDisabled]}>
+        <Animated.View style={[styles.knob, { transform: [{ translateX: travel }] }]} />
+      </View>
+    </Pressable>
+  );
+}
 
 type Props = {
   value: ContactNumber;
+  others: ContactNumber[];
   error?: boolean;
   canRemove?: boolean;
+  primary?: boolean;
   index: number;
   onChange: (next: ContactNumber) => void;
   onRemove?: () => void;
+  onMakePrimary?: () => void;
 };
 
 export function LebanonPhoneField({
   value,
+  others,
   error,
   canRemove,
+  primary,
   index,
   onChange,
   onRemove,
+  onMakePrimary,
 }: Props) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const styles = resolveStyles(baseStyles);
-  
-  const prefixes = prefixesFor(value.kind);
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const sheet = Platform.OS !== "web" || windowWidth < 768;
+  const rowRef = useRef<ViewType>(null);
+  const ignoreBlur = useRef(false);
+  const [text, setText] = useState(() => formatForCountry(value.country || "LB", value.national));
+  const [touched, setTouched] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const [anchor, setAnchor] = useState({ x: 16, y: 16, w: 320, h: 48 });
+  const number = index + 1;
+  const country = value.country || "LB";
+  const choices = useMemo(() => rankCountryChoices(COUNTRY_LIST, query), [query]);
+  const maxDigits = maxNationalDigits(country);
+  const digits = value.national.replace(/\D/g, "");
+  const overLimit = digits.length > maxDigits;
+  const duplicate = others.some((other) => samePhone(value, other));
+  const valid = Boolean(toE164(value)) && !overLimit;
+  const showError = overLimit || ((touched || Boolean(error)) && (!valid || duplicate));
+  const message = duplicate ? "This number is already added." : phoneError(value);
+  const fixed = isFixedLine(value);
 
-  function setKind(kind: PhoneKind) {
-    const prefix = prefixesFor(kind).includes(value.prefix)
-      ? value.prefix
-      : kind === "landline"
-        ? "01"
-        : "71";
-    onChange({
-      ...value,
-      kind,
-      prefix,
-      whatsapp: kind === "mobile" ? value.whatsapp : false,
-      calls: kind === "landline" ? true : value.calls,
-    });
+  useEffect(() => {
+    const national = value.national.replace(/\D/g, "");
+    setText(national.length > maxNationalDigits(country) ? national : formatForCountry(country, national));
+  }, [country, value.national]);
+
+  useEffect(() => {
+    if (!open || Platform.OS !== "web") return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActive((i) => Math.min(i + 1, Math.max(choices.length - 1, 0)));
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActive((i) => Math.max(i - 1, 0));
+      } else if (event.key === "Enter" && choices[active]) {
+        event.preventDefault();
+        chooseCountry(choices[active].code);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, choices, active]);
+
+  function commit(raw: string) {
+    let national = nationalFromInput(country, raw);
+    if (national.length > maxDigits) national = national.slice(0, maxDigits);
+    setText(formatForCountry(country, national));
+    onChange({ ...value, country, national });
   }
 
-  function toggleCalls() {
-    if (value.kind === "landline") return;
-    if (value.calls && !value.whatsapp) return;
-    onChange({ ...value, calls: !value.calls });
+  function chooseCountry(next: string) {
+    const national = value.national.replace(/\D/g, "");
+    const nextMax = maxNationalDigits(next);
+    onChange({ ...value, country: next, national });
+    setText(national.length > nextMax ? national : formatForCountry(next, national));
+    setOpen(false);
+    setQuery("");
   }
 
-  function toggleWhatsApp() {
-    if (value.kind === "landline") return;
-    if (value.whatsapp && !value.calls) return;
-    onChange({ ...value, whatsapp: !value.whatsapp });
+  function openPicker() {
+    ignoreBlur.current = true;
+    setQuery("");
+    setActive(0);
+    const node = rowRef.current as unknown as {
+      measureInWindow?: (cb: (x: number, y: number, w: number, h: number) => void) => void;
+      getBoundingClientRect?: () => { x: number; y: number; width: number; height: number };
+    } | null;
+    if (node?.getBoundingClientRect) {
+      const rect = node.getBoundingClientRect();
+      setAnchor({ x: rect.x, y: rect.y, w: rect.width, h: rect.height });
+      setOpen(true);
+      return;
+    }
+    if (node?.measureInWindow) {
+      node.measureInWindow((x, y, w, h) => {
+        setAnchor({ x, y, w, h });
+        setOpen(true);
+      });
+      return;
+    }
+    setOpen(true);
   }
+
+  const menu = (
+    <View style={styles.menu}>
+      <TextInput
+        accessibilityLabel="Search countries"
+        autoFocus
+        placeholder="Search country or code"
+        placeholderTextColor={Lister.color.inkFaint}
+        value={query}
+        onChangeText={(next) => {
+          setQuery(next);
+          setActive(0);
+        }}
+        style={styles.search}
+      />
+      <ScrollView keyboardShouldPersistTaps="handled" style={styles.list}>
+        {choices.map((choice, i) => (
+          <Pressable
+            key={choice.code}
+            accessibilityRole="button"
+            accessibilityState={{ selected: choice.code === country }}
+            onPress={() => chooseCountry(choice.code)}
+            style={[styles.option, i === active && styles.optionActive, choice.code === country && styles.optionSelected]}
+          >
+            <Flag code={choice.code} />
+            <Text style={styles.optionName}>{choice.name}</Text>
+            <Text style={styles.optionCode}>+{choice.calling}</Text>
+          </Pressable>
+        ))}
+        {choices.length === 0 ? <Text style={styles.empty}>No matching country</Text> : null}
+      </ScrollView>
+    </View>
+  );
+
+  const popWidth = Math.min(Math.max(anchor.w, 320), windowWidth - 16);
+  const left = Math.max(8, Math.min(anchor.x, windowWidth - popWidth - 8));
+  let top = anchor.y + anchor.h + 4;
+  if (top + 380 > windowHeight) top = Math.max(8, anchor.y - 380 - 4);
 
   return (
-    <View style={[styles.card, error && styles.cardError]}>
+    <View style={styles.block}>
       <View style={styles.head}>
-        <LText variant="caption" style={styles.headLabel}>
-          Number {index + 1}
-        </LText>
-        {canRemove ? (
+        <Text style={styles.headLabel}>Number {number}</Text>
+        <View style={styles.headActions}>
+          {primary ? (
+            <View accessibilityLabel="Primary number" style={styles.primaryBadge}>
+              <Text style={styles.primaryText}>Primary</Text>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Make number ${number} primary`}
+              onPress={onMakePrimary}
+              style={(state) => [styles.makePrimary, state.hovered && styles.makePrimaryHover]}
+            >
+              {(state) => (
+                <Text style={[styles.makePrimaryText, state.hovered && styles.makePrimaryTextHover]}>
+                  Make primary
+                </Text>
+              )}
+            </Pressable>
+          )}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Remove number ${index + 1}`}
+            accessibilityLabel={`Remove number ${number}`}
+            accessibilityState={{ disabled: !canRemove }}
+            disabled={!canRemove}
             onPress={onRemove}
-            hitSlop={8}
+            style={styles.remove}
           >
-            <Ionicons name="trash-outline" size={designSize(18)} color={Lister.color.danger} />
+            <Ionicons name="trash-outline" size={18} color={canRemove ? Lister.color.inkMuted : Lister.color.border} />
           </Pressable>
-        ) : null}
-      </View>
-
-      <View style={styles.kindRow}>
-        <KindChip
-          label="Mobile"
-          selected={value.kind === "mobile"}
-          onPress={() => setKind("mobile")}
-        />
-        <KindChip
-          label="Telephone"
-          selected={value.kind === "landline"}
-          onPress={() => setKind("landline")}
-        />
-      </View>
-
-      <View style={styles.prefixWrap}>
-        {prefixes.map((p) => {
-          const on = value.prefix === p;
-          const hint =
-            value.kind === "landline"
-              ? LANDLINE_PREFIX_HINT[p as keyof typeof LANDLINE_PREFIX_HINT]
-              : null;
-          return (
-            <Pressable
-              key={p}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              onPress={() => onChange({ ...value, prefix: p })}
-              style={[styles.prefix, on && styles.prefixOn]}
-            >
-              <LText variant="caption" style={on ? styles.prefixTextOn : styles.prefixText}>
-                {p}
-              </LText>
-              {hint && on ? (
-                <LText variant="caption" style={styles.prefixHint}>
-                  {hint}
-                </LText>
-              ) : null}
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={[styles.inputRow, error && styles.inputRowError]}>
-        <LText variant="subtitle" style={styles.cc}>
-          +961
-        </LText>
-        <View style={styles.prefixBadge}>
-          <LText variant="subtitle">{value.prefix}</LText>
         </View>
+      </View>
+
+      <View ref={rowRef} style={[styles.row, focused && styles.rowFocus, showError && styles.rowError]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Country code, ${countryName(country)} +${callingCode(country)}`}
+          onPress={openPicker}
+          style={styles.country}
+        >
+          <Flag code={country} />
+          <Text style={styles.code}>+{callingCode(country)}</Text>
+          <Ionicons name="chevron-down" size={14} color={Lister.color.inkMuted} />
+        </Pressable>
         <TextInput
-          accessibilityLabel={`Lebanese ${value.kind} number ${index + 1}`}
+          accessibilityLabel={`Phone number ${number}`}
           keyboardType="number-pad"
-          placeholder={value.kind === "landline" ? "234 567" : "123 456"}
+          inputMode="numeric"
+          placeholder={examplePlaceholder(country)}
           placeholderTextColor={Lister.color.inkFaint}
-          value={formatSubscriber(value.subscriber)}
-          onChangeText={(raw) =>
-            onChange({ ...value, subscriber: sanitizeSubscriber(raw) })
-          }
+          value={text}
+          onChangeText={commit}
+          onFocus={() => setFocused(true)}
+          onBlur={() => {
+            setFocused(false);
+            if (ignoreBlur.current) {
+              ignoreBlur.current = false;
+              return;
+            }
+            setTouched(true);
+          }}
           style={styles.input}
-          maxLength={7}
         />
       </View>
+      {showError ? (
+        <Text accessibilityRole="alert" style={styles.error}>{message}</Text>
+      ) : null}
 
-      {value.kind === "landline" ? (
-        <LText variant="caption" tone="muted">
-          Landline — voice calls only (01 / 04–09).
-        </LText>
-      ) : (
-        <View style={styles.useRow}>
-          <UseChip
-            icon="call-outline"
-            label="Calls"
-            selected={value.calls}
-            onPress={toggleCalls}
-          />
-          <UseChip
-            icon="logo-whatsapp"
-            label="WhatsApp"
-            selected={value.whatsapp}
-            tone="whatsapp"
-            onPress={toggleWhatsApp}
-          />
-        </View>
-      )}
+      <View style={styles.whatsappRow}>
+        <Text style={[styles.whatsappLabel, fixed && styles.disabledText]}>Available on WhatsApp</Text>
+        <WhatsAppSwitch
+          label={`Number ${number} available on WhatsApp`}
+          disabled={fixed}
+          value={!fixed && value.whatsapp}
+          onValueChange={(whatsapp) => onChange({ ...value, whatsapp })}
+        />
+      </View>
+      {fixed ? <Text style={styles.hint}>Landlines are for calls only.</Text> : null}
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)} statusBarTranslucent>
+        {sheet ? (
+          <View style={styles.sheetRoot}>
+            <Pressable accessibilityLabel="Close country list" onPress={() => setOpen(false)} style={styles.scrim} />
+            <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+              <View style={styles.handle} />
+              <Text style={styles.sheetTitle}>Country code</Text>
+              {menu}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.popRoot} pointerEvents="box-none">
+            <Pressable accessibilityLabel="Close country list" onPress={() => setOpen(false)} style={styles.clearBackdrop} />
+            <View style={[styles.popover, { top, left, width: popWidth }]}>{menu}</View>
+          </View>
+        )}
+      </Modal>
     </View>
   );
 }
 
-function KindChip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const styles = resolveStyles(baseStyles);
-  
+export function AddNumberButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityLabel="Add another phone number"
       onPress={onPress}
-      style={[styles.kind, selected && styles.kindOn]}
+      style={styles.add}
     >
-      <LText variant="caption" style={selected ? styles.kindTextOn : styles.kindText}>
-        {label}
-      </LText>
+      <Ionicons name="add" size={18} color={Lister.color.ink} />
+      <Text style={styles.addText}>Add another number</Text>
     </Pressable>
   );
 }
 
-function UseChip({
-  icon,
-  label,
-  selected,
-  tone = "brand",
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  selected: boolean;
-  tone?: "brand" | "whatsapp";
-  onPress: () => void;
-}) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const styles = resolveStyles(baseStyles);
-  
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[styles.use, selected && (tone === "whatsapp" ? styles.useWhatsApp : styles.useOn)]}
-    >
-      <Ionicons
-        name={icon}
-        size={designSize(16)}
-        color={selected ? "#FFFFFF" : Lister.color.inkMuted}
-      />
-      <LText variant="caption" style={selected ? styles.useTextOn : styles.useText}>
-        {label}
-      </LText>
-    </Pressable>
-  );
-}
-
-const baseStyles = StyleSheet.create({
-  card: {
-    gap: 10,
-    padding: 12,
-    borderRadius: Lister.radius.md,
-    backgroundColor: Lister.color.surface,
+const styles = StyleSheet.create({
+  block: { gap: 6 },
+  head: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headLabel: { fontFamily: Lister.type.bodySemi, fontSize: 14, color: Lister.color.ink },
+  headActions: { flexDirection: "row", alignItems: "center" },
+  primaryBadge: {
+    minHeight: 28,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+    borderRadius: Lister.radius.pill,
     borderWidth: 1,
-    borderColor: Lister.color.border,
+    borderColor: "#EA3F4A",
+    backgroundColor: "rgba(234, 63, 74, 0.08)",
   },
-  cardError: {
-    borderColor: Lister.color.danger,
-    backgroundColor: Lister.color.dangerSoft,
+  primaryText: { fontFamily: Lister.type.bodyMedium, fontSize: 13, color: "#EA3F4A" },
+  makePrimary: { minHeight: 44, justifyContent: "center", paddingHorizontal: 8 },
+  makePrimaryText: {
+    fontFamily: Lister.type.bodyMedium,
+    fontSize: 13,
+    color: Lister.color.inkMuted,
+    textDecorationLine: "underline",
   },
-  head: {
+  makePrimaryHover: {},
+  makePrimaryTextHover: { color: "#EA3F4A" },
+  remove: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  row: {
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headLabel: {
-    fontFamily: Lister.type.bodySemi,
-    color: Lister.color.inkMuted,
-  },
-  kindRow: { flexDirection: "row", gap: 8 },
-  kind: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
     borderRadius: Lister.radius.md,
-    borderWidth: 1.5,
-    borderColor: Lister.color.border,
-    backgroundColor: Lister.color.surfaceMuted,
-  },
-  kindOn: {
-    borderColor: Lister.color.primary,
-    backgroundColor: Lister.color.primaryMist,
-  },
-  kindText: { fontFamily: Lister.type.bodySemi, color: Lister.color.inkMuted },
-  kindTextOn: { fontFamily: Lister.type.bodySemi, color: Lister.color.primaryDeep },
-  prefixWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  prefix: {
-    minWidth: 44,
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: Lister.radius.pill,
-    borderWidth: 1.5,
-    borderColor: Lister.color.border,
     backgroundColor: Lister.color.surface,
   },
-  prefixOn: {
-    borderColor: Lister.color.primary,
-    backgroundColor: Lister.color.primaryMist,
-  },
-  prefixText: { fontFamily: Lister.type.bodySemi, color: Lister.color.ink },
-  prefixTextOn: { fontFamily: Lister.type.bodySemi, color: Lister.color.primaryDeep },
-  prefixHint: { color: Lister.color.inkMuted, fontSize: 10, lineHeight: 12 },
-  inputRow: {
+  rowFocus: { borderWidth: 2, borderColor: "#EA3F4A" },
+  rowError: { borderColor: Lister.color.danger },
+  country: {
+    minHeight: 48,
+    paddingLeft: 12,
+    paddingRight: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderWidth: 1.5,
-    borderColor: Lister.color.border,
-    borderRadius: Lister.radius.md,
-    backgroundColor: Lister.color.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRightWidth: 1,
+    borderRightColor: Lister.color.border,
   },
-  inputRowError: {
-    borderColor: Lister.color.danger,
-  },
-  cc: { color: Lister.color.inkMuted },
-  prefixBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: Lister.radius.sm,
-    backgroundColor: Lister.color.primaryMist,
-  },
+  flag: { width: 22, height: 16, borderRadius: 2 },
+  code: { fontFamily: Lister.type.bodySemi, fontSize: 15, color: Lister.color.ink },
   input: {
     flex: 1,
-    paddingVertical: 10,
-    fontFamily: Lister.type.bodySemi,
-    fontSize: 18,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    fontFamily: Lister.type.body,
+    fontSize: 16,
     color: Lister.color.ink,
-    letterSpacing: 0.5,
+    ...(Platform.OS === "web" ? { outlineStyle: "none" as unknown as "solid" } : {}),
   },
-  useRow: { flexDirection: "row", gap: 8 },
-  use: {
-    flex: 1,
+  error: { fontFamily: Lister.type.body, fontSize: 13, color: Lister.color.danger },
+  hint: { fontFamily: Lister.type.body, fontSize: 13, color: Lister.color.inkMuted },
+  whatsappRow: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  whatsappLabel: { flex: 1, fontFamily: Lister.type.body, fontSize: 15, color: Lister.color.ink },
+  disabledText: { color: Lister.color.inkFaint },
+  switchHit: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  track: { width: 46, height: 28, borderRadius: 14, justifyContent: "center", padding: 2 },
+  trackOff: { backgroundColor: "#D0D5DD" },
+  trackOn: { backgroundColor: WHATSAPP_GREEN },
+  switchDisabled: { opacity: 0.45 },
+  knob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    ...(Platform.OS === "web" ? { boxShadow: "0 1px 2px rgba(26,26,26,0.25)" } : { elevation: 1 }),
+  },
+  popRoot: { flex: 1 },
+  clearBackdrop: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
+  popover: {
+    position: "absolute",
+    backgroundColor: Lister.color.surface,
+    borderRadius: Lister.radius.md,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    overflow: "hidden",
+    ...(Platform.OS === "web" ? { boxShadow: "0 12px 32px rgba(26,26,26,0.16)" } : { elevation: 8 }),
+  },
+  sheetRoot: { flex: 1, justifyContent: "flex-end" },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(26,26,26,0.28)" },
+  sheet: {
+    backgroundColor: Lister.color.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    maxHeight: "80%",
+  },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Lister.color.border, alignSelf: "center", marginBottom: 8 },
+  sheetTitle: { fontFamily: Lister.type.bodySemi, fontSize: 16, color: Lister.color.ink, paddingHorizontal: 8, paddingBottom: 8 },
+  menu: { maxHeight: 360 },
+  search: {
+    minHeight: 44,
+    margin: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    borderRadius: Lister.radius.sm,
+    fontFamily: Lister.type.body,
+    fontSize: 15,
+    color: Lister.color.ink,
+  },
+  list: { maxHeight: 280 },
+  option: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12 },
+  optionActive: { backgroundColor: Lister.color.surfaceMuted },
+  optionSelected: { backgroundColor: Lister.color.bg },
+  optionName: { flex: 1, fontFamily: Lister.type.body, fontSize: 15, color: Lister.color.ink },
+  optionCode: { fontFamily: Lister.type.body, fontSize: 14, color: Lister.color.inkMuted },
+  empty: { padding: 16, fontFamily: Lister.type.body, color: Lister.color.inkMuted },
+  add: {
+    alignSelf: "flex-start",
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: Lister.radius.md,
-    borderWidth: 1.5,
+    paddingHorizontal: 12,
+    borderWidth: 1,
     borderColor: Lister.color.border,
-    backgroundColor: Lister.color.surfaceMuted,
+    borderRadius: Lister.radius.md,
+    backgroundColor: Lister.color.surface,
   },
-  useOn: {
-    borderColor: Lister.color.primary,
-    backgroundColor: Lister.color.primary,
-  },
-  useWhatsApp: {
-    borderColor: WHATSAPP_GREEN,
-    backgroundColor: WHATSAPP_GREEN,
-  },
-  useText: { fontFamily: Lister.type.bodySemi, color: Lister.color.inkMuted },
-  useTextOn: { fontFamily: Lister.type.bodySemi, color: "#FFFFFF" },
+  addText: { fontFamily: Lister.type.bodyMedium, fontSize: 15, color: Lister.color.ink },
 });

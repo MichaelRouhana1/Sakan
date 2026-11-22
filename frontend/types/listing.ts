@@ -166,12 +166,14 @@ export type Listing = {
   contactPhone?: string | null;
   whatsappNumber?: string | null;
   contactNumbers?: {
-    kind: "mobile" | "landline";
-    prefix: string;
-    subscriber: string;
-    e164: string;
-    calls: boolean;
-    whatsapp: boolean;
+    country?: string;
+    national?: string;
+    kind?: "mobile" | "landline";
+    prefix?: string;
+    subscriber?: string;
+    e164?: string;
+    calls?: boolean;
+    whatsapp?: boolean;
   }[];
   addressLine?: string | null;
   buildingName?: string | null;

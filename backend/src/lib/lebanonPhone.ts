@@ -1,15 +1,20 @@
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
+
 export const MOBILE_PREFIXES = ["03", "70", "71", "76", "78", "79", "81"] as const;
 export const LANDLINE_PREFIXES = ["01", "04", "05", "06", "07", "08", "09"] as const;
 
 export type PhoneKind = "mobile" | "landline";
 
 export type ContactNumber = {
-  kind: PhoneKind;
-  prefix: string;
-  subscriber: string;
+  kind?: PhoneKind;
+  prefix?: string;
+  subscriber?: string;
+  country?: string;
+  national?: string;
   e164: string;
   calls: boolean;
   whatsapp: boolean;
+  primary?: boolean;
 };
 
 const PREFIXES = {
@@ -23,15 +28,34 @@ export function toE164(kind: PhoneKind, prefix: string, subscriber: string): str
   return `+961${prefix.replace(/^0/, "")}${subscriber}`;
 }
 
-export function numberComplete(n: {
-  kind: PhoneKind;
-  prefix: string;
-  subscriber: string;
-  calls: boolean;
-  whatsapp: boolean;
-}): boolean {
-  if (!toE164(n.kind, n.prefix, n.subscriber)) return false;
-  if (n.kind === "landline") return n.calls;
+export function canonicalE164(n: {
+  e164?: string;
+  country?: string;
+  national?: string;
+  kind?: PhoneKind;
+  prefix?: string;
+  subscriber?: string;
+}): string | null {
+  if (n.country && n.national) {
+    const parsed = parsePhoneNumberFromString(n.national, n.country as CountryCode);
+    if (parsed?.isValid()) return parsed.number;
+  }
+  if (n.kind && n.prefix && n.subscriber) {
+    const legacy = toE164(n.kind, n.prefix, n.subscriber);
+    if (legacy) return legacy;
+  }
+  if (n.e164) {
+    const parsed = parsePhoneNumberFromString(n.e164);
+    if (parsed?.isValid()) return parsed.number;
+  }
+  return null;
+}
+
+export function numberComplete(n: ContactNumber): boolean {
+  if (!canonicalE164(n) || n.e164 !== canonicalE164(n)) return false;
+  const parsed = parsePhoneNumberFromString(n.e164);
+  const lebaneseLandline = parsed?.country === "LB" && n.kind === "landline";
+  if (parsed?.getType() === "FIXED_LINE" || lebaneseLandline) return n.calls && !n.whatsapp;
   return n.calls || n.whatsapp;
 }
 
@@ -40,10 +64,10 @@ export function deriveContactPhones(numbers: ContactNumber[]): {
   whatsappNumber: string | null;
 } {
   const ready = numbers.filter(numberComplete);
-  const contactPhone =
-    ready.find((n) => n.calls)?.e164 ?? ready[0]?.e164 ?? null;
+  const ordered = [...ready].sort((a, b) => Number(b.primary) - Number(a.primary));
+  const contactPhone = ordered[0]?.e164 ?? null;
   const whatsappNumber =
-    ready.find((n) => n.whatsapp && n.kind === "mobile")?.e164 ?? null;
+    ready.find((n) => n.whatsapp && n.kind !== "landline")?.e164 ?? null;
   return { contactPhone, whatsappNumber };
 }
 

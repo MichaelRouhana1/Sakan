@@ -2,6 +2,7 @@ import { MAX_MONTHLY_RENT_USD, MAX_SECURITY_DEPOSIT_USD, RENT_USD_MESSAGE, DEPOS
 import { sharedFields } from './place-fields.js';
 import { matcherQuerySchema } from "../search/matcher.schema.js";
 import { z } from "zod";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 import {
   LEBANON_AREA_SET,
   MAX_LISTING_AREAS,
@@ -9,8 +10,8 @@ import {
 } from "../../constants/lebanonAreas.js";
 import { resolveCutWindows } from "../../lib/electricityCuts.js";
 import {
+  canonicalE164,
   resolveContactNumbers,
-  toE164,
 } from "../../lib/lebanonPhone.js";
 
 const photoUrlSchema = z
@@ -171,12 +172,15 @@ export const createListingFields = z.object({
   contactNumbers: z
     .array(
       z.object({
-        kind: z.enum(["mobile", "landline"]),
-        prefix: z.string().regex(/^(0[13456789]|7[01689]|81)$/),
-        subscriber: z.string().regex(/^\d{6}$/),
-        e164: z.string().regex(/^\+961\d{7,8}$/),
+        country: z.string().regex(/^[A-Z]{2}$/).optional(),
+        national: z.string().regex(/^\d{4,15}$/).optional(),
+        kind: z.enum(["mobile", "landline"]).optional(),
+        prefix: z.string().regex(/^(0[13456789]|7[01689]|81)$/).optional(),
+        subscriber: z.string().regex(/^\d{6}$/).optional(),
+        e164: z.string().regex(/^\+[1-9]\d{6,14}$/),
         calls: z.boolean(),
         whatsapp: z.boolean(),
+        primary: z.boolean().optional(),
       }),
     )
     .max(4)
@@ -230,19 +234,19 @@ export const createListingSchema = createListingFields.superRefine((data, ctx) =
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["contactNumbers"],
-      message: "Add at least one Lebanese phone number",
+      message: "Add at least one phone number",
     });
   }
   for (const [i, n] of (data.contactNumbers ?? []).entries()) {
-    const expected = toE164(n.kind, n.prefix, n.subscriber);
-    if (expected && n.e164 !== expected) {
+    const expected = canonicalE164(n);
+    if (!expected || n.e164 !== expected) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["contactNumbers", i, "e164"],
-        message: "Phone e164 does not match prefix",
+        message: "Enter a valid phone number",
       });
     }
-    if (n.kind === "landline" && n.whatsapp) {
+    if ((n.kind === "landline" || parsePhoneNumberFromString(n.e164)?.getType() === "FIXED_LINE") && n.whatsapp) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["contactNumbers", i, "whatsapp"],

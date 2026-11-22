@@ -1,5 +1,7 @@
 import { TextInput, View } from "react-native";
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
+import { DatePicker } from "@/components/listings/create/DatePicker";
+import { todayIsoDate } from "@/components/listings/create/dateValue";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
@@ -103,17 +105,17 @@ export function CreateStepPricing() {
         />
         <View style={{ height: designSize(8) }} />
         <WizardFieldLabel required={draft.availableImmediate !== true}>
-          Or a specific date (YYYY-MM-DD)
+          Or a specific date
         </WizardFieldLabel>
-        <TextInput
+        <DatePicker
+          testID="available-from"
           accessibilityLabel="Available from date"
-          placeholder="2026-09-01"
-          placeholderTextColor={Lister.color.inkFaint}
           value={draft.availableFrom}
-          onChangeText={(availableFrom) =>
+          minDate={todayIsoDate()}
+          invalid={draft.availableImmediate !== true && availableInvalid}
+          onChange={(availableFrom) =>
             patch({ availableFrom, availableImmediate: false })
           }
-          style={wizardInputStyle(draft.availableImmediate !== true && availableInvalid, designSize)}
         />
       </Enter>
       <Enter delay={220}>

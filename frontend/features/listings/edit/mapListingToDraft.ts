@@ -6,7 +6,7 @@ import {
   type CreateListingDraft,
 } from "@/features/listings/create/draft";
 import { coerceCutWindows, emptyCutWindow } from "@/lib/electricityCuts";
-import { emptyContactNumber, numbersFromLegacy } from "@/lib/lebanonPhone";
+import { emptyContactNumber, normalizeContactNumber, numbersFromLegacy } from "@/lib/lebanonPhone";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import type { Listing } from "@/types/listing";
 
@@ -35,13 +35,13 @@ export function mapListingToDraft(listing: Listing): CreateListingDraft {
     listing.electricityCutsStart,
     listing.electricityCutsEnd,
   );
-  const numbers =
-    listing.contactNumbers && listing.contactNumbers.length > 0
-      ? listing.contactNumbers
-      : numbersFromLegacy({
-          contactPhone: listing.contactPhone ?? "",
-          whatsappNumber: listing.whatsappNumber ?? "",
-        });
+  const stored = listing.contactNumbers ?? [];
+  const numbers = stored.length
+    ? stored.map((n) => normalizeContactNumber(n))
+    : numbersFromLegacy({
+        contactPhone: listing.contactPhone ?? "",
+        whatsappNumber: listing.whatsappNumber ?? "",
+      });
   const hasPin = listing.lng != null && listing.lat != null;
   const pin: ListingPin = hasPin
     ? {

@@ -49,9 +49,10 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "expo-server-sdk": "^4.0.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
-    "expo-server-sdk": "^4.0.0",
+    "libphonenumber-js": "^1.13.17",
     "multer": "^2.2.0",
     "postgres": "^3.4.9",
     "zod": "^4.6.6"
