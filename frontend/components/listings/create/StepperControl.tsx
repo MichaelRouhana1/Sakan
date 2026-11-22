@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -26,6 +27,9 @@ export function StepperControl({
   error,
   required,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={[styles.row, error && styles.rowError]}>
       <LText variant="subtitle" style={styles.label}>
@@ -44,7 +48,7 @@ export function StepperControl({
           onPress={() => onChange(Math.max(min, round(value - step)))}
           style={[styles.btn, value <= min && styles.btnOff]}
         >
-          <Ionicons name="remove" size={18} color={Lister.color.ink} />
+          <Ionicons name="remove" size={designSize(18)} color={Lister.color.ink} />
         </Pressable>
         <LText variant="subtitle" style={styles.value}>
           {format ? format(value) : String(value)}
@@ -56,7 +60,7 @@ export function StepperControl({
           onPress={() => onChange(Math.min(max, round(value + step)))}
           style={[styles.btn, value >= max && styles.btnOff]}
         >
-          <Ionicons name="add" size={18} color={Lister.color.ink} />
+          <Ionicons name="add" size={designSize(18)} color={Lister.color.ink} />
         </Pressable>
       </View>
     </View>
@@ -67,7 +71,7 @@ function round(n: number) {
   return Math.round(n * 2) / 2;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

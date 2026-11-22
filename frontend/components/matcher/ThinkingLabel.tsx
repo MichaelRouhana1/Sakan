@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useId, useState } from "react";
 import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
@@ -10,11 +11,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { matcherStyles as s } from "./matcherStyles";
+import { matcherStyles as matcherBase } from "./matcherStyles";
 
 const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 export function ThinkingLabel() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   const id = `thinking-${useId().replace(/:/g, "")}`;
   const reduce = useReducedMotion();
   const { fontScale } = useWindowDimensions();

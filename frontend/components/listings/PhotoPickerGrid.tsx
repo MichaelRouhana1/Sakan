@@ -14,7 +14,7 @@ import {
   PhotoGridFooter,
   PhotoGridHeader,
   PhotoTile,
-  photoPickerStyles,
+  usePhotoPickerStyles,
   uploadDraft,
   type DraftPhoto,
   type PhotoPickerGridProps,
@@ -32,6 +32,7 @@ export function PhotoPickerGrid({
   setPhotos,
   style,
 }: PhotoPickerGridProps) {
+  const photoPickerStyles = usePhotoPickerStyles();
   const cropController = usePhotoCropQueue({ photos, setPhotos });
   const remaining = MAX_LISTING_PHOTOS - photos.length;
   const readyCount = photos.filter((p) => p.status === "ready").length;

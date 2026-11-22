@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Studently } from "@/constants/theme";
 import {
@@ -28,6 +29,8 @@ type Props = {
 };
 
 export function PasswordStrengthMeter({ password }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const tier = getPasswordTier(password);
   const checks = getPasswordChecks(password);
   const filled = tier === "empty" ? 0 : tier === "weak" ? 1 : tier === "better" ? 2 : 3;
@@ -66,7 +69,7 @@ export function PasswordStrengthMeter({ password }: Props) {
             <View key={key} style={styles.checkRow}>
               <Ionicons
                 name={on ? "checkmark-circle" : "ellipse-outline"}
-                size={14}
+                size={designSize(14)}
                 color={on ? "#16A34A" : "#A1A1AA"}
               />
               <Text style={[styles.checkText, on && styles.checkOn]}>
@@ -80,7 +83,7 @@ export function PasswordStrengthMeter({ password }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: { gap: 8 },
   bars: { flexDirection: "row", gap: 6 },
   bar: {

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Image, Platform, StyleSheet, View } from "react-native";
@@ -45,7 +46,9 @@ function stampSize(stamp: string): number {
   return 20;
 }
 
-export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
+export function BenefitHeroTicket({ benefit, stack, compact }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const meta = categoryMeta(benefit.category);
   const exclusive = isCampusExclusive(benefit);
   const logo = benefitCompanyLogo(benefit.companyName);
@@ -110,7 +113,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
               ) : (
                 <Ionicons
                   name={meta.icon}
-                  size={compact ? 24 : 30}
+                  size={designSize(compact ? 24 : 30)}
                   color={meta.accent}
                 />
               )}
@@ -139,7 +142,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
                 { backgroundColor: meta.tint, borderColor: meta.tint },
               ]}
             >
-              <Ionicons name={meta.icon} size={12} color={meta.accent} />
+              <Ionicons name={meta.icon} size={designSize(12)} color={meta.accent} />
               <LText
                 variant="caption"
                 style={[styles.chipText, { color: meta.accent }]}
@@ -150,7 +153,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
             <View style={styles.chip}>
               <Ionicons
                 name={benefit.isGlobal ? "globe-outline" : "flag-outline"}
-                size={12}
+                size={designSize(12)}
                 color={Studently.color.inkMuted}
               />
               <LText variant="caption" style={styles.chipText}>
@@ -161,7 +164,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
               <View style={[styles.chip, styles.chipExclusive]}>
                 <Ionicons
                   name="school-outline"
-                  size={12}
+                  size={designSize(12)}
                   color={Studently.color.primary}
                 />
                 <LText
@@ -236,7 +239,7 @@ export function BenefitHeroTicket({ benefit, stack, compact }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   shadowWrap: {
     width: "100%",
     overflow: "visible",

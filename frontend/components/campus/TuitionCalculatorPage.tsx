@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { CampusFormSelect } from "@/components/campus/CampusFormSelect";
@@ -61,7 +61,9 @@ function parsePeriod(
   return paramStr(terms) === "2" ? "year" : "semester";
 }
 
-export function TuitionCalculatorPage() {
+export function TuitionCalculatorPage() {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const params = useLocalSearchParams<{
     uni?: string;
@@ -73,9 +75,9 @@ export function TuitionCalculatorPage() {
     period?: string;
     terms?: string;
   }>();
-  const { width } = useWindowDimensions();
-  const wide = Platform.OS === "web" && width >= 1024;
-  const compact = width < 640;
+  const layoutWidth = useLayoutWidth();
+  const wide = Platform.OS === "web" && layoutWidth >= 1024;
+  const compact = layoutWidth < 640;
   const reduced = useReducedMotion();
   const catalog = useCampusInstitutions();
 
@@ -537,7 +539,7 @@ export function TuitionCalculatorPage() {
             >
               <Ionicons
                 name="home-outline"
-                size={16}
+                size={designSize(16)}
                 color={Studently.color.primary}
               />
               <Text style={styles.textBtnLabel}>
@@ -622,7 +624,7 @@ export function TuitionCalculatorPage() {
                     >
                       <Ionicons
                         name="remove"
-                        size={18}
+                        size={designSize(18)}
                         color={
                           effectiveCredits <= 0
                             ? Studently.color.inkFaint
@@ -675,7 +677,7 @@ export function TuitionCalculatorPage() {
                     >
                       <Ionicons
                         name="add"
-                        size={18}
+                        size={designSize(18)}
                         color={
                           effectiveCredits >= totalMajorCredits
                             ? Studently.color.inkFaint
@@ -771,7 +773,7 @@ export function TuitionCalculatorPage() {
               shortName={institution.shortName}
               slug={institution.slug}
               logoUrl={institution.logoUrl}
-              size={compact ? 32 : 36}
+              size={designSize(compact ? 32 : 36)}
               fallbackStyle={styles.mastLogoFrame}
             />
             <View style={styles.mastIdentityCopy}>
@@ -798,7 +800,7 @@ export function TuitionCalculatorPage() {
             <View style={styles.mastGhostMark}>
               <Ionicons
                 name="calculator-outline"
-                size={18}
+                size={designSize(18)}
                 color="rgba(255,255,255,0.55)"
               />
             </View>
@@ -916,7 +918,7 @@ export function TuitionCalculatorPage() {
                 >
                   <Ionicons
                     name="remove"
-                    size={18}
+                    size={designSize(18)}
                     color={
                       effectiveCredits <= 0
                         ? Studently.color.inkFaint
@@ -969,7 +971,7 @@ export function TuitionCalculatorPage() {
                 >
                   <Ionicons
                     name="add"
-                    size={18}
+                    size={designSize(18)}
                     color={
                       effectiveCredits >= totalMajorCredits
                         ? Studently.color.inkFaint
@@ -994,7 +996,7 @@ export function TuitionCalculatorPage() {
                 <View key={step.key} style={styles.checkRow}>
                   <Ionicons
                     name={step.done ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
+                    size={designSize(18)}
                     color={
                       step.done ? Studently.color.primary : Studently.color.inkFaint
                     }
@@ -1059,7 +1061,7 @@ export function TuitionCalculatorPage() {
               >
                 <Ionicons
                   name="open-outline"
-                  size={16}
+                  size={designSize(16)}
                   color={Studently.color.primary}
                 />
                 <Text style={styles.textBtnLabel}>Open tuition source</Text>
@@ -1071,7 +1073,7 @@ export function TuitionCalculatorPage() {
               <View style={styles.housingTop}>
                 <Ionicons
                   name="home-outline"
-                  size={16}
+                  size={designSize(16)}
                   color={Studently.color.primary}
                 />
                 <Text style={styles.housingTitle}>
@@ -1139,7 +1141,7 @@ export function TuitionCalculatorPage() {
               >
                 <Ionicons
                   name={copied ? "checkmark" : "link-outline"}
-                  size={16}
+                  size={designSize(16)}
                   color={copied ? Studently.color.primary : Studently.color.primary}
                 />
                 <Text style={styles.textBtnLabel}>
@@ -1194,7 +1196,9 @@ function MobilePath({
   }[];
   hiddenKey: WizardKey | null;
   onEdit: (key: WizardKey) => void;
-}) {
+}) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const visible = items.filter((item) => item.value && item.key !== hiddenKey);
   if (visible.length === 0) return null;
 
@@ -1219,7 +1223,7 @@ function MobilePath({
               shortName={item.value ?? item.label}
               slug={item.slug}
               logoUrl={item.logoUrl}
-              size={28}
+              size={designSize(28)}
             />
           ) : (
             <View style={styles.pathMark}>
@@ -1231,7 +1235,7 @@ function MobilePath({
                       ? "school-outline"
                       : "layers-outline"
                 }
-                size={14}
+                size={designSize(14)}
                 color={Studently.color.primary}
               />
             </View>
@@ -1244,7 +1248,7 @@ function MobilePath({
           </View>
           <Ionicons
             name="chevron-forward"
-            size={16}
+            size={designSize(16)}
             color={Studently.color.inkFaint}
           />
         </Pressable>
@@ -1259,7 +1263,9 @@ function ProgressRail({
 }: {
   steps: { key: string; label: string; done: boolean }[];
   compact: boolean;
-}) {
+}) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View
       style={styles.rail}
@@ -1281,7 +1287,7 @@ function ProgressRail({
               style={[styles.railDot, step.done && styles.railDotDone]}
             >
               {step.done ? (
-                <Ionicons name="checkmark" size={10} color="#fff" />
+                <Ionicons name="checkmark" size={designSize(10)} color="#fff" />
               ) : (
                 <Text style={styles.railIndex}>{index + 1}</Text>
               )}
@@ -1308,7 +1314,9 @@ function CostBar({
   line: CostLine;
   total: number;
   reduced: boolean;
-}) {
+}) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const pct = total > 0 ? Math.max(2, (line.amountUsd / total) * 100) : 0;
   return (
     <View style={styles.line}>
@@ -1345,7 +1353,7 @@ const webShadow = Platform.OS === "web"
       shadowOffset: { width: 0, height: 3 },
     };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   scroll: { flex: 1 },
   page: {
     width: "100%",

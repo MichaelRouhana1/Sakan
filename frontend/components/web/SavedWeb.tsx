@@ -5,12 +5,15 @@ import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { LText } from "@/components/lister/Typography";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
 import { WebEmptyState } from "@/components/web/WebEmptyState";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useSavedListings } from "@/features/saved/useSavedListings";
 import type { Listing } from "@/types/listing";
 
 export function SavedWeb() {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const { isSignedIn, isLoading: authLoading } = useAuthSession();
   const { data, isLoading, isError, refetch, isFetching } = useSavedListings();
   const [authOpen, setAuthOpen] = useState(false);
@@ -110,7 +113,7 @@ export function SavedWeb() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     flex: 1,
     gap: 24,

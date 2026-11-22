@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, type ReactNode } from "react";
 import {
@@ -69,6 +70,9 @@ export function HostAnalyticsGlassPane({
   contentStyle?: StyleProp<ViewStyle>;
   warning?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View
       style={[
@@ -96,6 +100,9 @@ export function AnalyticsCardIconMark({
   name: AnalyticsCardIcon;
   warning?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View
       accessibilityElementsHidden
@@ -104,7 +111,7 @@ export function AnalyticsCardIconMark({
     >
       <Ionicons
         name={name}
-        size={20}
+        size={designSize(20)}
         color={warning ? Studently.color.warning : Studently.color.primary}
       />
     </View>
@@ -112,6 +119,9 @@ export function AnalyticsCardIconMark({
 }
 
 function InfoHint({ text }: { text: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [open, setOpen] = useState(false);
   return (
     <View style={styles.hintWrap}>
@@ -146,6 +156,9 @@ export function HostAnalyticsStatCard({
   hint,
   icon,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const inner = (
     <>
       <View style={styles.labelRow}>
@@ -183,7 +196,7 @@ export function HostAnalyticsStatCard({
   return <View style={cardStyle}>{inner}</View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     flexGrow: 1,
     flexBasis: 200,

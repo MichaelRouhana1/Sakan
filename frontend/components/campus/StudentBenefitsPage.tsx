@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
@@ -61,6 +62,9 @@ const SCOPE_TO_IS_GLOBAL: Record<Scope, boolean | undefined> = {
 };
 
 export function StudentBenefitsPage() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const params = useLocalSearchParams<{
     q?: string;
@@ -69,6 +73,7 @@ export function StudentBenefitsPage() {
     scope?: string;
   }>();
   const { width } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
   const { user } = useAuthSession();
   const institutions = useCampusInstitutions();
 
@@ -81,9 +86,9 @@ export function StudentBenefitsPage() {
   );
   const [scope, setScope] = useState<Scope>(parseScope(params.scope));
 
-  const columns = width >= 1500 ? 4 : width >= 980 ? 3 : width >= 640 ? 2 : 1;
-  const compact = width < 640;
-  const pagePadX = compact ? 16 : width < 900 ? 24 : 48;
+  const columns = layoutWidth >= 1500 ? 4 : layoutWidth >= 980 ? 3 : layoutWidth >= 640 ? 2 : 1;
+  const compact = layoutWidth < 640;
+  const pagePadX = width < 640 ? 16 : width < 900 ? 24 : 48;
 
   const syncParams = useCallback(
     (next: {
@@ -240,7 +245,7 @@ export function StudentBenefitsPage() {
         </View>
 
         <View style={[styles.searchWrap, compact && styles.searchWrapCompact]}>
-          <Ionicons name="search" size={18} color={Studently.color.inkMuted} />
+          <Ionicons name="search" size={designSize(18)} color={Studently.color.inkMuted} />
           <TextInput
             value={query}
             onChangeText={(next) => {
@@ -265,12 +270,12 @@ export function StudentBenefitsPage() {
               }}
               accessibilityRole="button"
               accessibilityLabel="Clear search"
-              hitSlop={8}
+              hitSlop={designSize(8)}
               style={styles.clearBtn}
             >
               <Ionicons
                 name="close-circle"
-                size={20}
+                size={designSize(20)}
                 color={Studently.color.inkMuted}
               />
             </Pressable>
@@ -537,7 +542,7 @@ export function StudentBenefitsPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -891,6 +896,9 @@ function CategoryPicks({
   category: BenefitCategory | "";
   onPick: (next: BenefitCategory | "") => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <>
       {CATEGORY_PICKS.map((item) => {
@@ -907,7 +915,7 @@ function CategoryPicks({
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             accessibilityLabel={a11y}
-            hitSlop={6}
+            hitSlop={designSize(6)}
             style={({ hovered, pressed }) => [
               styles.catItem,
               (hovered || pressed) && !on && styles.catItemHover,
@@ -924,7 +932,7 @@ function CategoryPicks({
               >
                 <Ionicons
                   name={item.icon}
-                  size={14}
+                  size={designSize(14)}
                   color={on ? Studently.color.surface : item.accent}
                 />
               </View>
@@ -955,6 +963,9 @@ function CategoryRail({
   compact: boolean;
   children: ReactNode;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   if (compact) {
     return (
       <ScrollView

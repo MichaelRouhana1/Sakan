@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { usePathname } from "expo-router";
 import lottie, { type AnimationItem } from "lottie-web";
 import { createElement, useCallback, useEffect, useRef, useState } from "react";
@@ -112,6 +113,9 @@ function FabBody({
   onPress: () => void;
   hidden: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const reduce = useReducedMotion();
   const { width } = useWindowDimensions();
   const [intro, setIntro] = useState(true);
@@ -250,7 +254,7 @@ export function FindMyPlaceFab({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   anchor: {
     position: "fixed" as unknown as "absolute",
     right: 24,

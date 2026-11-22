@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -38,6 +39,9 @@ export function PhotoCropModal({
   controller: PhotoCropController;
   photoCount: number;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { state, queue } = controller;
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -208,14 +212,14 @@ export function PhotoCropModal({
               onPress={() => queue.finish()}
               style={[styles.button, { minWidth: 44 }]}
             >
-              <Ionicons name="close" size={22} color={ink} />
+              <Ionicons name="close" size={designSize(22)} color={ink} />
             </Pressable>
           </View>
           <ScrollView
             contentContainerStyle={{
-              paddingHorizontal: 20,
-              paddingBottom: 20,
-              gap: 14,
+              paddingHorizontal: designSize(20),
+              paddingBottom: designSize(20),
+              gap: designSize(14),
             }}
             keyboardShouldPersistTaps="handled"
           >
@@ -226,7 +230,7 @@ export function PhotoCropModal({
             ))}
             {source && activeCrop ? (
               <View
-                style={{ flexDirection: desktop ? "row" : "column", gap: 24 }}
+                style={{ flexDirection: desktop ? "row" : "column", gap: designSize(24) }}
               >
                 <View style={{ flex: desktop ? 2 : undefined, minWidth: 0 }}>
                   <PhotoCropper
@@ -239,7 +243,7 @@ export function PhotoCropModal({
                 <View
                   style={{
                     flex: desktop ? 1 : undefined,
-                    gap: 16,
+                    gap: designSize(16),
                     minWidth: 0,
                   }}
                 >
@@ -268,7 +272,7 @@ export function PhotoCropModal({
                 </View>
               </View>
             ) : (
-              <View style={{ minHeight: 240, justifyContent: "center" }}>
+              <View style={{ minHeight: designSize(240), justifyContent: "center" }}>
                 <ActivityIndicator color={Studently.color.primary} />
                 <LText style={{ textAlign: "center", color: ink }}>
                   Reading photo…
@@ -326,7 +330,7 @@ export function PhotoCropModal({
     </Modal>
   );
 }
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   modal: {
     width: "100%",

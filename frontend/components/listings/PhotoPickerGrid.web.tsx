@@ -4,6 +4,7 @@ import { PhotoGuidance } from "./photos/PhotoGuidance";
 import { SwipeToast, type SwipeToastReason } from "@/components/ui/SwipeToast.web";
 import { createElement, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { LText } from "@/components/lister/Typography";
 import {
   PhotoPickerGridDragGhost,
@@ -15,7 +16,7 @@ import {
   PhotoGridFooter,
   PhotoGridHeader,
   PhotoTile,
-  photoPickerStyles,
+  usePhotoPickerStyles,
   commitDeletedPhoto,
   holdDeletedPhoto,
   reorderPhotos,
@@ -76,6 +77,8 @@ export function PhotoPickerGrid({
   setPhotos,
   style,
 }: PhotoPickerGridProps) {
+  const { size: designSize } = useDesktopDesign();
+  const photoPickerStyles = usePhotoPickerStyles();
   const cropController = usePhotoCropQueue({ photos, setPhotos });
   const remaining = MAX_LISTING_PHOTOS - photos.length;
   const readyCount = photos.filter((p) => p.status === "ready").length;
@@ -331,7 +334,7 @@ export function PhotoPickerGrid({
           title="Image Deleted"
           actionLabel="Undo"
           placement="above-footer"
-          stack={(deleteToasts.length - 1 - index) * PHOTO_TOAST_STACK}
+          stack={(deleteToasts.length - 1 - index) * designSize(PHOTO_TOAST_STACK)}
           layer={index}
           onAction={() => restorePhoto(toast.localId, toast.index)}
           onClose={(reason) => finishDelete(toast.localId, reason)}

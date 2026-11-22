@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useLayoutEffect, useState } from "react";
 import {
   Modal,
@@ -43,6 +44,8 @@ type Props = {
 };
 
 export function DownloadAppButton({ isDarkNav = false }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const [isHovered, setIsHovered] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const gifFilter = useAccentFilter();
@@ -66,12 +69,12 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
           {Platform.OS === "web" ? (
             <img
               src={gifSrc}
-              width={20}
-              height={20}
+              width={designSize(20)}
+              height={designSize(20)}
               alt="Download App"
               style={{
-                width: 20,
-                height: 20,
+                width: designSize(20),
+                height: designSize(20),
                 display: "block",
                 filter: gifFilter,
                 objectFit: "contain",
@@ -125,12 +128,12 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
                 {Platform.OS === "web" ? (
                   <img
                     src={DARK_ICON_GIF}
-                    width={32}
-                    height={32}
+                    width={designSize(32)}
+                    height={designSize(32)}
                     alt=""
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: designSize(32),
+                      height: designSize(32),
                       filter: gifFilter,
                     }}
                   />
@@ -156,7 +159,7 @@ export function DownloadAppButton({ isDarkNav = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   btn: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
@@ -48,6 +49,9 @@ export function WizardCampusSearch({
   onSelectCampusId,
   invalid,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const catalog = useInstitutions();
   const institutions = catalog.data ?? [];
   const [query, setQuery] = useState("");
@@ -95,7 +99,7 @@ export function WizardCampusSearch({
   return (
     <View style={[styles.shell, invalid && styles.shellInvalid]}>
       <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color={Lister.color.inkFaint} />
+        <Ionicons name="search" size={designSize(16)} color={Lister.color.inkFaint} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -113,7 +117,7 @@ export function WizardCampusSearch({
             onPress={() => setQuery("")}
             hitSlop={8}
           >
-            <Ionicons name="close-circle" size={16} color={Lister.color.inkFaint} />
+            <Ionicons name="close-circle" size={designSize(16)} color={Lister.color.inkFaint} />
           </Pressable>
         ) : null}
       </View>
@@ -148,7 +152,7 @@ export function WizardCampusSearch({
                   shortName={inst.shortName}
                   website={inst.website}
                   logoUrl={inst.logoUrl}
-                  size={32}
+                  size={designSize(32)}
                 />
                 <View style={styles.rowText}>
                   <LText variant="caption" style={on ? styles.titleOn : styles.title}>
@@ -161,7 +165,7 @@ export function WizardCampusSearch({
                 {on ? (
                   <Ionicons
                     name="checkmark"
-                    size={16}
+                    size={designSize(16)}
                     color={Lister.color.primary}
                   />
                 ) : null}
@@ -174,7 +178,7 @@ export function WizardCampusSearch({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   center: { paddingVertical: 20, alignItems: "center", gap: 8 },
   retry: { paddingVertical: 6, paddingHorizontal: 4 },
   retryText: { fontFamily: Lister.type.bodySemi },

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
 import { Lister } from "@/constants/listerTheme";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 export type DragGhostModel = {
@@ -20,6 +21,8 @@ type Props = {
 };
 
 export function PhotoPickerGridDragGhost({ ghost, pointer }: Props) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const reducedMotion = useReducedMotion();
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const left = pointer.x - ghost.offsetX;
@@ -56,7 +59,7 @@ export function PhotoPickerGridDragGhost({ ghost, pointer }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   ghost: {
     position: "fixed",
     zIndex: 9999,

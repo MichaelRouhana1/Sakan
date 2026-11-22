@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, Text, View } from "react-native";
 import { Studently } from "@/constants/theme";
 
@@ -16,6 +17,9 @@ type Props = {
 };
 
 export function HostStatusPill({ label, tone = "muted" }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const colors = TONES[tone];
   const expiring = label.startsWith('Expiring in');
   return (
@@ -26,7 +30,7 @@ export function HostStatusPill({ label, tone = "muted" }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   pill: {
     flexDirection: "row",
     alignItems: "center",

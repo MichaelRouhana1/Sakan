@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, View } from "react-native";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
@@ -17,6 +18,9 @@ export function PriceGuideCard({ guide, priceBasis, onUse }: {
   priceBasis: PriceBasis;
   onUse: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View testID="price-guide" style={styles.card}>
       <LText variant="subtitle">Similar on Studently</LText>
@@ -39,7 +43,7 @@ export function PriceGuideCard({ guide, priceBasis, onUse }: {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     gap: Lister.space.sm,
     padding: Lister.space.md,

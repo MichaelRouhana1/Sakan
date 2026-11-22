@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import {
   DMSans_400Regular,
@@ -190,6 +191,9 @@ function Ink({
 }
 
 export function AcademicCalendarPage() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
@@ -197,8 +201,9 @@ export function AcademicCalendarPage() {
     DMSans_700Bold,
   });
   const { width } = useWindowDimensions();
-  const stacked = width < 980;
-  const compact = width < 640;
+  const layoutWidth = useLayoutWidth();
+  const stacked = layoutWidth < 980;
+  const compact = layoutWidth < 640;
   const showDayNames = width >= 900;
   const today = useMemo(() => toIsoDate(new Date()), []);
   const now = useMemo(() => new Date(), []);
@@ -377,7 +382,7 @@ export function AcademicCalendarPage() {
       >
         <Ionicons
           name="locate-outline"
-          size={compact ? 18 : 15}
+          size={designSize(compact ? 18 : 15)}
           color={viewingTodayMonth ? C.inverse : C.primary}
         />
         {compact ? null : (
@@ -436,7 +441,7 @@ export function AcademicCalendarPage() {
               </Ink>
               <Ink style={styles.metricRange}>{formatRange(upcoming)}</Ink>
             </View>
-            <Ionicons name="arrow-forward" size={16} color={C.inverse} />
+            <Ionicons name="arrow-forward" size={designSize(16)} color={C.inverse} />
           </Pressable>
         ) : null}
       </View>
@@ -487,7 +492,7 @@ export function AcademicCalendarPage() {
                 </Ink>
                 <Ink style={styles.metricRange}>{formatRange(upcoming)}</Ink>
               </View>
-              <Ionicons name="arrow-forward" size={16} color={C.inverse} />
+              <Ionicons name="arrow-forward" size={designSize(16)} color={C.inverse} />
             </Pressable>
           ) : null}
 
@@ -574,7 +579,7 @@ export function AcademicCalendarPage() {
                   >
                     <Ionicons
                       name="chevron-back"
-                      size={18}
+                      size={designSize(18)}
                       color={atStart ? C.faint : C.ink}
                     />
                   </Pressable>
@@ -594,7 +599,7 @@ export function AcademicCalendarPage() {
                   >
                     <Ionicons
                       name="chevron-forward"
-                      size={18}
+                      size={designSize(18)}
                       color={atEnd ? C.faint : C.ink}
                     />
                   </Pressable>
@@ -874,6 +879,9 @@ function HeatMonth({
   compact?: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const pct = count === 0 ? 0 : Math.max(22, Math.round((count / heatMax) * 100));
   return (
     <Pressable
@@ -933,6 +941,9 @@ function ComingRow({
   active: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const dt = parseIsoSafe(holiday.start);
   const days = daysUntil(holiday.start, fromIso);
   return (
@@ -971,6 +982,9 @@ function ComingRow({
 }
 
 function StatusChip({ status }: { status: HolidayStatus }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const tentative = status === "tentative";
   return (
     <View style={[styles.chip, tentative && styles.chipTentative]}>
@@ -988,6 +1002,9 @@ function LegendSwatch({
   tone: "official" | "tbc";
   label: string;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.legendItem}>
       <View
@@ -1012,7 +1029,7 @@ const webShadow = web
       shadowOffset: { width: 0, height: 3 },
     };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     gap: 22,
     width: "100%",

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import type { ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { LButton } from "@/components/lister/Button";
@@ -27,6 +28,9 @@ export function CreateFooter({
   borderless,
   endContent,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View testID="create-wizard-footer" style={[styles.bar, borderless && styles.barBorderless]}>
       <View style={[styles.row, endContent ? styles.rowWithContent : null]}>
@@ -82,7 +86,7 @@ export function CreateFooter({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     paddingHorizontal: Lister.space.lg,
     paddingTop: 12,

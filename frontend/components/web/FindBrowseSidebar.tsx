@@ -1,5 +1,5 @@
-import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { DESKTOP_SEARCH_HEADER as H } from "@/constants/desktopSearchMotion";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -205,11 +205,13 @@ function MapPreviewBackdrop({ listings }: { listings: Listing[] }) {
  * + trust accordion flush underneath.
  */
 export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
-  const {size:designSize,isDesktop}=useDesktopDesign();
+  const { size: designSize, styles: resolveStyles, isDesktop } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [openId, setOpenId] = useState<string | null>(null);
 
   return (
-    <View style={[styles.sticky,isDesktop && {top:WEB_SIDEBAR_STICKY_TOP+designSize(H.height)-70}]}>
+    <View style={[styles.sticky,isDesktop && {top:designSize(WEB_SIDEBAR_STICKY_TOP + H.height - 70)}]}>
       <View style={styles.cardShadow}>
         <View style={styles.card}>
           {/* Edge-to-edge map header */}
@@ -227,7 +229,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
                 pressed && styles.mapBtnPressed,
               ]}
             >
-              <Ionicons name="map-outline" size={15} color={STUDENTLY_BLUE} />
+              <Ionicons name="map-outline" size={designSize(15)} color={STUDENTLY_BLUE} />
               <LText variant="label" style={styles.mapBtnLabel}>
                 Explore on map
               </LText>
@@ -257,7 +259,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
                     <View style={styles.uspIcon}>
                       <Ionicons
                         name={item.icon}
-                        size={15}
+                        size={designSize(15)}
                         color={Studently.color.primary}
                       />
                     </View>
@@ -267,7 +269,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
                   </View>
                   <Ionicons
                     name={open ? "chevron-up" : "chevron-forward"}
-                    size={14}
+                    size={designSize(14)}
                     color="#9CA3AF"
                   />
                 </Pressable>
@@ -286,7 +288,7 @@ export function FindBrowseSidebar({ onExploreMap, listings = [] }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   sticky: {
     width: 300,
     flexGrow: 0,

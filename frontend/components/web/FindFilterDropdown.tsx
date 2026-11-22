@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { createElement, useEffect, type ReactNode } from "react";
 import {
@@ -26,6 +27,9 @@ type ShellProps = {
 };
 
 export function FilterDropdownBackdrop({ onClose }: { onClose: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityLabel="Close filter menu"
@@ -44,6 +48,9 @@ export function FilterDropdownShell({
   onClose,
   children,
 }: ShellProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const onKey = (e: KeyboardEvent) => {
@@ -73,7 +80,7 @@ export function FilterDropdownShell({
           accessibilityState={{ disabled: !canReset }}
           disabled={!canReset}
           onPress={onReset}
-          hitSlop={8}
+          hitSlop={designSize(8)}
         >
           <LText
             variant="caption"
@@ -97,6 +104,9 @@ export function MenuRow({
   selected?: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -124,6 +134,9 @@ export function MenuChip({
   selected?: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -154,9 +167,12 @@ export function MenuSearch({
   onChange: (next: string) => void;
   placeholder: string;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.search}>
-      <Ionicons name="search-outline" size={16} color={Studently.color.inkFaint} />
+      <Ionicons name="search-outline" size={designSize(16)} color={Studently.color.inkFaint} />
       <TextInput
         value={value}
         onChangeText={onChange}
@@ -169,9 +185,9 @@ export function MenuSearch({
           accessibilityRole="button"
           accessibilityLabel="Clear search"
           onPress={() => onChange("")}
-          hitSlop={6}
+          hitSlop={designSize(6)}
         >
-          <Ionicons name="close-circle" size={16} color={Studently.color.inkFaint} />
+          <Ionicons name="close-circle" size={designSize(16)} color={Studently.color.inkFaint} />
         </Pressable>
       ) : null}
     </View>
@@ -191,6 +207,9 @@ export function BudgetRangeControl({
   maxRentUsd: number | null;
   onChange: (min: number | null, max: number | null) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const lo = minRentUsd ?? RENT_MIN;
   const hi = maxRentUsd ?? RENT_MAX;
 
@@ -357,7 +376,7 @@ function webRangeStyle(
   };
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   backdrop: {
     position: "fixed" as unknown as "absolute",
     top: WEB_NAV_HEIGHT + FILTER_BAR_HEIGHT,

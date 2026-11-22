@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
@@ -5,6 +6,9 @@ import { LText } from "@/components/lister/Typography";
 import { useColorScheme } from "@/components/useColorScheme";
 
 export function WhatsAppMessagePreview({ message }: { message: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const dark = useColorScheme() === "dark";
   const palette = dark
     ? { bg: "#111B21", bubble: "#005C4B", text: "#E9EDEF", check: "#B6CEC7" }
@@ -24,14 +28,14 @@ export function WhatsAppMessagePreview({ message }: { message: string }) {
         <View accessible={false} aria-hidden style={[styles.tail, { borderTopColor: palette.bubble }]} />
         <LText testID="whatsapp-preview-text" style={[styles.message, { color: palette.text }]}>{message}</LText>
         <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden style={styles.checks}>
-          <Ionicons name="checkmark-done-outline" size={17} color={palette.check} />
+          <Ionicons name="checkmark-done-outline" size={designSize(17)} color={palette.check} />
         </View>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   chat: { padding: 18, paddingLeft: 28, borderRadius: 14, overflow: "hidden", minHeight: 180 },
   bubble: { alignSelf: "flex-end", maxWidth: "100%", paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8, borderRadius: 12, borderTopRightRadius: 0 },
   tail: { position: "absolute", right: -7, top: 0, width: 0, height: 0, borderTopWidth: 9, borderRightWidth: 8, borderRightColor: "transparent" },

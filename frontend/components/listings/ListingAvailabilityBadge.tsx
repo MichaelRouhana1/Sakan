@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, Text, View } from "react-native";
 import { Studently } from "@/constants/theme";
 import type { ListingAvailability } from "@/types/listing";
@@ -16,6 +17,8 @@ export function ListingAvailabilityBadge({
 }: {
   availability?: ListingAvailability | null;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const label = availabilityLabel(availability);
   if (!label) return null;
   const pending = availability === "pending";
@@ -31,7 +34,7 @@ export function ListingAvailabilityBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   badge: {
     alignSelf: "flex-start",
     borderRadius: 999,

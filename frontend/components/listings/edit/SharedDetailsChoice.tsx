@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { useDesktopDesign } from '@/components/ui/DesktopDesign';
 import { LText } from '@/components/lister/Typography';
 import { SegmentedPills } from '../create/SegmentedPills';
 import { useListingForm } from '@/features/listings/forms/ListingFormContext';
@@ -7,10 +8,11 @@ import type { CreateListingDraft } from '@/features/listings/create/draft';
 
 export const utilityKeys=[...SHARED_GROUPS.electricity,...SHARED_GROUPS.water,...SHARED_GROUPS.comforts];
 export function SharedDetailsChoice({fields=utilityKeys}:{fields?:readonly string[]}){
+ const { size: designSize } = useDesktopDesign();
  const {draft,patch}=useListingForm();
  if(!draft.sharedValues)return null;
  const different=fields.some(k=>draft.differentFields?.includes(k));
- return <View style={{gap:10,marginBottom:18}}>
+ return <View style={{gap:designSize(10),marginBottom:designSize(18)}}>
   <LText variant="subtitle">{draft.placeKind==='building'?'Building':'Apartment'} details</LText>
   <SegmentedPills options={[{value:'same',label:'Same as building'},{value:'different',label:'Different for this apartment'}]}
     value={different?'different':'same'} onChange={value=>{

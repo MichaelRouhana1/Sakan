@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -12,6 +13,9 @@ export function ListingMoreMenu({
   onReport,
   canReport = true,
 }: ListingMoreMenuProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,7 +32,7 @@ export function ListingMoreMenu({
           >
             <Ionicons
               name={linkCopied ? "checkmark" : "link-outline"}
-              size={16}
+              size={designSize(16)}
               color={Studently.color.ink}
             />
           </Pressable>
@@ -41,7 +45,7 @@ export function ListingMoreMenu({
               accessibilityLabel="Report this listing"
               style={styles.iconBtn}
             >
-              <Ionicons name="flag-outline" size={16} color={Studently.color.ink} />
+              <Ionicons name="flag-outline" size={designSize(16)} color={Studently.color.ink} />
             </Pressable>
           )}
         </>
@@ -55,7 +59,7 @@ export function ListingMoreMenu({
       >
         <Ionicons
           name={open ? "close" : "ellipsis-horizontal"}
-          size={16}
+          size={designSize(16)}
           color={Studently.color.ink}
         />
       </Pressable>
@@ -63,7 +67,7 @@ export function ListingMoreMenu({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 6,

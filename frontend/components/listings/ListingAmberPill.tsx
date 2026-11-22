@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { Studently } from "@/constants/theme";
 import type { ListingAmberPill as Pill } from "@/lib/listingCardMeta";
@@ -18,8 +19,10 @@ export function ListingAmberPillView({
   style,
   textStyle,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const Icon = pill.icon ? LISTING_PILL_ICONS[pill.icon] : null;
-  const iconSize = compact ? 10 : 11;
+  const iconSize = designSize(compact ? 10 : 11);
   const color = Studently.color.ink;
 
   return (
@@ -39,7 +42,7 @@ export function ListingAmberPillView({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   tag: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { SEARCH_PHOTO_ASPECT, cardPhotoHeight } from "@/lib/listingPhotoFrames";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -50,6 +51,8 @@ export function ListingCardCarousel({
   fill = false,
   presentation,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const photos = resolveMediaUrls(urls).slice(0, MAX_PHOTOS);
   const [index, setIndex] = useState(0);
   const [cardWidth, setCardWidth] = useState(0);
@@ -124,7 +127,7 @@ export function ListingCardCarousel({
     const t = e.nativeEvent.touches[0] ?? e.nativeEvent;
     const dx = Math.abs(t.pageX - startX.current);
     const dy = Math.abs(t.pageY - startY.current);
-    if (dx > 8 && dx > dy) setParentLocked(true);
+    if (dx > designSize(8) && dx > dy) setParentLocked(true);
   };
 
   const arrowsVisible = isWeb && count > 1 && (home || alwaysShowArrows || hovered);
@@ -179,8 +182,8 @@ export function ListingCardCarousel({
               e.nativeEvent.changedTouches?.[0] ?? e.nativeEvent;
             const dx = t.pageX - startX.current;
             if (home && Math.abs(dx) <= Math.abs(t.pageY - startY.current)) return;
-            if (dx > 40) go(-1);
-            else if (dx < -40) go(1);
+            if (dx > designSize(40)) go(-1);
+            else if (dx < -designSize(40)) go(1);
           }}
         >
           <View
@@ -312,7 +315,7 @@ export function ListingCardCarousel({
               accessibilityLabel="Previous photo"
               {...(home
                 ? { disabled: index === 0, dataSet: { carouselArrow: "previous" } }
-                : { hitSlop: 8 })}
+                : { hitSlop: designSize(8) })}
               onPress={(e) => {
                 stopCardNav(e);
                 go(-1);
@@ -328,7 +331,7 @@ export function ListingCardCarousel({
                 },
               ]}
             >
-              <Ionicons name="chevron-back" size={18} color="#121826" />
+              <Ionicons name="chevron-back" size={designSize(18)} color="#121826" />
             </Pressable>
 
             <Pressable
@@ -336,7 +339,7 @@ export function ListingCardCarousel({
               accessibilityLabel="Next photo"
               {...(home
                 ? { disabled: index === count - 1, dataSet: { carouselArrow: "next" } }
-                : { hitSlop: 8 })}
+                : { hitSlop: designSize(8) })}
               onPress={(e) => {
                 stopCardNav(e);
                 go(1);
@@ -352,7 +355,7 @@ export function ListingCardCarousel({
                 },
               ]}
             >
-              <Ionicons name="chevron-forward" size={18} color="#121826" />
+              <Ionicons name="chevron-forward" size={designSize(18)} color="#121826" />
             </Pressable>
           </>
         ) : null}
@@ -393,7 +396,7 @@ const webTransition = (property: string): ViewStyle =>
       } as ViewStyle)
     : {};
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   // In-flow width + computed height. absoluteFill collapsed to 0 on RN 0.86
   // when the parent only had absolutely positioned children.
   root: {

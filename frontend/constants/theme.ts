@@ -4,3 +4,4 @@
  * Web colors follow the active palette; native uses madder.
  */
 export { Lister as Studently } from "./listerTheme";
+export { DESKTOP_DESIGN_SCALE, DesktopDesign, desktopSize, desktopStyles, desktopGutter, scaleLength } from "./desktopDesign";

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { usePromotionOptions } from "@/features/promotions/usePromotions";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
@@ -72,6 +73,9 @@ function isBoosted(until: string | null): boolean {
 }
 
 export function SilenceNextStep({ live, viewCount, leadCount, place }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const promotion = usePromotionOptions(place?.id ?? "", !!place && live && viewCount > 0 && leadCount === 0);
   const [dismissed, setDismissed] = useState<SilenceAction | null>(null);
@@ -174,7 +178,7 @@ export function SilenceNextStep({ live, viewCount, leadCount, place }: Props) {
 
 const web = Platform.OS === "web";
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   pane: {
     paddingHorizontal: 20,
     paddingVertical: 16,

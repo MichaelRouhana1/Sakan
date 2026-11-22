@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +30,9 @@ export function useListingClock() {
 }
 
 export function UnitRenewalControls({ listing }: { listing: Listing }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const router = useRouter();
   const client = useQueryClient();
   const auth = useAuthSession();
@@ -74,6 +78,9 @@ export function UnitRenewalControls({ listing }: { listing: Listing }) {
 }
 
 export function RenewUnitConfirmation({ listingId, onClose }: { listingId: string; onClose: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const auth = useAuthSession();
   const router = useRouter();
   const query = useExpiryDecision(listingId, auth.isSignedIn);
@@ -113,9 +120,12 @@ export function RenewUnitConfirmation({ listingId, onClose }: { listingId: strin
 }
 
 function Button({label,onPress,disabled=false}:{label:string;onPress:()=>void;disabled?:boolean}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress} style={[s.button,disabled && {opacity:0.5}]}><Text style={s.buttonText}>{label}</Text></Pressable>;
 }
-const s = StyleSheet.create({
+const base_s = StyleSheet.create({
   controls:{gap:5,paddingVertical:10},row:{flexDirection:'row',alignItems:'center',gap:12},
   smallButton:{borderWidth:1,borderColor:Studently.color.border,borderRadius:8,paddingHorizontal:14,paddingVertical:7},
   link:{fontFamily:Studently.type.bodySemi,fontSize:13,color:Studently.color.primary},info:{fontSize:19,color:Studently.color.inkMuted},

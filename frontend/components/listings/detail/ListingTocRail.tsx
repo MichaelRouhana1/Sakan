@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useEffect,
@@ -59,7 +60,9 @@ type Props = {
   items: ListingTocItem[];
 };
 
-export function ListingTocRail({ items }: Props) {
+export function ListingTocRail({ items }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [activeId, setActiveId] = useState(items[0]?.id ?? "");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
@@ -219,7 +222,7 @@ export function ListingTocRail({ items }: Props) {
                       name={
                         active ? (FILLED[item.icon] ?? item.icon) : item.icon
                       }
-                      size={15}
+                      size={designSize(15)}
                       color={active ? "#fff" : Studently.color.primary}
                     />
                   </span>
@@ -276,7 +279,7 @@ export function ListingTocRail({ items }: Props) {
               >
                 <Ionicons
                   name={active ? (FILLED[item.icon] ?? item.icon) : item.icon}
-                  size={15}
+                  size={designSize(15)}
                   color={active ? "#fff" : Studently.color.primary}
                 />
               </Pressable>
@@ -393,7 +396,7 @@ const CARET: CSSProperties = {
   transform: "rotate(45deg)",
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   rail: {
     paddingHorizontal: 2,
     paddingBottom: 28,

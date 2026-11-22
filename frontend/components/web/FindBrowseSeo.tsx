@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -53,6 +54,9 @@ type Props = {
 };
 
 export function FindBrowseSeo({ cityLabel, onSelectArea }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [tab, setTab] = useState<Tab>("areas");
   const [showAllFaq, setShowAllFaq] = useState(false);
@@ -171,7 +175,7 @@ export function FindBrowseSeo({ cityLabel, onSelectArea }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     gap: 40,
     paddingTop: 8,

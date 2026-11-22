@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Link, type Href } from "expo-router";
 import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -6,9 +7,12 @@ import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
 export function CampusFooter() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { width } = useWindowDimensions();
-  const padX = width < 640 ? 16 : width < 900 ? 20 : WEB_CONTENT_PAD_X;
-  const stacked = width < 640;
+  const padX = width < 640 ? 16 : width < 900 ? 20 : designSize(WEB_CONTENT_PAD_X);
+  const stacked = useLayoutWidth() < 640;
 
   return (
     <View style={styles.footer}>
@@ -21,7 +25,7 @@ export function CampusFooter() {
       >
         <View style={[styles.brandCol, stacked && styles.brandColStacked]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <StudentlyLogo size={40} />
+            <StudentlyLogo size={designSize(40)} />
             <LText variant="subtitle" style={styles.brand}>
               Studently
             </LText>
@@ -62,7 +66,7 @@ export function CampusFooter() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   footer: {
     marginTop: 48,
     borderTopWidth: 1,

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { PromotionAction } from "./PromotionAction";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -36,6 +37,9 @@ function apiFailure(error: unknown): { status?: number; message?: string } {
 }
 
 export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const params = useLocalSearchParams<{ choice?: string; cycle?: string }>();
   const auth = useAuthSession();
@@ -107,14 +111,14 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
           onPress={() => router.replace(HOST_LISTINGS_PATH as never)}
           style={styles.back}
         >
-          <Ionicons name="arrow-back" size={18} color={Studently.color.ink} />
+          <Ionicons name="arrow-back" size={designSize(18)} color={Studently.color.ink} />
           <Text style={styles.backText}>Your listings</Text>
         </Pressable>
 
         <View style={[styles.hero, compact && styles.heroCompact]}>
           <View style={[styles.media, compact && styles.mediaCompact]}>
             {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
-              <View style={styles.placeholder}><Ionicons name="image-outline" size={32} color={Studently.color.inkFaint} /></View>
+              <View style={styles.placeholder}><Ionicons name="image-outline" size={designSize(32)} color={Studently.color.inkFaint} /></View>
             )}
           </View>
           <View style={styles.heroCopy}>
@@ -142,7 +146,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
 
         {resolvedOutcome ? (
           <View style={styles.resolvedCard}>
-            <Ionicons name="checkmark-circle" size={28} color={Studently.color.primary} />
+            <Ionicons name="checkmark-circle" size={designSize(28)} color={Studently.color.primary} />
             <View style={styles.flex}>
               <Text style={styles.cardTitle}>{resolvedOutcome ? outcomeTitle(resolvedOutcome) : "Listing is live"}</Text>
               <Text style={styles.cardBody}>
@@ -174,7 +178,7 @@ export function HostExpiryDecisionPage({ listingId }: { listingId: string }) {
               </View>
               {data.checklist.map((item) => (
                 <View key={item.id} style={styles.checkRow}>
-                  <Ionicons name={item.complete ? "checkmark-circle" : "alert-circle-outline"} size={20} color={item.complete ? Studently.color.primary : Studently.color.warning} />
+                  <Ionicons name={item.complete ? "checkmark-circle" : "alert-circle-outline"} size={designSize(20)} color={item.complete ? Studently.color.primary : Studently.color.warning} />
                   <Text style={styles.checkText}>{item.label}</Text>
                 </View>
               ))}
@@ -213,6 +217,9 @@ function DecisionButton(props: {
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -224,19 +231,22 @@ function DecisionButton(props: {
       onBlur={() => setFocused(false)}
       style={({ pressed }) => [styles.decision, props.primary && styles.decisionPrimary, props.quiet && styles.decisionQuiet, focused && styles.focusRing, pressed && styles.pressed, props.disabled && styles.disabled]}
     >
-      <View style={[styles.decisionIcon, props.primary && styles.decisionIconPrimary]}><Ionicons name={props.icon} size={20} color={props.primary ? "#FFFFFF" : Studently.color.primary} /></View>
+      <View style={[styles.decisionIcon, props.primary && styles.decisionIconPrimary]}><Ionicons name={props.icon} size={designSize(20)} color={props.primary ? "#FFFFFF" : Studently.color.primary} /></View>
       <View style={styles.flex}><Text style={[styles.decisionLabel, props.primary && styles.decisionLabelPrimary]}>{props.label}</Text><Text style={[styles.decisionDetail, props.primary && styles.decisionDetailPrimary]}>{props.detail}</Text></View>
-      <Ionicons name="chevron-forward" size={18} color={props.primary ? "#FFFFFF" : Studently.color.inkMuted} />
+      <Ionicons name="chevron-forward" size={designSize(18)} color={props.primary ? "#FFFFFF" : Studently.color.inkMuted} />
     </Pressable>
   );
 }
 
 function ActionButton({ label, onPress, small = false }: { label: string; onPress: () => void; small?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [focused, setFocused] = useState(false);
   return <Pressable accessibilityRole="button" onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={({ pressed }) => [styles.button, small && styles.buttonSmall, focused && styles.focusRing, pressed && styles.pressed]}><Text style={styles.buttonText}>{label}</Text></Pressable>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   scroll: { flexGrow: 1, backgroundColor: Studently.color.bg, paddingBottom: 56 },
   page: { width: "100%", maxWidth: 1100, alignSelf: "center", paddingHorizontal: 36, paddingTop: 28 },
   pageCompact: { paddingHorizontal: 18, paddingTop: 18 },

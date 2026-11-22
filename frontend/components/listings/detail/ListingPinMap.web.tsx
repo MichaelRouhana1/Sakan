@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -29,6 +30,8 @@ export function ListingPinMap({
   interactive = true,
 }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
   const [tokenMissing, setTokenMissing] = useState(false);
@@ -118,7 +121,7 @@ export function ListingPinMap({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     width: "100%",
     overflow: "hidden",

@@ -1,7 +1,9 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 import {
   formatSubscriber,
   LANDLINE_PREFIX_HINT,
@@ -10,7 +12,6 @@ import {
   type ContactNumber,
   type PhoneKind,
 } from "@/lib/lebanonPhone";
-import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 
 type Props = {
   value: ContactNumber;
@@ -29,6 +30,9 @@ export function LebanonPhoneField({
   onChange,
   onRemove,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const prefixes = prefixesFor(value.kind);
 
   function setKind(kind: PhoneKind) {
@@ -71,7 +75,7 @@ export function LebanonPhoneField({
             onPress={onRemove}
             hitSlop={8}
           >
-            <Ionicons name="trash-outline" size={18} color={Lister.color.danger} />
+            <Ionicons name="trash-outline" size={designSize(18)} color={Lister.color.danger} />
           </Pressable>
         ) : null}
       </View>
@@ -172,6 +176,9 @@ function KindChip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -199,6 +206,9 @@ function UseChip({
   tone?: "brand" | "whatsapp";
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -208,7 +218,7 @@ function UseChip({
     >
       <Ionicons
         name={icon}
-        size={16}
+        size={designSize(16)}
         color={selected ? "#FFFFFF" : Lister.color.inkMuted}
       />
       <LText variant="caption" style={selected ? styles.useTextOn : styles.useText}>
@@ -218,7 +228,7 @@ function UseChip({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     gap: 10,
     padding: 12,

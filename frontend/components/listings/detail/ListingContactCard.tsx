@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
@@ -118,7 +119,9 @@ export function ListingContactCard({
   reported,
   onReport,
   canReport = true,
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const campuses = useUniversities();
   const nearby = nearbyCampusesForListing(listing, campuses.data ?? []);
   const toc = listingToc(listing, nearby.length > 0);
@@ -182,18 +185,19 @@ export function ListingContactCard({
               accessibilityRole="button"
               accessibilityLabel="WhatsApp the poster"
               style={({ hovered, pressed }) => [
+                styles.solid,
                 styles.whatsapp,
-                (hovered || pressed) && styles.whatsappPressed,
+                (hovered || pressed) && styles.whatsappHover,
               ]}
             >
-              <Ionicons name="logo-whatsapp" size={18} color="#fff" />
+              <Ionicons name="logo-whatsapp" size={designSize(18)} color="#fff" />
               <LText variant="subtitle" style={styles.solidText}>
                 WhatsApp
               </LText>
             </Pressable>
           ) : (
-            <View style={[styles.outline, styles.disabled]}>
-              <LText variant="subtitle" style={styles.outlineText}>
+            <View style={[styles.outline, styles.whatsappSoon, styles.disabled]}>
+              <LText variant="subtitle" style={styles.whatsappSoonText}>
                 WhatsApp soon
               </LText>
             </View>
@@ -212,7 +216,7 @@ export function ListingContactCard({
             >
               <Ionicons
                 name="call-outline"
-                size={17}
+                size={designSize(17)}
                 color={canContact ? Studently.color.primary : "#fff"}
               />
               <LText
@@ -240,7 +244,7 @@ export function ListingContactCard({
             </LText>
             {hasRating ? (
               <View style={styles.metaRow}>
-                <Ionicons name="star" size={13} color={Studently.color.inkMuted} />
+                <Ionicons name="star" size={designSize(13)} color={Studently.color.inkMuted} />
                 <LText variant="caption" tone="muted" style={styles.metaText}>
                   {`${listing.rating!.toFixed(1)} · ${listing.reviewCount} review${listing.reviewCount === 1 ? "" : "s"}`}
                 </LText>
@@ -294,7 +298,7 @@ const CARD_SHADOW = IS_WEB
       elevation: 4,
     };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     gap: 10,
   },
@@ -396,23 +400,6 @@ const styles = StyleSheet.create({
   actions: {
     gap: 8,
   },
-  whatsapp: {
-    minHeight: 48,
-    borderRadius: 12,
-    backgroundColor: WHATSAPP_GREEN,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    ...(IS_WEB
-      ? ({
-          cursor: "pointer",
-          transitionProperty: "background-color",
-          transitionDuration: "160ms",
-        } as object)
-      : null),
-  },
-  whatsappPressed: { backgroundColor: WHATSAPP_GREEN_PRESSED },
   solid: {
     minHeight: 48,
     borderRadius: 12,
@@ -430,6 +417,14 @@ const styles = StyleSheet.create({
       : null),
   },
   solidHover: { backgroundColor: Studently.color.primaryPressed },
+  whatsapp: { backgroundColor: WHATSAPP_GREEN },
+  whatsappHover: { backgroundColor: WHATSAPP_GREEN_PRESSED },
+  whatsappSoon: { borderColor: WHATSAPP_GREEN },
+  whatsappSoonText: {
+    color: WHATSAPP_GREEN,
+    fontFamily: Studently.type.bodySemi,
+    fontSize: 15,
+  },
   solidText: {
     color: "#fff",
     fontFamily: Studently.type.bodySemi,

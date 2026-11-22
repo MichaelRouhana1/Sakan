@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { useState, type ReactNode, type RefObject } from 'react';
 import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Lister } from '@/constants/listerTheme';
@@ -32,8 +33,12 @@ export function CreationWizardStage(props: Props) {
 }
 
 function Stage({ screen, unitId, placeName, unitCount = 1, scrollRef, children, onHeight }: Props & { onHeight: (height: number) => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const { width } = useWindowDimensions();
-  const split = width >= (Platform.OS === 'web' ? 1024 : 768);
+  const layoutWidth = useLayoutWidth();
+  const split = layoutWidth >= (Platform.OS === 'web' ? 1024 : 768);
   const reduced = useReducedMotion();
   const asset = useWizardLottieAsset(ART[screen]);
   const contentRef = useWizardScrollContentRef();
@@ -56,7 +61,7 @@ function Stage({ screen, unitId, placeName, unitCount = 1, scrollRef, children, 
   </View>;
 }
 
-const s = StyleSheet.create({
+const base_s = StyleSheet.create({
   stage: { flex: 1, minHeight: 0, overflow: 'hidden' }, split: { flexDirection: 'row' },
   art: { width: Platform.OS === 'web' ? '46%' : '42%', backgroundColor: Lister.color.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   reviewArt: { width: '30%' }, artBand: { height: Platform.OS === 'web' ? 240 : 220, marginBottom: Platform.OS === 'web' ? 12 : 4, backgroundColor: Lister.color.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

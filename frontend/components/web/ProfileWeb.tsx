@@ -11,7 +11,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { ProfileIdentityPanel } from "@/components/web/ProfileIdentityPanel";
@@ -26,6 +25,8 @@ import { api } from "@/lib/api";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardTitle } from "@/lib/listingCardMeta";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
+import { desktopCssLengths } from "@/constants/desktopDesign";
 import { PROFILE_CSS } from "@/styles/profileCssText";
 import type { Listing } from "@/types/listing";
 import type { User } from "@/types/user";
@@ -34,21 +35,6 @@ type PressState = { pressed: boolean; hovered?: boolean };
 
 const web = Platform.OS === "web";
 const SUPPORT_EMAIL = "hello@studently.app";
-
-function useLayoutWidth() {
-  const { width } = useWindowDimensions();
-  const [inner, setInner] = useState(() =>
-    web && typeof window !== "undefined" ? window.innerWidth : width,
-  );
-  useEffect(() => {
-    if (!web || typeof window === "undefined") return;
-    const sync = () => setInner(window.innerWidth);
-    sync();
-    window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
-  }, []);
-  return web ? inner : width;
-}
 
 function displayNameOf(
   user: User | null,
@@ -90,7 +76,11 @@ function coverOf(listing: Listing): string | null {
   return resolveMediaUrl(listing.coverUrl ?? listing.photos[0]?.url ?? null);
 }
 
+const profileCss = desktopCssLengths(PROFILE_CSS);
+
 export function ProfileWeb() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const { isSignedIn, hasClerkSession, isLoading: authLoading, user, logout, refreshUser } =
     useAuthSession();
   const { user: clerkUser } = useUser();
@@ -112,8 +102,8 @@ export function ProfileWeb() {
       style.id = id;
       document.head.appendChild(style);
     }
-    if (style.textContent !== PROFILE_CSS) {
-      style.textContent = PROFILE_CSS;
+    if (style.textContent !== profileCss) {
+      style.textContent = profileCss;
     }
   }, []);
 
@@ -195,7 +185,7 @@ export function ProfileWeb() {
             ]}
           >
             <LText style={styles.ctaText}>Sign in</LText>
-            <Ionicons name="arrow-forward" size={16} color={Studently.color.ink} />
+            <Ionicons name="arrow-forward" size={designSize(16)} color={Studently.color.ink} />
           </Pressable>
         ) : null}
       </View>
@@ -230,12 +220,12 @@ export function ProfileWeb() {
                 }
                 slug={campus.institutionSlug}
                 logoUrl={campus.logoUrl}
-                size={48}
+                size={designSize(48)}
               />
             ) : (
               <Ionicons
                 name="school-outline"
-                size={22}
+                size={designSize(22)}
                 color={Studently.color.primary}
               />
             )}
@@ -260,7 +250,7 @@ export function ProfileWeb() {
               </LText>
               <Ionicons
                 name="arrow-forward"
-                size={14}
+                size={designSize(14)}
                 color={Studently.color.primary}
               />
             </View>
@@ -319,7 +309,7 @@ export function ProfileWeb() {
               </LText>
               <Ionicons
                 name="arrow-forward"
-                size={14}
+                size={designSize(14)}
                 color={Studently.color.primary}
               />
             </View>
@@ -351,7 +341,7 @@ export function ProfileWeb() {
                       <View style={styles.shotFallback}>
                         <Ionicons
                           name="image-outline"
-                          size={18}
+                          size={designSize(18)}
                           color={Studently.color.inkFaint}
                         />
                       </View>
@@ -393,7 +383,7 @@ export function ProfileWeb() {
         >
           <Ionicons
             name="help-circle-outline"
-            size={22}
+            size={designSize(22)}
             color={Studently.color.primary}
           />
           <LText variant="subtitle" style={styles.colTitle}>
@@ -410,7 +400,7 @@ export function ProfileWeb() {
         <View style={[styles.colStatic, stacked && styles.colCompact]}>
           <Ionicons
             name="shield-checkmark-outline"
-            size={22}
+            size={designSize(22)}
             color={Studently.color.primary}
           />
           <LText variant="subtitle" style={styles.colTitle}>
@@ -436,7 +426,7 @@ export function ProfileWeb() {
         >
           <Ionicons
             name="log-out-outline"
-            size={16}
+            size={designSize(16)}
             color={Studently.color.danger}
           />
           <LText style={styles.signOutText}>Log out</LText>
@@ -477,7 +467,7 @@ export function ProfileWeb() {
                 accessibilityLabel="Close"
                 style={styles.dialogClose}
               >
-                <Ionicons name="close" size={20} color={Studently.color.ink} />
+                <Ionicons name="close" size={designSize(20)} color={Studently.color.ink} />
               </Pressable>
             </View>
             <ScrollView
@@ -514,7 +504,7 @@ export function ProfileWeb() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     width: "100%",
     maxWidth: 1120,

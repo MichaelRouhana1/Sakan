@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Studently } from '@/constants/theme';
 import { useRef, useState } from 'react';
@@ -18,9 +19,15 @@ type Analytics = {
   costPerWhatsappTap: number | null; provisional: boolean;
 };
 function Button({ label, onPress, disabled, secondary = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.button, secondary && s.secondary, (disabled || pressed) && { opacity: disabled ? 0.45 : 0.7 }]}><Text style={[s.buttonText, secondary && { color: Studently.color.ink }]}>{label}</Text></Pressable>;
 }
 function CampaignReport({ campaign }: { campaign: PromotionCampaign }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const report = useQuery({ queryKey: ['promotions', 'analytics', campaign.id], queryFn: async () => (await api.get<{ data: Analytics }>(`/api/promotions/${campaign.id}/analytics`)).data.data, refetchInterval: campaign.status === 'active' ? 60_000 : false });
   if (report.isLoading) return <ActivityIndicator accessibilityLabel="Loading promotion results" />;
   if (!report.data) return <Text style={s.muted}>Results could not load. Please try again.</Text>;
@@ -36,6 +43,9 @@ function CampaignReport({ campaign }: { campaign: PromotionCampaign }) {
   </View>;
 }
 export function HostPromotionPage({ listingId, published, initialProduct }: { listingId: string; published?: boolean; initialProduct?: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const wide = useWindowDimensions().width >= 900;
@@ -95,7 +105,7 @@ export function HostPromotionPage({ listingId, published, initialProduct }: { li
     {(campaigns.data ?? []).map(c => <View key={c.id} style={s.panel}><View style={s.switchRow}><Text style={s.sectionTitle}>{c.type === 'featured' ? 'Featured' : 'Bump'} · {c.durationDays} days</Text><Text style={s.status}>{PROMOTION_STATUS_LABELS[c.status]}</Text></View><Text style={s.muted}>{c.marketLabel} · {promotionDate(c.startedAt ?? c.createdAt)} · {credits(c.spentCredits)} credits spent · {credits(c.refundedCredits)} returned</Text>{!OPEN_PROMOTION_STATUSES.includes(c.status) && canUndoPromotion(c) && <Button secondary label="Undo purchase · full refund" disabled={mutate.isPending} onPress={() => void run({ kind: 'undo', id: c.id })} />}<CampaignReport campaign={c} /></View>)}
   </ScrollView>;
 }
-const s = StyleSheet.create({
+const base_s = StyleSheet.create({
   page: { flex: 1, backgroundColor: Studently.color.bg }, container: { width: '100%', maxWidth: 1180, alignSelf: 'center', padding: 24, gap: 24, paddingBottom: 100 },
   heading: { gap: 12, maxWidth: 760, paddingVertical: 16 }, eyebrow: { fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 1.6, color: Studently.color.primary }, title: { fontFamily: 'DMSans_700Bold', fontSize: 38, lineHeight: 44, color: Studently.color.ink }, lede: { fontFamily: 'DMSans_400Regular', fontSize: 18, lineHeight: 28, color: '#526174' },
   columns: { gap: 24, alignItems: 'stretch' }, panel: { backgroundColor: '#FFF', borderWidth: 1, borderColor: Studently.color.border, borderRadius: 20, padding: 24, gap: 18 }, summary: { backgroundColor: Studently.color.primaryMist }, sectionTitle: { fontFamily: 'DMSans_700Bold', fontSize: 20, color: Studently.color.ink }, body: { fontFamily: 'DMSans_400Regular', fontSize: 14, lineHeight: 22, color: '#34455A' }, muted: { fontFamily: 'DMSans_400Regular', fontSize: 12, lineHeight: 19, color: '#526174' }, link: { fontFamily: 'DMSans_600SemiBold', fontSize: 13, color: Studently.color.primary }, label: { fontFamily: 'DMSans_700Bold', fontSize: 11, letterSpacing: 1.2, color: '#526174', marginTop: 10 },

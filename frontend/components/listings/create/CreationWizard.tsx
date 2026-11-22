@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
@@ -5,7 +6,7 @@ import { useFonts } from 'expo-font';
 import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { router } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StudentlyAuthModal } from '@/components/auth/StudentlyAuthModal';
@@ -60,16 +61,19 @@ function validationMessage(error: string): string {
 function exit() { router.replace((Platform.OS === 'web' ? HOST_LISTINGS_PATH : '/(poster)/(tabs)') as never); }
 
 export function CreationWizard(props: { draftId?: string; placeId?: string; fresh?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const auth = useAuthSession();
   const [authOpen, setAuthOpen] = useState(false);
-  const { width } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
   const [fontsLoaded, fontError] = useFonts({ PlayfairDisplay_700Bold });
   useEffect(() => { if (fontError) throw fontError; }, [fontError]);
   if (auth.isLoading || !fontsLoaded) return <View style={s.center}><ActivityIndicator color={Studently.color.primary} accessibilityLabel="Loading your account" /></View>;
   if (!auth.isSignedIn || !auth.session) return <View style={s.root}>
-    <View style={[s.header, width < 600 && s.headerStacked]}><Text style={s.brandText}>studently<Text style={s.brandDot}>.</Text></Text></View>
-    <CreationWizardStage screen="place-type"><View style={[s.formCard, width < 1024 && s.formStacked, width < 600 && s.formNarrow]}>
-      <Text style={s.eyebrow}>Your place, together</Text><Text style={[s.title, width < 1024 && s.titleCompact, width < 600 && s.titleNarrow]}>A place for their next chapter.</Text>
+    <View style={[s.header, layoutWidth < 600 && s.headerStacked]}><Text style={s.brandText}>studently<Text style={s.brandDot}>.</Text></Text></View>
+    <CreationWizardStage screen="place-type"><View style={[s.formCard, layoutWidth < 1024 && s.formStacked, layoutWidth < 600 && s.formNarrow]}>
+      <Text style={s.eyebrow}>Your place, together</Text><Text style={[s.title, layoutWidth < 1024 && s.titleCompact, layoutWidth < 600 && s.titleNarrow]}>A place for their next chapter.</Text>
       <Text style={s.intro}>Sign in to save your place and units, then pick up from any device.</Text>
       <LButton label="Sign in to continue" onPress={() => setAuthOpen(true)} style={s.primary} />
       <Link label="Back to Studently" onPress={() => router.replace('/' as never)} />
@@ -80,6 +84,9 @@ export function CreationWizard(props: { draftId?: string; placeId?: string; fres
 }
 
 function Wizard(props: { userId: string; draftId?: string; placeId?: string; fresh?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const flow = useCreationWizard(props);
   const { state, record, send, persist, saveState } = flow;
   const [showValidation, setShowValidation] = useState(false);
@@ -90,9 +97,9 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
   const progressPositions = useRef<Record<string, number>>({});
   const fields = useRef<View>(null);
   const reduced = useReducedMotion();
-  const { width } = useWindowDimensions();
-  const narrow = width < 600;
-  const split = width >= (Platform.OS === 'web' ? 1024 : 768);
+  const layoutWidth = useLayoutWidth();
+  const narrow = layoutWidth < 600;
+  const split = layoutWidth >= (Platform.OS === 'web' ? 1024 : 768);
   const insets = useSafeAreaInsets();
   const screen = state?.position.screen ?? 'place-type';
   const activeId = state?.position.unitId ?? '';
@@ -189,7 +196,7 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
           <Text style={s.eyebrow}>{isPlace ? `Place · ${PLACE_SCREENS.indexOf(screen as typeof PLACE_SCREENS[number]) + 1} of 5` : isUnit ? `Unit ${index + 1} · ${UNIT_SCREENS.indexOf(screen as typeof UNIT_SCREENS[number]) + 1} of 4` : screen === 'another' ? `${state.units.length} ${state.units.length === 1 ? 'unit' : 'units'} added` : 'Your place, together'}</Text>
           <Text ref={heading} accessibilityRole="header" tabIndex={-1} style={[s.title, !split && s.titleCompact, narrow && s.titleNarrow]}>{screen === 'success' && state.units.length > 1 ? 'Your listings are published' : meta.title}</Text>
           <Text style={s.intro}>{meta.subtitle}</Text>
-          {state.place.id && screen !== 'success' ? <View style={s.placeContext}><Ionicons name="business-outline" size={20} color={Studently.color.inkMuted} /><View style={s.flex}><Text style={s.sectionLabel}>{state.place.data.buildingName || 'Existing place'}</Text><Text style={s.helper}>{state.place.data.area} · Shared place details already saved</Text></View></View> : null}
+          {state.place.id && screen !== 'success' ? <View style={s.placeContext}><Ionicons name="business-outline" size={designSize(20)} color={Studently.color.inkMuted} /><View style={s.flex}><Text style={s.sectionLabel}>{state.place.data.buildingName || 'Existing place'}</Text><Text style={s.helper}>{state.place.data.area} · Shared place details already saved</Text></View></View> : null}
           <View ref={fields} pointerEvents={locked && screen !== 'success' ? 'none' : 'auto'} accessibilityElementsHidden={locked} importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'} style={locked && screen !== 'success' ? s.locked : undefined}>
             {screen === 'place-type' ? <View style={s.fields}><SelectableCard title="An apartment" body="A whole apartment, or rooms and beds within it." icon="home-outline" selected={state.place.kind === 'apartment'} onPress={() => send({ type: 'kind', kind: 'apartment' })} /><SelectableCard title="A building" body="Whole apartments that share one building." icon="business-outline" selected={state.place.kind === 'building'} onPress={() => send({ type: 'kind', kind: 'building' })} /></View> : null}
             {screen === 'location' ? <CreateStepLocation /> : null}
@@ -211,7 +218,7 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
           {screen === 'review' ? <View style={s.cost} accessibilityLabel="Credit total"><Text style={s.sectionTitle}>Publishing cost</Text>
             {!state.units.length ? <Text style={s.helper}>Add a unit to see the total.</Text> : quote.isError ? <><Text accessibilityRole="alert" style={s.errorText}>Couldn’t load the credit total.</Text><Link label="Retry credit total" onPress={() => void quote.refetch()} /></> : quoteReady ? <><View style={s.totalRow}><Text style={s.body}>Total for {state.units.length} {state.units.length === 1 ? 'unit' : 'units'}</Text><Text style={s.total}>{quote.data!.total} {quote.data!.total === 1 ? 'credit' : 'credits'}</Text></View><Text style={s.helper}>Your balance: {quote.data!.balance} credits. All units publish together.</Text>{!afford ? <><Text accessibilityRole="alert" style={s.errorText}>You need more credits to publish this batch.</Text><Link label="Buy credits" onPress={() => void buyCredits()} /></> : null}</> : <Text role="status" style={s.helper}>Checking credit total…</Text>}
           </View> : null}
-          {screen === 'success' ? <><View style={s.success}><Ionicons name="checkmark-circle-outline" size={44} color={Studently.color.primary} /><Text style={s.sectionTitle}>{record.result?.listingIds.length} {state.units.length === 1 ? 'unit' : 'units'} published</Text><Text style={s.body}>{record.result?.total} {record.result?.total === 1 ? 'credit' : 'credits'} used</Text></View>{rows()}{state.units.length === 1 && record.result ? <Link label="Promote your listing" onPress={() => router.push({ pathname: '/hosting/listing/[id]/promote', params: { id: record.result!.listingIds[0], published: '1' } })} /> : null}</> : null}
+          {screen === 'success' ? <><View style={s.success}><Ionicons name="checkmark-circle-outline" size={designSize(44)} color={Studently.color.primary} /><Text style={s.sectionTitle}>{record.result?.listingIds.length} {state.units.length === 1 ? 'unit' : 'units'} published</Text><Text style={s.body}>{record.result?.total} {record.result?.total === 1 ? 'credit' : 'credits'} used</Text></View>{rows()}{state.units.length === 1 && record.result ? <Link label="Promote your listing" onPress={() => router.push({ pathname: '/hosting/listing/[id]/promote', params: { id: record.result!.listingIds[0], published: '1' } })} /> : null}</> : null}
           {flow.publishError ? <View style={s.errors} accessibilityRole="alert"><Text style={s.errorText}>{flow.publishError}</Text></View> : null}
           {state.pendingAttempt && !flow.publishing && screen !== 'success' ? <Text style={s.helper}>Publishing hasn’t been confirmed yet. Retry safely to check before making changes.</Text> : null}
           {showValidation && errors.length ? <View style={s.errors} accessibilityRole="alert"><Text style={s.sectionLabel}>Check these details to continue</Text>{[...new Set(errors)].map(e => <Text key={e} style={s.errorText}>• {validationMessage(e)}</Text>)}{screen === 'review' ? state.units.filter(u => !unitComplete(state, u)).map((u,i) => <Link key={u.id} label={`Complete ${u.data.title || `unit ${i + 1}`}`} onPress={() => send({ type: 'editUnit', id: u.id })} />) : null}</View> : null}
@@ -231,26 +238,38 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
 }
 
 function Link({ label, onPress, disabled = false }: { label: string; onPress: () => void; disabled?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[s.link, disabled && s.locked]}><Text style={s.linkText}>{label}</Text></Pressable>;
 }
 function Phase({ label, current, complete, disabled, onPress, onLayout }: { label: string; current: boolean; complete: boolean; disabled: boolean; onPress: () => void; onLayout?: (x: number) => void }) {
-  const { width } = useWindowDimensions();
-  const footer = width < (Platform.OS === 'web' ? 1024 : 768);
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
+  const layoutWidth = useLayoutWidth();
+  const footer = layoutWidth < (Platform.OS === 'web' ? 1024 : 768);
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: current, disabled }} disabled={disabled} onPress={onPress} onLayout={e => onLayout?.(e.nativeEvent.layout.x)} style={s.phase}><View style={[s.phaseTick, complete && s.phaseTickDone, current && s.phaseTickCurrent, footer && s.footerTick, footer && (complete || current) && s.footerTickDone]} /><Text style={[s.phaseText, current && s.activePhaseText]}>{label}</Text></Pressable>;
 }
 function Choice({ title, detail, icon, disabled, onPress }: { title: string; detail: string; icon: keyof typeof Ionicons.glyphMap; disabled: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.choice, pressed && s.selectedChoice, disabled && s.locked]}><Ionicons name={icon} size={24} color={Studently.color.primary} /><Text style={s.sectionLabel}>{title}</Text><Text style={s.helper}>{detail}</Text></Pressable>;
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
+  return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.choice, pressed && s.selectedChoice, disabled && s.locked]}><Ionicons name={icon} size={designSize(24)} color={Studently.color.primary} /><Text style={s.sectionLabel}>{title}</Text><Text style={s.helper}>{detail}</Text></Pressable>;
 }
 function UnitRow({ unit, index, complete, credits, narrow, onEdit, onRemove }: { unit: Unit; index: number; complete: boolean; credits?: number; narrow: boolean; onEdit?: () => void; onRemove?: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const photo = unit.data.photos?.[0];
   const basis = unit.data.priceBasis === 'per_bed_month' ? 'bed / month' : unit.data.priceBasis === 'per_room_month' ? 'room / month' : 'month';
-  return <View style={s.unitRow} testID="creation-unit-row">{photo ? <Image source={{ uri: resolveMediaUrl(photo.url || photo.uri) ?? photo.uri }} style={[s.thumbnail, narrow && s.thumbnailNarrow]} contentFit="cover" accessibilityLabel={`Unit ${index + 1} cover`} /> : <View style={s.photoEmpty}><Ionicons name="image-outline" size={24} color={Studently.color.inkMuted} /></View>}
+  return <View style={s.unitRow} testID="creation-unit-row">{photo ? <Image source={{ uri: resolveMediaUrl(photo.url || photo.uri) ?? photo.uri }} style={[s.thumbnail, narrow && s.thumbnailNarrow]} contentFit="cover" accessibilityLabel={`Unit ${index + 1} cover`} /> : <View style={s.photoEmpty}><Ionicons name="image-outline" size={designSize(24)} color={Studently.color.inkMuted} /></View>}
     <View style={s.flex}><Text style={s.helper}>Unit {index + 1}{!complete ? ' · needs details' : ''}</Text><Text style={s.unitTitle}>{unit.data.title || 'Untitled unit'}</Text><Text style={s.body}>{unit.data.monthlyRentUsd ? `$${unit.data.monthlyRentUsd}` : 'Add rent'} <Text style={s.helper}>/ {basis}</Text></Text>{credits !== undefined ? <Text style={s.helper}>{credits} {credits === 1 ? 'credit' : 'credits'}</Text> : null}</View>
     {onEdit ? <View><Link label={`Edit unit ${index + 1}`} onPress={onEdit} /><Link label={`Remove unit ${index + 1}`} onPress={onRemove!} /></View> : null}
   </View>;
 }
 
-const s = StyleSheet.create({
+const base_s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { height: '100dvh' as unknown as number, overflow: 'hidden' } : {}) },
   center: { flex: 1, minHeight: 400, padding: 32, gap: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Platform.OS === 'web' ? 32 : 24, paddingTop: Platform.OS === 'web' ? 20 : 0, paddingBottom: 12, gap: 16, backgroundColor: Lister.color.surface }, headerStacked: { paddingTop: 12, paddingBottom: 12 },

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import {
@@ -21,6 +22,8 @@ type Props = {
 };
 
 export function ListingDetailMapSection({ listing, variant = "card" }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const campuses = useUniversities();
   if (listing.lat == null || listing.lng == null) return null;
 
@@ -43,7 +46,7 @@ export function ListingDetailMapSection({ listing, variant = "card" }: Props) {
         <ListingPinMap
           lat={listing.lat}
           lng={listing.lng}
-          height={web ? 400 : 220}
+          height={designSize(web ? 400 : 220)}
           interactive
         />
       </View>
@@ -54,7 +57,7 @@ export function ListingDetailMapSection({ listing, variant = "card" }: Props) {
               shortName={nearest?.shortName ?? campusName.slice(0, 3)}
               slug={nearest?.institutionSlug ?? listing.nearestCampusSlug}
               logoUrl={nearest?.logoUrl ?? null}
-              size={28}
+              size={designSize(28)}
             />
             <LText variant="body" style={styles.name} numberOfLines={1}>
               {campusName}
@@ -80,7 +83,7 @@ export function ListingDetailMapSection({ listing, variant = "card" }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   gap: { gap: 12 },
   mapClip: {
     borderRadius: Studently.radius.md,

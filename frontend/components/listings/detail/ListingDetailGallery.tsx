@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
@@ -40,7 +41,9 @@ function OverlayBtn({
   onPress: () => void;
   selected?: boolean;
   disabled?: boolean;
-}) {
+}) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -56,7 +59,7 @@ function OverlayBtn({
     >
       <Ionicons
         name={icon}
-        size={20}
+        size={designSize(20)}
         color={selected ? Studently.color.danger : Studently.color.ink}
       />
     </Pressable>
@@ -72,7 +75,9 @@ export function ListingDetailGallery({
   onToggleSave,
   mode,
   onModeChange,
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const insets = useSafeAreaInsets();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [photoTotal, setPhotoTotal] = useState(
@@ -189,7 +194,7 @@ export function ListingDetailGallery({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     width: "100%",
     backgroundColor: Studently.color.bgWash,

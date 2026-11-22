@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Liquid } from "liquid-gooey";
@@ -46,13 +47,15 @@ function RoundBtn({
   label,
   onClick,
   children,
+  style,
 }: {
   label: string;
   onClick: () => void;
   children: ReactNode;
+  style: CSSProperties;
 }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} style={BTN}>
+    <button type="button" aria-label={label} onClick={onClick} style={style}>
       {children}
     </button>
   );
@@ -65,6 +68,18 @@ export function ListingMoreMenu({
   onReport,
   canReport = true,
 }: ListingMoreMenuProps) {
+  const { size } = useDesktopDesign();
+  const button = size(SIZE);
+  const offset = (button + size(GAP)) / 2;
+  const btn: CSSProperties = {
+    ...BTN,
+    width: button,
+    height: button,
+    minWidth: button,
+    borderRadius: size(17),
+    border: `${size(2)}px solid #C5CDD8`,
+  };
+  const stack: CSSProperties = { ...STACK, left: offset, width: button, height: button };
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -89,8 +104,8 @@ export function ListingMoreMenu({
       ref={rootRef}
       style={{
         position: "relative",
-        width: 34,
-        height: 34,
+        width: button,
+        height: button,
         flexShrink: 0,
         zIndex: 6,
       }}
@@ -100,36 +115,37 @@ export function ListingMoreMenu({
         stacked above the blue bar (header z-index), not off the top of the card.
       */}
       <Liquid
-        blur={6.5}
+        blur={size(6.5)}
         contrast={18}
         fill="#fff"
-        shadow="0 2px 10px rgba(18, 24, 38, 0.14)"
-        filterPadding={24}
+        shadow={`0 ${size(2)}px ${size(10)}px rgba(18, 24, 38, 0.14)`}
+        filterPadding={size(24)}
         style={{
           position: "absolute",
           top: 0,
-          left: -OFFSET,
-          width: SIZE + OFFSET * 2,
-          height: 100,
+          left: -offset,
+          width: button + offset * 2,
+          height: size(100),
           pointerEvents: "none",
         }}
       >
         <Liquid.Item
-          x={open ? -OFFSET : 0}
-          y={open ? 52 : 0}
+          x={open ? -offset : 0}
+          y={open ? size(52) : 0}
           scale={open ? 1 : 0}
           transition={SPRING}
-          style={{ ...STACK, pointerEvents: open ? "auto" : "none" }}
+          style={{ ...stack, pointerEvents: open ? "auto" : "none" }}
         >
           <RoundBtn
             label={linkCopied ? "Link copied" : "Copy link"}
             onClick={() => {
               onShare();
             }}
+            style={btn}
           >
             <Ionicons
               name={linkCopied ? "checkmark" : "link-outline"}
-              size={16}
+              size={size(16)}
               color={Studently.color.ink}
             />
           </RoundBtn>
@@ -137,36 +153,37 @@ export function ListingMoreMenu({
 
         {reported || !canReport ? null : (
           <Liquid.Item
-            x={open ? OFFSET : 0}
-            y={open ? 52 : 0}
+            x={open ? offset : 0}
+            y={open ? size(52) : 0}
             scale={open ? 1 : 0}
             transition={SPRING}
             delay={40}
-            style={{ ...STACK, pointerEvents: open ? "auto" : "none" }}
+            style={{ ...stack, pointerEvents: open ? "auto" : "none" }}
           >
             <RoundBtn
               label="Report this listing"
               onClick={() => {
                 onReport();
               }}
+              style={btn}
             >
-              <Ionicons name="flag-outline" size={16} color={Studently.color.ink} />
+              <Ionicons name="flag-outline" size={size(16)} color={Studently.color.ink} />
             </RoundBtn>
           </Liquid.Item>
         )}
 
-        <Liquid.Item style={{ ...STACK, pointerEvents: "auto", zIndex: 2 }}>
+        <Liquid.Item style={{ ...stack, pointerEvents: "auto", zIndex: 2 }}>
           <button
             type="button"
             aria-label={open ? "Close listing actions" : "More listing actions"}
             aria-expanded={open}
             aria-haspopup="true"
             onClick={() => setOpen((v) => !v)}
-            style={BTN}
+            style={btn}
           >
             <Ionicons
               name={open ? "close" : "ellipsis-horizontal"}
-              size={18}
+              size={size(18)}
               color={Studently.color.ink}
             />
           </button>

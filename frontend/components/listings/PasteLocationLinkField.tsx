@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Lister } from "@/constants/listerTheme";
 import { isInLebanon, type LatLng } from "@/lib/locationWkt";
 import {
@@ -28,6 +29,8 @@ const AUTO_RESOLVE_MS = 350;
  * Resolves automatically on clipboard paste or when a link appears in the field.
  */
 export function PasteLocationLinkField({ onResolved, onError }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,7 +153,7 @@ export function PasteLocationLinkField({ onResolved, onError }: Props) {
           ) : (
             <Ionicons
               name="clipboard-outline"
-              size={20}
+              size={designSize(20)}
               color={Lister.color.primary}
             />
           )}
@@ -165,7 +168,7 @@ export function PasteLocationLinkField({ onResolved, onError }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: { gap: 8 },
   hint: { marginTop: -2 },
   row: {

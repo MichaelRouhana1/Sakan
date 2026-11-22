@@ -1,4 +1,5 @@
 import { StyleSheet, View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { ThinkingOrb } from "thinking-orbs";
 import type { OrbSize, OrbState, OrbTheme } from "thinking-orbs";
 import { LText } from "@/components/lister/Typography";
@@ -25,6 +26,9 @@ export function GeneralLoadingBlock({
   showLabel = true,
   style,
 }: GeneralLoadingBlockProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const px = designSize(size);
   const orbSize = orbPresetSize(size);
   const orbState: OrbState = state;
   const orbTheme: OrbTheme = theme;
@@ -45,7 +49,7 @@ export function GeneralLoadingBlock({
         size={orbSize}
         theme={orbTheme}
         aria-label={label}
-        style={{ filter: ORB_TINT, width: size, height: size }}
+        style={{ filter: ORB_TINT, width: px, height: px }}
       />
       {label && showLabel ? (
         <LText
@@ -60,7 +64,7 @@ export function GeneralLoadingBlock({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     flex: 1,
     minHeight: 280,

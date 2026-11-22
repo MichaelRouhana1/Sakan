@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, StyleSheet, Switch, Text, View } from "react-native";
 import { Studently } from "@/constants/theme";
@@ -7,6 +8,9 @@ import {
 } from "@/features/notifications/useNotificationPreferences";
 
 export function HostNotificationPreferences({ compact = false }: { compact?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const query = useNotificationPreferences();
   const update = useUpdateNotificationPreferences();
   if (query.isLoading) {
@@ -17,7 +21,7 @@ export function HostNotificationPreferences({ compact = false }: { compact?: boo
     <View style={[styles.card, compact && styles.cardCompact]}>
       <View style={styles.heading}>
         <View style={styles.icon}>
-          <Ionicons name="notifications-outline" size={18} color={Studently.color.primary} />
+          <Ionicons name="notifications-outline" size={designSize(18)} color={Studently.color.primary} />
         </View>
         <View style={styles.copy}>
           <Text style={styles.title}>Expiry reminders</Text>
@@ -48,6 +52,9 @@ function PreferenceSwitch(props: {
   disabled: boolean;
   onValueChange: (value: boolean) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.switchRow}>
       <Text style={styles.switchLabel}>{props.label}</Text>
@@ -63,7 +70,7 @@ function PreferenceSwitch(props: {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     marginBottom: 24,
     padding: 18,

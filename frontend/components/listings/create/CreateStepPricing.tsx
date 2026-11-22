@@ -1,4 +1,5 @@
 import { TextInput, View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
@@ -19,6 +20,7 @@ import { usePriceGuide } from "@/features/listings/usePriceGuide";
 import { PriceGuideCard } from "./PriceGuideCard";
 
 export function CreateStepPricing() {
+  const { size: designSize } = useDesktopDesign();
   const { draft, patch } = useListingForm();
   const guide = usePriceGuide(draft);
   const rentInvalid = useWizardFieldInvalid("monthlyRentUsd");
@@ -29,7 +31,7 @@ export function CreateStepPricing() {
   const paymentInvalid = useWizardFieldInvalid("paymentModality");
 
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: designSize(16) }}>
       <Enter>
         <WizardFieldLabel required>Monthly rent (USD)</WizardFieldLabel>
         <TextInput
@@ -39,7 +41,7 @@ export function CreateStepPricing() {
           placeholderTextColor={Lister.color.inkFaint}
           value={draft.monthlyRentUsd}
           onChangeText={(monthlyRentUsd) => patch({ monthlyRentUsd })}
-          style={wizardInputStyle(rentInvalid)}
+          style={wizardInputStyle(rentInvalid, designSize)}
         />
       </Enter>
       {guide && draft.priceBasis ? (
@@ -51,7 +53,7 @@ export function CreateStepPricing() {
       ) : null}
       <Enter delay={70}>
         <LText variant="subtitle">Security deposit</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={[
             { value: "none", label: "No deposit" },
@@ -67,7 +69,7 @@ export function CreateStepPricing() {
         />
         {draft.depositPreset === "custom" ? (
           <>
-            <WizardFieldLabel required style={{ marginTop: 8 }}>
+            <WizardFieldLabel required style={{ marginTop: designSize(8) }}>
               Deposit amount (USD)
             </WizardFieldLabel>
             <TextInput
@@ -77,14 +79,14 @@ export function CreateStepPricing() {
               placeholderTextColor={Lister.color.inkFaint}
               value={draft.securityDepositUsd}
               onChangeText={(securityDepositUsd) => patch({ securityDepositUsd })}
-              style={wizardInputStyle(depositInvalid)}
+              style={wizardInputStyle(depositInvalid, designSize)}
             />
           </>
         ) : null}
       </Enter>
       <Enter delay={140}>
         <LText variant="subtitle">Minimum lease</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={LEASE_TERM_OPTIONS}
           value={draft.leaseTerm}
@@ -99,7 +101,7 @@ export function CreateStepPricing() {
           icon="time-outline"
           onPress={() => patch({ availableImmediate: true, availableFrom: "" })}
         />
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <WizardFieldLabel required={draft.availableImmediate !== true}>
           Or a specific date (YYYY-MM-DD)
         </WizardFieldLabel>
@@ -111,12 +113,12 @@ export function CreateStepPricing() {
           onChangeText={(availableFrom) =>
             patch({ availableFrom, availableImmediate: false })
           }
-          style={wizardInputStyle(draft.availableImmediate !== true && availableInvalid)}
+          style={wizardInputStyle(draft.availableImmediate !== true && availableInvalid, designSize)}
         />
       </Enter>
       <Enter delay={220}>
         <LText variant="subtitle">Payment</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={PAYMENT_MODALITY_OPTIONS}
           value={draft.paymentModality}

@@ -52,6 +52,7 @@ import {
 } from "@/components/listings/edit/EditPanelHeader";
 import { chipLabel, SectionPills } from "@/components/listings/edit/SectionPills";
 import type { HostEditSection } from "@/constants/hostRoutes";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { safeBack } from "@/lib/safeBack";
 
@@ -83,6 +84,8 @@ export function EditListingScreen({
   onClose,
   initialSection = null,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
@@ -348,7 +351,7 @@ export function EditListingScreen({
               pressed && styles.backPressed,
             ]}
           >
-            <Ionicons name="chevron-back" size={20} color={Lister.color.ink} />
+            <Ionicons name="chevron-back" size={designSize(20)} color={Lister.color.ink} />
           </Pressable>
           <View style={styles.topCopy}>
             <LText variant="caption" tone="muted">
@@ -398,7 +401,7 @@ export function EditListingScreen({
 
       {!meta.structuralLocked && !panel ? (
         <View style={styles.openBanner}>
-          <Ionicons name="time-outline" size={18} color={Lister.color.primary} />
+          <Ionicons name="time-outline" size={designSize(18)} color={Lister.color.primary} />
           <LText variant="caption" style={styles.openCopy}>
             First day after publish: you can still correct the floor, beds, or pin. After that, those fields lock to this unit.
           </LText>
@@ -457,7 +460,7 @@ export function EditListingScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   screen: {
     flex: 1,
     minHeight: 0,

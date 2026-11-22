@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useRouter } from "expo-router";
 import {
   Pressable,
@@ -23,6 +24,8 @@ export function ProductSwitchControl({
   textStyle,
   label,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const router = useRouter();
   const text =
     label ?? (variant === "toCampus" ? "Campus" : "Find a place");
@@ -50,7 +53,7 @@ export function ProductSwitchControl({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   hit: {
     paddingVertical: 8,
     paddingHorizontal: 4,

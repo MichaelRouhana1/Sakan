@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -46,7 +47,9 @@ export function listingAmenityLabels(listing: Pick<Listing, "amenities">): strin
     .filter(Boolean);
 }
 
-export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
+export function ListingDetailAmenities({ listing, variant = "card" }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const all = useMemo(() => listingAmenityLabels(listing), [listing]);
   const [open, setOpen] = useState(false);
   const shown = open || all.length <= PREVIEW ? all : all.slice(0, PREVIEW);
@@ -64,7 +67,7 @@ export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
           <View key={item} style={styles.cell}>
             <Ionicons
               name={iconFor(item)}
-              size={18}
+              size={designSize(18)}
               color={Studently.color.primaryDeep}
             />
             <LText variant="caption" style={styles.label} numberOfLines={2}>
@@ -90,7 +93,7 @@ export function ListingDetailAmenities({ listing, variant = "card" }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   gap: { gap: 12 },
   grid: {
     flexDirection: "row",

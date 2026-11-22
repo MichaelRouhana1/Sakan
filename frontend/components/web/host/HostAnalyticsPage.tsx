@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import {
@@ -31,6 +32,9 @@ import { useHostAnalytics } from "@/features/listings/useHostAnalytics";
 import { useBreakpoint } from "@/lib/breakpoints";
 
 export function HostAnalyticsPage() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const bp = useBreakpoint();
   const compact = bp === "mobile" || Platform.OS !== "web";
@@ -182,7 +186,7 @@ export function HostAnalyticsPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingBottom: 64,

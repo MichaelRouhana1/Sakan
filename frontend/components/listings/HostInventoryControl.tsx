@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useDesktopDesign } from '@/components/ui/DesktopDesign';
 import { Studently } from '@/constants/theme';
 import { fetchInventory, inventoryError, inventoryKey, inventoryMessage, saveInventory, setPlaceVisibility, type InventoryChange, type UnitInventory } from '@/features/listings/hostInventory';
 import type { GenderRestriction } from '@/types/listing';
@@ -9,6 +10,8 @@ const genderLabels: Record<GenderRestriction, string> = { anyone: 'Anyone', girl
 type Dialog = 'manage' | 'beds' | 'moved_in' | 'gender' | 'rented' | 'show_place' | 'hide_place' | null;
 
 function Button({label, onPress, disabled = false}: {label: string; onPress: () => void; disabled?: boolean}) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return <Pressable accessibilityRole="button" disabled={disabled} accessibilityState={{disabled}}
     onPress={event => {event.stopPropagation(); onPress();}} style={[styles.button, disabled && styles.disabled]}>
     <Text style={styles.buttonText}>{label}</Text>
@@ -17,6 +20,8 @@ function Button({label, onPress, disabled = false}: {label: string; onPress: () 
 
 /** Owner-only inventory, shared by the web and native host dashboards. */
 export function HostInventoryControl({listingId}: {listingId: string}) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const client = useQueryClient();
   const query = useQuery({queryKey: inventoryKey(listingId), queryFn: () => fetchInventory(listingId)});
   const row = query.data;
@@ -157,7 +162,7 @@ export function HostInventoryControl({listingId}: {listingId: string}) {
   </Pressable>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   box: {gap: 8, paddingVertical: 10, alignSelf: 'stretch'},
   stack: {gap: 8}, actions: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   body: {fontFamily: Studently.type.body, fontSize: 13, lineHeight: 19, color: Studently.color.inkMuted},

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -17,6 +18,9 @@ export function WebProfileMenu({
   initial,
   avatarBackgroundColor = "#F1F5F9",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const { isSignedIn, hasClerkSession, user, logout } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,7 +101,7 @@ export function WebProfileMenu({
           {initial ? (
             <Text style={styles.avatarLetterText}>{avatarInitial}</Text>
           ) : (
-            <Ionicons name="person-outline" size={18} color={Studently.color.ink} />
+            <Ionicons name="person-outline" size={designSize(18)} color={Studently.color.ink} />
           )}
         </Pressable>
 
@@ -136,7 +140,7 @@ export function WebProfileMenu({
               >
                 <Ionicons
                   name="person-outline"
-                  size={20}
+                  size={designSize(20)}
                   color="#334155"
                   style={styles.menuIcon}
                 />
@@ -152,7 +156,7 @@ export function WebProfileMenu({
               >
                 <Ionicons
                   name="heart-outline"
-                  size={20}
+                  size={designSize(20)}
                   color="#334155"
                   style={styles.menuIcon}
                 />
@@ -168,7 +172,7 @@ export function WebProfileMenu({
               >
                 <Ionicons
                   name="download-outline"
-                  size={20}
+                  size={designSize(20)}
                   color="#334155"
                   style={styles.menuIcon}
                 />
@@ -187,7 +191,7 @@ export function WebProfileMenu({
                   >
                     <Ionicons
                       name="log-out-outline"
-                      size={20}
+                      size={designSize(20)}
                       color="#334155"
                       style={styles.menuIcon}
                     />
@@ -217,6 +221,9 @@ function ProfileMenuLayer({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const menu = (
     <>
       <Pressable
@@ -242,7 +249,7 @@ function ProfileMenuLayer({
   return menu;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     position: "relative",
     flexDirection: "row",

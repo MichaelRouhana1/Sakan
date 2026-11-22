@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { memo, useId } from "react";
 import { StyleSheet } from "react-native";
 import Svg, { ClipPath, Defs, Path, Rect } from "react-native-svg";
@@ -75,7 +76,9 @@ function TicketBackdropBase({
   fill,
   stubFill,
   stubOpacity = 1,
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const clipId = useId().replace(/:/g, "");
   if (w < 8 || h < 8) return null;
 
@@ -113,7 +116,7 @@ function TicketBackdropBase({
 
 export const TicketBackdrop = memo(TicketBackdropBase);
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   svg: {
     position: "absolute",
     top: -PAD,

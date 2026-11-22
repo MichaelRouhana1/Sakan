@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useState } from "react";
@@ -27,7 +28,9 @@ const SUPPORT_EMAIL = "hello@studently.app";
 const NOTCH = 24;
 const CORNER = 28;
 
-export function BenefitRedeemPanel({ benefit }: Props) {
+export function BenefitRedeemPanel({ benefit }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { isSignedIn } = useAuthSession();
   const redemption = useBenefitRedemption(benefit.id);
   const [revealed, setRevealed] = useState<BenefitRedemption | null>(null);
@@ -133,7 +136,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
           <View style={styles.iconWell}>
             <Ionicons
               name={isSignedIn ? meta.icon : "lock-closed-outline"}
-              size={18}
+              size={designSize(18)}
               color={cat.accent}
             />
           </View>
@@ -169,7 +172,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
             <View key={item} style={styles.readyRow}>
               <Ionicons
                 name="checkmark"
-                size={14}
+                size={designSize(14)}
                 color={Studently.color.primary}
               />
               <LText variant="body" style={styles.readyText}>
@@ -226,7 +229,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
               >
                 <Ionicons
                   name={copied ? "checkmark" : "copy-outline"}
-                  size={16}
+                  size={designSize(16)}
                   color={Studently.color.primary}
                 />
                 <LText variant="caption" style={styles.copyLabel}>
@@ -262,7 +265,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
               </View>
               <Ionicons
                 name="open-outline"
-                size={18}
+                size={designSize(18)}
                 color={Studently.color.primary}
               />
             </Pressable>
@@ -290,7 +293,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
         <View style={styles.errorRow} accessibilityLiveRegion="polite">
           <Ionicons
             name="alert-circle-outline"
-            size={15}
+            size={designSize(15)}
             color={Studently.color.danger}
           />
           <LText variant="caption" tone="danger">
@@ -309,7 +312,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
       >
         <Ionicons
           name="chatbubble-ellipses-outline"
-          size={14}
+          size={designSize(14)}
           color={Studently.color.inkMuted}
         />
         <LText variant="caption" tone="muted" style={styles.reportText}>
@@ -322,7 +325,7 @@ export function BenefitRedeemPanel({ benefit }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   shadowWrap: {
     width: "100%",
     overflow: "visible",

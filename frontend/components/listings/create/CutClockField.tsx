@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -23,6 +24,9 @@ export function CutClockField({
   defaultMeridiem,
   onChange,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const parsed = hhmmToClock(value);
   const meridiem = parsed?.meridiem ?? defaultMeridiem;
   const [hourDraft, setHourDraft] = useState(parsed?.hour ?? "");
@@ -37,7 +41,7 @@ export function CutClockField({
   }
 
   return (
-    <View style={{ flex: 1, gap: 6 }}>
+    <View style={{ flex: 1, gap: designSize(6) }}>
       <LText variant="caption" tone="muted">
         {label}
       </LText>
@@ -82,7 +86,7 @@ export function CutClockField({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",

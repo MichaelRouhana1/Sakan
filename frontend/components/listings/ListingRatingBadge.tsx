@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { studentlyShadow } from "@/lib/studentlyShadow";
 import type { Listing } from "@/types/listing";
@@ -34,6 +35,8 @@ export function ListingListRatingDisplay({
   reviewCount,
   size = "md",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
   const large = size === "lg";
@@ -76,6 +79,8 @@ export function ListingListRatingDisplay({
  * Positioned at absolute bottom-0 left-0 right-0 z-10 over listing image.
  */
 export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   if (!Number.isFinite(rating) || reviewCount <= 0) return null;
 
   if (Platform.OS === "web") {
@@ -89,8 +94,8 @@ export function ListingGridRatingBadge({ rating, reviewCount }: Props) {
         <SVGElement
           style={{
             position: "absolute",
-            bottom: 0,
-            left: 0,
+            bottom: designSize(0),
+            left: designSize(0),
             width: "100%",
             height: "100%",
             fill: "#FFFFFF",
@@ -160,6 +165,8 @@ export function ListingRatingBadge(props: Props) {
 
 /** Featured / New chip when a listing has no reviews yet. */
 export function ListingFeatureBadge({ label }: { label: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View style={[styles.feature, { pointerEvents: "none" }]}>
       <Text style={styles.featureText}>{label}</Text>
@@ -199,7 +206,7 @@ export function listingImageCornerBadge(
   return null;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   // List Mode Rating Display Styles
   listWrap: {
     flexDirection: "row",

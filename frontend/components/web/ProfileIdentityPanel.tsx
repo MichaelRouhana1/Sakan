@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 import { LText } from "@/components/lister/Typography";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { syncIdentityFromClerk } from "@/features/auth/userApi";
@@ -64,6 +65,8 @@ type Props = {
 };
 
 export function ProfileIdentityPanel({ stacked }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const { user, refreshUser } = useAuthSession();
   const { user: clerkUser } = useUser();
 
@@ -389,7 +392,7 @@ export function ProfileIdentityPanel({ stacked }: Props) {
                 accessibilityLabel="Close"
                 style={styles.dialogClose}
               >
-                <Ionicons name="close" size={20} color={Studently.color.ink} />
+                <Ionicons name="close" size={designSize(20)} color={Studently.color.ink} />
               </Pressable>
             </View>
             <ScrollView
@@ -537,6 +540,8 @@ function IdentityCell({
   ruleTop?: boolean;
   ruleBottom?: boolean;
 }) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -577,6 +582,8 @@ function Field({
   autoComplete?: string;
   hint?: string;
 }) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View style={styles.field}>
       <LText variant="caption" tone="muted">
@@ -616,6 +623,8 @@ function PasswordField({
   onToggle: () => void;
   invalid?: boolean;
 }) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View style={styles.field}>
       <View style={styles.passwordLabel}>
@@ -645,7 +654,7 @@ function PasswordField({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     gap: 12,
   },

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useMemo } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -18,7 +19,9 @@ export function ListingNearbyCampuses({
   listing,
   onViewMap,
   heading = "Near campus",
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const campuses = useUniversities();
   const rows = useMemo(
     () => nearbyCampusesForListing(listing, campuses.data ?? []),
@@ -55,7 +58,7 @@ export function ListingNearbyCampuses({
                 shortName={row.shortName}
                 slug={row.institutionSlug}
                 logoUrl={row.logoUrl}
-                size={28}
+                size={designSize(28)}
               />
               <LText variant="body" style={styles.name} numberOfLines={1}>
                 {row.name}
@@ -95,7 +98,7 @@ export function ListingNearbyCampuses({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   head: {
     flexDirection: "row",
     alignItems: "baseline",

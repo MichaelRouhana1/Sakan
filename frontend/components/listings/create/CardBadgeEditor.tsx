@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { LButton } from "@/components/lister/Button";
@@ -39,6 +40,9 @@ type Props = {
 };
 
 function CardBadgeSubsetEditor({ listing, onChange }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { formChrome } = useListingForm();
   const { width } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
@@ -47,8 +51,9 @@ function CardBadgeSubsetEditor({ listing, onChange }: Props) {
   const keys = listing.cardBadges ?? [];
   const pills = listingCardPills(listing);
   const candidates = listingCardCandidates(listing);
-  const sideBySide = contentWidth >= 820;
-  const showList = Platform.OS === "web" && width >= 1024;
+  const { scale } = useDesktopDesign();
+  const sideBySide = contentWidth / (scale || 1) >= 820;
+  const showList = Platform.OS === "web" && useLayoutWidth() >= 1024;
   const controlIndex = keys.indexOf(activeControl ?? "");
   const controlPill = pills[controlIndex];
 
@@ -164,7 +169,7 @@ function CardBadgeSubsetEditor({ listing, onChange }: Props) {
               ? "Drag up to 6 onto your card. Drag them back here to remove."
               : "Choose up to 6 badges. Tap a selected badge to remove it."}
           </LText>
-          <Ionicons name="arrow-down" size={28} color={Lister.color.inkMuted} style={styles.poolArrow} />
+          <Ionicons name="arrow-down" size={designSize(28)} color={Lister.color.inkMuted} style={styles.poolArrow} />
           <View style={styles.poolBadges}>
             {candidates.map((pill) => {
               const selected = keys.includes(pill.key);
@@ -178,7 +183,7 @@ function CardBadgeSubsetEditor({ listing, onChange }: Props) {
                     style={[styles.poolButton, selected && styles.poolButtonSelected]}
                   >
                     <ListingAmberPillView pill={pill} highlight={isHighlightCardBadge(pill.key)} style={styles.poolPill} />
-                    {selected ? <Ionicons name="checkmark" size={13} color={Lister.color.primary} /> : null}
+                    {selected ? <Ionicons name="checkmark" size={designSize(13)} color={Lister.color.primary} /> : null}
                   </Pressable>
                 </View>
               );
@@ -230,11 +235,14 @@ function CardBadgeSubsetEditor({ listing, onChange }: Props) {
 function ReorderButton({ label, icon, disabled, onPress }: {
   label: string; icon: "chevron-back" | "chevron-forward" | "trash-outline" | "close"; disabled?: boolean; onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
       {...(Platform.OS === "web" ? { dataSet: { badgeControl: "true" } } : {})}
       style={[styles.reorderButton, disabled && styles.disabled]}>
-      <Ionicons name={icon} size={17} color={Lister.color.ink} />
+      <Ionicons name={icon} size={designSize(17)} color={Lister.color.ink} />
     </Pressable>
   );
 }
@@ -244,7 +252,7 @@ const webDragStyle = Platform.OS === "web"
   ? { touchAction: "none", cursor: "grab", userSelect: "none" } as unknown as ViewStyle
   : {};
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: { gap: 36, width: "100%" },
   editor: { gap: 28 },
   editorWide: { flexDirection: "row", alignItems: "flex-start", gap: 48, minHeight: 700 },
@@ -303,7 +311,7 @@ function searchListCardWidth(viewport: number): number {
   return inner;
 }
 
-const wizardStyles = StyleSheet.create({
+const base_wizardStyles = StyleSheet.create({
   stage: { gap: 28, width: "100%" },
   listStage: { gap: 10, width: "100%", maxWidth: "100%" },
   listFrame: { width: "100%", maxWidth: "100%", overflow: "hidden" },
@@ -330,6 +338,10 @@ const wizardStyles = StyleSheet.create({
 });
 
 export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchSearchList = false }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const wizardStyles = resolveStyles(base_wizardStyles);
+  
   const reduced = useReducedMotion();
   const { width: viewport } = useWindowDimensions();
   const [contentWidth, setContentWidth] = useState(0);
@@ -521,6 +533,9 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
 }
 
 function EditBadgeLauncher({ listing, onChange }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const launcherStyles = resolveStyles(base_launcherStyles);
+  
   const [open, setOpen] = useState(false);
   return (
     <View style={launcherStyles.row}>
@@ -539,7 +554,7 @@ function EditBadgeLauncher({ listing, onChange }: Props) {
   );
 }
 
-const launcherStyles = StyleSheet.create({
+const base_launcherStyles = StyleSheet.create({
   row: { alignItems: "flex-start", paddingTop: 4 },
 });
 

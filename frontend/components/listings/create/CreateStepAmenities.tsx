@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { BuildingAccessFields } from './CreateStepSpecs';
 import { patchOverride, resetOverride } from '@/features/listings/create/unitDrafts';
 import type { CreateListingDraft } from '@/features/listings/create/draft';
@@ -51,6 +52,7 @@ function FieldSource({
   draft: CreateListingDraft;
   onReset: (keys: readonly string[]) => void;
 }) {
+  const { size: designSize } = useDesktopDesign();
   if (!draft.sharedValues) return null;
   const overridden = keys.some((key) => draft.differentFields?.includes(key));
   if (!overridden) {
@@ -65,7 +67,7 @@ function FieldSource({
       accessibilityRole="button"
       accessibilityLabel={`Reset ${label} to building`}
       onPress={() => onReset(keys)}
-      style={{ alignSelf: "flex-start", paddingVertical: 4 }}
+      style={{ alignSelf: "flex-start", paddingVertical: designSize(4) }}
     >
       <LText variant="caption" style={{ color: Lister.color.primary }}>
         Reset to building
@@ -75,6 +77,9 @@ function FieldSource({
 }
 
 function IncludedInRent({ children }: { children: ReactNode }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.included}>
       <LText variant="caption" tone="muted" style={styles.includedLabel}>
@@ -86,6 +91,9 @@ function IncludedInRent({ children }: { children: ReactNode }) {
 }
 
 export function CreateStepAmenities() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { draft, patch, fieldInvalid, formChrome } = useListingForm();
   const change = (values: Partial<CreateListingDraft>, keys: readonly string[]) =>
     patchOverride(draft, patch, values, keys);
@@ -140,13 +148,13 @@ export function CreateStepAmenities() {
   }
 
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: designSize(16) }}>
       {formChrome==='edit' ? <BuildingAccessFields/> : null}
       <Enter>
         <WizardFieldLabel required>Electricity</WizardFieldLabel>
         <FieldSource label="electricity" keys={["electricity"]} draft={draft} onReset={reset} />
-        <View style={{ height: 8 }} />
-        <WizardFieldGroup field="electricity" style={{ gap: 8 }}>
+        <View style={{ height: designSize(8) }} />
+        <WizardFieldGroup field="electricity" style={{ gap: designSize(8) }}>
           {ELEC.map((value) => (
             <SelectableCard
               key={value}
@@ -176,10 +184,10 @@ export function CreateStepAmenities() {
         {draft.electricity === "generator_24_7" ||
         draft.electricity === "scheduled_cuts" ? (
           <>
-            <View style={{ height: 8 }} />
+            <View style={{ height: designSize(8) }} />
             <WizardFieldLabel required>Generator / ishtirak amps</WizardFieldLabel>
             <FieldSource label="generator amps" keys={["generatorAmperes"]} draft={draft} onReset={reset} />
-            <View style={{ height: 8 }} />
+            <View style={{ height: designSize(8) }} />
             <WizardFieldGroup field="generatorAmperes">
               <SegmentedPills
                 options={GENERATOR_AMP_OPTIONS.map((n) => ({
@@ -220,7 +228,7 @@ export function CreateStepAmenities() {
                     >
                       <Ionicons
                         name="trash-outline"
-                        size={18}
+                        size={designSize(18)}
                         color={Lister.color.danger}
                       />
                     </Pressable>
@@ -252,7 +260,7 @@ export function CreateStepAmenities() {
                 style={styles.addPeriod}
               >
                 <View style={styles.addPlus}>
-                  <Ionicons name="add" size={22} color={Lister.color.primary} />
+                  <Ionicons name="add" size={designSize(22)} color={Lister.color.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <LText variant="body" style={styles.addTitle}>
@@ -289,7 +297,7 @@ export function CreateStepAmenities() {
           onPress={() => change({ hasSolar: !draft.hasSolar }, ["hasSolar"])}
         />
         <FieldSource label="solar" keys={["hasSolar"]} draft={draft} onReset={reset} />
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <IncludedInRent>
           <SelectableCard
             selected={draft.generatorIncluded}
@@ -309,7 +317,7 @@ export function CreateStepAmenities() {
         >
           <Ionicons
             name="warning-outline"
-            size={18}
+            size={designSize(18)}
             color={Lister.color.warning}
           />
           <View style={styles.disclaimerCopy}>
@@ -328,8 +336,8 @@ export function CreateStepAmenities() {
         <WaterSectionMarker />
         <WizardFieldLabel required>Water</WizardFieldLabel>
         <FieldSource label="water" keys={["water"]} draft={draft} onReset={reset} />
-        <View style={{ height: 8 }} />
-        <WizardFieldGroup field="water" style={{ gap: 8 }}>
+        <View style={{ height: designSize(8) }} />
+        <WizardFieldGroup field="water" style={{ gap: designSize(8) }}>
           {WATER.map((value) => (
             <SelectableCard
               key={value}
@@ -343,7 +351,7 @@ export function CreateStepAmenities() {
         </WizardFieldGroup>
         {draft.water ? (
           <>
-            <View style={{ height: 8 }} />
+            <View style={{ height: designSize(8) }} />
             <IncludedInRent>
               <SelectableCard
                 selected={draft.waterBillIncluded}
@@ -369,7 +377,7 @@ export function CreateStepAmenities() {
         />
         <FieldSource label="Wi-Fi" keys={["wifiIncluded"]} draft={draft} onReset={reset} />
         </IncludedInRent>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SelectableCard
           selected={draft.routerUps}
           title="Router on UPS"
@@ -377,7 +385,7 @@ export function CreateStepAmenities() {
           onPress={() => change({ routerUps: !draft.routerUps }, ["routerUps"])}
         />
         <FieldSource label="router UPS" keys={["routerUps"]} draft={draft} onReset={reset} />
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SelectableCard
           selected={draft.conciergeIncluded}
           title="Concierge / natour included"
@@ -385,7 +393,7 @@ export function CreateStepAmenities() {
           onPress={() => change({ conciergeIncluded: !draft.conciergeIncluded }, ["conciergeIncluded"])}
         />
         <FieldSource label="concierge" keys={["conciergeIncluded"]} draft={draft} onReset={reset} />
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <IncludedInRent>
           <SelectableCard
             selected={draft.buildingFeesIncluded}
@@ -398,7 +406,7 @@ export function CreateStepAmenities() {
           />
           <FieldSource label="building fees" keys={["buildingFeesIncluded"]} draft={draft} onReset={reset} />
         </IncludedInRent>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <IncludedInRent>
           <SelectableCard
             selected={draft.cookingGasIncluded}
@@ -425,7 +433,7 @@ export function CreateStepAmenities() {
               >
                 <Ionicons
                   name={opt.icon}
-                  size={20}
+                  size={designSize(20)}
                   color={on ? Lister.color.primary : Lister.color.inkMuted}
                 />
                 <LText variant="caption" style={on ? styles.cellLabelOn : undefined}>
@@ -436,7 +444,7 @@ export function CreateStepAmenities() {
           })}
         </View>
         {draft.amenities.includes("parking") ? (
-          <View style={{ marginTop: 8 }}>
+          <View style={{ marginTop: designSize(8) }}>
             <IncludedInRent>
               <SelectableCard
                 selected={draft.parkingIncludedInRent}
@@ -456,7 +464,7 @@ export function CreateStepAmenities() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   disclaimer: {
     flexDirection: "row",
     alignItems: "flex-start",

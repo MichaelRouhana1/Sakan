@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +43,9 @@ const message = (error: unknown) => (error as { response?: { data?: { error?: { 
 const primaryLabels: Record<WorkspaceAction, string> = { renew: 'Renew', edit: 'Edit', analytics: 'View analytics', availability: 'Update availability' };
 
 export function HostListingsWorkspace({ listings, drafts, loading, failed, refreshing, signedIn, createDisabled, onRefresh, onEdit }: Props) {
+  const { size: designSize, scale, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const router = useRouter();
   const focused = useIsFocused();
   const params = useLocalSearchParams<{ filter?: string; q?: string; sort?: string }>();
@@ -72,10 +76,11 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   }, [drafts, filter, search, sort]);
   const filterCounts = {...counts, All: units.length + drafts.length, Drafts: drafts.length};
   const count = units.length + drafts.length;
-  const autoList = Platform.OS === 'web' && width >= 1080 && count !== 1;
+  const layoutWidth = width / (scale || 1);
+  const autoList = Platform.OS === 'web' && layoutWidth >= 1080 && count !== 1;
   const layout: HostListingsLayout = layoutChoice ?? (autoList ? 'list' : 'grid');
-  const wide = layout === 'list' && Platform.OS === 'web' && width >= 1080;
-  const narrow = width < 600;
+  const wide = layout === 'list' && Platform.OS === 'web' && layoutWidth >= 1080;
+  const narrow = layoutWidth < 600;
   const known = !loading && (!failed || units.length > 0);
   const shortage = units.length > 0 && credits.data?.postCredits === 0;
   const close = () => { setSheet(null); setError(''); };
@@ -161,14 +166,14 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
             <Metric value={known ? counts.expiring : null} label="Expiring" tone="warning" onPress={() => setFilter('Needs attention')} />
             <Metric value={known ? counts.Expired : null} label="Expired" tone="danger" onPress={() => setFilter('Expired')} />
           </View>
-          <View style={[s.wallet,narrow&&{gap:8}]}><View style={s.walletLabel}><Ionicons name="wallet-outline" size={17} color={Studently.color.inkMuted} /><Text style={s.smallBold}>{credits.data ? `${credits.data.postCredits} post credits` : credits.isError ? 'Balance unavailable' : 'Checking credits…'}</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/hosting/credits' as never)} style={s.touch}><Text style={s.textLink}>Buy credits</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Reminder settings" onPress={() => open({ kind: 'reminders' })} style={s.touch}><Text style={s.captionLink}>Reminders</Text></Pressable></View>
+          <View style={[s.wallet,narrow&&{gap:8}]}><View style={s.walletLabel}><Ionicons name="wallet-outline" size={designSize(17)} color={Studently.color.inkMuted} /><Text style={s.smallBold}>{credits.data ? `${credits.data.postCredits} post credits` : credits.isError ? 'Balance unavailable' : 'Checking credits…'}</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/hosting/credits' as never)} style={s.touch}><Text style={s.textLink}>Buy credits</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Reminder settings" onPress={() => open({ kind: 'reminders' })} style={s.touch}><Text style={s.captionLink}>Reminders</Text></Pressable></View>
         </View>
         {!narrow ? <View style={s.summaryFoot}><Text style={s.caption}>{known ? `${units.length} ${units.length === 1 ? 'unit' : 'units'} · ${new Set(units.map(unit => unit.placeId ?? unit.id)).size} ${new Set(units.map(unit => unit.placeId ?? unit.id)).size === 1 ? 'place' : 'places'}` : 'Your places and units'} · Expiring is included in Live</Text></View> : null}
       </View>
 
       <View style={s.toolbar}>
         <RubberSegment value={filter} onChange={setFilter} items={workspaceFilters.map(value => ({value, label: value === 'Drafts' ? 'In progress' : value, count: known || value === 'Drafts' ? filterCounts[value] : '—'}))} />
-        <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={18} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /><HostListingsLayoutButton layout={layout} onLayoutChange={setLayoutChoice} /></View>
+        <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={designSize(18)} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /><HostListingsLayoutButton layout={layout} onLayoutChange={setLayoutChoice} /></View>
       </View>
 
       <View style={[s.body, narrow && s.bodyNarrow]}>
@@ -183,7 +188,7 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
             return <View key={group.id} testID={`place-${group.id}`} style={s.group}>
               {group.total > 1 ? <View style={s.groupHeading}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`${folded ? 'Expand' : 'Collapse'} ${group.name}`} accessibilityState={{expanded:!folded}} onPress={() => setCollapsed(previous => { const next=new Set(previous); if(next.has(group.id))next.delete(group.id);else next.add(group.id);return next; })} style={s.groupTitleButton}>
-                  <Ionicons name={folded?'chevron-forward':'chevron-down'} size={16} color={Studently.color.inkMuted} /><View style={s.flex}><Text style={s.groupTitle}>{group.name}<Text style={s.muted}> · {group.unit.area}</Text></Text><Text style={s.caption}>{group.units.length === group.total ? `${group.total} units` : `${group.units.length} of ${group.total} units`}{group.attention ? ` · ${group.attention} need attention` : ''}</Text></View>
+                  <Ionicons name={folded?'chevron-forward':'chevron-down'} size={designSize(16)} color={Studently.color.inkMuted} /><View style={s.flex}><Text style={s.groupTitle}>{group.name}<Text style={s.muted}> · {group.unit.area}</Text></Text><Text style={s.caption}>{group.units.length === group.total ? `${group.total} units` : `${group.units.length} of ${group.total} units`}{group.attention ? ` · ${group.attention} need attention` : ''}</Text></View>
                 </Pressable>
                 {!narrow ? <Button label="Add unit" icon="add" disabled={createDisabled} onPress={() => addUnit(group.unit)} /> : null}
                 <MenuTrigger label={`Place options for ${group.name}`} onPress={anchor => open({kind:'place',unit:group.unit,anchor})} />
@@ -222,12 +227,15 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
 }
 
 function DraftRow({draft,wide}:{draft:WorkspaceDraft;wide:boolean}) {
-  const {width}=useWindowDimensions();
-  const size=width>=1024?72:width>=768?64:56;
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
+  const layoutWidth = useLayoutWidth();
+  const size = designSize(layoutWidth >= 1024 ? 72 : layoutWidth >= 768 ? 64 : 56);
   const photo=resolveMediaUrl(draft.coverUrl??null);
   const identity=<View style={s.identity}>
-    {photo?<Image source={{uri:photo}} style={[s.thumbnail,{width:size,height:size}]} contentFit="cover"/>:<View style={[s.thumbnailFallback,{width:size,height:size}]}><Ionicons name="document-text-outline" size={24} color="#8A847C"/></View>}
-    <View style={s.identityCopy}><Text style={s.unitTitle} numberOfLines={width>=1440?undefined:2}>{draft.title}</Text><Text style={s.typePrice}>{draft.subtitle}</Text>{!wide?<Text style={s.draftCaption}>Not published</Text>:null}</View>
+    {photo?<Image source={{uri:photo}} style={[s.thumbnail,{width:size,height:size}]} contentFit="cover"/>:<View style={[s.thumbnailFallback,{width:size,height:size}]}><Ionicons name="document-text-outline" size={designSize(24)} color="#8A847C"/></View>}
+    <View style={s.identityCopy}><Text style={s.unitTitle} numberOfLines={layoutWidth>=1440?undefined:2}>{draft.title}</Text><Text style={s.typePrice}>{draft.subtitle}</Text>{!wide?<Text style={s.draftCaption}>Not published</Text>:null}</View>
   </View>;
   const badge=<View style={[s.status,s.draftBadge]}><Text style={s.statusText}>In progress</Text></View>;
   const actions=<><Button label="Continue" accessibilityLabel={`Continue draft ${draft.title}`} onPress={draft.onPress}/><MenuTrigger label={`Draft options for ${draft.title}`} onPress={draft.onPress}/></>;
@@ -237,16 +245,19 @@ function DraftRow({draft,wide}:{draft:WorkspaceDraft;wide:boolean}) {
 }
 
 function UnitRow({unit,now,wide,singlePlace,onAction,onMenu,onPlace,onToggle,autoBusy,onAnalytics}:{unit:Listing;now:number;wide:boolean;singlePlace:boolean;onAction:(kind:WorkspaceAction)=>void;onMenu:(anchor:Anchor)=>void;onPlace:(anchor:Anchor)=>void;onToggle:(value:boolean)=>void;autoBusy:boolean;onAnalytics:()=>void}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const f=workspaceFacts(unit,now);
   const autoInfo=autoRenewInfo(unit,now);
   const photo=resolveMediaUrl(unit.coverUrl??unit.photos?.[0]?.url??null);
-  const {width:viewportWidth}=useWindowDimensions();
-  const thumbnailSize=viewportWidth>=1024?72:viewportWidth>=768?64:56;
+  const layoutWidth = useLayoutWidth();
+  const thumbnailSize = designSize(layoutWidth >= 1024 ? 72 : layoutWidth >= 768 ? 64 : 56);
   const thumbnailStyle={width:thumbnailSize,height:thumbnailSize};
-  const title=<Text style={s.unitTitle} numberOfLines={viewportWidth>=1440?undefined:2}>{unitTitle(unit)}</Text>;
+  const title=<Text style={s.unitTitle} numberOfLines={layoutWidth>=1440?undefined:2}>{unitTitle(unit)}</Text>;
   const status=<View style={[s.status,f.expiring&&s.statusWarning,f.expired&&s.statusExpired]}><View style={[s.statusDot,{backgroundColor:f.expired?'#B42318':f.expiring?'#B45309':f.live?'#25814C':'#6B7280'}]} /><Text style={[s.statusText,f.expiring&&s.warningText,f.expired&&{color:'#B42318'}]}>{f.status.label}</Text></View>;
   const identity=<View style={s.identity}>
-    {photo?<Image source={{uri:photo}} testID="listing-thumbnail" style={[s.thumbnail,thumbnailStyle]} contentFit="cover" />:<View style={[s.thumbnailFallback,thumbnailStyle]} testID="listing-thumbnail"><Ionicons name="home-outline" size={24} color="#8A847C" /></View>}
+    {photo?<Image source={{uri:photo}} testID="listing-thumbnail" style={[s.thumbnail,thumbnailStyle]} contentFit="cover" />:<View style={[s.thumbnailFallback,thumbnailStyle]} testID="listing-thumbnail"><Ionicons name="home-outline" size={designSize(24)} color="#8A847C" /></View>}
     <View style={s.identityCopy}>{singlePlace?<Pressable accessibilityRole="button" accessibilityLabel={`Place options for ${placeName(unit)}`} onPress={()=>onPlace({x:0,y:0})}>{title}</Pressable>:title}<Text style={s.typePrice}>{unitTypeName(unit)} · ${unit.monthlyRentUsd.toLocaleString()}/{unit.priceBasis==='per_bed_month'?'bed/mo':'mo'}{unitCampusName(unit)?` · ${unitCampusName(unit)}`:''}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={`Analytics for ${unitTitle(unit)}`} onPress={onAnalytics} style={s.performance}><Text style={s.caption}>{unit.viewCount??0} views · {unit.contactTapCount??0} taps</Text></Pressable>
 
@@ -278,32 +289,62 @@ function autoRenewInfo(unit:Listing,now:number) {
 }
 
 function AutoRenewSummary({unit,now,onToggle,busy,compact=false,anchored=false}:{unit:Listing;now:number;onToggle:(enabled:boolean)=>void;busy:boolean;compact?:boolean;anchored?:boolean}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const {f,ready,disabled,reason,copy}=autoRenewInfo(unit,now);
   const deadline=unit.expiresAt?date(unit.expiresAt):'Date unavailable';
   const briefReason=f.blocked==='credits'?'Add credits':f.blocked==='beds'?'Confirm beds':f.blocked==='account'?'Check account':'Check availability';
   const compactCopy=!ready?copy:f.rented?'Unavailable':f.enabled&&!f.expired?(reason?`${briefReason} · ${deadline}`:`Next: ${deadline}`):copy;
   const fullCopy=`${copy}${f.enabled&&reason&&unit.expiresAt?` · Due ${deadline}`:''}`;
-  return <View style={anchored?s.autoAnchor:s.autoWrap}><SquishSwitch accessibilityLabel={`Auto-renew for ${unitTitle(unit)}`} value={f.enabled} disabled={disabled||!ready||busy} onValueChange={onToggle} /><Text style={[s.autoState,anchored&&s.autoStateBelow]}>{compact?'Auto-renew · ':''}{ready?(f.enabled?'On':'Off'):'—'}</Text>{!anchored?<View style={{minHeight:18,maxWidth:'100%'}}>{compactCopy?<Text numberOfLines={1} accessibilityLabel={fullCopy} style={[s.autoHelper,reason&&s.warningText]}>{compactCopy}</Text>:null}</View>:null}</View>;
+  return <View style={anchored?s.autoAnchor:s.autoWrap}><SquishSwitch accessibilityLabel={`Auto-renew for ${unitTitle(unit)}`} value={f.enabled} disabled={disabled||!ready||busy} onValueChange={onToggle} /><Text style={[s.autoState,anchored&&s.autoStateBelow]}>{compact?'Auto-renew · ':''}{ready?(f.enabled?'On':'Off'):'—'}</Text>{!anchored?<View style={{minHeight:designSize(18),maxWidth:'100%'}}>{compactCopy?<Text numberOfLines={1} accessibilityLabel={fullCopy} style={[s.autoHelper,reason&&s.warningText]}>{compactCopy}</Text>:null}</View>:null}</View>;
 }
 
 function Metric({value,label,tone,onPress}:{value:number|null;label:string;tone?:'warning'|'danger';onPress:()=>void}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   return <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value??'loading'}`} onPress={onPress} style={s.metric}><Text style={[s.metricValue,tone==='warning'&&{color:'#BC3D34'},tone==='danger'&&{color:'#EA3F4A'}]}>{value??'—'}</Text><Text style={s.metricLabel}>{label}</Text></Pressable>;
 }
-function Notice({text,warning=false,action,onPress}:{text:string;warning?:boolean;action?:string;onPress?:()=>void}) { return <View style={[s.notice,warning&&s.noticeWarning]}><Ionicons name={warning?'alert-circle-outline':'information-circle-outline'} size={18} color={warning?'#92400E':'#5E5A55'}/><Text style={[s.small,s.flex,warning&&s.warningText]}>{text}</Text>{action&&onPress?<Button label={action} onPress={onPress}/>:null}</View>; }
-function Empty({title,detail,action,onPress}:{title:string;detail:string;action:string;onPress:()=>void}) { return <View style={s.empty} testID="listings-empty"><View style={s.emptyIcon}><Ionicons name="home-outline" size={28} color="#C0343D"/></View><Text style={s.emptyTitle}>{title}</Text><Text style={s.emptyDetail}>{detail}</Text><Button label={action} primary onPress={onPress}/></View>; }
-function WorkspaceSkeleton({wide}:{wide:boolean}) { const {width}=useWindowDimensions(); const size=width>=1024?72:width>=768?64:56; return <View testID="listings-loading" accessibilityLabel="Loading listings">{[0,1,2,3].map(i=><View key={i} style={[s.unitRow,!wide&&s.compactRow,{minHeight:wide?96:180,gap:14}]}><View style={[s.thumbnailFallback,{width:size,height:size}]}/><View style={{flex:1,gap:10}}><View style={{height:15,width:'60%',backgroundColor:'#E8EAED',borderRadius:4}}/><View style={{height:10,width:'40%',backgroundColor:'#E8EAED',borderRadius:4}}/><View style={{height:10,width:'50%',backgroundColor:'#E8EAED',borderRadius:4}}/></View></View>)}</View>; }
+function Notice({text,warning=false,action,onPress}:{text:string;warning?:boolean;action?:string;onPress?:()=>void}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+   return <View style={[s.notice,warning&&s.noticeWarning]}><Ionicons name={warning?'alert-circle-outline':'information-circle-outline'} size={designSize(18)} color={warning?'#92400E':'#5E5A55'}/><Text style={[s.small,s.flex,warning&&s.warningText]}>{text}</Text>{action&&onPress?<Button label={action} onPress={onPress}/>:null}</View>; }
+function Empty({title,detail,action,onPress}:{title:string;detail:string;action:string;onPress:()=>void}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+   return <View style={s.empty} testID="listings-empty"><View style={s.emptyIcon}><Ionicons name="home-outline" size={designSize(28)} color="#C0343D"/></View><Text style={s.emptyTitle}>{title}</Text><Text style={s.emptyDetail}>{detail}</Text><Button label={action} primary onPress={onPress}/></View>; }
+function WorkspaceSkeleton({wide}:{wide:boolean}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+   const layoutWidth=useLayoutWidth(); const size=designSize(layoutWidth>=1024?72:layoutWidth>=768?64:56); return <View testID="listings-loading" accessibilityLabel="Loading listings">{[0,1,2,3].map(i=><View key={i} style={[s.unitRow,!wide&&s.compactRow,{minHeight:designSize(wide?96:180),gap:designSize(14)}]}><View style={[s.thumbnailFallback,{width:size,height:size}]}/><View style={{flex:1,gap:designSize(10)}}><View style={{height:designSize(15),width:'60%',backgroundColor:'#E8EAED',borderRadius:designSize(4)}}/><View style={{height:designSize(10),width:'40%',backgroundColor:'#E8EAED',borderRadius:designSize(4)}}/><View style={{height:designSize(10),width:'50%',backgroundColor:'#E8EAED',borderRadius:designSize(4)}}/></View></View>)}</View>; }
 
 function Button({label,onPress,primary=false,disabled=false,icon,accessibilityLabel}:{label:string;onPress:()=>void;primary?:boolean;disabled?:boolean;icon?:keyof typeof Ionicons.glyphMap;accessibilityLabel?:string}) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} disabled={disabled} accessibilityState={{disabled}} onPress={onPress} style={({pressed})=>[s.button,primary&&s.primaryButton,pressed&&{opacity:.8},disabled&&{opacity:.45}]}>{icon?<Ionicons name={icon} size={16} color={primary?'#FFFFFF':'#52525B'}/>:null}<Text style={[s.buttonText,primary&&s.primaryButtonText]}>{label}</Text></Pressable>;
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
+  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} disabled={disabled} accessibilityState={{disabled}} onPress={onPress} style={({pressed})=>[s.button,primary&&s.primaryButton,pressed&&{opacity:.8},disabled&&{opacity:.45}]}>{icon?<Ionicons name={icon} size={designSize(16)} color={primary?'#FFFFFF':'#52525B'}/>:null}<Text style={[s.buttonText,primary&&s.primaryButtonText]}>{label}</Text></Pressable>;
 }
-function IconButton({label,icon,onPress}:{label:string;icon:keyof typeof Ionicons.glyphMap;onPress:()=>void}) { return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={s.iconButton}><Ionicons name={icon} size={20} color="#5E5A55"/></Pressable>; }
+function IconButton({label,icon,onPress}:{label:string;icon:keyof typeof Ionicons.glyphMap;onPress:()=>void}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={s.iconButton}><Ionicons name={icon} size={designSize(20)} color="#5E5A55"/></Pressable>; }
 function MenuTrigger({label,onPress}:{label:string;onPress:(anchor:Anchor)=>void}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const ref=useRef<View>(null);
-  return <Pressable ref={ref} accessibilityRole="button" accessibilityLabel={label} onPress={()=>ref.current?.measureInWindow((x,y,w,h)=>onPress({x:x+w,y:y+h}))} style={s.iconButton}><Ionicons name="ellipsis-horizontal" size={20} color="#5E5A55"/></Pressable>;
+  return <Pressable ref={ref} accessibilityRole="button" accessibilityLabel={label} onPress={()=>ref.current?.measureInWindow((x,y,w,h)=>onPress({x:x+w,y:y+h}))} style={s.iconButton}><Ionicons name="ellipsis-horizontal" size={designSize(20)} color="#5E5A55"/></Pressable>;
 }
-function MenuItem({label,icon,onPress,disabled=false,danger=false}:{label:string;icon:keyof typeof Ionicons.glyphMap;onPress:()=>void;disabled?:boolean;danger?:boolean}) { return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} accessibilityState={{disabled}} onPress={onPress} style={({pressed})=>[s.menuItem,pressed&&{backgroundColor:'#F3F4F6'},disabled&&{opacity:.4}]}><Ionicons name={icon} size={18} color={danger?'#B42318':'#5E5A55'}/><Text style={[s.menuText,danger&&s.error]}>{label}</Text></Pressable>; }
+function MenuItem({label,icon,onPress,disabled=false,danger=false}:{label:string;icon:keyof typeof Ionicons.glyphMap;onPress:()=>void;disabled?:boolean;danger?:boolean}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+   return <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={disabled} accessibilityState={{disabled}} onPress={onPress} style={({pressed})=>[s.menuItem,pressed&&{backgroundColor:'#F3F4F6'},disabled&&{opacity:.4}]}><Ionicons name={icon} size={designSize(18)} color={danger?'#B42318':'#5E5A55'}/><Text style={[s.menuText,danger&&s.error]}>{label}</Text></Pressable>; }
 
 function PlaceMenu({unit,onAdd,onShared,onSaved,createDisabled}:{unit:Listing;onAdd:()=>void;onShared:()=>void;onSaved:()=>void;createDisabled:boolean}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const query=useQuery({queryKey:inventoryKey(unit.id),queryFn:()=>fetchInventory(unit.id)});
   const [confirm,setConfirm]=useState(false);
   const [busy,setBusy]=useState(false);
@@ -313,9 +354,13 @@ function PlaceMenu({unit,onAdd,onShared,onSaved,createDisabled}:{unit:Listing;on
 }
 
 function WorkspaceSheet({sheet,onClose,children}:{sheet:Sheet;onClose:()=>void;children:ReactNode}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const {width,height}=useWindowDimensions();
+  const layoutWidth=useLayoutWidth();
   const menu=sheet?.kind==='menu'||sheet?.kind==='place';
-  const desktop=Platform.OS==='web'&&width>=768;
+  const desktop=Platform.OS==='web'&&layoutWidth>=768;
   const anchor=sheet&&'anchor'in sheet?sheet.anchor:null;
   const closeRef=useRef(onClose);closeRef.current=onClose;
   useEffect(()=>{
@@ -339,7 +384,7 @@ function WorkspaceSheet({sheet,onClose,children}:{sheet:Sheet;onClose:()=>void;c
   </Modal>;
 }
 
-const s=StyleSheet.create({
+const base_s = StyleSheet.create({
   root:{flex:1,minHeight:0,width:'100%'},scroll:{paddingBottom:Platform.OS==='web'?40:appleTabScrollInset+24},flex:{flex:1,minWidth:0},
   summary:{paddingHorizontal:28,paddingTop:24,paddingBottom:8,gap:12},summaryNarrow:{paddingHorizontal:16,paddingTop:16,gap:10},headingRow:{flexDirection:'row',alignItems:'center',gap:12},
   eyebrow:{fontFamily:Studently.type.bodySemi,fontSize:13,letterSpacing:1.6,color:'#6B6460',marginBottom:5},title:{fontFamily:Studently.type.bodyBold,fontSize:28,lineHeight:34,color:'#1A1A1A',letterSpacing:-.7},

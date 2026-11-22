@@ -1,6 +1,7 @@
 import { SharedDetailsChoice } from '../edit/SharedDetailsChoice';
 import { SHARED_GROUPS } from '@/features/listings/create/unitDrafts';
 import { View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { LockedCluster } from "@/components/listings/create/LockedCluster";
@@ -16,16 +17,17 @@ import type {
 } from "@/types/listing";
 
 export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
+  const { size: designSize } = useDesktopDesign();
   const form = useListingForm();
   const { draft, patch } = form;
   const ruleMissing = (field: string) =>
     typeof form.fieldInvalid === "function" ? form.fieldInvalid(field) : false;
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: designSize(16) }}>
       {!sharedOnly ? <LockedCluster fields={["genderRestriction"]}>
       <Enter>
         <LText variant="subtitle">Gender</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SelectableCard
           selected={draft.genderRestriction === "anyone"}
           title="All / mixed"
@@ -33,14 +35,14 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
           icon="people-outline"
           onPress={() => patch({ genderRestriction: "anyone" as GenderRestriction })}
         />
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SelectableCard
           selected={draft.genderRestriction === "girls_only"}
           title="Female only"
           icon="woman-outline"
           onPress={() => patch({ genderRestriction: "girls_only" })}
         />
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SelectableCard
           selected={draft.genderRestriction === "boys_only"}
           title="Male only"
@@ -54,7 +56,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
       <LockedCluster fields={["targetAudience"]}>
       <Enter delay={80}>
         <LText variant="subtitle">Tenant mix</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={[
             { value: "students_only", label: "Students only" },
@@ -69,7 +71,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
       </LockedCluster>
       <Enter delay={140}>
         <LText variant="subtitle">Smoking</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={[
             { value: "no", label: "No" },
@@ -83,7 +85,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
       </Enter>
       <Enter delay={180}>
         <LText variant="subtitle">Pets</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={[
             { value: "no", label: "No" },
@@ -97,7 +99,7 @@ export function CreateStepRules({sharedOnly=false}:{sharedOnly?:boolean} = {}) {
       </Enter>
       <Enter delay={220}>
         <LText variant="subtitle">Overnight guests</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={[
             { value: "yes", label: "Yes" },

@@ -16,7 +16,7 @@ export const CAMPUS_CSS = `
 #studently-campus [role="button"],
 #studently-campus [role="link"] { cursor: pointer; }
 @keyframes sk-campus-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(calc(10px * var(--sk-desktop-scale, 1))); }
   to { opacity: 1; transform: translateY(0); }
 }
 .sk-campus-in { animation: sk-campus-in 240ms ease-out both; }
@@ -38,7 +38,7 @@ export const CAMPUS_CSS = `
 }
 .campus-ripple-cell {
   box-sizing: border-box;
-  border: 0.5px solid var(--sk-border);
+  border: calc(0.5px * var(--sk-desktop-scale, 1)) solid var(--sk-border);
   background: color-mix(in srgb, var(--sk-primary) 10%, transparent);
   opacity: 0.4;
   cursor: pointer;
@@ -68,7 +68,7 @@ export const CAMPUS_CSS = `
 .campus-cal-ticket { animation: sk-campus-in 480ms 70ms ease-out both; }
 .campus-cal-board { animation: sk-campus-in 520ms 110ms ease-out both; }
 @keyframes campus-cal-swap {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(calc(8px * var(--sk-desktop-scale, 1))); }
   to { opacity: 1; transform: translateY(0); }
 }
 .campus-cal-month-swap { animation: campus-cal-swap 280ms ease-out both; }
@@ -83,8 +83,8 @@ export const CAMPUS_CSS = `
 .campus-cal-day:focus-visible,
 .campus-cal-chip:focus-visible,
 .campus-cal-month:focus-visible {
-  outline: 2px solid var(--sk-primary);
-  outline-offset: 2px;
+  outline: calc(2px * var(--sk-desktop-scale, 1)) solid var(--sk-primary);
+  outline-offset: calc(2px * var(--sk-desktop-scale, 1));
   z-index: 2;
 }
 @media (max-width: 979px) {

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { Platform, StyleSheet, View } from "react-native";
@@ -12,6 +13,9 @@ type Props = {
 
 /** Read-only wrap for structural fields after the 24h window. Wizard never locks. */
 export function LockedCluster({ fields, children }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { isLocked, draft } = useListingForm();
   const locked = fields.some((field) => isLocked(field));
   const sharedLocation = draft.sharedValues && fields.some(field =>
@@ -28,7 +32,7 @@ export function LockedCluster({ fields, children }: Props) {
       ]}
     >
       <View style={styles.lockRow}>
-        <Ionicons name="lock-closed" size={14} color={Lister.color.inkMuted} />
+        <Ionicons name="lock-closed" size={designSize(14)} color={Lister.color.inkMuted} />
         <LText variant="caption" tone="muted">
           {sharedLocation ? 'Edit the shared location from your dashboard' : 'Locked after the first day'}
         </LText>
@@ -38,7 +42,7 @@ export function LockedCluster({ fields, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   locked: {
     borderRadius: Lister.radius.lg,
     backgroundColor: Lister.color.surfaceMuted,

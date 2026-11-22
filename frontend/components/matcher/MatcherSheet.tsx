@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import {
   createElement,
   useCallback,
@@ -21,7 +22,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -79,7 +79,7 @@ import { BotThinkingMark } from "./BotThinkingMark";
 import { ChatBubble } from "./ChatBubble";
 import { MenuCubes } from "./MenuCubes";
 import { ThinkingLabel } from "./ThinkingLabel";
-import { matcherStyles as s } from "./matcherStyles";
+import { matcherStyles as matcherBase } from "./matcherStyles";
 
 const BOT = 48;
 const BOT_BUBBLE = "#D5DCE6";
@@ -95,11 +95,14 @@ function BotLine({
   thinking?: boolean;
   children: ReactNode;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   return (
     <View style={[s.messageRow, avatar && s.messageRowWithAvatar]}>
       {avatar ? (
         <View style={s.botAvatarSlot}>
-          <BotAvatar playing={playing} size={BOT} />
+          <BotAvatar playing={playing} size={designSize(BOT)} />
           {thinking ? <BotThinkingMark /> : null}
         </View>
       ) : (
@@ -131,6 +134,9 @@ export function PreferenceChip({
   hug?: boolean;
   mobileVariant?: "tile" | "row" | "compact";
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -153,7 +159,7 @@ export function PreferenceChip({
       {Icon ? (
         <Icon
          
-          size={mobileVariant ? 19 : 17}
+          size={designSize(mobileVariant ? 19 : 17)}
           strokeWidth={1.6}
           color={selected ? Studently.color.primary : Studently.color.inkMuted}
         />
@@ -175,10 +181,10 @@ export function PreferenceChip({
           mobileVariant === "tile" && s.mobileChoiceMarkTile,
           selected && s.mobileChoiceMarkSelected,
         ]}>
-          {selected ? <Check size={11} color="white" strokeWidth={2.5} /> : null}
+          {selected ? <Check size={designSize(11)} color="white" strokeWidth={2.5} /> : null}
         </View>
       ) : selected && !tile && !mobileVariant ? (
-        <Check size={13} color={Studently.color.primary} />
+        <Check size={designSize(13)} color={Studently.color.primary} />
       ) : null}
     </Pressable>
   );
@@ -190,6 +196,9 @@ export function FindMyPlaceEntry({
   onPress: () => void;
   label?: string;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -200,7 +209,7 @@ export function FindMyPlaceEntry({
         (pressed || hovered) && { opacity: 0.86 },
       ]}
     >
-      <BotAvatar playing size={28} />
+      <BotAvatar playing size={designSize(28)} />
       <Text style={s.entryText}>{label}</Text>
     </Pressable>
   );
@@ -225,6 +234,9 @@ function LocationPicker({
   mobile?: boolean;
   onSearchFocusChange?: (focused: boolean) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<(typeof LOCATION_MODES)[number][0]>(
     value?.kind ?? "campus",
@@ -348,12 +360,12 @@ function LocationPicker({
             (hovered || pressed) && s.chipHover,
           ]}
         >
-          <MapPin size={20} color={Studently.color.primary} />
+          <MapPin size={designSize(20)} color={Studently.color.primary} />
           <View style={s.locationCopy}>
             <Text style={s.locationLabel}>{value.label}</Text>
             <Text style={s.caption}>Selected {value.kind} · Tap to change</Text>
           </View>
-          <Pencil size={15} color={Studently.color.inkMuted} />
+          <Pencil size={designSize(15)} color={Studently.color.inkMuted} />
         </Pressable>
       </View>
     );
@@ -362,7 +374,7 @@ function LocationPicker({
     <View style={s.locationPicker}>
       {segment}
       <View style={[s.searchField, fieldFocused && s.searchFieldFocused]}>
-        <Search size={17} color={Studently.color.inkMuted} />
+        <Search size={designSize(17)} color={Studently.color.inkMuted} />
         <TextInput
           ref={inputRef}
           accessibilityLabel={
@@ -445,7 +457,7 @@ function LocationPicker({
               >
                 <Icon
                  
-                  size={17}
+                  size={designSize(17)}
                   color={Studently.color.inkMuted}
                 />
                 <Text style={s.locationResultText} numberOfLines={1}>
@@ -453,7 +465,7 @@ function LocationPicker({
                 </Text>
                 <ArrowUpRight
                  
-                  size={15}
+                  size={designSize(15)}
                   color={Studently.color.inkMuted}
                 />
               </Pressable>
@@ -531,6 +543,9 @@ function BudgetAmountField({
   onCommit: (max: number) => void;
   onClear: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   const inputRef = useRef<TextInput>(null);
   const echo = useRef<number | undefined>(undefined);
   const [focused, setFocused] = useState(false);
@@ -658,6 +673,9 @@ function MatcherControls({
   mobile?: boolean;
   onLocationFocusChange?: (focused: boolean) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   const mobileVariant = mobile
     ? question.key === "type"
       ? "tile"
@@ -728,7 +746,7 @@ function MatcherControls({
                 (hovered || pressed) && s.softHover,
               ]}
             >
-              <Minus size={18} color={Studently.color.ink} />
+              <Minus size={designSize(18)} color={Studently.color.ink} />
             </Pressable>
             <BudgetAmountField
               mobile={mobile}
@@ -760,7 +778,7 @@ function MatcherControls({
                 (hovered || pressed) && s.softHover,
               ]}
             >
-              <Plus size={18} color={Studently.color.ink} />
+              <Plus size={designSize(18)} color={Studently.color.ink} />
             </Pressable>
           </View>
           <View style={[s.chips, s.budgetPresets, mobile && s.mobileBudgetPresets]}>
@@ -883,6 +901,9 @@ function UnderContinue({
   update: (next: MatcherPreferences) => void;
   onPartial: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   return (
     <>
       <ImportanceNote question={question} draft={draft} update={update} />
@@ -901,7 +922,7 @@ function UnderContinue({
           ]}
         >
           <Text style={s.partialText}>See matches so far</Text>
-          <ArrowUpRight size={12} color={Studently.color.inkMuted} />
+          <ArrowUpRight size={designSize(12)} color={Studently.color.inkMuted} />
         </Pressable>
       )}
     </>
@@ -953,6 +974,9 @@ function ImportanceNote({
   update: (next: MatcherPreferences) => void;
   mobile?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   const canHover = useHoverCapability();
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -1122,13 +1146,16 @@ function MatcherSession({
   onApply,
   onExited,
 }: Props & { onExited: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherBase);
+
   const universities = useUniversities();
   const parentInsets = useSafeAreaInsets();
   const [insets, setModalInsets] = useState(parentInsets);
-  const { width } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
   const reduced = useReducedMotion();
-  const desktop = Platform.OS === "web" && width >= 768;
-  const wideFooter = width >= 720;
+  const desktop = Platform.OS === "web" && layoutWidth >= 768;
+  const wideFooter = layoutWidth >= 720;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [locationSearchFocused, setLocationSearchFocused] = useState(false);
   useEffect(() => {
@@ -1424,7 +1451,7 @@ function MatcherSession({
     onApply(preferences);
   };
 
-  const drawerDistance = Math.max(width, 560);
+  const drawerDistance = Math.max(layoutWidth, 560);
   const translateX = slide.interpolate({
     inputRange: [0, 1],
     outputRange: [0, drawerDistance],
@@ -1462,7 +1489,7 @@ function MatcherSession({
           style={[
             s.drawer,
             desktop
-              ? [s.drawerDesktop, { width: Math.round(width * 0.42) }]
+              ? [s.drawerDesktop, { width: Math.round(layoutWidth * 0.42) }]
               : s.drawerMobile,
             { transform: [{ translateX }] },
           ]}
@@ -1537,7 +1564,7 @@ function MatcherSession({
           >
             <View style={[s.header, locationKeyboardOpen && s.keyboardHeader, { paddingTop: Math.max(12, insets.top) }]}>
               <View style={[s.headerMark, locationKeyboardOpen && s.keyboardHeaderMark]}>
-                <BotAvatar playOnHover size={locationKeyboardOpen ? 32 : 48} />
+                <BotAvatar playOnHover size={designSize(locationKeyboardOpen ? 32 : 48)} />
               </View>
               <View style={s.headerCopy}>
                 <Text style={s.title}>Find my place</Text>
@@ -1565,7 +1592,7 @@ function MatcherSession({
                 ]}
               >
                 <RotateCcw
-                  size={18}
+                  size={designSize(18)}
                   color={Studently.color.ink}
                   strokeWidth={1.6}
                 />
@@ -1580,7 +1607,7 @@ function MatcherSession({
                 ]}
               >
                 <X
-                  size={21}
+                  size={designSize(21)}
                   color={Studently.color.ink}
                   strokeWidth={1.6}
                 />
@@ -1637,7 +1664,7 @@ function MatcherSession({
                 {existing.length ? (
                   <View style={s.existing}>
                     <SlidersHorizontal
-                      size={14}
+                      size={designSize(14)}
                       color={Studently.color.inkMuted}
                     />
                     <Text style={s.caption}>
@@ -1684,7 +1711,7 @@ function MatcherSession({
                       </View>
                       <Pencil
                        
-                        size={13}
+                        size={designSize(13)}
                         color={Studently.color.inkMuted}
                       />
                     </ChatBubble>
@@ -1726,7 +1753,7 @@ function MatcherSession({
                       {done ? (
                         <View style={s.readyRow}>
                           <Check
-                            size={15}
+                            size={designSize(15)}
                             color={Studently.color.primary}
                           />
                           <Text style={s.readyText}>
@@ -1827,7 +1854,7 @@ function MatcherSession({
                           onPress={() => { Keyboard.dismiss(); goBack(); }}
                           style={({ pressed }) => [s.mobileBack, step === 0 && s.disabled, pressed && s.softHover]}
                         >
-                          <ArrowLeft size={19} color={Studently.color.ink} />
+                          <ArrowLeft size={designSize(19)} color={Studently.color.ink} />
                         </Pressable>
                         <Pressable
                           accessibilityRole="button"
@@ -1852,8 +1879,8 @@ function MatcherSession({
                         {editingStep != null ? "Save changes" : "Continue"}
                       </Text>
                       {editingStep != null
-                        ? <Check size={17} color="white" />
-                        : <ArrowRight size={17} color="white" />}
+                        ? <Check size={designSize(17)} color="white" />
+                        : <ArrowRight size={designSize(17)} color="white" />}
                     </Pressable>
                   </View>
                   {locationKeyboardOpen ? null : editingStep != null ? (
@@ -1866,7 +1893,7 @@ function MatcherSession({
                       style={({ pressed }) => [s.mobilePartial, pressed && s.softHover]}
                     >
                       <Text style={s.partialText}>See matches so far</Text>
-                      <ArrowUpRight size={13} color={Studently.color.inkMuted} />
+                      <ArrowUpRight size={designSize(13)} color={Studently.color.inkMuted} />
                     </Pressable>
                   )}
                 </>
@@ -1900,7 +1927,7 @@ function MatcherSession({
                           ]}
                         >
                           <ArrowLeft
-                            size={15}
+                            size={designSize(15)}
                             color={Studently.color.inkMuted}
                           />
                         </Pressable>
@@ -1949,7 +1976,7 @@ function MatcherSession({
                         ]}
                       >
                         <Text style={s.railPrimaryText}>Save</Text>
-                        <Check size={13} color="white" />
+                        <Check size={designSize(13)} color="white" />
                       </Pressable>
                     ) : (
                       <Pressable
@@ -1961,7 +1988,7 @@ function MatcherSession({
                         ]}
                       >
                         <Text style={s.railPrimaryText}>Continue</Text>
-                        <ArrowRight size={13} color="white" />
+                        <ArrowRight size={designSize(13)} color="white" />
                       </Pressable>
                     )}
                     {wideFooter ? (
@@ -1999,7 +2026,7 @@ function MatcherSession({
                     ]}
                   >
                     <Text style={s.entryText}>Find my best matches</Text>
-                    <ArrowRight size={18} color="white" />
+                    <ArrowRight size={designSize(18)} color="white" />
                   </Pressable>
                   <Text style={s.footerHint}>
                     You can edit any answer above.

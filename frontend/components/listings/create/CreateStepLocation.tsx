@@ -1,4 +1,5 @@
 import { TextInput, View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { LockedCluster } from "@/components/listings/create/LockedCluster";
@@ -33,6 +34,7 @@ function haversineMeters(
 }
 
 export function CreateStepLocation() {
+  const { size: designSize } = useDesktopDesign();
   const { draft, patch } = useListingForm();
   const areaInvalid = useWizardFieldInvalid("area");
   const pinInvalid = useWizardFieldInvalid("pin");
@@ -61,10 +63,10 @@ export function CreateStepLocation() {
         "primaryCampusId",
       ]}
     >
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: designSize(16) }}>
       <Enter>
         <WizardFieldLabel required>Area</WizardFieldLabel>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={LEBANON_AREAS.map((a) => ({ value: a, label: a }))}
           value={draft.area}
@@ -80,7 +82,7 @@ export function CreateStepLocation() {
           placeholderTextColor={Lister.color.inkFaint}
           value={draft.buildingName}
           onChangeText={(buildingName) => patch({ buildingName })}
-          style={wizardInputStyle()}
+          style={wizardInputStyle(undefined, designSize)}
         />
         <TextInput
           accessibilityLabel="Street or address"
@@ -88,13 +90,13 @@ export function CreateStepLocation() {
           placeholderTextColor={Lister.color.inkFaint}
           value={draft.addressLine}
           onChangeText={(addressLine) => patch({ addressLine })}
-          style={wizardInputStyle()}
+          style={wizardInputStyle(undefined, designSize)}
         />
       </Enter>
       {draft.area ? (
         <Enter delay={120}>
           <WizardFieldLabel required>Map pin</WizardFieldLabel>
-          <View style={{ height: 8 }} />
+          <View style={{ height: designSize(8) }} />
           <LocationPicker
             area={draft.area}
             value={draft.pin}
@@ -110,7 +112,7 @@ export function CreateStepLocation() {
       ) : pinInvalid ? (
         <Enter delay={120}>
           <WizardFieldLabel required>Map pin</WizardFieldLabel>
-          <View style={{ height: 8 }} />
+          <View style={{ height: designSize(8) }} />
           <LText variant="caption" tone="muted">
             Pick an area to load the map.
           </LText>
@@ -122,14 +124,14 @@ export function CreateStepLocation() {
       )}
       <Enter delay={180}>
         <WizardFieldLabel required>Primary campus</WizardFieldLabel>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <WizardCampusSearch
           selectedCampusId={draft.primaryCampusId}
           onSelectCampusId={(primaryCampusId) => patch({ primaryCampusId })}
           invalid={campusInvalid}
         />
         {walk ? (
-          <LText variant="caption" tone="primary" style={{ marginTop: 8 }}>
+          <LText variant="caption" tone="primary" style={{ marginTop: designSize(8) }}>
             {walk}
           </LText>
         ) : null}

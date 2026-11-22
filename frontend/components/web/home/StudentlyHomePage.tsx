@@ -22,7 +22,7 @@ import { FindMyPlaceFab } from "@/components/web/FindMyPlaceFab";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { CAMPUS_CATALOG } from "@/constants/campusCatalogStats";
-import { Studently } from "@/constants/theme";
+import { DesktopDesign, desktopGutter, scaleLength, Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { openCreateListing } from "@/features/auth/useEnsureSession";
@@ -88,7 +88,8 @@ function AreaCityCard({
   /** Web grid: stretch to 1fr cell instead of fixed px (avoids clip). */
   fillCell?: boolean;
 }) {
-  const { size: designSize } = useDesktopDesign();
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const uri=resolveMediaUrl(image);
   const [failed,setFailed]=useState(false);
   useEffect(()=>setFailed(false),[uri]);
@@ -156,7 +157,9 @@ function UniCityCard({
   onPress: () => void;
   fillCell?: boolean;
 }) {
-  const logoSize = Math.min(64, Math.round(size * 0.4));
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const logoSize = Math.min(designSize(64), Math.round(size * 0.4));
   return (
     <Pressable
       style={[
@@ -204,6 +207,8 @@ function SectionHeader({
   subtitle?: string;
   rowEnd?: ReactNode;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View style={styles.sectionHeadRow}>
       <View style={styles.sectionHeadText}>
@@ -450,19 +455,20 @@ function SearchPill({value,onChangeText,desktopActive}: {value?:string;onChangeT
 export function StudentlyHomePage() {
   const { width } = useWindowDimensions();
   return (
-    <DesktopDesignProvider enabled={width >= 900}>
+    <DesktopDesignProvider enabled={width >= DesktopDesign.layout.minWidth}>
       <HomePageContent />
     </DesktopDesignProvider>
   );
 }
 
-
 function HomePageContent() {
-  const {size:designSize,isDesktop,scale}=useDesktopDesign();
+  const { size: designSize, styles: resolveStyles, isDesktop, scale } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const { width } = useWindowDimensions();
+  const rootRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
   const heroSearchRef = useRef<View>(null);
-  const [desktopQuery,setDesktopQuery]=useState("");
+  const [desktopQuery, setDesktopQuery] = useState("");
   useHomeScrollReveal(scrollRef);
   const [navSolid, setNavSolid] = useState(false);
   useLayoutEffect(() => {
@@ -483,6 +489,18 @@ function HomePageContent() {
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
   const [railPill, setRailPill] = useState<string>("All areas");
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
+  const [contentMeasure, setContentMeasure] = useState<{ viewport: number; width: number } | null>(null);
+  const desktopScale = isDesktop ? scale : 1;
+
+  useEffect(() => {
+    setContentMeasure(null);
+  }, [desktopScale]);
+
+  useEffect(() => {
+    if (!IS_WEB) return;
+    const node = rootRef.current as unknown as HTMLElement | null;
+    node?.style?.setProperty?.("--sk-desktop-scale", String(desktopScale));
+  }, [desktopScale]);
   const homePopular = useHomePopular();
   // This is the same cached catalogue used by search: only DB-curated images qualify.
   const areaDefaults=useSearchSuggestions('');
@@ -495,7 +513,6 @@ function HomePageContent() {
     }
     return images;
   },[areaDefaults.data]);
-
   const universities = useUniversities();
   const homeListings = useListings({
     sort: "newest",
@@ -505,10 +522,14 @@ function HomePageContent() {
 
   const openAuth = () => setAuthModalOpen(true);
 
-  const isNarrow = width < 900;
-  const padX = isNarrow ? 16 : width < 1200 ? 40 : PAD_X;
-  const cityGap = isNarrow ? 10 : 16;
-  const innerW = Math.min(width, 1400) - padX * 2;
+  const isNarrow = width < DesktopDesign.layout.minWidth;
+  const padX = isDesktop ? desktopGutter(width / desktopScale, desktopScale) : isNarrow ? 16 : width < 1200 ? 40 : PAD_X;
+  const cityGap = designSize(isNarrow ? 10 : 16);
+  const contentMax = isDesktop ? scaleLength(1400, desktopScale) : 1400;
+  const innerW = isDesktop && contentMeasure?.viewport === width
+    ? contentMeasure.width
+    : Math.min(width, contentMax) - padX * 2;
+  const cityTileMax = isDesktop ? scaleLength(CITY_TILE_MAX, desktopScale) : CITY_TILE_MAX;
 
   const areaTiles = useMemo(() => {
     const live = homePopular.data?.areas ?? [];
@@ -521,7 +542,7 @@ function HomePageContent() {
         areas: [a.name],
       }));
     }
-    // Empty DB fallback — curated Beirut tiles so home still has content.
+    // Empty inventory keeps the existing area names; missing curated photos use the icon.
     return (AREA_REGIONS[0]?.areas ?? []).slice(0, 10).map((a) => ({
       key: a.name,
       label: a.name,
@@ -598,8 +619,8 @@ function HomePageContent() {
   const cityRows = cityCount <= 3 ? 1 : 2;
   const cityCols = Math.ceil(cityCount / cityRows);
   const fittedTile = fitCityTileSize(innerW, cityCols, cityGap);
-  const tileSize = Math.min(CITY_TILE_MAX, fittedTile);
-  const cityFill = fittedTile <= CITY_TILE_MAX;
+  const tileSize = Math.min(cityTileMax, fittedTile);
+  const cityFill = fittedTile <= cityTileMax;
 
   const railPills = ["All areas", ...(homePopular.data?.areas.length
     ? homePopular.data.areas.map(area => area.name)
@@ -616,7 +637,15 @@ function HomePageContent() {
   }, [homeListings.data]);
 
   return (
-    <View style={styles.root}>
+    <View
+      ref={rootRef}
+      testID="homepage"
+      {...(IS_WEB ? ({ dataSet: { desktopScale: String(desktopScale) } } as object) : {})}
+      style={[
+        styles.root,
+        IS_WEB ? ({ ["--sk-desktop-scale" as string]: String(desktopScale) } as object) : null,
+      ]}
+    >
       {isDesktop ? <WebTopNav showSearch homeSearch={{value:desktopQuery,onChangeText:setDesktopQuery}} homeHeaderVisible={navSolid}/> : <HomeNav solid={navSolid} onRequestAuth={openAuth} />}
 
       <ScrollView
@@ -625,7 +654,7 @@ function HomePageContent() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={(e) => {if(!isDesktop)setNavSolid(e.nativeEvent.contentOffset.y > 280);}}
+        onScroll={(e) => { if (!isDesktop) setNavSolid(e.nativeEvent.contentOffset.y > designSize(280)); }}
         scrollEventThrottle={16}
       >
         {/* ─── 1. HERO ─── */}
@@ -654,9 +683,9 @@ function HomePageContent() {
                 >
                   <Ionicons
                     name={c.icon}
-                    size={15}
+                    size={designSize(15)}
                     color={Studently.color.primarySoft}
-                    style={{ marginRight: 6 }}
+                    style={{ marginRight: designSize(6) }}
                   />
                   <Text style={styles.chipText}>{c.label}</Text>
                 </View>
@@ -708,7 +737,14 @@ function HomePageContent() {
                 : "No campuses with nearby listings yet — browse all housing instead."}
             </Text>
           ) : IS_WEB ? (
-            <View style={styles.citiesWrap}>
+            <View
+              style={styles.citiesWrap}
+              onLayout={isDesktop ? (event) => {
+                const measuredWidth = event.nativeEvent.layout.width;
+                setContentMeasure(previous => previous?.viewport === width && previous.width === measuredWidth
+                  ? previous : { viewport: width, width: measuredWidth });
+              } : undefined}
+            >
               <View
                 {...({ className: "sk-cities-grid" } as object)}
                 {...homeRevealProps("fade", 0)}
@@ -843,7 +879,7 @@ function HomePageContent() {
           <View
             style={[
               styles.section,
-              { paddingHorizontal: padX, paddingVertical: 40, backgroundColor: "transparent" },
+              { paddingHorizontal: padX, paddingVertical: designSize(40), backgroundColor: "transparent" },
             ]}
           >
             <SectionHeader title="Trusted by renters & posters across Lebanon" />
@@ -856,7 +892,7 @@ function HomePageContent() {
                 <View {...homeRevealProps("card", 60, "testimonials")} key={t.id} style={styles.testimonialCard}>
                   <View style={styles.stars}>
                     {[0, 1, 2, 3, 4].map((i) => (
-                      <Ionicons key={i} name="star" size={14} color="#00B67A" />
+                      <Ionicons key={i} name="star" size={designSize(14)} color="#00B67A" />
                     ))}
                   </View>
                   <Text style={styles.testimonialQuote}>“{t.quote}”</Text>
@@ -878,7 +914,7 @@ function HomePageContent() {
             {VALUE_PROPS.map((v) => (
               <View {...homeRevealProps("up", 60)} key={v.id} style={styles.valueCard}>
                 <View style={styles.valueIcon}>
-                  <Ionicons name={v.icon} size={26} color={Studently.color.primary} />
+                  <Ionicons name={v.icon} size={designSize(26)} color={Studently.color.primary} />
                 </View>
                 <Text style={styles.valueTitle}>{v.title}</Text>
                 <Text style={styles.valueBody}>{v.body}</Text>
@@ -888,7 +924,7 @@ function HomePageContent() {
         </View>
 
         {/* ─── 7. PROMO CARDS ─── */}
-        <View style={[styles.section, { paddingHorizontal: padX, paddingTop: 8 }]}>
+        <View style={[styles.section, { paddingHorizontal: padX, paddingTop: designSize(8) }]}>
           <SectionHeader
             title="Offers & next steps"
             subtitle="Whether you’re looking or listing — pick a path."
@@ -969,7 +1005,7 @@ function HomePageContent() {
         <View
           style={[
             styles.section,
-            { paddingHorizontal: padX, flexDirection: isNarrow ? "column" : "row", gap: 16 },
+            { paddingHorizontal: padX, flexDirection: isNarrow ? "column" : "row", gap: designSize(16) },
           ]}
         >
           <Pressable {...homeRevealProps("photo", 80)} style={styles.bannerCard} onPress={() => goBrowse()}>
@@ -1046,7 +1082,7 @@ function HomePageContent() {
               <View style={[styles.helpIcon, { backgroundColor: "#E8EEF6" }]}>
                 <Ionicons
                   name="chatbubbles-outline"
-                  size={24}
+                  size={designSize(24)}
                   color={Studently.color.primary}
                 />
               </View>
@@ -1064,7 +1100,7 @@ function HomePageContent() {
               {...homeRevealProps("card", 60, "help")}
             >
               <View style={[styles.helpIcon, { backgroundColor: "#E7F8F3" }]}>
-                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+                <Ionicons name="logo-whatsapp" size={designSize(24)} color="#25D366" />
               </View>
               <Text style={styles.helpTitle}>WhatsApp</Text>
               <Text style={styles.helpMeta}>Fastest reply</Text>
@@ -1075,7 +1111,7 @@ function HomePageContent() {
               {...homeRevealProps("card", 60, "help")}
             >
               <View style={[styles.helpIcon, { backgroundColor: "#FEF3C7" }]}>
-                <Ionicons name="mail-outline" size={24} color="#B45309" />
+                <Ionicons name="mail-outline" size={designSize(24)} color="#B45309" />
               </View>
               <Text style={styles.helpTitle}>Email us</Text>
               <Text style={styles.helpMeta}>hello@studently.app</Text>
@@ -1088,8 +1124,8 @@ function HomePageContent() {
           <View style={[styles.footerInner, { paddingHorizontal: padX }]}>
             <View style={[styles.footerGrid, isNarrow && styles.footerGridNarrow]}>
               <View style={styles.footerBrandCol}>
-                <View {...homeRevealProps("up", 60)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <StudentlyLogo size={40} />
+                <View {...homeRevealProps("up", 60)} style={{ flexDirection: "row", alignItems: "center", gap: designSize(8) }}>
+                  <StudentlyLogo size={designSize(40)} />
                   <Text style={styles.footerBrand}>Studently</Text>
                 </View>
                 <Text {...homeRevealProps("up", 60)} style={styles.footerTag}>
@@ -1138,7 +1174,7 @@ function HomePageContent() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     flex: 1,
     width: "100%",
@@ -1982,8 +2018,6 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
 });
-
-const baseStyles = styles;
 
 const mobileHeaderStyles = StyleSheet.create({
   home: { height: 64, minHeight: 64, maxWidth: '100%' },

@@ -8,6 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Lister } from "@/constants/listerTheme";
 import { LText } from "./Typography";
 
@@ -34,6 +35,8 @@ export function LButton({
   style,
   accessibilityHint,
 }: Props) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const busy = disabled || loading;
 
   return (
@@ -95,7 +98,7 @@ export function LButton({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   base: {
     minHeight: 52,
     paddingHorizontal: Lister.space.lg,

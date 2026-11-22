@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { ListingPinMap } from "@/components/listings/detail/ListingPinMap";
 import { PasteLocationLinkField } from "@/components/listings/PasteLocationLinkField";
 import { AREA_COORDINATES } from "@/constants/areaCoordinates";
@@ -52,6 +53,8 @@ type Props = {
  * Web location picker — Mapbox GL loaded client-side only (Expo SSR safe).
  */
 export function LocationPicker({ area, value, onChange }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
@@ -352,7 +355,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
             ) : (
               <Ionicons
                 name="locate-outline"
-                size={18}
+                size={designSize(18)}
                 color={Lister.color.primary}
               />
             )}
@@ -366,7 +369,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
       <View style={styles.mapFallbackHint}>
         <Ionicons
           name="information-circle-outline"
-          size={16}
+          size={designSize(16)}
           color={Lister.color.inkMuted}
         />
         <LText variant="caption" tone="muted" style={styles.fallbackText}>
@@ -383,7 +386,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
       >
         <Ionicons
           name={value.confirmed ? "checkmark-circle" : "ellipse-outline"}
-          size={18}
+          size={designSize(18)}
           color={
             value.confirmed ? Lister.color.primary : Lister.color.inkFaint
           }
@@ -436,7 +439,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
         >
           <Ionicons
             name="navigate-circle-outline"
-            size={18}
+            size={designSize(18)}
             color={Lister.color.primary}
           />
           <LText variant="caption" tone="primary" style={styles.actionLabel}>
@@ -468,7 +471,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
                 >
                   <Ionicons
                     name="location"
-                    size={14}
+                    size={designSize(14)}
                     color={on ? Lister.color.surface : Lister.color.primary}
                   />
                   <LText
@@ -514,7 +517,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
         </LText>
         <Ionicons
           name={advancedOpen ? "chevron-up" : "chevron-down"}
-          size={16}
+          size={designSize(16)}
           color={Lister.color.inkMuted}
         />
       </Pressable>
@@ -563,7 +566,7 @@ export function initialPinForArea(area: LebanonArea): ListingPin {
   };
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: { gap: 12 },
   copy: { gap: 6 },
   mapShell: {

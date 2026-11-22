@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, usePathname, useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { DesktopScaleToggle } from "@/components/ui/DesktopScaleToggle";
 import { ProductSwitchControl } from "@/components/campus/ProductSwitchControl";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { DownloadAppButton } from "@/components/web/DownloadAppButton";
@@ -35,6 +37,9 @@ const NAV_ITEMS = [
 ] as const;
 
 export function CampusTopNav() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const pathname = usePathname();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -82,7 +87,7 @@ export function CampusTopNav() {
             accessibilityLabel="Studently home"
             style={styles.brandHit}
           >
-            <StudentlyLogo size={compact ? 36 : 40} />
+            <StudentlyLogo size={designSize(compact ? 36 : 40)} />
             <Text style={[styles.brand, compact && styles.brandCompact]}>
               Studently
             </Text>
@@ -105,7 +110,7 @@ export function CampusTopNav() {
                 pressed && styles.menuBtnPressed,
               ]}
             >
-              <Ionicons name="menu" size={24} color={Studently.color.ink} />
+              <Ionicons name="menu" size={designSize(24)} color={Studently.color.ink} />
             </Pressable>
           </View>
         ) : (
@@ -127,6 +132,7 @@ export function CampusTopNav() {
                 </Text>
               </Pressable>
             ))}
+            <DesktopScaleToggle />
             <ProductSwitchControl variant="toHousing" />
             <DownloadAppButton />
             <WebProfileMenu />
@@ -159,7 +165,7 @@ export function CampusTopNav() {
                 accessibilityLabel="Close menu"
                 style={styles.drawerClose}
               >
-                <Ionicons name="close" size={22} color={Studently.color.ink} />
+                <Ionicons name="close" size={designSize(22)} color={Studently.color.ink} />
               </Pressable>
             </View>
 
@@ -211,7 +217,7 @@ export function CampusTopNav() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
     top: 0,

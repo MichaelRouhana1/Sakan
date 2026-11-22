@@ -1,8 +1,9 @@
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
+import { DesktopDesignProvider, useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { CampusFooter } from "@/components/campus/CampusFooter";
 import { CampusTopNav } from "@/components/campus/CampusTopNav";
-import { Studently } from "@/constants/theme";
+import { DesktopDesign, Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { CAMPUS_CSS } from "@/styles/campusCssText";
 
@@ -18,9 +19,21 @@ export function campusShellPadTop(width: number): number {
 
 export function CampusShell({ children }: Props) {
   const { width } = useWindowDimensions();
-  const padX = width < 640 ? 16 : width < 900 ? 20 : WEB_CONTENT_PAD_X;
-  const padTop = campusShellPadTop(width);
-  const padBottom = width < 640 ? 32 : 48;
+  const enabled = Platform.OS === "web" && width >= DesktopDesign.layout.minWidth;
+  return (
+    <DesktopDesignProvider enabled={enabled}>
+      <CampusShellFrame width={width}>{children}</CampusShellFrame>
+    </DesktopDesignProvider>
+  );
+}
+
+function CampusShellFrame({ children, width }: Props & { width: number }) {
+  const { size: designSize, scale, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const rootRef = useRef<View>(null);
+  const padX = width < 640 ? 16 : width < 900 ? 20 : designSize(WEB_CONTENT_PAD_X);
+  const padTop = width < 900 ? campusShellPadTop(width) : designSize(campusShellPadTop(width));
+  const padBottom = width < 640 ? 32 : designSize(48);
 
   // SPA web (`output: "single"`) never mounts `app/+html.tsx`, so cuby/calendar
   // CSS would otherwise never load. Same fallback pattern as AdminNeuShell.
@@ -38,10 +51,21 @@ export function CampusShell({ children }: Props) {
     }
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const node = rootRef.current as unknown as HTMLElement | null;
+    node?.style?.setProperty?.("--sk-desktop-scale", String(scale));
+  }, [scale]);
+
   return (
     <View
+      ref={rootRef}
       nativeID="studently-campus"
-      style={styles.root}
+      {...(Platform.OS === "web" ? ({ dataSet: { desktopScale: String(scale) } } as object) : {})}
+      style={[
+        styles.root,
+        Platform.OS === "web" ? ({ ["--sk-desktop-scale" as string]: String(scale) } as object) : null,
+      ]}
       {...({ className: "studently-campus" } as object)}
     >
       <CampusTopNav />
@@ -64,7 +88,7 @@ export function CampusShell({ children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     width: "100%",
     flex: 1,

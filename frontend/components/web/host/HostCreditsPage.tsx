@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Check } from "lucide-react-native";
@@ -75,6 +76,9 @@ function payLabel(pack: Pack, paying: boolean) {
 }
 
 export function HostCreditsPage() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const params = useLocalSearchParams<{ ref?: string; returnTo?: string }>();
   const router = useRouter();
   const requested = first(params.returnTo);
@@ -98,9 +102,9 @@ export function HostCreditsPage() {
   return (
     <View style={s.page}>
       <Text style={s.eyebrow}>YOUR HOST WALLET</Text>
-      <View style={{ marginVertical: 14, gap: 5 }}>
+      <View style={{ marginVertical: designSize(14), gap: designSize(5) }}>
         <Text style={{ fontFamily: Studently.type.bodySemi, color: Studently.color.ink }}>How listing time works</Text>
-        <Text style={{ fontFamily: Studently.type.body, color: Studently.color.inkMuted, fontSize: 13, lineHeight: 20, maxWidth: 760 }}>Each unit renewal costs 1 post credit for 30 days. Renew early to add 30 days to your current expiry; renew after expiry to start 30 days from renewal. Optional auto-renew uses your credits in the final hour before expiry. Without credits or a confirmed available-bed count, the unit expires. Bumps and Featured are separate.</Text>
+        <Text style={{ fontFamily: Studently.type.body, color: Studently.color.inkMuted, fontSize: designSize(13), lineHeight: designSize(20), maxWidth: designSize(760) }}>Each unit renewal costs 1 post credit for 30 days. Renew early to add 30 days to your current expiry; renew after expiry to start 30 days from renewal. Optional auto-renew uses your credits in the final hour before expiry. Without credits or a confirmed available-bed count, the unit expires. Bumps and Featured are separate.</Text>
       </View>
       <Text style={s.title}>Credits, on your terms.</Text>
       <Text style={s.body}>
@@ -215,6 +219,9 @@ function PromotionPacks({
   pendingId: string | null;
   onBuy: (packId: string) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const reduceMotion = useReducedMotion();
   const popularIndex = packs.length >= 3 ? 1 : -1;
   return (
@@ -263,6 +270,9 @@ function PromotionCard({
   reduceMotion: boolean;
   onBuy: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   const copy = promotionCopy(pack);
   const hero = heroFor(pack);
   const unavailable = !pack.enabled;
@@ -321,7 +331,7 @@ function PromotionCard({
         <View style={s.points}>
           {copy.points.map((point) => (
             <View key={point} style={s.point}>
-              <Check color={Studently.color.primary} size={14} strokeWidth={2.2} />
+              <Check color={Studently.color.primary} size={designSize(14)} strokeWidth={2.2} />
               <Text style={s.pointText}>{point}</Text>
             </View>
           ))}
@@ -332,6 +342,9 @@ function PromotionCard({
 }
 
 function CardAura() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(base_s);
+  
   return (
     <View pointerEvents="none" style={s.aura}>
       <View style={[s.orb, web && orbWeb]}>{web ? null : <HostCreditsAura starter />}</View>
@@ -362,7 +375,7 @@ const ctaWeb = {
   transitionDuration: "160ms",
 } as object;
 
-const s = StyleSheet.create({
+const base_s = StyleSheet.create({
   page: {
     padding: 28,
     paddingBottom: 100,

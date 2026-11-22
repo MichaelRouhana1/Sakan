@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { memo, useEffect, useRef, useState } from "react";
 import {
@@ -7,7 +8,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { TicketBackdrop, type TicketTear } from "@/components/campus/TicketBackdrop";
@@ -160,12 +160,15 @@ function stampFontSize(stamp: string): number {
 }
 
 function BenefitCardBase({ benefit, index, onPress }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const reduced = useReducedMotion();
-  const { width } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
   const meta = categoryMeta(benefit.category);
   const exclusive = isCampusExclusive(benefit);
-  const stack = width < STACK_BELOW;
-  const compactShadow = width < 640;
+  const stack = layoutWidth < STACK_BELOW;
+  const compactShadow = layoutWidth < 640;
   const stamp = stubStamp(benefit.title);
   const stampSize = stampFontSize(stamp);
   const logo = benefitCompanyLogo(benefit.companyName);
@@ -275,7 +278,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
                   accessibilityIgnoresInvertColors
                 />
               ) : (
-                <Ionicons name={meta.icon} size={22} color={meta.accent} />
+                <Ionicons name={meta.icon} size={designSize(22)} color={meta.accent} />
               )}
             </View>
             <View style={styles.topCopy}>
@@ -295,7 +298,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
           <View style={[styles.chip, exclusive && styles.chipExclusive]}>
             <Ionicons
               name={exclusive ? "school-outline" : "checkmark-circle-outline"}
-              size={12}
+              size={designSize(12)}
               color={exclusive ? Studently.color.primary : Studently.color.inkMuted}
             />
             <LText
@@ -348,7 +351,7 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
             </LText>
             <Ionicons
               name="arrow-forward"
-              size={11}
+              size={designSize(11)}
               color={hovered ? Studently.color.primary : Studently.color.inkMuted}
             />
           </View>
@@ -362,9 +365,12 @@ function BenefitCardBase({ benefit, index, onPress }: Props) {
 export const BenefitCard = memo(BenefitCardBase);
 
 export function BenefitCardSkeleton() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const reduced = useReducedMotion();
-  const { width } = useWindowDimensions();
-  const stack = width < STACK_BELOW;
+  const layoutWidth = useLayoutWidth();
+  const stack = layoutWidth < STACK_BELOW;
   const pulse = useRef(new Animated.Value(0.5)).current;
   const [size, setSize] = useState({ w: 0, h: 0 });
 
@@ -397,7 +403,7 @@ export function BenefitCardSkeleton() {
     <View
       style={[
         styles.shadowHost,
-        IS_WEB && (width < 640 ? styles.shadowWrapMobile : styles.shadowWrapRest),
+        IS_WEB && (layoutWidth < 640 ? styles.shadowWrapMobile : styles.shadowWrapRest),
       ]}
       {...(IS_WEB ? ({ className: "studently-benefit-card-shadow" } as object) : null)}
       accessibilityElementsHidden
@@ -492,7 +498,7 @@ export function BenefitCardSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   shadowHost: {
     flex: 1,
     alignSelf: "stretch",

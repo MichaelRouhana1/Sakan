@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
@@ -8,12 +9,12 @@ import {
   type ListingDetailVariant,
 } from "@/components/listings/detail/listingDetailChrome";
 import { Studently } from "@/constants/theme";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 import { formatFreshUsd } from "@/lib/format";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import {
   hasUsableWhatsAppPhone,
   listingAllowsWhatsApp,
-  WHATSAPP_GREEN,
 } from "@/lib/whatsapp";
 import type { Listing, PbsaRoomType } from "@/types/listing";
 
@@ -61,6 +62,9 @@ export function ListingDetailRooms({
   onWhatsApp,
   variant = "card",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const rooms = listing.pbsaRoomTypes ?? [];
   const grouped = useMemo(() => {
     const map: Record<Category, PbsaRoomType[]> = {
@@ -212,9 +216,12 @@ function Feat({
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.feat}>
-      <Ionicons name={icon} size={14} color={Studently.color.inkMuted} />
+      <Ionicons name={icon} size={designSize(14)} color={Studently.color.inkMuted} />
       <LText variant="caption" style={styles.featLabel} numberOfLines={1}>
         {label}
       </LText>
@@ -222,7 +229,7 @@ function Feat({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   gap: { gap: 12 },
   pills: { gap: 8, paddingVertical: 2 },
   pill: {

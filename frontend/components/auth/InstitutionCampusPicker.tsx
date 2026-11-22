@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Studently } from "@/constants/theme";
 import {
   POPULAR_INSTITUTION_SLUGS,
@@ -28,6 +29,8 @@ export function InstitutionCampusPicker({
   onSelectCampus,
   title = "Where do you study?",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const catalog = useInstitutions();
   const [query, setQuery] = useState("");
   const [institutionId, setInstitutionId] = useState<string | null>(null);
@@ -106,7 +109,7 @@ export function InstitutionCampusPicker({
             >
               <Ionicons
                 name="location-outline"
-                size={18}
+                size={designSize(18)}
                 color={on ? Studently.color.primary : Studently.color.ink}
               />
               <View style={styles.rowText}>
@@ -151,7 +154,7 @@ export function InstitutionCampusPicker({
                 shortName={inst.shortName}
                 website={inst.website}
                 logoUrl={inst.logoUrl}
-                size={36}
+                size={designSize(36)}
               />
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{inst.name}</Text>
@@ -175,7 +178,7 @@ export function InstitutionCampusPicker({
             shortName={inst.shortName}
             website={inst.website}
             logoUrl={inst.logoUrl}
-            size={36}
+            size={designSize(36)}
           />
           <View style={styles.rowText}>
             <Text style={styles.rowTitle}>{inst.name}</Text>
@@ -192,7 +195,7 @@ export function InstitutionCampusPicker({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   center: { paddingVertical: 24, alignItems: "center" },
   title: {
     fontSize: 20,

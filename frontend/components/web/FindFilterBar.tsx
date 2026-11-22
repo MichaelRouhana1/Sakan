@@ -1,5 +1,5 @@
-import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { DESKTOP_SEARCH_HEADER as H } from "@/constants/desktopSearchMotion";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useRef, useState } from "react";
 import {
@@ -85,6 +85,9 @@ function FilterPill({
   measure = true,
   onPress,
 }: PillProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const ref = useRef<View>(null);
   return (
     <View ref={ref} collapsable={false}>
@@ -111,7 +114,7 @@ function FilterPill({
         {icon ? (
           <Ionicons
             name={icon}
-            size={15}
+            size={designSize(15)}
             color={
               active || open ? Studently.color.primaryDeep : Studently.color.inkMuted
             }
@@ -126,7 +129,7 @@ function FilterPill({
         {chevron ? (
           <Ionicons
             name="chevron-down"
-            size={12}
+            size={designSize(12)}
             color={
               active || open ? Studently.color.primaryDeep : Studently.color.inkFaint
             }
@@ -190,7 +193,9 @@ export function FindFilterBar({
   sticky = true,
   matchAvailable = false,
 }: Props) {
-  const {size:designSize,isDesktop}=useDesktopDesign();
+  const { size: designSize, styles: resolveStyles, isDesktop } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [menu, setMenu] = useState<MenuId | null>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
@@ -222,7 +227,7 @@ export function FindFilterBar({
   const filteredAreas = useMemo(() => areaGroups, [areaGroups]);
 
   return (
-    <View style={[styles.bar,isDesktop && sticky && {top:designSize(H.height)}, !sticky && styles.barStatic]}>
+    <View style={[styles.bar, isDesktop && sticky && {top:designSize(H.height)}, !sticky && styles.barStatic]}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -314,13 +319,13 @@ export function FindFilterBar({
           >
             <Ionicons
               name="search-outline"
-              size={15}
+              size={designSize(15)}
               color={Studently.color.primaryDeep}
             />
             <LText variant="caption" style={[styles.pillLabel, styles.pillLabelActive]}>
               {filters.q}
             </LText>
-            <Ionicons name="close" size={14} color={Studently.color.primaryDeep} />
+            <Ionicons name="close" size={designSize(14)} color={Studently.color.primaryDeep} />
           </Pressable>
         ) : null}
 
@@ -571,7 +576,7 @@ export function FindFilterBar({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
     top: WEB_FILTER_BAR_STICKY_TOP,

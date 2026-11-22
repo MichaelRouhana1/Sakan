@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -25,6 +26,9 @@ type Props = {
 };
 
 export function ListingDetailOverview({ listing, onViewMap }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const title =
     listing.title?.trim() ||
     listing.pbsaBuildingName?.trim() ||
@@ -83,7 +87,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
 
       {distance || hasPin ? (
         <View style={styles.distanceRow}>
-          <Ionicons name="location" size={20} color={Studently.color.primary} />
+          <Ionicons name="location" size={designSize(20)} color={Studently.color.primary} />
           <View style={{ flex: 1 }}>
             {distance ? (
               <LText variant="subtitle" style={styles.distanceText}>
@@ -112,7 +116,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
       <View style={styles.chipWrap}>
         {listing.targetAudience === "students_only" ? (
           <View style={[styles.chip, styles.chipAccent]}>
-            <Ionicons name="school-outline" size={13} color={Studently.color.ink} />
+            <Ionicons name="school-outline" size={designSize(13)} color={Studently.color.ink} />
             <LText variant="caption" style={styles.chipText}>
               Students only
             </LText>
@@ -127,7 +131,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
         ) : null}
         {listing.nearestCampusName ? (
           <View style={styles.chip}>
-            <Ionicons name="school" size={13} color={Studently.color.primary} />
+            <Ionicons name="school" size={designSize(13)} color={Studently.color.primary} />
             <LText variant="caption" style={styles.chipText} numberOfLines={1}>
               {listing.nearestCampusName}
               {listing.distanceMeters != null
@@ -147,14 +151,14 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
         <View style={styles.infraHead}>
           <Ionicons
             name="shield-checkmark-outline"
-            size={18}
+            size={designSize(18)}
             color={Studently.color.primary}
           />
           <LText variant="subtitle">Utilities on this listing</LText>
         </View>
         <View style={styles.infraGrid}>
           <View style={styles.infraBox}>
-            <Ionicons name="flash-outline" size={18} color={Studently.color.warning} />
+            <Ionicons name="flash-outline" size={designSize(18)} color={Studently.color.warning} />
             <View style={{ flex: 1 }}>
               <LText variant="caption" tone="muted">
                 Electricity
@@ -187,7 +191,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
             </View>
           </View>
           <View style={styles.infraBox}>
-            <Ionicons name="water-outline" size={18} color="#0284C7" />
+            <Ionicons name="water-outline" size={designSize(18)} color="#0284C7" />
             <View style={{ flex: 1 }}>
               <LText variant="caption" tone="muted">
                 Water
@@ -196,7 +200,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
             </View>
           </View>
           <View style={styles.infraBox}>
-            <Ionicons name="wifi-outline" size={18} color="#16A34A" />
+            <Ionicons name="wifi-outline" size={designSize(18)} color="#16A34A" />
             <View style={{ flex: 1 }}>
               <LText variant="caption" tone="muted">
                 Internet
@@ -212,7 +216,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
             </View>
           </View>
           <View style={styles.infraBox} testID="listing-elevator">
-            <Ionicons name="swap-vertical-outline" size={18} color={Studently.color.primary} />
+            <Ionicons name="swap-vertical-outline" size={designSize(18)} color={Studently.color.primary} />
             <View style={{ flex: 1 }}>
               <LText variant="caption" tone="muted">Elevator</LText>
               <LText variant="subtitle">{elevatorStatus(listing)}</LText>
@@ -225,7 +229,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     backgroundColor: Studently.color.surface,
     borderTopLeftRadius: 20,

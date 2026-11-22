@@ -1,12 +1,13 @@
 import { usePathname } from "expo-router";
-import { useEffect, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
+import { DesktopDesignProvider, useDesktopDesign } from "@/components/ui/DesktopDesign";
 import {
   HostNavDrawer,
   HostSideNav,
 } from "@/components/web/host/HostSideNav";
 import { HostTopNav } from "@/components/web/HostTopNav";
-import { Studently } from "@/constants/theme";
+import { DesktopDesign, Studently } from "@/constants/theme";
 import { WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useBreakpoint } from "@/lib/breakpoints";
 import { setHostRailInset } from "@/components/web/hostRailInset";
@@ -38,8 +39,21 @@ type Props = {
 };
 
 export function HostWebShell({ children }: Props) {
+  const { width } = useWindowDimensions();
+  const enabled = Platform.OS === "web" && width >= DesktopDesign.layout.minWidth;
+  return (
+    <DesktopDesignProvider enabled={enabled}>
+      <HostWebShellFrame>{children}</HostWebShellFrame>
+    </DesktopDesignProvider>
+  );
+}
+
+function HostWebShellFrame({ children }: Props) {
   const pathname = usePathname();
   const bp = useBreakpoint();
+  const { scale, size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const rootRef = useRef<View>(null);
   // Match the exported desktop shell on the first client render, then apply
   // the viewport and saved rail preference after hydration.
   const [hydrated, setHydrated] = useState(false);
@@ -61,10 +75,10 @@ export function HostWebShell({ children }: Props) {
   }, [desktop]);
 
   useEffect(() => {
-    const next = desktop ? (railCollapsed ? 48 : 228) : 0;
+    const next = desktop ? (railCollapsed ? designSize(48) : designSize(228)) : 0;
     setHostRailInset(next);
     return () => setHostRailInset(0);
-  }, [desktop, railCollapsed]);
+  }, [desktop, railCollapsed, designSize]);
 
   function toggleRail() {
     setRailCollapsed((prev) => {
@@ -74,8 +88,18 @@ export function HostWebShell({ children }: Props) {
     });
   }
 
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const node = rootRef.current as unknown as HTMLElement | null;
+    node?.style?.setProperty?.("--sk-desktop-scale", String(scale));
+  }, [scale]);
+
   return (
-    <View style={styles.root}>
+    <View
+      ref={rootRef}
+      style={[styles.root, Platform.OS === "web" ? ({ ["--sk-desktop-scale" as string]: String(scale) } as object) : null]}
+      {...(Platform.OS === "web" ? ({ dataSet: { desktopScale: String(scale) } } as object) : {})}
+    >
       <HostTopNav
         showMenuButton={!desktop}
         menuOpen={drawerOpen}
@@ -99,7 +123,7 @@ export function HostWebShell({ children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     width: "100%",
     flex: 1,

@@ -7,6 +7,7 @@ import path from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
 import { build } from '../../backend/node_modules/esbuild/lib/main.js';
 import { chromium, expect } from '@playwright/test';
+import { DesktopDesign } from '../constants/desktopDesign.ts';
 
 const frontend = path.resolve(import.meta.dirname, '..');
 const listings = [
@@ -178,7 +179,7 @@ try {
   await expect(homeCard(first)).toHaveCount(1);
   await expect(homeCard(first)).toContainText('Live Achrafieh apartment');
   await expect(page.getByText('Sunny 1BR near Sassine', { exact: true })).toHaveCount(0);
-  assert.ok((await homeCard(first).boundingBox()).width <= 240);
+  assert.ok((await homeCard(first).boundingBox()).width <= DesktopDesign.cards.ideal);
   await clickHomeFavorite(first, 'Save listing');
   await expect(homeCard(first).getByRole('button', { name: 'Remove from saved', exact: true })).toBeVisible();
   await expect.poll(() => writes.length).toBe(1);

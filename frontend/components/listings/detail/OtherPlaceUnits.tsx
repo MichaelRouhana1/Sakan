@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useState } from 'react';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -13,7 +14,9 @@ import type { Listing } from '@/types/listing';
 
 const pointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null;
 
-export function DetailFilterChip({ label, selected, onPress, tab = false, dense = false }: { label: string; selected?: boolean; onPress: () => void; tab?: boolean; dense?: boolean }) {
+export function DetailFilterChip({ label, selected, onPress, tab = false, dense = false }: { label: string; selected?: boolean; onPress: () => void; tab?: boolean; dense?: boolean }) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -43,7 +46,9 @@ const typeDetails = {
 } as const;
 type Props = { listing: Listing; siblings: Listing[]; loading?: boolean; error?: boolean; onRetry: () => void };
 
-export function OtherPlaceUnits({ listing, siblings, loading, error, onRetry }: Props) {
+export function OtherPlaceUnits({ listing, siblings, loading, error, onRetry }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [type, setType] = useState('all');
   const [availability, setAvailability] = useState('all');
   const [maxRent, setMaxRent] = useState('');
@@ -100,7 +105,7 @@ export function OtherPlaceUnits({ listing, siblings, loading, error, onRetry }: 
                 return (
                   <View key={key}>
                     <View style={styles.category}>
-                      <View style={styles.categoryIcon}><Ionicons name={details.icon} size={24} color={Studently.color.ink} /></View>
+                      <View style={styles.categoryIcon}><Ionicons name={details.icon} size={designSize(24)} color={Studently.color.ink} /></View>
                       <View style={styles.categoryCopy}>
                         <LText variant="subtitle" style={styles.categoryTitle}>{label}</LText>
                         <LText style={styles.categoryDescription} tone="muted">{details.description}</LText>
@@ -118,7 +123,9 @@ export function OtherPlaceUnits({ listing, siblings, loading, error, onRetry }: 
   );
 }
 
-function UnitRow({ unit, compact }: { unit: Listing; compact: boolean }) {
+function UnitRow({ unit, compact }: { unit: Listing; compact: boolean }) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [focused, setFocused] = useState(false);
   const type = detailUnitType(unit);
   const cover = resolveMediaUrl(unit.coverUrl ?? unit.photos[0]?.url ?? null);
@@ -146,7 +153,7 @@ function UnitRow({ unit, compact }: { unit: Listing; compact: boolean }) {
         {cover ? (
           <Image source={{ uri: cover }} accessibilityLabel={`${unit.title || name} photo`} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
-          <Ionicons name="image-outline" size={28} color={Studently.color.inkMuted} />
+          <Ionicons name="image-outline" size={designSize(28)} color={Studently.color.inkMuted} />
         )}
       </View>
       <View style={[styles.copy, compact && styles.copyCompact]}>
@@ -160,21 +167,21 @@ function UnitRow({ unit, compact }: { unit: Listing; compact: boolean }) {
         <View style={[styles.features, compact && styles.featuresCompact]}>
           {features.map(feature => (
             <View key={feature.label} style={styles.feature}>
-              <Ionicons name={feature.icon} size={16} color={Studently.color.inkMuted} />
+              <Ionicons name={feature.icon} size={designSize(16)} color={Studently.color.inkMuted} />
               <LText style={[styles.featureLabel, compact && styles.smallText]}>{feature.label}</LText>
             </View>
           ))}
         </View>
         <View style={styles.detailsLink}>
           <LText style={styles.detailsLabel}>View {type === 'whole_apartment' ? 'apartment' : type === 'shared_bed' ? 'bed' : 'room'} details</LText>
-          <Ionicons name="chevron-forward" size={17} color={Studently.color.primary} />
+          <Ionicons name="chevron-forward" size={designSize(17)} color={Studently.color.primary} />
         </View>
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   section: {
     borderRadius: Studently.radius.lg,
     borderWidth: 1,

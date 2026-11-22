@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import type { MatchPresentation } from "@/features/matcher/types";
 import { useId } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -92,6 +93,9 @@ export function FindSkeletonBone({
   style?: object;
   shine: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   if (shine) ensureSkeletonShineCss();
 
   return (
@@ -115,6 +119,9 @@ function SkeletonCard({
   list?: boolean;
   shine: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   if (list) {
     return (
       <View
@@ -182,7 +189,7 @@ function SkeletonCard({
   );
 }
 
-function gridColumnStyle(columns: 1 | 2 | 3) {
+function gridColumnStyle(columns: 1 | 2 | 3, styles: { grid1: object; grid2: object; grid3: object }) {
   if (columns === 1) return styles.grid1;
   if (columns === 2) return styles.grid2;
   return styles.grid3;
@@ -206,12 +213,15 @@ export function FindResultsGrid({
   showDistanceSplit = false,
   universityLabel = "",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const reduced = useReducedMotion();
   const transitionScope = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const isList = variant === "list";
   const layoutStyle = isList
     ? styles.list
-    : [styles.grid, gridColumnStyle(columns)];
+    : [styles.grid, gridColumnStyle(columns, styles)];
   const shine = !reduced;
 
   if (loading && listings.length === 0) {
@@ -308,7 +318,7 @@ export function FindResultsGrid({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     flex: 1,
     minWidth: 0,

@@ -1,4 +1,5 @@
 import { Text as RNText, type TextProps, StyleSheet } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Lister } from "@/constants/listerTheme";
 
 type Variant = "display" | "title" | "subtitle" | "body" | "caption" | "label";
@@ -60,9 +61,11 @@ export function LText({
   style,
   ...props
 }: Props) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const type = resolveStyles(variantStyle);
   return (
     <RNText
-      style={[variantStyle[variant], { color: toneColor[tone] }, style]}
+      style={[type[variant], { color: toneColor[tone] }, style]}
       {...props}
     />
   );

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import type { ComponentProps } from "react";
@@ -54,6 +55,9 @@ type NavLinksProps = {
 };
 
 function HostNavLinks({ variant, onNavigate }: NavLinksProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const pathname = usePathname();
   const router = useRouter();
   const section = hostNavSection(pathname);
@@ -92,7 +96,7 @@ function HostNavLinks({ variant, onNavigate }: NavLinksProps) {
             <View style={drawer ? styles.drawerIconSlot : styles.railIconSlot}>
               <Ionicons
                 name={item.icon}
-                size={drawer ? 20 : 18}
+                size={designSize(drawer ? 20 : 18)}
                 color={active ? Studently.color.primary : Studently.color.inkMuted}
               />
             </View>
@@ -124,6 +128,9 @@ export function HostSideNav({
   collapsed: boolean;
   onToggle: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View
       style={[styles.rail, collapsed && styles.railCollapsed]}
@@ -144,7 +151,7 @@ export function HostSideNav({
       >
         <Ionicons
           name={collapsed ? "chevron-forward" : "chevron-back"}
-          size={16}
+          size={designSize(16)}
           color={Studently.color.ink}
         />
       </Pressable>
@@ -158,6 +165,9 @@ type DrawerProps = {
 };
 
 export function HostNavDrawer({ visible, onClose }: DrawerProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
 
   return (
@@ -189,7 +199,7 @@ export function HostNavDrawer({ visible, onClose }: DrawerProps) {
                 pressed && styles.itemPressed,
               ]}
             >
-              <Ionicons name="close" size={22} color={Studently.color.ink} />
+              <Ionicons name="close" size={designSize(22)} color={Studently.color.ink} />
             </Pressable>
           </View>
           <HostNavLinks variant="drawer" onNavigate={onClose} />
@@ -224,7 +234,7 @@ const webTransition =
       } as object)
     : null;
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   rail: {
     width: 208,
     minWidth: 208,

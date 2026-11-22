@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const SLIDE_MS = 280;
@@ -24,6 +25,8 @@ type Props = {
 };
 
 export function EditBadgesSheet({ onClose, children }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const reduced = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -110,7 +113,7 @@ export function EditBadgesSheet({ onClose, children }: Props) {
             pressed && styles.backPressed,
           ]}
         >
-          <Ionicons name="chevron-back" size={20} color={Lister.color.ink} />
+          <Ionicons name="chevron-back" size={designSize(20)} color={Lister.color.ink} />
         </Pressable>
         <LText variant="subtitle" style={styles.title}>
           Edit badges
@@ -158,7 +161,7 @@ export function EditBadgesSheet({ onClose, children }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     position: "fixed" as unknown as "absolute",
     top: WEB_NAV_HEIGHT,

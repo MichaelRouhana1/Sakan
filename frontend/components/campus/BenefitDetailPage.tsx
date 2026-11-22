@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
@@ -11,7 +12,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { InitialLoadingScreen } from "@/components/common/InitialLoadingScreen";
@@ -53,6 +53,9 @@ const PAGE_MAX = 1360;
 const SIDE_W = 420;
 
 function PageScroll({ children }: { children: React.ReactNode }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   if (IS_WEB) {
     return <View style={styles.content}>{children}</View>;
   }
@@ -108,6 +111,9 @@ function shareUrlFor(id: string): string {
 }
 
 function SectionHead({ n, title }: { n: string; title: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.sectionHead}>
       <LText variant="label" style={styles.sectionNumber}>
@@ -141,6 +147,9 @@ function Fact({
   count: number;
   half: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const divider = half ? index % 2 === 0 : index < count - 1;
   const rowRule = half && index < count - 2;
   return (
@@ -153,7 +162,7 @@ function Fact({
       ]}
     >
       <View style={styles.factLabelRow}>
-        <Ionicons name={icon} size={13} color={Studently.color.inkFaint} />
+        <Ionicons name={icon} size={designSize(13)} color={Studently.color.inkFaint} />
         <LText variant="label" tone="muted" style={styles.factLabel}>
           {label}
         </LText>
@@ -166,11 +175,14 @@ function Fact({
 }
 
 function QualifyItem({ sentence }: { sentence: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const path = parseStepPath(sentence);
   return (
     <View style={styles.qualifyRow} accessibilityRole="text">
       <View style={styles.qualifyMark}>
-        <Ionicons name="checkmark" size={13} color={Studently.color.primary} />
+        <Ionicons name="checkmark" size={designSize(13)} color={Studently.color.primary} />
       </View>
       {path ? (
         <View style={styles.pathWrap}>
@@ -193,7 +205,7 @@ function QualifyItem({ sentence }: { sentence: string }) {
                 {i < path.steps.length - 1 ? (
                   <Ionicons
                     name="chevron-forward"
-                    size={13}
+                    size={designSize(13)}
                     color={Studently.color.inkFaint}
                   />
                 ) : null}
@@ -222,6 +234,9 @@ function CampusNotice({
   benefit: StudentBenefit;
   userUni: string;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const unis = benefit.applicableUniversities;
   const included = unis.some(
@@ -233,7 +248,7 @@ function CampusNotice({
       <View style={[styles.notice, styles.noticeOk]}>
         <Ionicons
           name="checkmark-circle"
-          size={18}
+          size={designSize(18)}
           color={Studently.color.primary}
         />
         <LText variant="body" style={styles.noticeText}>
@@ -248,7 +263,7 @@ function CampusNotice({
 
   return (
     <View style={[styles.notice, styles.noticeWarn]}>
-      <Ionicons name="alert-circle" size={18} color={Studently.color.warning} />
+      <Ionicons name="alert-circle" size={designSize(18)} color={Studently.color.warning} />
       <View style={styles.noticeCopy}>
         <LText variant="body" style={styles.noticeText}>
           <LText variant="body" style={styles.noticeStrong}>
@@ -272,7 +287,7 @@ function CampusNotice({
           <LText variant="caption" style={styles.noticeLinkText}>
             See offers for {userUni}
           </LText>
-          <Ionicons name="arrow-forward" size={13} color={Studently.color.warning} />
+          <Ionicons name="arrow-forward" size={designSize(13)} color={Studently.color.warning} />
         </Pressable>
       </View>
     </View>
@@ -280,15 +295,18 @@ function CampusNotice({
 }
 
 export function BenefitDetailPage({ id }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
   const { user } = useAuthSession();
   const benefit = useBenefit(id);
 
-  const wide = width >= 1000;
-  const compact = width < 640;
-  const stackTicket = width < 720;
-  const relatedColumns: 1 | 2 | 3 = width >= 980 ? 3 : width >= 640 ? 2 : 1;
+  const wide = layoutWidth >= 1000;
+  const compact = layoutWidth < 640;
+  const stackTicket = layoutWidth < 720;
+  const relatedColumns: 1 | 2 | 3 = layoutWidth >= 980 ? 3 : layoutWidth >= 640 ? 2 : 1;
 
   const [linkCopied, setLinkCopied] = useState(false);
   useEffect(() => {
@@ -405,7 +423,7 @@ export function BenefitDetailPage({ id }: Props) {
       <View style={styles.sourceIcon}>
         <Ionicons
           name="shield-checkmark-outline"
-          size={18}
+          size={designSize(18)}
           color={Studently.color.primary}
         />
       </View>
@@ -430,7 +448,7 @@ export function BenefitDetailPage({ id }: Props) {
           <LText variant="caption" style={styles.sourceLinkText}>
             Open the source
           </LText>
-          <Ionicons name="open-outline" size={13} color={Studently.color.primary} />
+          <Ionicons name="open-outline" size={designSize(13)} color={Studently.color.primary} />
         </Pressable>
       </View>
     </View>
@@ -450,7 +468,7 @@ export function BenefitDetailPage({ id }: Props) {
             >
               {({ hovered }) => (
                 <>
-                  <Ionicons name="arrow-back" size={15} color={Studently.color.primary} />
+                  <Ionicons name="arrow-back" size={designSize(15)} color={Studently.color.primary} />
                   <LText
                     variant="caption"
                     style={[styles.crumbText, hovered && styles.crumbTextHover]}
@@ -462,7 +480,7 @@ export function BenefitDetailPage({ id }: Props) {
             </Pressable>
             <Ionicons
               name="chevron-forward"
-              size={13}
+              size={designSize(13)}
               color={Studently.color.inkFaint}
             />
             <Pressable
@@ -486,7 +504,7 @@ export function BenefitDetailPage({ id }: Props) {
               <>
                 <Ionicons
                   name="chevron-forward"
-                  size={13}
+                  size={designSize(13)}
                   color={Studently.color.inkFaint}
                 />
                 <LText
@@ -517,7 +535,7 @@ export function BenefitDetailPage({ id }: Props) {
                         ? "link-outline"
                         : "share-outline"
                   }
-                  size={15}
+                  size={designSize(15)}
                   color={Studently.color.primary}
                 />
                 <LText
@@ -594,7 +612,7 @@ export function BenefitDetailPage({ id }: Props) {
                     <View key={`${i}-${note.slice(0, 24)}`} style={styles.noteRow}>
                       <Ionicons
                         name="information-circle-outline"
-                        size={17}
+                        size={designSize(17)}
                         color={Studently.color.inkMuted}
                         style={styles.noteIcon}
                       />
@@ -626,7 +644,7 @@ export function BenefitDetailPage({ id }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     flex: 1,
   },

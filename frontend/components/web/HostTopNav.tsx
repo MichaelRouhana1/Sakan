@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { DesktopScaleToggle } from "@/components/ui/DesktopScaleToggle";
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { WebProfileMenu } from "@/components/web/WebProfileMenu";
 import { HOST_CREDITS_PATH } from "@/constants/hostRoutes";
@@ -20,8 +22,12 @@ export function HostTopNav({
   menuOpen = false,
   onMenuPress,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
   const { user, isSignedIn } = useAuthSession();
   const credits = useCredits(isSignedIn);
 
@@ -58,7 +64,7 @@ export function HostTopNav({
                 pressed && styles.pressed,
               ]}
             >
-              <Ionicons name="menu" size={22} color={Studently.color.ink} />
+              <Ionicons name="menu" size={designSize(22)} color={Studently.color.ink} />
             </Pressable>
           ) : null}
 
@@ -69,8 +75,8 @@ export function HostTopNav({
               accessibilityLabel="Studently home"
               style={styles.brandHit}
             >
-              <StudentlyLogo size={showMenuButton ? 36 : 40} />
-              {!(showMenuButton && width < 420) ? <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
+              <StudentlyLogo size={designSize(showMenuButton ? 36 : 40)} />
+              {!(showMenuButton && layoutWidth < 420) ? <Text style={[styles.brand, showMenuButton && styles.brandCompact]}>
                 Studently
               </Text> : null}
             </Pressable>
@@ -78,6 +84,7 @@ export function HostTopNav({
         </View>
 
         <View style={styles.right}>
+          <DesktopScaleToggle />
           {showMenuButton ? null : (
             <Pressable
               onPress={() => router.replace("/(renter)" as never)}
@@ -110,7 +117,7 @@ export function HostTopNav({
                   pressed && styles.pressed,
                 ]}
               >
-                <Ionicons name="add" size={18} color={Studently.color.ink} />
+                <Ionicons name="add" size={designSize(18)} color={Studently.color.ink} />
               </Pressable>
             </View>
           ) : null}
@@ -124,7 +131,7 @@ export function HostTopNav({
 
 const webCursor = Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null;
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     position: "sticky" as unknown as "relative",
     top: 0,

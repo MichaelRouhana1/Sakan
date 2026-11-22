@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import type { ReactNode } from "react";
 import { StyleSheet, View, type TextStyle, type ViewStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -16,6 +17,9 @@ type LabelProps = {
 };
 
 export function WizardFieldLabel({ children, required, style }: LabelProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <LText variant="subtitle" style={style}>
       {children}
@@ -35,6 +39,9 @@ type GroupProps = {
 };
 
 export function WizardFieldGroup({ field, children, style }: GroupProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const invalid = useWizardFieldInvalid(field);
   return (
     <View style={[style, invalid && styles.groupInvalid]}>
@@ -43,22 +50,25 @@ export function WizardFieldGroup({ field, children, style }: GroupProps) {
   );
 }
 
-export function wizardInputStyle(invalid?: boolean): TextStyle {
+export function wizardInputStyle(
+  invalid?: boolean,
+  size: (value: number) => number = (value) => value,
+): TextStyle {
   return {
-    marginTop: 8,
-    borderWidth: invalid ? 2 : 1,
+    marginTop: size(8),
+    borderWidth: invalid ? size(2) : size(1),
     borderColor: invalid ? Lister.color.danger : Lister.color.border,
-    borderRadius: Lister.radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: size(Lister.radius.md),
+    paddingHorizontal: size(14),
+    paddingVertical: size(12),
     fontFamily: Lister.type.body,
-    fontSize: 15,
+    fontSize: size(15),
     color: Lister.color.ink,
     backgroundColor: Lister.color.surface,
   };
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   asterisk: { fontFamily: Lister.type.bodySemi },
   groupInvalid: {
     borderWidth: 2,

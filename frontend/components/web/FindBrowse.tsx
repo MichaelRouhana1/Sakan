@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { useBrowseController } from "@/features/matcher/useBrowseController";
 import { MatcherSheet } from "@/components/matcher/MatcherSheet";
 import { FindMyPlaceFab } from "@/components/web/FindMyPlaceFab";
@@ -16,7 +17,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -85,6 +85,9 @@ function cityLabelFromFilters(filters: BrowseFiltersValue): string {
 }
 
 export function FindBrowse() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const bp = useStableBreakpoint();
   const isDesktop = bp === "desktop";
   const coarsePointer = useCoarsePointer();
@@ -453,7 +456,7 @@ export function FindBrowse() {
                 >
                   <Ionicons
                     name={opt.icon}
-                    size={16}
+                    size={designSize(16)}
                     color={
                       active ? Studently.color.primaryDeep : Studently.color.inkMuted
                     }
@@ -473,8 +476,7 @@ export function FindBrowse() {
     </View>
   );
 
-  const { width: windowWidth } = useWindowDimensions();
-  const isXl = windowWidth >= 1280;
+  const isXl = useLayoutWidth() >= 1280;
 
   const onHoverListing = useCallback(
     (id: string | null, point?: HoverPoint) => {
@@ -577,7 +579,7 @@ export function FindBrowse() {
                 hovered && styles.mobileMapCtaHover,
               ]}
             >
-              <Ionicons name="map-outline" size={18} color={Studently.color.primary} />
+              <Ionicons name="map-outline" size={designSize(18)} color={Studently.color.primary} />
               <LText variant="subtitle" style={styles.mobileMapLabel}>
                 Explore on map
               </LText>
@@ -683,7 +685,7 @@ function isStale(
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     width: "100%",
     flexGrow: 1,

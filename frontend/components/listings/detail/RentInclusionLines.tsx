@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
@@ -7,6 +8,9 @@ import {
 } from "@/lib/rentInclusion";
 
 export function RentInclusionLines({ listing }: { listing: RentInclusionInput }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const lines = rentInclusionLines(listing);
   return (
     <View testID="rent-inclusion-lines" style={styles.block}>
@@ -28,7 +32,7 @@ export function RentInclusionLines({ listing }: { listing: RentInclusionInput })
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   block: { gap: 4, paddingTop: 4 },
   on: {
     fontFamily: Studently.type.bodySemi,

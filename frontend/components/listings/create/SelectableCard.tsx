@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps, ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -27,6 +28,9 @@ export function SelectableCard({
   children,
   error,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -44,7 +48,7 @@ export function SelectableCard({
         <View style={[styles.iconWrap, selected && styles.iconOn]}>
           <Ionicons
             name={icon}
-            size={22}
+            size={designSize(22)}
             color={selected ? Lister.color.primary : Lister.color.inkMuted}
           />
         </View>
@@ -62,7 +66,7 @@ export function SelectableCard({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     flexDirection: "row",
     gap: 14,

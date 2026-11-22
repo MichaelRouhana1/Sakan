@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { listingMoveInRows } from "@/components/listings/detail/listingMoveIn";
@@ -15,7 +16,9 @@ export function ListingMoneyStack({
   listing,
   align = "start",
   layout,
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const rows = listingMoveInRows(listing);
   if (rows.length === 0) return null;
   const mode = layout ?? (align === "end" ? "stack" : "ledger");
@@ -59,7 +62,7 @@ export function ListingMoneyStack({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   ledger: {
     flexDirection: "row",
     alignItems: "stretch",

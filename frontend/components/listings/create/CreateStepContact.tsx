@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
@@ -21,6 +22,9 @@ import {
 import type { ListingPosterRole } from "@/types/listing";
 
 export function CreateStepContact() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { draft, patch, fieldInvalid } = useListingForm();
   const roleInvalid = fieldInvalid("listingPosterRole");
   const nameInvalid = fieldInvalid("contactName");
@@ -41,11 +45,11 @@ export function CreateStepContact() {
   }
 
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: designSize(12) }}>
       <Enter>
         <WizardFieldLabel required>Your role</WizardFieldLabel>
-        <View style={{ height: 8 }} />
-        <WizardFieldGroup field="listingPosterRole" style={{ gap: 8 }}>
+        <View style={{ height: designSize(8) }} />
+        <WizardFieldGroup field="listingPosterRole" style={{ gap: designSize(8) }}>
           <SelectableCard
             selected={draft.listingPosterRole === "landlord"}
             title="Landlord / owner"
@@ -77,7 +81,7 @@ export function CreateStepContact() {
           placeholderTextColor={Lister.color.inkFaint}
           value={draft.contactName}
           onChangeText={(contactName) => patch({ contactName })}
-          style={wizardInputStyle(nameInvalid)}
+          style={wizardInputStyle(nameInvalid, designSize)}
         />
       </Enter>
       <Enter delay={140}>
@@ -115,7 +119,7 @@ export function CreateStepContact() {
               style={styles.add}
             >
               <View style={styles.addPlus}>
-                <Ionicons name="add" size={22} color={Lister.color.primary} />
+                <Ionicons name="add" size={designSize(22)} color={Lister.color.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <LText variant="body" style={styles.addTitle}>
@@ -133,7 +137,7 @@ export function CreateStepContact() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   phones: { gap: 10, marginTop: 8 },
   phonesError: {
     padding: 8,

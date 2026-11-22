@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -41,6 +42,9 @@ export function FindMapPane({
   focusPoint = null,
   onSelectCampus,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const compact = useBreakpoint() !== "desktop";
   return (
     <View
@@ -67,7 +71,7 @@ export function FindMapPane({
               hovered && styles.closeHover,
             ]}
           >
-            <Ionicons name="close" size={16} color={Studently.color.inkMuted} />
+            <Ionicons name="close" size={designSize(16)} color={Studently.color.inkMuted} />
             <LText variant="caption" style={styles.closeLabel}>
               Close map
             </LText>
@@ -87,7 +91,7 @@ export function FindMapPane({
           <LText variant="caption" style={styles.closeFloatLabel}>
             Close Map
           </LText>
-          <Ionicons name="close" size={14} color={Studently.color.ink} />
+          <Ionicons name="close" size={designSize(14)} color={Studently.color.ink} />
         </Pressable>
       ) : null}
       <View style={[styles.mapWrap, fullHeight && styles.mapWrapFull]}>
@@ -111,7 +115,7 @@ export function FindMapPane({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   pane: {
     width: 360,
     flexShrink: 0,

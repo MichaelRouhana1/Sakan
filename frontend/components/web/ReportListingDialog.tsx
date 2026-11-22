@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -33,7 +34,9 @@ export function ReportListingDialog({
   listingTitle,
   visible,
   onClose,
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const report = useReportListing();
   const reduceMotion = useReducedMotion();
   const [reason, setReason] = useState<ReportReason | null>(null);
@@ -109,7 +112,7 @@ export function ReportListingDialog({
               <View style={styles.thanksMark}>
                 <Ionicons
                   name="checkmark"
-                  size={28}
+                  size={designSize(28)}
                   color={Studently.color.primaryDeep}
                 />
               </View>
@@ -127,7 +130,7 @@ export function ReportListingDialog({
                   <View style={styles.pill}>
                     <Ionicons
                       name="lock-closed"
-                      size={11}
+                      size={designSize(11)}
                       color={Studently.color.primaryDeep}
                     />
                     <LText variant="label" style={styles.pillText}>
@@ -158,7 +161,7 @@ export function ReportListingDialog({
                     focused && styles.closeFocus,
                   ]}
                 >
-                  <Ionicons name="close" size={18} color={Studently.color.ink} />
+                  <Ionicons name="close" size={designSize(18)} color={Studently.color.ink} />
                 </Pressable>
               </View>
 
@@ -179,7 +182,7 @@ export function ReportListingDialog({
                 <View style={styles.errorRow} accessibilityRole="alert">
                   <Ionicons
                     name="alert-circle"
-                    size={16}
+                    size={designSize(16)}
                     color={Studently.color.danger}
                   />
                   <LText variant="caption" tone="danger" style={styles.errorText}>
@@ -192,7 +195,7 @@ export function ReportListingDialog({
                 <View style={styles.reassure}>
                   <Ionicons
                     name="eye-off-outline"
-                    size={16}
+                    size={designSize(16)}
                     color={Studently.color.inkFaint}
                   />
                   <LText variant="caption" tone="muted" style={styles.reassureText}>
@@ -231,7 +234,7 @@ export function ReportListingDialog({
                       </LText>
                       <Ionicons
                         name="arrow-forward"
-                        size={16}
+                        size={designSize(16)}
                         color={
                           chosen ? Studently.color.surface : Studently.color.inkFaint
                         }
@@ -249,7 +252,7 @@ export function ReportListingDialog({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     alignItems: "center",

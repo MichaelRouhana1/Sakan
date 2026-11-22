@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -19,6 +20,9 @@ type Props = {
  * Other units with the same place ID. Hidden by the parent when empty.
  */
 export function CoincidentListingsSection({ listings }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   if (listings.length === 0) return null;
 
   return (
@@ -67,7 +71,7 @@ export function CoincidentListingsSection({ listings }: Props) {
                   <View style={styles.thumbFallback}>
                     <Ionicons
                       name="home-outline"
-                      size={18}
+                      size={designSize(18)}
                       color={Studently.color.inkFaint}
                     />
                   </View>
@@ -96,7 +100,7 @@ export function CoincidentListingsSection({ listings }: Props) {
 
               <Ionicons
                 name="chevron-forward"
-                size={18}
+                size={designSize(18)}
                 color={Studently.color.inkFaint}
               />
             </Pressable>
@@ -107,7 +111,7 @@ export function CoincidentListingsSection({ listings }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   header: {
     gap: 2,
     paddingBottom: 10,

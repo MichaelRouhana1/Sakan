@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef } from "react";
 import {
@@ -9,9 +10,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LText } from "@/components/lister/Typography";
 import { WhatsAppMessagePreview } from "@/components/listings/detail/WhatsAppMessagePreview";
 import { Studently } from "@/constants/theme";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 import type { WhatsAppInquiryController } from "@/features/listings/useWhatsAppInquiry";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { WHATSAPP_GREEN, type WhatsAppInquiryAnswers } from "@/lib/whatsapp";
+import type { WhatsAppInquiryAnswers } from "@/lib/whatsapp";
 
 const FIELDS: { key: keyof WhatsAppInquiryAnswers; label: string; placeholder: string }[] = [
   { key: "moveInDate", label: "Move-in date", placeholder: "e.g. mid-November" },
@@ -20,6 +22,9 @@ const FIELDS: { key: keyof WhatsAppInquiryAnswers; label: string; placeholder: s
 ];
 
 export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryController }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
@@ -79,7 +84,7 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
               <LText tone="muted" style={styles.subtitle}>Add a few details for the host. Everything is optional.</LText>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Close inquiry" onPress={close} style={styles.close}>
-              <Ionicons name="close" size={22} color={Studently.color.ink} />
+              <Ionicons name="close" size={designSize(22)} color={Studently.color.ink} />
             </Pressable>
           </View>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
@@ -108,7 +113,7 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
           <View style={styles.actions}>
             {error && <LText accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</LText>}
             <Pressable accessibilityRole="button" accessibilityLabel="Open WhatsApp" accessibilityState={{ disabled: isOpening, busy: isOpening }} disabled={isOpening} onPress={() => void submit()} style={[styles.primary, isOpening && styles.disabled]}>
-              {isOpening ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />}
+              {isOpening ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="logo-whatsapp" size={designSize(20)} color="#FFFFFF" />}
               <LText variant="subtitle" style={styles.primaryText}>{isOpening ? "Opening…" : "Open WhatsApp"}</LText>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Skip — message anyway" accessibilityHint="Opens WhatsApp without the answers you entered" accessibilityState={{ disabled: isOpening }} disabled={isOpening} onPress={() => void submit(true)} style={styles.skip}>
@@ -122,7 +127,7 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: "flex-end" },
   desktopOverlay: { justifyContent: "center", alignItems: "center", padding: 24 },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: Studently.color.overlay },

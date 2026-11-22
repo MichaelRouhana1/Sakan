@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
@@ -17,7 +18,9 @@ const PREVIEW = 180;
 export function ListingDetailAbout({
   description,
   variant = "card",
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [open, setOpen] = useState(false);
   const long = description.length > PREVIEW;
   const body =
@@ -46,7 +49,7 @@ export function ListingDetailAbout({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   gap: { gap: 10 },
   body: { lineHeight: 22 },
   more: {

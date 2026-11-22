@@ -8,6 +8,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Studently } from "@/constants/theme";
 import {
   institutionLogoSource,
@@ -37,6 +38,8 @@ export function InstitutionLogo({
   fallbackStyle,
   fallbackTextStyle,
 }: Props) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const local = institutionLogoSource(slug);
   const candidates = useMemo(() => {
     if (local) return [];
@@ -94,7 +97,7 @@ export function InstitutionLogo({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   frame: {
     backgroundColor: "#fff",
     borderWidth: 1,

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -22,6 +23,9 @@ export function ListingDetailHouseRules({
   cancellationPolicy,
   variant = "card",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const rows = useMemo(() => {
     const next: Row[] = [];
     if (cancellationPolicy?.trim()) {
@@ -98,7 +102,7 @@ export function ListingDetailHouseRules({
                 >
                   <Ionicons
                     name="checkmark-circle-outline"
-                    size={18}
+                    size={designSize(18)}
                     color={Studently.color.primary}
                   />
                   <View style={{ flex: 1, gap: 4 }}>
@@ -130,7 +134,7 @@ export function ListingDetailHouseRules({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   gap: { gap: 4 },
   heading: { marginBottom: 8 },
   content: { gap: 0 },

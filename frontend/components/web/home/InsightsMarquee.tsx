@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -38,13 +39,15 @@ function TickItem({
   icon,
   selected,
 }: HomeTickerItem) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const accent = selected ? "#FFFFFF" : Studently.color.primary;
   return (
     <View style={[styles.item, selected && styles.itemSelected]}>
       {!selected ? <View style={styles.diamond} /> : null}
       <Ionicons
         name={icon as keyof typeof Ionicons.glyphMap}
-        size={selected ? 17 : 14}
+        size={designSize(selected ? 17 : 14)}
         color={accent}
       />
       <Text style={[styles.label, selected && styles.labelSelected]}>
@@ -63,6 +66,8 @@ function Segment({
   hidden?: boolean;
   onLayout?: (e: LayoutChangeEvent) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View
       style={[styles.segment, { pointerEvents: hidden ? "none" : "auto" }]}
@@ -92,6 +97,8 @@ function MarqueeRow({
   fadeOpaque: string;
   fadeClear: string;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const reduceMotion = useReducedMotion();
   const offset = useSharedValue(0);
   const widthRef = useRef(0);
@@ -99,10 +106,12 @@ function MarqueeRow({
 
   const tick = useCallback(() => {
     const w = widthRef.current;
+    const speed = designSize(PX_PER_SEC);
+    const minTravel = designSize(8);
     if (!w || reduceMotion) return;
     if (reverse) {
-      const remaining = Math.max(8, -offset.value);
-      const duration = (remaining / PX_PER_SEC) * 1000;
+      const remaining = Math.max(minTravel, -offset.value);
+      const duration = (remaining / speed) * 1000;
       offset.value = withTiming(
         0,
         { duration, easing: Easing.linear },
@@ -116,8 +125,8 @@ function MarqueeRow({
       );
       return;
     }
-    const remaining = Math.max(8, w + offset.value);
-    const duration = (remaining / PX_PER_SEC) * 1000;
+    const remaining = Math.max(minTravel, w + offset.value);
+    const duration = (remaining / speed) * 1000;
     offset.value = withTiming(
       -w,
       { duration, easing: Easing.linear },
@@ -129,7 +138,7 @@ function MarqueeRow({
         }
       },
     );
-  }, [offset, reduceMotion, reverse]);
+  }, [designSize, offset, reduceMotion, reverse]);
 
   useEffect(() => {
     if (!segW || reduceMotion) {
@@ -190,13 +199,15 @@ function MarqueeRow({
 
 /** Stats with an `href` point at a shipped tool, so they become links. */
 function StatBlock({ stat }: { stat: HomeStat }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const router = useRouter();
 
   const inner = (
     <>
       <Ionicons
         name={stat.icon}
-        size={22}
+        size={designSize(22)}
         color={Studently.color.primary}
         style={styles.statIcon}
       />
@@ -206,7 +217,7 @@ function StatBlock({ stat }: { stat: HomeStat }) {
           {stat.href ? (
             <Ionicons
               name="arrow-forward"
-              size={14}
+              size={designSize(14)}
               color={Studently.color.primary}
             />
           ) : null}
@@ -238,6 +249,8 @@ function StatBlock({ stat }: { stat: HomeStat }) {
 }
 
 export function InsightsMarquee() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View>
       <MarqueeRow
@@ -256,7 +269,7 @@ export function InsightsMarquee() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   band: {
     width: "100%",
     height: ROW_H,

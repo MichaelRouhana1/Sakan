@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
@@ -100,6 +101,9 @@ export function FindFiltersDialog({
   onClose,
   onApply,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [section, setSection] = useState<FilterSection>(initialSection);
   const [draftAreas, setDraftAreas] = useState(applied.areas);
   const [draftSlugs, setDraftSlugs] = useState(applied.universitySlugs);
@@ -229,7 +233,7 @@ export function FindFiltersDialog({
                 hovered && styles.closeBtnHover,
               ]}
             >
-              <Ionicons name="close" size={22} color={Studently.color.ink} />
+              <Ionicons name="close" size={designSize(22)} color={Studently.color.ink} />
             </Pressable>
           </View>
 
@@ -284,7 +288,7 @@ export function FindFiltersDialog({
                     <View style={styles.searchWrap}>
                       <Ionicons
                         name="search-outline"
-                        size={16}
+                        size={designSize(16)}
                         color={Studently.color.inkFaint}
                       />
                       <TextInput
@@ -550,6 +554,9 @@ function OptionRow({
   disabled?: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -571,14 +578,14 @@ function OptionRow({
       </LText>
       <View style={[styles.check, selected && styles.checkOn]}>
         {selected ? (
-          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+          <Ionicons name="checkmark" size={designSize(14)} color="#FFFFFF" />
         ) : null}
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: "center",

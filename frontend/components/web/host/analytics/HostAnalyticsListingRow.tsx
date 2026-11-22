@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useState } from "react";
@@ -26,6 +27,9 @@ export function HostAnalyticsListingRow({
   compact = false,
   onPress,
 }: RowProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const cover = resolveMediaUrl(listing.coverUrl);
   const status = hostListingStatus(listing);
   const title = listing.title?.trim() || listing.area || "Untitled listing";
@@ -64,7 +68,7 @@ export function HostAnalyticsListingRow({
             <View style={styles.thumbPlaceholder}>
               <Ionicons
                 name="image-outline"
-                size={16}
+                size={designSize(16)}
                 color={Studently.color.inkFaint}
               />
             </View>
@@ -120,6 +124,9 @@ export function HostAnalyticsListingTable({
   compact = false,
   onPressListing,
 }: TableProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.table}>
       {!compact ? (
@@ -143,7 +150,7 @@ export function HostAnalyticsListingTable({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   table: {
     width: "100%",
     borderTopWidth: 1,

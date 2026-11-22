@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -143,6 +144,9 @@ function FilterToggle({
   value: boolean;
   onToggle: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="switch"
@@ -178,6 +182,9 @@ export function BrowseFiltersPanel({
   sortOptions,
   onSortChange,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const screenW = Dimensions.get("window").width;
@@ -426,10 +433,10 @@ export function BrowseFiltersPanel({
               accessibilityRole="button"
               accessibilityLabel="Close filters"
               onPress={handleClose}
-              hitSlop={12}
+              hitSlop={designSize(12)}
               style={styles.closeBtn}
             >
-              <Ionicons name="close" size={24} color={Studently.color.ink} />
+              <Ionicons name="close" size={designSize(24)} color={Studently.color.ink} />
             </Pressable>
             <LText variant="subtitle" style={styles.headerTitle}>
               Filters
@@ -820,7 +827,7 @@ export function BrowseFiltersPanel({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: Studently.color.overlay,

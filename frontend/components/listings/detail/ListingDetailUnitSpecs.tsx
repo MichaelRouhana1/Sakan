@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { StyleSheet, View } from "react-native";
@@ -32,7 +33,9 @@ function typeIcon(type: Listing["listingType"]): Ion {
   }
 }
 
-export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
+export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const specs = listing.unitSpecs;
   const floor = specs?.floorLevel;
   const deposit = specs?.depositUsd;
@@ -113,7 +116,7 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
         <View style={styles.grid}>
           {rows.map((row) => (
             <View key={row.label} style={styles.tile}>
-              <Ionicons name={row.icon} size={18} color={Studently.color.primary} />
+              <Ionicons name={row.icon} size={designSize(18)} color={Studently.color.primary} />
               <LText variant="caption" tone="muted">
                 {row.label}
               </LText>
@@ -139,7 +142,7 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
             <View style={styles.labelRow}>
               <Ionicons
                 name={row.icon}
-                size={16}
+                size={designSize(16)}
                 color={Studently.color.inkMuted}
               />
               <LText variant="caption" tone="muted" style={styles.label}>
@@ -156,7 +159,7 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   cardGap: { gap: 12 },
   grid: {
     flexDirection: "row",

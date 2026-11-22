@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useId, useState } from "react";
 import {
   Platform,
@@ -22,6 +23,9 @@ export function BestMatchBadge({
   room?: number;
   onOpenChange?: (open: boolean) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+
   const [open, setOpen] = useState(false);
   const [hot, setHot] = useState(false);
   const coarse = useCoarsePointer();
@@ -105,7 +109,7 @@ export function BestMatchBadge({
           accessible={false}
           aria-hidden
           name={hot || open ? "information-circle" : "information-circle-outline"}
-          size={15}
+          size={designSize(15)}
           color={Studently.color.primary}
         />
       </Pressable>
@@ -168,7 +172,7 @@ export function BestMatchBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   anchor: {
     position: "absolute",
     top: 10,

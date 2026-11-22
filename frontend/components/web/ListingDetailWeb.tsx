@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { SharedPhotoGallery } from '@/components/listings/detail/SharedPhotoGallery';
 import { PlaceListingIntro } from '@/components/listings/detail/PlaceDetailSections';
 import { elevatorStatus, placeExtras } from '@/lib/listingDetailDisplay';
@@ -131,6 +132,9 @@ function resolvePhotos(
 }
 
 export function ListingDetailWeb({ listingId }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId);
   const inquiry = useWhatsAppInquiry(listing);
@@ -360,7 +364,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               <>
                 <Ionicons
                   name="arrow-back"
-                  size={15}
+                  size={designSize(15)}
                   color={Studently.color.primary}
                 />
                 <LText
@@ -374,7 +378,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           </Pressable>
           <Ionicons
             name="chevron-forward"
-            size={13}
+            size={designSize(13)}
             color={Studently.color.inkFaint}
           />
           <LText variant="caption" tone="muted" style={styles.crumbCurrent}>
@@ -382,7 +386,7 @@ export function ListingDetailWeb({ listingId }: Props) {
           </LText>
           <Ionicons
             name="chevron-forward"
-            size={13}
+            size={designSize(13)}
             color={Studently.color.inkFaint}
           />
           <LText
@@ -422,7 +426,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                     <View style={styles.galleryEmpty}>
                       <Ionicons
                         name="image-outline"
-                        size={36}
+                        size={designSize(36)}
                         color={Studently.color.inkFaint}
                       />
                       <LText variant="caption" tone="faint">
@@ -447,7 +451,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                   >
                     <Ionicons
                       name="chevron-back"
-                      size={18}
+                      size={designSize(18)}
                       color={Studently.color.ink}
                     />
                   </Pressable>
@@ -463,12 +467,12 @@ export function ListingDetailWeb({ listingId }: Props) {
                   >
                     <Ionicons
                       name="chevron-forward"
-                      size={18}
+                      size={designSize(18)}
                       color={Studently.color.ink}
                     />
                   </Pressable>
                   <View style={styles.galleryCount}>
-                    <Ionicons name="images-outline" size={13} color="#fff" />
+                    <Ionicons name="images-outline" size={designSize(13)} color="#fff" />
                     <LText variant="caption" style={styles.galleryCountText}>
                       {activePhotoIndex + 1} / {currentPhotos.length}
                     </LText>
@@ -575,7 +579,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 style={[styles.fact, i === facts.length - 1 && styles.factLast]}
               >
                 <View style={styles.factLabelRow}>
-                  <Ionicons name={f.icon} size={13} color={Studently.color.inkFaint} />
+                  <Ionicons name={f.icon} size={designSize(13)} color={Studently.color.inkFaint} />
                   <LText variant="label" tone="muted" style={styles.factLabel}>
                     {f.label}
                   </LText>
@@ -606,7 +610,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               <View style={[styles.utilCol, styles.utilColFirst]}>
                 <Ionicons
                   name="flash-outline"
-                  size={20}
+                  size={designSize(20)}
                   color={Studently.color.warning}
                 />
                 <LText variant="label" tone="muted">
@@ -621,7 +625,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               </View>
               <View style={styles.utilRule} />
               <View style={styles.utilCol}>
-                <Ionicons name="water-outline" size={20} color="#0284C7" />
+                <Ionicons name="water-outline" size={designSize(20)} color="#0284C7" />
                 <LText variant="label" tone="muted">
                   Water
                 </LText>
@@ -634,7 +638,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               </View>
               <View style={styles.utilRule} />
               <View style={styles.utilCol}>
-                <Ionicons name="wifi-outline" size={20} color="#0F766E" />
+                <Ionicons name="wifi-outline" size={designSize(20)} color="#0F766E" />
                 <LText variant="label" tone="muted">
                   Internet
                 </LText>
@@ -647,7 +651,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               </View>
               <View style={styles.utilRule} />
               <View style={[styles.utilCol, styles.utilColLast]} testID="listing-elevator">
-                <Ionicons name="swap-vertical-outline" size={20} color={Studently.color.primary} />
+                <Ionicons name="swap-vertical-outline" size={designSize(20)} color={Studently.color.primary} />
                 <LText variant="label" tone="muted">Elevator</LText>
                 <LText variant="subtitle">{elevatorStatus(listing)}</LText>
               </View>
@@ -750,7 +754,7 @@ export function ListingDetailWeb({ listingId }: Props) {
               IS_WEB && sidebarFixed
                 ? ({
                     position: "fixed",
-                    top: WEB_NAV_HEIGHT + 24,
+                    top: designSize(WEB_NAV_HEIGHT + 24),
                     left: sidebarFixed.left,
                     width: sidebarFixed.width,
                     zIndex: 40,
@@ -787,7 +791,7 @@ export function ListingDetailWeb({ listingId }: Props) {
             accessibilityLabel="Close photos"
             style={styles.lightboxClose}
           >
-            <Ionicons name="close" size={26} color="#fff" />
+            <Ionicons name="close" size={designSize(26)} color="#fff" />
           </Pressable>
           {currentPhotos[activePhotoIndex] ? (
             <Image
@@ -806,7 +810,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 activePhotoIndex === 0 && { opacity: 0.3 },
               ]}
             >
-              <Ionicons name="chevron-back" size={22} color="#fff" />
+              <Ionicons name="chevron-back" size={designSize(22)} color="#fff" />
             </Pressable>
             <LText variant="caption" style={{ color: "#fff" }}>
               {activePhotoIndex + 1} / {currentPhotos.length}
@@ -825,7 +829,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                 },
               ]}
             >
-              <Ionicons name="chevron-forward" size={22} color="#fff" />
+              <Ionicons name="chevron-forward" size={designSize(22)} color="#fff" />
             </Pressable>
           </View>
         </View>
@@ -843,7 +847,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     width: "100%",
     alignSelf: "stretch",

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
@@ -42,6 +43,9 @@ function Glow({ phase, corner, outside }: {
   corner: number;
   outside: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const id = `credit-glow-${useId().replace(/:/g, "")}`;
   const motion = useAnimatedStyle(() => {
     const wave = Math.sin(phase.value + corner * 1.7);
@@ -76,6 +80,9 @@ function Glow({ phase, corner, outside }: {
 }
 
 function Pulse({ active, outside = false }: { active: boolean; outside?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const phase = useEffectPhase(active, outside ? 3700 : 4600);
   return (
     <View
@@ -98,6 +105,9 @@ export function PopularPackBeam({
   children: ReactNode;
   active?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.frame}>
       {children}
@@ -107,6 +117,9 @@ export function PopularPackBeam({
 }
 
 export function PopularBadge({ active = true }: { active?: boolean }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const phase = useEffectPhase(active, 9200);
   const sheen = useAnimatedStyle(() => ({
     transform: [{ translateX: Math.sin(phase.value) * 36 }, { rotate: "-22deg" }],
@@ -149,6 +162,9 @@ export function WhishPayButton({
   /** Keep the $15-style glow at full strength while the button cannot be bought yet. */
   pulseWhileDisabled?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const dim = disabled && !pulseWhileDisabled;
   return (
     <View style={[styles.ctaWrap, dim && styles.ctaDisabled]}>
@@ -166,7 +182,7 @@ export function WhishPayButton({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   frame: {
     position: "relative",
     borderRadius: 12,

@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
@@ -22,6 +23,8 @@ export function HostListingsLayoutButton({
   layout: HostListingsLayout;
   onLayoutChange: (layout: HostListingsLayout) => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const nextLayout = layout === "grid" ? "list" : "grid";
   return (
     <Pressable
@@ -34,7 +37,7 @@ export function HostListingsLayoutButton({
     >
       <Ionicons
         name={layout === "grid" ? "reorder-three-outline" : "grid-outline"}
-        size={18}
+        size={designSize(18)}
         color={Studently.color.ink}
       />
     </Pressable>
@@ -46,6 +49,9 @@ export function HostListingsToolbar({
   onLayoutChange,
   createDisabled = false,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
 
   return (
@@ -76,7 +82,7 @@ export function HostListingsToolbar({
                 createDisabled && styles.disabled,
               ]}
             >
-              <Ionicons name="add" size={20} color={Studently.color.ink} />
+              <Ionicons name="add" size={designSize(20)} color={Studently.color.ink} />
             </Pressable>
           </View>
         </View>
@@ -90,7 +96,7 @@ export function HostListingsToolbar({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     marginBottom: 20,
     gap: 8,

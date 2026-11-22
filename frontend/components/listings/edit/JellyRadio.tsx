@@ -8,6 +8,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import {
   animate,
   motion,
@@ -108,6 +109,7 @@ export default function JellyRadio({
   ariaLabel = "Options",
   className = "",
 }: Props) {
+  const { size: designSize } = useDesktopDesign();
   const list = items.map((it) => (typeof it === "string" ? { value: it, label: it } : it));
   const [inner, setInner] = useState(() => defaultValue ?? list[0]?.value);
   const current = value ?? inner;
@@ -133,7 +135,13 @@ export default function JellyRadio({
     count: list.length,
   });
   cfg.current = { swell, barge, shrink, jelly, bounce, stagger, stiffness, reduce, count: list.length };
-  const [h, font, px] = SIZES[size] ?? SIZES.md;
+  const [baseH, baseFont, basePx] = SIZES[size] ?? SIZES.md;
+  const h = designSize(baseH);
+  const font = designSize(baseFont);
+  const px = designSize(basePx);
+  const chipGap = designSize(gap);
+  const chipRadius = designSize(radius);
+  const chipBarge = designSize(barge);
   const itemsKey = list.map((it) => it.value).join("|");
 
   const mvFor = (i: number) => {
@@ -149,7 +157,7 @@ export default function JellyRadio({
     const C = cfg.current;
     const group = groupRef.current;
     const rtl = group ? getComputedStyle(group).direction === "rtl" : false;
-    const push = ((widths.current[sel] ?? 0) * C.swell) / 2 + C.barge;
+    const push = ((widths.current[sel] ?? 0) * C.swell) / 2 + designSize(C.barge);
     for (let i = 0; i < C.count; i++) {
       const mv = mvFor(i);
       const on = i === sel;
@@ -185,8 +193,8 @@ export default function JellyRadio({
     widths.current = chipRefs.current.map((el) => el?.offsetWidth ?? 0);
     const chipH = chipRefs.current[0]?.offsetHeight ?? 0;
     const maxW = Math.max(0, ...widths.current);
-    group.style.setProperty("--jr-pad-x", `${Math.ceil((maxW * swell * 1.3) / 2 + barge) + 2}px`);
-    group.style.setProperty("--jr-pad-y", `${Math.ceil((chipH * swell) / 2) + 2}px`);
+    group.style.setProperty("--jr-pad-x", `${Math.ceil((maxW * swell * 1.3) / 2 + chipBarge) + designSize(2)}px`);
+    group.style.setProperty("--jr-pad-y", `${Math.ceil((chipH * swell) / 2) + designSize(2)}px`);
   };
 
   useLayoutEffect(() => {
@@ -263,8 +271,8 @@ export default function JellyRadio({
         ["--jr-active" as string]: activeColor,
         ["--jr-text" as string]: textColor,
         ["--jr-active-text" as string]: activeTextColor,
-        ["--jr-gap" as string]: `${gap}px`,
-        ["--jr-radius" as string]: `${radius}px`,
+        ["--jr-gap" as string]: `${chipGap}px`,
+        ["--jr-radius" as string]: `${chipRadius}px`,
         ["--jr-h" as string]: `${h}px`,
         ["--jr-font" as string]: `${font}px`,
         ["--jr-px" as string]: `${px}px`,

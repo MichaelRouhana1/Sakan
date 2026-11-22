@@ -1,10 +1,13 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Link } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 
-export function WebFooter() {
+export function WebFooter() {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.footer}>
       <View style={styles.inner}>
@@ -43,7 +46,7 @@ export function WebFooter() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   footer: {
     marginTop: 48,
     borderTopWidth: 1,

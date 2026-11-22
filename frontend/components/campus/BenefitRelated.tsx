@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
@@ -52,6 +53,9 @@ function rankRelated(
 }
 
 export function BenefitRelated({ current, columns }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const meta = categoryMeta(current.category);
   const query = useBenefits({ category: current.category });
@@ -93,7 +97,7 @@ export function BenefitRelated({ current, columns }: Props) {
           </LText>
           <Ionicons
             name="arrow-forward"
-            size={14}
+            size={designSize(14)}
             color={Studently.color.primary}
           />
         </Pressable>
@@ -128,7 +132,7 @@ export function BenefitRelated({ current, columns }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     gap: 16,
     width: "100%",

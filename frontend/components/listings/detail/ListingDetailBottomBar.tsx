@@ -52,7 +52,7 @@ export function ListingDetailBottomBar({
           accessibilityRole="button"
           accessibilityLabel="Contact on WhatsApp"
           onPress={onWhatsApp}
-          style={styles.whatsapp}
+          style={[styles.primary, styles.whatsapp]}
         >
           <Ionicons
             name="logo-whatsapp"
@@ -91,7 +91,7 @@ export function ListingDetailBottomBar({
           accessibilityRole="button"
           accessibilityLabel="WhatsApp contact soon"
           disabled
-          style={[styles.primary, styles.primaryOff]}
+          style={[styles.primary, styles.whatsapp, styles.primaryOff]}
         >
           <LText variant="subtitle" style={styles.primaryText}>
             WhatsApp soon
@@ -133,16 +133,6 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Studently.color.border,
   },
-  whatsapp: {
-    flex: 1.4,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: WHATSAPP_GREEN,
-    borderRadius: 12,
-    paddingVertical: 14,
-  },
   primary: {
     flex: 1.4,
     flexDirection: "row",
@@ -153,6 +143,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
   },
+  whatsapp: { backgroundColor: WHATSAPP_GREEN },
   primaryOff: { opacity: 0.5 },
   primaryText: { color: Studently.color.surface },
   outline: {

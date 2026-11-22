@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { FavoriteButton } from '@/components/ui/FavoriteButton';
 import { recordFeaturedImpression, rememberPlacement } from "@/features/promotions/activity";
 import { BestMatchBadge } from "@/components/matcher/BestMatchBadge";
@@ -60,6 +61,8 @@ type Props = {
   badgeLimit?: number | null;
   /** Wrap badges, then stop the band after this many rows. Further badges scroll inside it. */
   badgeMaxRows?: number;
+  /** Grid title clamp. Homepage desktop uses 2; other surfaces stay on one line. */
+  titleLines?: number;
 };
 
 /** Matches the list and compact grid pill metrics, including the row gap. */
@@ -107,6 +110,8 @@ function PillChips({
   mixedHighlight?: boolean;
   nowrap?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return pills.map((pill) => (
     <ListingAmberPillView
       key={pill.key}
@@ -133,6 +138,8 @@ function ScrollBadgeRow({
   compact?: boolean;
   mixedHighlight?: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const width = useRef(0);
   const contentWidth = useRef(0);
   const [overflows, setOverflows] = useState(false);
@@ -191,6 +198,8 @@ function PillRow({
   overflow?: "wrap" | "scroll-x";
   maxRows?: number;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   if (pills.length === 0) return null;
   const chips = (
     <PillChips
@@ -204,7 +213,7 @@ function PillRow({
     return (
       <ScrollView
         testID="grid-badge-scroller"
-        style={{ maxHeight: badgeBandMaxHeight(maxRows, !!compact), width: "100%" }}
+        style={{ maxHeight: designSize(badgeBandMaxHeight(maxRows, !!compact)), width: "100%" }}
         nestedScrollEnabled
       >
         <View style={[styles.tags, compact && styles.tagsCompact]}>{chips}</View>
@@ -254,6 +263,8 @@ function GridCardBody({ interactive, onOpen, label, children }: {
   label: string;
   children: ReactNode;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   // Preview controls must not be nested inside a clickable card body.
   if (!interactive) return <View style={styles.gridBody}>{children}</View>;
   return (
@@ -275,7 +286,10 @@ export function ListingResultCard({
   badgeLimit,
   badgeMaxRows,
   match,
+  titleLines = 1,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const router = useRouter();
   const impressionRef = useRef<View>(null);
   useEffect(() => {
@@ -391,7 +405,7 @@ export function ListingResultCard({
 
           {proximity ? (
             <View style={styles.proximityRow}>
-              <MapPin size={12} color={Studently.color.inkMuted} strokeWidth={2} />
+              <MapPin size={designSize(12)} color={Studently.color.inkMuted} strokeWidth={2} />
               <Text style={styles.proximityText} numberOfLines={2}>
                 {proximity}
               </Text>
@@ -516,7 +530,7 @@ export function ListingResultCard({
       <GridCardBody interactive={interactive} onOpen={onOpen} label={`${title}, ${rentLabel} per month`}>
         <View style={styles.gridHeader}>
           <View style={styles.gridHeaderLeft}>
-            <Text style={styles.gridTitle} numberOfLines={1}>
+            <Text style={styles.gridTitle} numberOfLines={titleLines}>
               {title}
             </Text>
             <ListingAvailabilityBadge availability={listing.availability} />
@@ -543,7 +557,7 @@ export function ListingResultCard({
             importantForAccessibility={proximity ? "yes" : "no-hide-descendants"}
           >
             {proximity ? (
-              <MapPin size={11} color={Studently.color.inkMuted} strokeWidth={2} />
+              <MapPin size={designSize(11)} color={Studently.color.inkMuted} strokeWidth={2} />
             ) : null}
             <Text style={styles.gridProximity} numberOfLines={1}>
               {proximity ?? "\u00A0"}
@@ -556,7 +570,7 @@ export function ListingResultCard({
         <View style={[
           styles.gridPillSlot,
           badgeOverflow === "scroll-x" && !badgeMaxRows && styles.gridPillSlotFixed,
-          badgeMaxRows ? { maxHeight: badgeBandMaxHeight(badgeMaxRows, true), overflow: "hidden" } : null,
+          badgeMaxRows ? { maxHeight: designSize(badgeBandMaxHeight(badgeMaxRows, true)), overflow: "hidden" } : null,
         ]}>
           {renderGridBadges ? renderGridBadges(gridPills) : (
             <PillRow
@@ -572,7 +586,7 @@ export function ListingResultCard({
     );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     backgroundColor: Studently.color.surface,
     borderRadius: 16,

@@ -1,3 +1,4 @@
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useId, useMemo, useState } from "react";
 import {
@@ -60,6 +61,9 @@ function OptionMark({
   option: CampusFormOption;
   size?: number;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+
   if (option.slug || option.logoUrl || option.website) {
     return (
       <InstitutionLogo
@@ -92,15 +96,18 @@ export function CampusFormSelect({
   label,
   value,
   options,
-  placeholder = "Select…",
+  placeholder = "Selectâ€¦",
   disabled = false,
   searchable = false,
-  searchPlaceholder = "Search…",
+  searchPlaceholder = "Searchâ€¦",
   accessibilityLabel,
   appearance = "field",
   hideLabel = false,
   onChange,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listId = useId();
@@ -112,7 +119,7 @@ export function CampusFormSelect({
   const display = sole ?? selected;
   const canOpen = !disabled && options.length > 1;
   const panelMaxHeight = Math.min(420, Math.round(windowHeight * 0.7));
-  const narrow = width < 480;
+  const narrow = useLayoutWidth() < 480;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -124,7 +131,7 @@ export function CampusFormSelect({
     );
   }, [options, query]);
 
-  // Lock in the only available choice — no picker needed.
+  // Lock in the only available choice â€” no picker needed.
   useEffect(() => {
     if (!sole || disabled) return;
     if (value === sole.value) return;
@@ -195,13 +202,13 @@ export function CampusFormSelect({
               accessibilityLabel="Close"
               style={styles.closeBtn}
             >
-              <Ionicons name="close" size={18} color={Studently.color.inkMuted} />
+              <Ionicons name="close" size={designSize(18)} color={Studently.color.inkMuted} />
             </Pressable>
           </View>
 
           {searchable ? (
             <View style={styles.searchWrap}>
-              <Ionicons name="search" size={16} color={Studently.color.inkFaint} />
+              <Ionicons name="search" size={designSize(16)} color={Studently.color.inkFaint} />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
@@ -219,7 +226,7 @@ export function CampusFormSelect({
                 >
                   <Ionicons
                     name="close-circle"
-                    size={16}
+                    size={designSize(16)}
                     color={Studently.color.inkFaint}
                   />
                 </Pressable>
@@ -243,7 +250,7 @@ export function CampusFormSelect({
                   accessibilityState={{ selected: on }}
                   style={[styles.option, on && styles.optionOn]}
                 >
-                  <OptionMark option={item} size={36} />
+                  <OptionMark option={item} size={designSize(36)} />
                   <View style={styles.optionCopy}>
                     <Text
                       style={[styles.optionLabel, on && styles.optionLabelOn]}
@@ -259,7 +266,7 @@ export function CampusFormSelect({
                   </View>
                   {on ? (
                     <View style={styles.checkBadge}>
-                      <Ionicons name="checkmark" size={14} color="#fff" />
+                      <Ionicons name="checkmark" size={designSize(14)} color="#fff" />
                     </View>
                   ) : null}
                 </Pressable>
@@ -279,7 +286,7 @@ export function CampusFormSelect({
           slug={display.slug}
           logoUrl={display.logoUrl}
           website={display.website}
-          size={28}
+          size={designSize(28)}
           fallbackStyle={styles.monoLogoFrame}
         />
       ) : (
@@ -342,7 +349,7 @@ export function CampusFormSelect({
           {canOpen ? (
             <Ionicons
               name={open ? "chevron-up" : "chevron-down"}
-              size={16}
+              size={designSize(16)}
               color={open ? Studently.color.primary : Studently.color.inkMuted}
               style={styles.passportChevron}
             />
@@ -365,7 +372,7 @@ export function CampusFormSelect({
         {canOpen ? (
           <Ionicons
             name={open ? "chevron-up" : "chevron-down"}
-            size={16}
+            size={designSize(16)}
             color={open ? Studently.color.primary : Studently.color.inkMuted}
             style={styles.passportChevron}
           />
@@ -421,10 +428,10 @@ export function CampusFormSelect({
           accessibilityLabel={`${a11y}: ${display?.label ?? ""}`}
         >
           {display?.slug || display?.logoUrl || display?.website ? (
-            <OptionMark option={display} size={28} />
+            <OptionMark option={display} size={designSize(28)} />
           ) : (
             <View style={styles.lockedIcon}>
-              <Ionicons name="checkmark" size={14} color={Studently.color.primary} />
+              <Ionicons name="checkmark" size={designSize(14)} color={Studently.color.primary} />
             </View>
           )}
           <View style={styles.triggerCopy}>
@@ -464,7 +471,7 @@ export function CampusFormSelect({
       >
         {selected &&
         (selected.slug || selected.logoUrl || selected.website) ? (
-          <OptionMark option={selected} size={28} />
+          <OptionMark option={selected} size={designSize(28)} />
         ) : null}
         <View style={styles.triggerCopy}>
           <Text
@@ -472,7 +479,7 @@ export function CampusFormSelect({
               styles.triggerValue,
               !selected && styles.triggerPlaceholder,
             ]}
-            numberOfLines={narrow ? 2 : 1}
+            numberOfLines={1}
           >
             {selected?.label ?? placeholder}
           </Text>
@@ -486,7 +493,7 @@ export function CampusFormSelect({
           <View style={[styles.chevronWrap, open && styles.chevronWrapOpen]}>
             <Ionicons
               name="chevron-down"
-              size={16}
+              size={designSize(16)}
               color={
                 open || selected ? Studently.color.primary : Studently.color.inkMuted
               }
@@ -499,7 +506,7 @@ export function CampusFormSelect({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   field: {
     gap: 8,
   },

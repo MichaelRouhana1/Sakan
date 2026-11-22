@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
@@ -10,6 +11,9 @@ type Props = {
 };
 
 export function SegmentedPills({ options, value, onChange, error }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={[styles.wrap, error && styles.wrapError]}>
       {options.map((opt) => {
@@ -35,7 +39,7 @@ export function SegmentedPills({ options, value, onChange, error }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   wrapError: {
     borderWidth: 2,

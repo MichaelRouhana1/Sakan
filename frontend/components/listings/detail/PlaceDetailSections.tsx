@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useState, type ComponentProps } from 'react';
 import { Image } from 'expo-image';
 import { Modal, Platform, Pressable, StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
@@ -19,6 +20,9 @@ type Props = {
 
 /** Building context that is not covered by the effective unit sections. */
 export function PlaceListingIntro({ listing, onSectionLayout, style }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const labels = detailLabels(listing);
   const extras = placeExtras(listing);
   const photoTitle = `${labels.place === 'building' ? 'Building' : 'Apartment'} photos`;
@@ -55,10 +59,13 @@ function BuildingFact({ label, value, icon }: {
   value: string;
   icon: ComponentProps<typeof Ionicons>['name'];
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.fact}>
       <View style={styles.iconLabel}>
-        <Ionicons name={icon} size={16} color={Studently.color.inkMuted} accessible={false} aria-hidden />
+        <Ionicons name={icon} size={designSize(16)} color={Studently.color.inkMuted} accessible={false} aria-hidden />
         <LText style={styles.factLabel} tone="muted">{label}</LText>
       </View>
       <LText style={styles.factValue}>{value}</LText>
@@ -67,6 +74,9 @@ function BuildingFact({ label, value, icon }: {
 }
 
 function PlacePhotoGallery({ photos, title }: { photos: ListingPhoto[]; title: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [index, setIndex] = useState<number | null>(null);
   const [focused, setFocused] = useState(false);
   if (!photos.length) return null;
@@ -83,7 +93,7 @@ function PlacePhotoGallery({ photos, title }: { photos: ListingPhoto[]; title: s
       >
         <Image source={{ uri: resolveMediaUrl(photos[0].url) ?? photos[0].url }} accessibilityLabel={photos[0].caption || title} style={StyleSheet.absoluteFill} contentFit="cover" />
         <View style={styles.photoCount}>
-          <Ionicons name="images-outline" size={12} color="white" />
+          <Ionicons name="images-outline" size={designSize(12)} color="white" />
           <LText style={styles.photoCountLabel}>{photos.length} {photos.length === 1 ? 'photo' : 'photos'}</LText>
         </View>
       </Pressable>
@@ -104,7 +114,7 @@ function PlacePhotoGallery({ photos, title }: { photos: ListingPhoto[]; title: s
 
 const anchor = Platform.OS === 'web' ? ({ scrollMarginTop: 90 } as object) : null;
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   folio: {
     borderRadius: Studently.radius.lg,
     borderWidth: 1,

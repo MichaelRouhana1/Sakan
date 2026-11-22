@@ -4,6 +4,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from "react-
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
 const GRACE =
@@ -78,6 +79,8 @@ export function EditPanelHeader({
   onClose,
   onSave,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const reduced = useReducedMotion();
   const slip = slipFor(tone, structuralOpen, message);
   const saveLabel = tone === "disclaimer" ? "Confirm" : "Save";
@@ -111,6 +114,8 @@ export function UnitLockedChip({
   onRequestArchive,
   onArchive,
 }: ArchiveProps) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,7 +173,7 @@ export function UnitLockedChip({
           pressed && styles.lockChipPressed,
         ]}
       >
-        <Ionicons name="lock-closed" size={12} color={Lister.color.warning} />
+        <Ionicons name="lock-closed" size={designSize(12)} color={Lister.color.warning} />
         <LText style={styles.lockChipLabel}>Unit locked</LText>
       </Pressable>
       {open ? (
@@ -208,6 +213,8 @@ export function UnitLockedChip({
 }
 
 export function EditPanelDismiss({ onClose }: { onClose: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <View accessibilityRole="header" style={styles.bar}>
       <CloseButton onPress={onClose} />
@@ -216,6 +223,8 @@ export function EditPanelDismiss({ onClose }: { onClose: () => void }) {
 }
 
 function SlipNote({ slip }: { slip: Slip }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const label = `${slip.lead ?? ""}${slip.body}${slip.foot ? `. ${slip.foot}` : ""}`;
   return (
     <View accessibilityLiveRegion="polite" accessibilityLabel={label} style={styles.slip}>
@@ -250,6 +259,8 @@ function SaveButton({
   accessibilityLabel: string;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -270,7 +281,7 @@ function SaveButton({
         {pending ? (
           <ActivityIndicator color={Lister.color.surface} size="small" />
         ) : (
-          <Ionicons name="save-outline" size={15} color={Lister.color.surface} />
+          <Ionicons name="save-outline" size={designSize(15)} color={Lister.color.surface} />
         )}
       </View>
       <LText variant="caption" style={styles.saveLabel}>
@@ -281,6 +292,8 @@ function SaveButton({
 }
 
 function CloseButton({ onPress }: { onPress: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const reduced = useReducedMotion();
   return (
     <Pressable
@@ -295,7 +308,7 @@ function CloseButton({ onPress }: { onPress: () => void }) {
         pressed && styles.closePressed,
       ]}
     >
-      <Ionicons name="close" size={16} color={Lister.color.ink} />
+      <Ionicons name="close" size={designSize(16)} color={Lister.color.ink} />
     </Pressable>
   );
 }
@@ -310,7 +323,7 @@ const webFocus =
       }
     : null;
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     flexDirection: "row",
     alignItems: "center",

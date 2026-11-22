@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useRef, useState } from "react";
 import {
@@ -55,6 +56,9 @@ function Chip({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -77,6 +81,9 @@ function Chip({
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.section}>
       <LText variant="label" tone="muted" style={styles.sectionTitle}>
@@ -93,6 +100,9 @@ export function FindFilterRail({
   onChange,
   compact,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const [areaQuery, setAreaQuery] = useState("");
   const pendingInstSlug = useRef(value.institutionSlug);
   const areaGroups = useLiveLebanonAreaGroups(areaQuery);
@@ -248,7 +258,7 @@ export function FindFilterRail({
           <LText variant="caption">Wi‑Fi included</LText>
           <Ionicons
             name={value.wifiIncluded ? "checkmark-circle" : "ellipse-outline"}
-            size={18}
+            size={designSize(18)}
             color={
               value.wifiIncluded ? Studently.color.primary : Studently.color.inkFaint
             }
@@ -266,7 +276,7 @@ export function FindFilterRail({
           <LText variant="caption">Students only</LText>
           <Ionicons
             name={value.studentsOnly ? "checkmark-circle" : "ellipse-outline"}
-            size={18}
+            size={designSize(18)}
             color={
               value.studentsOnly ? Studently.color.primary : Studently.color.inkFaint
             }
@@ -333,7 +343,7 @@ export function FindFilterRail({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   rail: {
     width: 280,
     flexShrink: 0,

@@ -26,6 +26,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Lister } from "@/constants/listerTheme";
 import {
   compressListingPhoto,
@@ -264,6 +265,8 @@ export function PhotoTile({
   photoTileId,
   style,
 }: PhotoTileProps) {
+  const { size: designSize } = useDesktopDesign();
+  const photoPickerStyles = usePhotoPickerStyles();
   const reduceMotion = useReducedMotion();
   const imageUri =
     photo.status === "ready" && photo.url ? photo.url : photo.uri;
@@ -336,7 +339,7 @@ export function PhotoTile({
 
           {photo.status === "error" ? (
             <View style={photoPickerStyles.statusOverlay}>
-              <Ionicons name="refresh" size={22} color={Lister.color.surface} />
+              <Ionicons name="refresh" size={designSize(22)} color={Lister.color.surface} />
               <LText variant="caption" style={photoPickerStyles.errorText}>
                 {photo.error || 'Upload failed'}
               </LText>
@@ -374,7 +377,7 @@ export function PhotoTile({
           >
             <Ionicons
               name="trash-outline"
-              size={16}
+              size={designSize(16)}
               color={Lister.color.surface}
             />
           </Pressable>
@@ -388,7 +391,7 @@ export function PhotoTile({
           </View>
         ) : null}
       </View>
-      <View style={{ marginTop: 8, gap: 4 }}>
+      <View style={{ marginTop: designSize(8), gap: designSize(4) }}>
         <LText variant="caption" tone="muted">
           Optional caption
         </LText>
@@ -401,15 +404,15 @@ export function PhotoTile({
           onChangeText={onCaption}
           onBlur={() => onCaption(normalizePhotoCaption(photo.caption))}
           style={{
-            minHeight: 44,
-            padding: 10,
-            borderRadius: 10,
-            borderWidth: 1,
+            minHeight: designSize(44),
+            padding: designSize(10),
+            borderRadius: designSize(10),
+            borderWidth: designSize(1),
             borderColor: Lister.color.border,
             color: Lister.color.ink,
             backgroundColor: Lister.color.surface,
             fontFamily: Lister.type.body,
-            fontSize: 14,
+            fontSize: designSize(14),
           }}
         />
         <LText variant="caption" tone="faint" style={{ textAlign: "right" }}>
@@ -433,6 +436,8 @@ export function AddPhotoTile({
   dropActive?: boolean;
   disabled?: boolean;
 }) {
+  const { size: designSize } = useDesktopDesign();
+  const photoPickerStyles = usePhotoPickerStyles();
   return (
     <View style={photoPickerStyles.cell}>
       <TileEnter index={index}>
@@ -450,7 +455,7 @@ export function AddPhotoTile({
           <View style={photoPickerStyles.addIcon}>
             <Ionicons
               name="images-outline"
-              size={26}
+              size={designSize(26)}
               color={Lister.color.primary}
             />
           </View>
@@ -483,6 +488,7 @@ export function PhotoGridHeader({
   photoCount: number;
   uploading: boolean;
 }) {
+  const photoPickerStyles = usePhotoPickerStyles();
   return (
     <>
       <View style={photoPickerStyles.headerRow}>
@@ -538,7 +544,7 @@ export function PhotoGridFooter({ readyCount, shared = false }: { readyCount: nu
   );
 }
 
-export const photoPickerStyles = StyleSheet.create({
+const photoPickerBase = StyleSheet.create({
   root: { gap: 14 },
   headerRow: {
     flexDirection: "row",
@@ -738,3 +744,8 @@ export const photoPickerStyles = StyleSheet.create({
     fontFamily: Lister.type.bodySemi,
   },
 });
+
+export function usePhotoPickerStyles() {
+  const { styles } = useDesktopDesign();
+  return styles(photoPickerBase);
+}

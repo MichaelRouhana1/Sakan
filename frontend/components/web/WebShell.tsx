@@ -1,9 +1,20 @@
-import { DesktopDesignProvider } from "@/components/ui/DesktopDesign";
-import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
+import { useEffect, useRef } from "react";
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
+import { usePathname } from "expo-router";
+import { DesktopDesignProvider, useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { WebFooter } from "@/components/web/WebFooter";
 import { useWebShellChrome } from "@/components/web/WebShellChrome";
 import { WebTopNav } from "@/components/web/WebTopNav";
+import { DesktopDesign } from "@/constants/theme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
+
+function publicDesktopPath(path: string) {
+  return path === "/search" || path.startsWith("/search/") || path.startsWith("/listing/");
+}
+
+function accountDesktopPath(path: string) {
+  return path === "/profile" || path.startsWith("/profile/") || path === "/saved" || path.startsWith("/saved/");
+}
 
 type Props = {
   children: React.ReactNode;
@@ -19,24 +30,47 @@ type Props = {
  * page scroller (same pattern as CampusShell). Map mode sets `lockScroll`
  * to freeze the shell and scroll only the list column.
  */
-export function WebShell(props: Props) {
-  const {width}=useWindowDimensions();
-  return <DesktopDesignProvider enabled={Platform.OS==='web'&&width>=900}><WebShellContent {...props}/></DesktopDesignProvider>;
+export function WebShell({ children, showNavSearch = false, showFooter }: Props) {
+  const { width } = useWindowDimensions();
+  const path = usePathname();
+  const enabled = Platform.OS === "web" && width >= DesktopDesign.layout.minWidth && (publicDesktopPath(path) || accountDesktopPath(path));
+  return (
+    <DesktopDesignProvider enabled={enabled}>
+      <WebShellFrame showNavSearch={showNavSearch} showFooter={showFooter}>
+        {children}
+      </WebShellFrame>
+    </DesktopDesignProvider>
+  );
 }
 
-function WebShellContent({ children, showNavSearch = false, showFooter }: Props) {
+function WebShellFrame({ children, showNavSearch = false, showFooter }: Props) {
   const { fullBleed, hideFooter, lockScroll } = useWebShellChrome();
+  const { scale, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const rootRef = useRef<View>(null);
   const shouldHideFooter = showFooter === false || hideFooter;
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const node = rootRef.current as unknown as HTMLElement | null;
+    node?.style?.setProperty?.("--sk-desktop-scale", String(scale));
+  }, [scale]);
 
   return (
     <View
+      ref={rootRef}
       nativeID="studently-web-shell"
+      {...(Platform.OS === "web" ? ({ dataSet: { desktopScale: String(scale) } } as object) : {})}
       {...({
         className: lockScroll
           ? "studently-web-shell studently-web-shell-locked"
           : "studently-web-shell",
       } as object)}
-      style={[styles.root, lockScroll && styles.rootLocked]}
+      style={[
+        styles.root,
+        lockScroll && styles.rootLocked,
+        Platform.OS === "web" ? ({ ["--sk-desktop-scale" as string]: String(scale) } as object) : null,
+      ]}
     >
       <WebTopNav showSearch={showNavSearch} />
       <View style={[styles.body, lockScroll && styles.bodyLocked]}>
@@ -55,7 +89,7 @@ function WebShellContent({ children, showNavSearch = false, showFooter }: Props)
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     width: "100%",
     flex: 1,

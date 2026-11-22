@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -21,11 +22,13 @@ export function WebEmptyState({
   actionLabel,
   onAction,
   children,
-}: Props) {
+}: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={styles.wrap} accessibilityRole="text">
       <View style={styles.iconRing}>
-        <Ionicons name={icon} size={32} color={Studently.color.primary} />
+        <Ionicons name={icon} size={designSize(32)} color={Studently.color.primary} />
       </View>
       <LText variant="title" style={styles.title}>
         {title}
@@ -46,7 +49,7 @@ export function WebEmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   wrap: {
     alignItems: "center",
     justifyContent: "center",

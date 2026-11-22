@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -40,6 +41,9 @@ export function MatchSummaryBar({
   loading: boolean;
   focusRevision?: number;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const s = resolveStyles(matcherResultBase);
+
   const row = useRef<View>(null);
   const anchor = useRef<View>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,7 +120,7 @@ export function MatchSummaryBar({
               accessible={false}
               aria-hidden
               name={detailsOpen ? "information-circle" : "information-circle-outline"}
-              size={18}
+              size={designSize(18)}
               color={Studently.color.primary}
             />
             <Text style={s.linkLg}>Preferences</Text>
@@ -144,7 +148,7 @@ export function MatchSummaryBar({
           accessible={false}
           aria-hidden={true}
           name="pencil-outline"
-          size={18}
+          size={designSize(18)}
           color={Studently.color.primary}
         />
         <Text style={s.linkLg}>Edit</Text>
@@ -162,7 +166,7 @@ export function MatchSummaryBar({
     </View>
   );
 }
-const s = StyleSheet.create({
+const matcherResultBase = StyleSheet.create({
   bar: {
     flexDirection: "row",
     flexWrap: "wrap",

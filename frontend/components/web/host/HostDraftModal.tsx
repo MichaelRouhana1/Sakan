@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -11,6 +12,9 @@ import { useReducedMotion } from '@/lib/useReducedMotion';
 
 export type DraftModalTarget = CreationDraftRecord;
 export function HostDraftModal({ target, onClose, onRemoved }: { target: DraftModalTarget | null; onClose: () => void; onRemoved: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter(), client = useQueryClient();
   const reduced = useReducedMotion();
   const [confirm, setConfirm] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -29,4 +33,4 @@ export function HostDraftModal({ target, onClose, onRemoved }: { target: DraftMo
     <Pressable accessibilityRole="button" onPress={close} style={styles.close}><Text style={styles.body}>Cancel</Text></Pressable>
   </View></View></Modal>;
 }
-const styles = StyleSheet.create({ overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: 'rgba(26,26,26,.4)' }, card: { width: '100%', maxWidth: 440, padding: 24, borderRadius: 12, backgroundColor: '#fff', gap: 20 }, title: { fontFamily: Studently.type.bodySemi, fontSize: 20, color: '#1A1A1A' }, body: { fontFamily: Studently.type.body, fontSize: 14, lineHeight: 21, color: '#625E59' }, error: { color: '#B42318' }, close: { minHeight: 44, alignItems: 'center', justifyContent: 'center' } });
+const baseStyles = StyleSheet.create({ overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: 'rgba(26,26,26,.4)' }, card: { width: '100%', maxWidth: 440, padding: 24, borderRadius: 12, backgroundColor: '#fff', gap: 20 }, title: { fontFamily: Studently.type.bodySemi, fontSize: 20, color: '#1A1A1A' }, body: { fontFamily: Studently.type.body, fontSize: 14, lineHeight: 21, color: '#625E59' }, error: { color: '#B42318' }, close: { minHeight: 44, alignItems: 'center', justifyContent: 'center' } });

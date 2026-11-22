@@ -13,6 +13,7 @@ import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
 import { EditListingProvider } from "@/features/listings/edit/EditListingProvider";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { useHostRailInset } from "@/components/web/hostRailInset";
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import type { HostEditSection } from "@/constants/hostRoutes";
 
 const PANEL_WIDTH = 480;
@@ -25,10 +26,12 @@ type Props = {
 };
 
 export function EditListingDrawer({ listingId, onClose, initialSection = null }: Props) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const reduced = useReducedMotion();
   const railInset = useHostRailInset();
   const { width } = useWindowDimensions();
-  const fullBleed = width < 760;
+  const fullBleed = useLayoutWidth() < 760;
   const shift = fullBleed ? Math.max(width, PANEL_WIDTH) : PANEL_WIDTH;
   const [open, setOpen] = useState(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
@@ -139,7 +142,7 @@ export function EditListingDrawer({ listingId, onClose, initialSection = null }:
   return createPortal(sheet, portalRoot);
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   root: {
     position: "fixed" as unknown as "absolute",
     top: WEB_NAV_HEIGHT,

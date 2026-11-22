@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -22,8 +23,9 @@ type IonName = React.ComponentProps<typeof Ionicons>["name"];
 
 const web = Platform.OS === "web";
 
-function useLayoutWidth() {
+function usePageWidth() {
   const { width } = useWindowDimensions();
+  const { scale } = useDesktopDesign();
   const [inner, setInner] = useState(() =>
     web && typeof window !== "undefined" ? window.innerWidth : width,
   );
@@ -34,7 +36,7 @@ function useLayoutWidth() {
     window.addEventListener("resize", sync);
     return () => window.removeEventListener("resize", sync);
   }, []);
-  return web ? inner : width;
+  return (web ? inner : width) / (scale || 1);
 }
 
 /** Desktop hero inner floor (shell lift is added on top). Short enough that
@@ -86,10 +88,12 @@ const TOOLS: readonly {
   },
 ];
 
-export function CampusHomePage() {
+export function CampusHomePage() {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const { user } = useAuthSession();
-  const width = useLayoutWidth();
+  const width = usePageWidth();
   const uni =
     user?.campus?.institutionShortName?.trim() ||
     user?.campus?.institutionName?.trim() ||
@@ -131,7 +135,7 @@ export function CampusHomePage() {
         <View style={[styles.copy, !stacked && styles.copyDesktop]}>
           <View style={[styles.copyRead, !stacked && styles.copyReadDesktop]}>
             <View style={styles.badge}>
-              <Ionicons name="school" size={13} color="#FFFFFF" />
+              <Ionicons name="school" size={designSize(13)} color="#FFFFFF" />
               <LText style={styles.badgeText}>
                 {uni ? `Campus · ${uni}` : "Campus · Lebanon"}
               </LText>
@@ -164,7 +168,7 @@ export function CampusHomePage() {
             ]}
           >
             <LText style={styles.ctaText}>Open tuition calculator</LText>
-            <Ionicons name="arrow-forward" size={16} color={Studently.color.ink} />
+            <Ionicons name="arrow-forward" size={designSize(16)} color={Studently.color.ink} />
           </Pressable>
         </View>
 
@@ -190,7 +194,7 @@ export function CampusHomePage() {
               <>
                 <Ionicons
                   name={tool.icon}
-                  size={22}
+                  size={designSize(22)}
                   color={tool.live ? Studently.color.primary : Studently.color.inkFaint}
                 />
                 <LText
@@ -250,7 +254,7 @@ export function CampusHomePage() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: {
     width: "100%",
     alignSelf: "stretch",

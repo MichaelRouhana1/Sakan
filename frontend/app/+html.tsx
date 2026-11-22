@@ -3,6 +3,7 @@ import { useServerDocumentContext } from "expo-router/html";
 import { brandPaletteCss } from "@/constants/brandPalette";
 import { ADMIN_CSS } from "@/styles/adminCssText";
 import { CAMPUS_CSS } from "@/styles/campusCssText";
+import { desktopCssLengths } from "@/constants/desktopDesign";
 import { PROFILE_CSS } from "@/styles/profileCssText";
 
 const BG = "#F9FAFB";
@@ -135,7 +136,7 @@ ${brandPaletteCss}
        position: relative;
        width: 100%;
        min-width: 0;
-       border-radius: 8px;
+       border-radius: calc(8px * var(--sk-desktop-scale, 1));
        overflow: hidden;
        transition: opacity 0.2s ease-in-out;
      }
@@ -157,10 +158,9 @@ ${brandPaletteCss}
        width: 100%;
        z-index: 2;
        color: #fff !important;
-       font-size: 16px !important;
        font-weight: 600 !important;
        text-align: center;
-       padding: 8px 8px 10px;
+       padding: calc(8px * var(--sk-desktop-scale, 1)) calc(8px * var(--sk-desktop-scale, 1)) calc(10px * var(--sk-desktop-scale, 1));
        font-family: var(--sk-font);
      }
 
@@ -280,7 +280,7 @@ button, [role="button"], [role="link"] { cursor: pointer; }
 }
 ${STUDENTLY_HOME_CSS}
 ${CAMPUS_CSS}
-${PROFILE_CSS}
+${desktopCssLengths(PROFILE_CSS)}
 ${ADMIN_CSS}
 `,
           }}

@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
@@ -18,6 +19,7 @@ import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import type { PriceBasis, PropertyType, SpaceType } from "@/types/listing";
 
 export function CreateStepType() {
+  const { size: designSize } = useDesktopDesign();
   const { draft, patch } = useListingForm();
   const spaceInvalid = useWizardFieldInvalid("spaceType");
   const propertyInvalid = useWizardFieldInvalid("propertyType");
@@ -33,9 +35,9 @@ export function CreateStepType() {
   }
 
   return (
-    <View style={{ gap: 18 }}>
+    <View style={{ gap: designSize(18) }}>
       <LockedCluster fields={["spaceType"]}>
-        <WizardFieldGroup field="spaceType" style={{ gap: 18 }}>
+        <WizardFieldGroup field="spaceType" style={{ gap: designSize(18) }}>
           <WizardFieldLabel required>What kind of place?</WizardFieldLabel>
           {SPACE_TYPE_OPTIONS.map((opt, i) => (
             <Enter key={opt.value} delay={i * 70}>
@@ -55,7 +57,7 @@ export function CreateStepType() {
       <LockedCluster fields={["propertyType"]}>
         <Enter delay={240}>
           <WizardFieldLabel required>Property type</WizardFieldLabel>
-          <View style={{ height: 8 }} />
+          <View style={{ height: designSize(8) }} />
           <SegmentedPills
             options={PROPERTY_TYPE_OPTIONS}
             value={draft.propertyType}
@@ -66,7 +68,7 @@ export function CreateStepType() {
       </LockedCluster>
       <Enter delay={310}>
         <LText variant="subtitle">How is rent listed?</LText>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={PRICE_BASIS_OPTIONS}
           value={draft.priceBasis}

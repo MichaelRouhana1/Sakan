@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { PromotionAction } from "./PromotionAction";
 import axios from "axios";
 import { Link, useRouter } from "expo-router";
@@ -61,6 +62,9 @@ function leadTotal(value: number | null | undefined): number {
 }
 
 export function HostListingAnalyticsPage({ listingId }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const router = useRouter();
   const bp = useBreakpoint();
   const compact = bp === "mobile" || Platform.OS !== "web";
@@ -292,6 +296,9 @@ function IdentityColumn({
   cardPending: boolean;
   compact: boolean;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   return (
     <View style={[styles.identity, compact && styles.identityCompact]}>
       <View
@@ -342,6 +349,9 @@ function NumbersColumn({
   statusTone: HostListingStatusTone;
   viewCta: ReactNode;
 }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const expired = isPastExpiry(listing.expiresAt);
   return (
     <View style={[styles.numbers, compact && styles.numbersCompact]}>
@@ -460,7 +470,7 @@ function NumbersColumn({
 
 const web = Platform.OS === "web";
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingBottom: 48,

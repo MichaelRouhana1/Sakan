@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { LText } from "@/components/lister/Typography";
 import { LISTING_FORM_SECTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export function SectionPills({ activeId, onSelect }: Props) {
+  const { styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <ScrollView
       horizontal
@@ -39,7 +42,7 @@ export function SectionPills({ activeId, onSelect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   bar: {
     flexGrow: 0,
     height: 48,

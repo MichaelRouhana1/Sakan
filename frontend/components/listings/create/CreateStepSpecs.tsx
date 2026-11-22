@@ -1,4 +1,5 @@
 import { Pressable, TextInput, View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
@@ -25,10 +26,11 @@ function floorLabel(n: number) {
 }
 
 export function BuildingAccessFields(){
+  const { size: designSize } = useDesktopDesign();
   const {draft,patch}=useListingForm();
   const source = (label: string, key: "hasElevator" | "elevator24_7") =>
     !draft.sharedValues ? null : draft.differentFields?.includes(key) ? (
-      <Pressable accessibilityRole="button" accessibilityLabel={`Reset ${label} to building`} onPress={() => resetOverride(draft, patch, [key])} style={{ alignSelf: "flex-start", paddingVertical: 4 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Reset ${label} to building`} onPress={() => resetOverride(draft, patch, [key])} style={{ alignSelf: "flex-start", paddingVertical: designSize(4) }}>
         <LText variant="caption" style={{ color: Lister.color.primary }}>Reset to building</LText>
       </Pressable>
     ) : (
@@ -44,7 +46,7 @@ export function BuildingAccessFields(){
           onPress={() => patchOverride(draft, patch, { hasElevator: !draft.hasElevator }, ["hasElevator"])}
         />
         {source("elevator", "hasElevator")}
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SelectableCard
           selected={draft.elevator24_7}
           title="Elevator works during cuts"
@@ -58,13 +60,14 @@ export function BuildingAccessFields(){
 }
 
 export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boolean} = {}) {
+  const { size: designSize } = useDesktopDesign();
   const { draft, patch, formChrome } = useListingForm();
   const furnishingInvalid = useWizardFieldInvalid("furnishingType");
   const bedsInvalid = useWizardFieldInvalid("beds");
   const occupancyInvalid = useWizardFieldInvalid("maxOccupancy");
 
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: designSize(8) }}>
       <WizardFieldLabel required>Bathroom</WizardFieldLabel>
       <SegmentedPills options={[{value:'private',label:'Private bathroom'},{value:'shared',label:'Shared bathroom'}]}
         value={draft.bathroomPrivacy ?? null} error={useWizardFieldInvalid('bathroomPrivacy')}
@@ -73,7 +76,7 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
         <WizardFieldLabel required>Available beds in this room</WizardFieldLabel>
         <TextInput accessibilityLabel="Available beds in this room" keyboardType="number-pad"
           value={draft.bedsAvailable == null ? '' : String(draft.bedsAvailable)}
-          onChangeText={v=>patch({bedsAvailable:v===''?null:Number(v)})} style={wizardInputStyle()} />
+          onChangeText={v=>patch({bedsAvailable:v===''?null:Number(v)})} style={wizardInputStyle(undefined, designSize)} />
         <LText variant="caption">Confirm the total below and the beds you can rent now.</LText>
       </> : null}
       {(draft.spaceType==='shared_room' || !showSharedDetails) && formChrome!=='edit' ? <>
@@ -136,10 +139,10 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
       </Enter>
       </LockedCluster>
       <Enter delay={80}>
-        <WizardFieldLabel required style={{ marginTop: 12 }}>
+        <WizardFieldLabel required style={{ marginTop: designSize(12) }}>
           Furnishing
         </WizardFieldLabel>
-        <View style={{ height: 8 }} />
+        <View style={{ height: designSize(8) }} />
         <SegmentedPills
           options={FURNISHING_OPTIONS}
           value={draft.furnishingType}
@@ -149,7 +152,7 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
       </Enter>
       <LockedCluster fields={["areaSqm"]}>
       <Enter delay={140}>
-        <LText variant="subtitle" style={{ marginTop: 12 }}>
+        <LText variant="subtitle" style={{ marginTop: designSize(12) }}>
           Size (m²)
         </LText>
         <TextInput
@@ -159,7 +162,7 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
           placeholderTextColor={Lister.color.inkFaint}
           value={draft.areaSqm}
           onChangeText={(areaSqm) => patch({ areaSqm })}
-          style={wizardInputStyle()}
+          style={wizardInputStyle(undefined, designSize)}
         />
       </Enter>
       </LockedCluster>

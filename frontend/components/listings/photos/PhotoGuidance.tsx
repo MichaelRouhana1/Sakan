@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View } from "react-native";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { SvgXml } from "react-native-svg";
 import { LText } from "@/components/lister/Typography";
 // TODO(photography): replace these original bundled illustrations with licensed Studently seed-listing photos.
@@ -30,17 +31,18 @@ const examples = [
   },
 ];
 export function PhotoGuidance() {
+  const { scale, size: designSize } = useDesktopDesign();
   const [width, setWidth] = useState(600);
   return (
     <View
-      style={{ gap: 10 }}
+      style={{ gap: designSize(10) }}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
     >
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: designSize(8) }}>
         {examples.map((example, i) => (
           <View
             key={example.label}
-            style={{ width: width < 520 ? "48%" : "23.5%", gap: 4 }}
+            style={{ width: width / (scale || 1) < 520 ? "48%" : "23.5%", gap: designSize(4) }}
           >
             <View
               accessible
@@ -48,7 +50,7 @@ export function PhotoGuidance() {
               accessibilityLabel={example.alt}
               style={{
                 aspectRatio: 5 / 3,
-                borderRadius: 10,
+                borderRadius: designSize(10),
                 overflow: "hidden",
               }}
             >

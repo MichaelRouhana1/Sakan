@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { useDesktopDesign } from '@/components/ui/DesktopDesign';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { api } from '@/lib/api';
@@ -17,6 +18,7 @@ import { CreateStepRules } from '../create/CreateStepRules';
 import { PhotoPickerGrid } from '../PhotoPickerGrid';
 
 export function PlaceEditor({listing,onClose}:{listing:Listing;onClose:()=>void}){
+ const { size: designSize } = useDesktopDesign();
  const queryClient=useQueryClient();
  const query=useQuery({queryKey:['owner-place',listing.placeId],queryFn:async()=>{const {data}=await api.get(`/api/listings/places/${listing.placeId}`);return data.data;}});
  const [draft,setDraft]=useState(()=>mapListingToDraft(listing));
@@ -35,7 +37,7 @@ export function PlaceEditor({listing,onClose}:{listing:Listing;onClose:()=>void}
    await queryClient.invalidateQueries({queryKey:['listings']});await queryClient.invalidateQueries({queryKey:['owner-place']});onClose();
   }catch(e){setError(axios.isAxiosError(e)?e.response?.data?.error?.message??'Could not save shared details.':String(e));}finally{setSaving(false);}
  }
- return <View style={{gap:24}}>
+ return <View style={{gap:designSize(24)}}>
   <LButton label="Close shared details" variant="secondary" onPress={onClose}/>
   <LText variant="title">{draft.placeKind==='building'?'Building details':'Apartment details'}</LText>
   <LText tone="muted">Changes apply to units using the shared details. Electricity set differently in a unit stays as you set it there.</LText>

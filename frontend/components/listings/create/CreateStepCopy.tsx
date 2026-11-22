@@ -1,3 +1,4 @@
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
@@ -20,6 +21,9 @@ import { useListingCopy } from "@/features/listings/create/useListingCopy";
 import type { CopyMode } from "@/features/listings/create/listingCopyTemplates";
 
 export function CreateStepCopy() {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  
   const { draft, patch } = useListingForm();
   const titleInvalid = useWizardFieldInvalid("title");
   const descriptionInvalid = useWizardFieldInvalid("description");
@@ -71,7 +75,7 @@ export function CreateStepCopy() {
   }
 
   return (
-    <View style={{ gap: 16 }}>
+    <View style={{ gap: designSize(16) }}>
       <Enter>
         <WizardFieldLabel required>Title</WizardFieldLabel>
         <View style={styles.actions}>{action("title", "Suggest title")}</View>
@@ -82,7 +86,7 @@ export function CreateStepCopy() {
           value={draft.title}
           onChangeText={(title) => patch({ title })}
           maxLength={COPY_TITLE_MAX}
-          style={wizardInputStyle(titleInvalid)}
+          style={wizardInputStyle(titleInvalid, designSize)}
         />
         <LText
           variant="caption"
@@ -132,7 +136,7 @@ export function CreateStepCopy() {
           value={draft.description}
           onChangeText={(description) => patch({ description })}
           multiline
-          style={[wizardInputStyle(descriptionInvalid), styles.area]}
+          style={[wizardInputStyle(descriptionInvalid, designSize), styles.area]}
         />
         <LText
           variant="caption"
@@ -153,7 +157,7 @@ export function CreateStepCopy() {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
   action: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: Lister.radius.pill, borderWidth: 1, borderColor: Lister.color.border, backgroundColor: Lister.color.surface, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, cursor: "pointer" },
   actionPressed: { backgroundColor: Lister.color.primaryMist, borderColor: Lister.color.primary },
