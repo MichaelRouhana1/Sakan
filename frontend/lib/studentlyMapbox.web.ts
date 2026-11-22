@@ -10,6 +10,7 @@ import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import { resolvedElectricityCardBadge } from "@/lib/listingCardBadges";
 import { CAMPUS_SWITCH_PROMPT } from "@/lib/campusPinLabel";
 import { getMapboxStyle, getMapboxToken } from "@/lib/mapboxEnv";
+import { desktopCssLengths } from "@/constants/desktopDesign";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 
 export type MapboxGL = typeof import("mapbox-gl").default;
@@ -29,6 +30,14 @@ const CAMPUS_LINE_SOURCE = "studently-campus-line";
 const CAMPUS_LINE_LAYER = "studently-campus-line-layer";
 const CAMPUS_LINE_COLOR = "#FF3B30";
 const CAMPUS_LINE_WIDTH = 6;
+
+function readDesktopScale(map?: { getContainer?: () => HTMLElement }): number {
+  const node = map?.getContainer?.() ?? (typeof document !== "undefined" ? document.querySelector(".studently-mapbox-map") : null);
+  if (!node) return 1;
+  const raw = getComputedStyle(node).getPropertyValue("--sk-desktop-scale").trim();
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
 
 function installedMapboxGlVersion(): string {
   try {
@@ -61,7 +70,7 @@ export function ensureMapboxCss(): void {
     style.id = overridesId;
     document.head.appendChild(style);
   }
-  style.textContent = `
+  style.textContent = desktopCssLengths(`
     .studently-mapbox-map { width: 100%; height: 100%; position: relative; z-index: 0; background: var(--sk-bg-wash); overflow: hidden; }
     .studently-mapbox-map .mapboxgl-map { width: 100%; height: 100%; }
     .studently-mapbox-map .mapboxgl-ctrl-attrib { font-size: 10px; }
@@ -160,6 +169,20 @@ export function ensureMapboxCss(): void {
     }
     .studently-campus-stack.selected .studently-campus-label {
       background: var(--sk-ink); color: #fff;
+    }
+    .studently-campus-stack.wrap-label .studently-campus-label {
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: min(180px, 40vw);
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .studently-campus-stack.wrap-label.label-below .studently-campus-label {
+      top: calc(100% + 4px);
+      bottom: auto;
     }
     .studently-campus-pin-slot {
       position: relative;
@@ -360,7 +383,7 @@ export function ensureMapboxCss(): void {
     .studently-popup-place-group + .studently-popup-place-group { border-top: 1px solid var(--sk-bg-wash); padding-top: 10px; }
     .studently-popup-place-title { margin: 0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
     .studently-popup-place-contact, .studently-popup-place-count { font-size: 12px; overflow-wrap: anywhere; }
-  `;
+  `);
 }
 
 export async function loadMapbox(): Promise<MapboxGL> {
@@ -565,7 +588,7 @@ function addCampusLineLayer(map: MapboxMap): void {
     },
     paint: {
       "line-color": CAMPUS_LINE_COLOR,
-      "line-width": CAMPUS_LINE_WIDTH,
+      "line-width": CAMPUS_LINE_WIDTH * readDesktopScale(map),
       "line-opacity": 1,
     },
   };
@@ -623,7 +646,7 @@ function paintCampusRoute(map: MapboxMap, pending: PendingRoute): void {
   if (map.getLayer(CAMPUS_LINE_LAYER)) {
     map.setPaintProperty(CAMPUS_LINE_LAYER, "line-opacity", 1);
     map.setPaintProperty(CAMPUS_LINE_LAYER, "line-color", CAMPUS_LINE_COLOR);
-    map.setPaintProperty(CAMPUS_LINE_LAYER, "line-width", CAMPUS_LINE_WIDTH);
+    map.setPaintProperty(CAMPUS_LINE_LAYER, "line-width", CAMPUS_LINE_WIDTH * readDesktopScale(map));
   }
 }
 
@@ -652,7 +675,7 @@ function teardropHtml(
   if (variant === "campus") {
     return `<div class="studently-campus-pin" aria-hidden="true">
       <div class="ring"><div class="disc">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="calc(18px * var(--sk-desktop-scale, 1))" height="calc(18px * var(--sk-desktop-scale, 1))" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3z" fill="#FFFFFF"/>
           <path d="M5 13.18V17c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82" stroke="#FFFFFF" stroke-width="1.6" fill="none"/>
         </svg>
@@ -678,17 +701,19 @@ export function pricePinHtml(label: string, selected: boolean): string {
 }
 
 export function clusterBubbleHtml(count: number, size: number): string {
-  return `<div class="studently-cluster-bubble" style="width:${size}px;height:${size}px;font-size:${size >= 46 ? 15 : 13}px">${escapeHtml(String(count))}</div>`;
+  const font = size >= 46 ? 15 : 13;
+  const px = (value: number) => `calc(${value}px * var(--sk-desktop-scale, 1))`;
+  return `<div class="studently-cluster-bubble" style="width:${px(size)};height:${px(size)};font-size:${px(font)}">${escapeHtml(String(count))}</div>`;
 }
 
-const CAMPUS_SWITCH_SWAP_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 6h13.5V3.5L22 7.5 15.5 11.5V9H2zM22 15H8.5v-2.5L2 16.5 8.5 20.5V18H22z"/></svg>`;
-const CAMPUS_SWITCH_CHECK_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 12.5l5 5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const CAMPUS_SWITCH_CLOSE_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+const CAMPUS_SWITCH_SWAP_SVG = `<svg width="calc(18px * var(--sk-desktop-scale, 1))" height="calc(18px * var(--sk-desktop-scale, 1))" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 6h13.5V3.5L22 7.5 15.5 11.5V9H2zM22 15H8.5v-2.5L2 16.5 8.5 20.5V18H22z"/></svg>`;
+const CAMPUS_SWITCH_CHECK_SVG = `<svg width="calc(14px * var(--sk-desktop-scale, 1))" height="calc(14px * var(--sk-desktop-scale, 1))" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M5 12.5l5 5L19 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const CAMPUS_SWITCH_CLOSE_SVG = `<svg width="calc(13px * var(--sk-desktop-scale, 1))" height="calc(13px * var(--sk-desktop-scale, 1))" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
 
 export function campusPinHtml(
   label?: string,
   selected = false,
-  opts?: { pending?: boolean; clickable?: boolean },
+  opts?: { pending?: boolean; clickable?: boolean; wrapLabel?: boolean; labelBelow?: boolean },
 ): string {
   const pin = teardropHtml("campus");
   const text = label?.trim();
@@ -697,6 +722,8 @@ export function campusPinHtml(
     "studently-campus-stack",
     selected ? "selected" : "",
     opts?.clickable ? "clickable" : "",
+    opts?.wrapLabel ? "wrap-label" : "",
+    opts?.labelBelow ? "label-below" : "",
   ]
     .filter(Boolean)
     .join(" ");

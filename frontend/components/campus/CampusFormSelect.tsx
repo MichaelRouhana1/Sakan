@@ -1,6 +1,6 @@
 import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   FlatList,
   Modal,
@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Studently } from "@/constants/theme";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 export type CampusFormOption = {
   value: string;
@@ -42,6 +43,8 @@ type Props = {
   appearance?: Appearance;
   /** Hide the field label (useful when a parent rail supplies its own eyebrow). */
   hideLabel?: boolean;
+  /** Reuse the searchable picker behind a control supplied by the parent. */
+  renderTrigger?: (props: { onPress: () => void; expanded: boolean; disabled: boolean }) => ReactNode;
   onChange: (value: string) => void;
 };
 
@@ -96,19 +99,21 @@ export function CampusFormSelect({
   label,
   value,
   options,
-  placeholder = "Selectâ€¦",
+  placeholder = "Select…",
   disabled = false,
   searchable = false,
-  searchPlaceholder = "Searchâ€¦",
+  searchPlaceholder = "Search…",
   accessibilityLabel,
   appearance = "field",
   hideLabel = false,
+  renderTrigger,
   onChange,
 }: Props) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
 
   const [open, setOpen] = useState(false);
+  const reducedMotion = useReducedMotion();
   const [query, setQuery] = useState("");
   const listId = useId();
   const { width, height: windowHeight } = useWindowDimensions();
@@ -131,7 +136,7 @@ export function CampusFormSelect({
     );
   }, [options, query]);
 
-  // Lock in the only available choice â€” no picker needed.
+  // Lock in the only available choice — no picker needed.
   useEffect(() => {
     if (!sole || disabled) return;
     if (value === sole.value) return;
@@ -149,8 +154,9 @@ export function CampusFormSelect({
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // TextInput consumes bubbling key events, so listen before the search field.
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open]);
 
   const pick = (next: string) => {
@@ -174,7 +180,7 @@ export function CampusFormSelect({
     <Modal
       visible={open}
       transparent
-      animationType="fade"
+      animationType={reducedMotion ? "none" : "fade"}
       onRequestClose={() => setOpen(false)}
     >
       <Pressable
@@ -254,7 +260,7 @@ export function CampusFormSelect({
                   <View style={styles.optionCopy}>
                     <Text
                       style={[styles.optionLabel, on && styles.optionLabelOn]}
-                      numberOfLines={1}
+                      numberOfLines={narrow ? 2 : 1}
                     >
                       {item.label}
                     </Text>
@@ -277,6 +283,13 @@ export function CampusFormSelect({
       </Pressable>
     </Modal>
   );
+
+  if (renderTrigger) {
+    return <>
+      {renderTrigger({ onPress: () => setOpen(true), expanded: open, disabled: disabled || options.length === 0 })}
+      {modal}
+    </>;
+  }
 
   if (isPassport) {
     const markNode =
@@ -479,7 +492,7 @@ export function CampusFormSelect({
               styles.triggerValue,
               !selected && styles.triggerPlaceholder,
             ]}
-            numberOfLines={1}
+            numberOfLines={narrow ? 2 : 1}
           >
             {selected?.label ?? placeholder}
           </Text>

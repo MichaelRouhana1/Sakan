@@ -13,6 +13,34 @@ export type NearbyCampus = {
 const RADIUS_M = 8000;
 const LIMIT = 5;
 
+export type ListingMapCampus = University & {
+  lat: number;
+  lng: number;
+  meters: number;
+};
+
+/** Every mappable campus, ordered by actual distance rather than the saved hub. */
+export function listingMapCampuses(
+  origin: { lat: number | null; lng: number | null },
+  universities: University[],
+): ListingMapCampus[] {
+  if (!validCoordinates(origin)) return [];
+  return universities
+    .filter((campus): campus is University & { lat: number; lng: number } =>
+      validCoordinates(campus),
+    )
+    .map((campus) => ({ ...campus, meters: haversineMeters(origin, campus) }))
+    .sort((a, b) => a.meters - b.meters || a.slug.localeCompare(b.slug));
+}
+
+function validCoordinates(
+  point: { lat: number | null; lng: number | null },
+): point is { lat: number; lng: number } {
+  return point.lat != null && point.lng != null &&
+    Number.isFinite(point.lat) && Number.isFinite(point.lng) &&
+    Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180;
+}
+
 function haversineMeters(
   a: { lat: number; lng: number },
   b: { lat: number; lng: number },
