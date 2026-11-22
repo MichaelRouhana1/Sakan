@@ -7,6 +7,9 @@ import type {
 export type BrowseFiltersValue = {
   city: string | null;
   placeId: string | null;
+  /** OSM street or neighbourhood id (`street:…` / `hood:…`), searched by radius. */
+  locationId: string | null;
+  locationKind: "street" | "hood" | null;
   areas: string[];
   universitySlugs: string[];
   /** Institution kept while campus is still being chosen. */
@@ -32,6 +35,8 @@ export type BrowseFiltersValue = {
 export const EMPTY_BROWSE_FILTERS: BrowseFiltersValue = {
   city: null,
   placeId: null,
+  locationId: null,
+  locationKind: null,
   areas: [],
   universitySlugs: [],
   institutionSlug: null,

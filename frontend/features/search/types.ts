@@ -5,7 +5,13 @@ export type CitySuggestion = SuggestionBase & { type: 'city'; slug: string; cano
 export type AreaSuggestion = SuggestionBase & { type: 'area'; slug: string; canonicalArea: string };
 export type CampusSuggestion = SuggestionBase & { type: 'campus'; slug: string; nearbyRadiusMeters?: number };
 export type PlaceSuggestion = SuggestionBase & { type: 'place'; canonicalArea: string };
-export type SearchSuggestion = CitySuggestion | AreaSuggestion | CampusSuggestion | PlaceSuggestion;
+/** OSM street or neighbourhood, searched within its parent area's radius. */
+export type NearbySuggestion = SuggestionBase & {
+  type: 'street' | 'hood'; slug: string; canonicalArea: string; parentAreaId: string; nearbyRadiusMeters: number;
+  /** Nothing within the radius: browsing falls back to the parent area. */
+  fallback: { canonicalArea: string; label: SearchLabel; count: number } | null;
+};
+export type SearchSuggestion = CitySuggestion | AreaSuggestion | CampusSuggestion | PlaceSuggestion | NearbySuggestion;
 export type SearchSuggestResult = {
   query: string;
   normalizedQuery: string;

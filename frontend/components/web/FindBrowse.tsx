@@ -52,6 +52,7 @@ import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import { useSearchListings } from "@/features/listings/useSearchListings";
 import { isSearchLocationError } from '@/features/search/locationError';
 import { UnknownLocationState } from '@/components/search/UnknownLocationState';
+import { nearbyFallbackLabel, nearbyResultsLabel } from '@/components/search/searchDisplay';
 import { useStableWebMapListings, webMapIdentityKey } from "@/lib/webMapData.web";
 import { SearchPagination } from "@/components/listings/SearchPagination";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
@@ -80,6 +81,7 @@ function apiSortFromBrowse(sort: BrowseSortKey): ListingSort {
 function cityLabelFromFilters(filters: BrowseFiltersValue): string {
   if (filters.city) return filters.city.split('-').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');
   if (filters.placeId) return 'Selected property';
+  if (filters.locationId) return nearbyFallbackLabel(filters.locationKind);
   if (filters.areas.length === 1) return filters.areas[0]!;
   return "Lebanon";
 }
@@ -139,6 +141,8 @@ export function FindBrowse() {
       areas: [],
       city: null,
       placeId: null,
+      locationId: null,
+      locationKind: null,
       universitySlugs: [],
       institutionSlug: null,
       campusId: null,
@@ -200,7 +204,7 @@ export function FindBrowse() {
     webMapIdentityKey(deferredFilters.areas),
     webMapIdentityKey(deferredFilters.universitySlugs),
     deferredFilters.campusId, deferredFilters.institutionSlug, deferredFilters.city, deferredFilters.placeId,
-    deferredFilters.q?.trim() || null, deferredFilters.radiusKm,
+    deferredFilters.locationId, deferredFilters.q?.trim() || null, deferredFilters.radiusKm,
   ]);
   const ranked = { listings: rawListings, matches: data?.matches ?? {} };
   const matching = deferredSort === "match" && !!deferredPrefs;
@@ -267,8 +271,9 @@ export function FindBrowse() {
       : "standard";
   const filterCount = browseFilterBadgeCount(filters, badgeMode);
   const hasActiveFilters = filterCount > 0 || browseSort !== "newest";
-  const cityLabel = search.data?.searchResolution?.locations[0]?.nameEn ?? cityLabelFromFilters(filters);
-  const isNationwide = filters.areas.length !== 1;
+  const nearby = filters.locationId ? search.data?.searchResolution?.nearby ?? null : null;
+  const cityLabel = nearby?.label.en ?? search.data?.searchResolution?.locations[0]?.nameEn ?? cityLabelFromFilters(filters);
+  const isNationwide = filters.areas.length !== 1 && !filters.locationId;
   const isMap = mapOpen;
   /** Map rail always uses grid card chrome; list/grid choice is restored on close. */
   const cardVariant: ResultsLayout = isMap ? "grid" : resultsLayout;
@@ -374,6 +379,11 @@ export function FindBrowse() {
                 Student Accommodations near{" "}
                 <Text style={styles.h1Em}>{universityLabel}</Text>
               </>
+            ) : filters.locationId ? (
+              <>
+                Student Accommodations near{" "}
+                <Text style={styles.h1Em}>{cityLabel}</Text>
+              </>
             ) : isNationwide ? (
               <>
                 Student Accommodations across{" "}
@@ -415,6 +425,9 @@ export function FindBrowse() {
             <Text style={styles.h1Sub}>
               {campusResultsHeading({ listings })}
             </Text>
+          ) : null}
+          {nearby && !loading ? (
+            <Text style={styles.h1Sub}>{nearbyResultsLabel(nearby)}</Text>
           ) : null}
           {(isStale(filters, deferredFilters, mode, deferredMode, browseSort, deferredSort) ||
             isFetching) &&

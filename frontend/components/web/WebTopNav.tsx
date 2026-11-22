@@ -18,6 +18,7 @@ import { DownloadAppButton } from "@/components/web/DownloadAppButton";
 import { StudentlyLogo } from "@/components/common/StudentlyLogo";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { isNearby, nearbyFallbackLabel } from "@/components/search/searchDisplay";
 import { Studently } from "@/constants/theme";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import {
@@ -71,7 +72,8 @@ export function WebTopNav({ showSearch = false, homeSearch, homeHeaderVisible = 
   const selectedCampus=universities.data?.find(u=>u.id===params.campusId||parseCsvParam(params.universitySlugs).includes(u.slug));
   const selectionLabel=homeSearch?'':selectedAreas[0]||(selectedCity?selectedCity.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' '):'')||
     (selectedCampus?.displayName??selectedCampus?.name)||
-    (params.placeId?(selectedPlace?.id===params.placeId?selectedPlace.label:'Selected property'):'');
+    (params.placeId?(selectedPlace?.id===params.placeId?selectedPlace.label:'Selected property'):'')||
+    (params.locationId?(selectedPlace?.id===params.locationId?selectedPlace.label:nearbyFallbackLabel(params.kind)):'');
 
   useEffect(() => {
     if (!showSearch || homeSearch) return;
@@ -90,6 +92,7 @@ export function WebTopNav({ showSearch = false, homeSearch, homeHeaderVisible = 
       return;
     }
     if (params.placeId) { setSearchVal(value=>value || 'Selected property'); return; }
+    if (params.locationId) { setSearchVal(value=>value || nearbyFallbackLabel(params.kind)); return; }
     if (areas.length > 0) {
       setSearchVal(areas[0]!);
       return;
@@ -109,6 +112,8 @@ export function WebTopNav({ showSearch = false, homeSearch, homeHeaderVisible = 
     params.q,
     params.city,
     params.placeId,
+    params.locationId,
+    params.kind,
     params.areas,
     params.campusId,
     params.universitySlugs,
@@ -122,7 +127,8 @@ export function WebTopNav({ showSearch = false, homeSearch, homeHeaderVisible = 
   }, [onBrowse,router]);
   const onSelectSearch = useCallback((suggestion: SearchSuggestion) => {
     const next=applySearchSelection(parseBrowseState(params),suggestion);
-    setSelectedPlace(suggestion.type==='place'&&next.filters.placeId?{id:next.filters.placeId,label:suggestion.label.en}:null);
+    const selectedId=suggestion.type==='place'?next.filters.placeId:isNearby(suggestion)?next.filters.locationId:null;
+    setSelectedPlace(selectedId?{id:selectedId,label:suggestion.label.en}:null);
     writeSearch(next,suggestion.label.en);
   }, [params,writeSearch]);
   const onSubmitText = useCallback((query: string) => {

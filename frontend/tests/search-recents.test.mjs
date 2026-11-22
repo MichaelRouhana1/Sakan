@@ -34,6 +34,18 @@ test('restart keeps thumbnail, count and campus radius metadata while rejecting 
  const [unsafe]=parseRecentSearches(raw([{...area(),thumbnailUrl:'javascript:alert(1)',eligibleUnitCount:-1}]));assert.equal(unsafe.thumbnailUrl,null);assert.equal(unsafe.eligibleUnitCount,undefined);
 });
 
+test('street and neighbourhood recents rebuild their nearby URL and reject forged ids, radii and fallbacks',()=>{
+ const street={...area(),type:'street',id:'street:bliss-street-beirut',slug:'bliss-street-beirut',canonicalArea:'Hamra',parentAreaId:'area:hamra',nearbyRadiusMeters:400,
+   fallback:{canonicalArea:'Hamra',label:{en:'Hamra',ar:'الحمرا'},count:3}};
+ const hood={...street,type:'hood',id:'hood:monot',slug:'monot',canonicalArea:'Achrafieh',parentAreaId:'area:achrafieh',nearbyRadiusMeters:400,fallback:null};
+ const rows=parseRecentSearches(raw([street,hood]));assert.equal(rows.length,2);
+ assert.equal(rows[0].url,'/search?locationId=street%3Abliss-street-beirut&kind=street&radiusKm=0.4');assert.equal(rows[0].fallback.count,3);
+ assert.equal(rows[1].url,'/search?locationId=hood%3Amonot&kind=hood&radiusKm=0.4');assert.equal(rows[1].fallback,null);
+ for(const row of [{...street,id:'hood:bliss'},{...street,id:'street:../x'},{...street,nearbyRadiusMeters:50},{...street,nearbyRadiusMeters:9000},
+   {...street,parentAreaId:'city:beirut'},{...street,canonicalArea:''}])assert.deepEqual(parseRecentSearches(raw([row])),[],JSON.stringify(row));
+ const [forged]=parseRecentSearches(raw([{...street,fallback:{canonicalArea:'Hamra',label:{en:'Hamra',ar:null},count:-1}}]));assert.equal(forged.fallback,null);
+});
+
 test('location recents discard legacy listing covers but preserve curated photos',()=>{
  const [legacy]=parseRecentSearches(raw([{...area(),thumbnailUrl:'/uploads/old-cover.jpg'}]));assert.equal(legacy.thumbnailUrl,null);
  const [curated]=parseRecentSearches(raw([{...area(),thumbnailSource:'curated',thumbnailUrl:'/assets/search/areas/hamra.jpg'}]));assert.equal(curated.thumbnailUrl,'/assets/search/areas/hamra.jpg');assert.equal(curated.thumbnailSource,'curated');

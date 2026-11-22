@@ -18,9 +18,18 @@ type ListingsApiResponse = {
   searchResolution?: ListingsQueryData['searchResolution'];
 };
 
+type Label = { en: string; ar: string };
+/** Street/neighbourhood browse: count within the parent area's radius, or the parent-area fallback. */
+export type NearbyResolution = {
+  id: string; kind: 'street' | 'hood'; label: Label; context: Label; parentAreaId: string; canonicalArea: string;
+  parentLabel: Label; radiusMeters: number; appliedRadiusMeters: number; count: number;
+  fallback: { canonicalArea: string; label: Label; count: number } | null;
+};
+
 export type ListingsQueryData = {
   searchResolution: { canonicalAreas: string[] | null; remainingQuery: string;
-    locations: {id:string;kind:'city'|'area';slug:string;nameEn:string;nameAr:string;contextEn:string;contextAr:string}[] } | null;
+    locations: {id:string;kind:'city'|'area';slug:string;nameEn:string;nameAr:string;contextEn:string;contextAr:string}[];
+    nearby?: NearbyResolution } | null;
   listings: Listing[];
   campuses: CampusMeta[];
   featured: Listing[];
@@ -47,6 +56,11 @@ export function useListings(
       params.promotionSession=(await promotionSession()).id;
       if (filters.city) params.city=filters.city;
       if (filters.placeId) params.placeId=filters.placeId;
+      if (filters.locationId && filters.locationKind) {
+        params.locationId = filters.locationId;
+        params.kind = filters.locationKind;
+        if (filters.radiusKm != null) params.radiusKm = String(filters.radiusKm);
+      }
       if (filters.areas && filters.areas.length > 0) {
         params.areas = filters.areas.join(",");
       }

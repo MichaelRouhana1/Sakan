@@ -12,6 +12,9 @@ import type {
 export type ListingListFilters = {
   city?: string;
   placeId?: string;
+  /** Street/neighbourhood id; sent with `kind` and its radiusKm. */
+  locationId?: string;
+  locationKind?: "street" | "hood";
   areas?: string[];
   universitySlugs?: string[];
   campusId?: string;

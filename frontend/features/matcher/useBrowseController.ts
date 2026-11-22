@@ -90,10 +90,11 @@ export function useBrowseController() {
         typeof action === "function" ? action(prev.filters) : action;
       if (filters.areas.join() !== prev.filters.areas.join() || filters.campusId !== prev.filters.campusId ||
         filters.universitySlugs.join() !== prev.filters.universitySlugs.join() || filters.institutionSlug !== prev.filters.institutionSlug) {
-        filters={...filters,city:null,placeId:null};
+        filters={...filters,city:null,placeId:null,locationId:null,locationKind:null};
       }
       const locationChanged =
         filters.city !== prev.filters.city || filters.placeId !== prev.filters.placeId ||
+        filters.locationId !== prev.filters.locationId ||
         filters.campusId !== prev.filters.campusId ||
         filters.universitySlugs.join() !==
           prev.filters.universitySlugs.join() ||

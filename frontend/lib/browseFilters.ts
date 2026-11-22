@@ -12,6 +12,8 @@ export function toListFilters(
   const property: ListingListFilters = {
     city: browse.city ?? undefined,
     placeId: browse.placeId ?? undefined,
+    locationId: browse.locationId ?? undefined,
+    locationKind: browse.locationId ? browse.locationKind ?? undefined : undefined,
     sort,
     electricity:
       browse.electricity.length > 0 ? browse.electricity : undefined,

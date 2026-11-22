@@ -101,6 +101,8 @@ export function compilePreferences(
     institutionSlug: null,
     city: null,
     placeId: null,
+    locationId: null,
+    locationKind: null,
     radiusKm: null,
   } as BrowseFiltersValue;
   if (p.type?.importance === "required") f.listingTypes = p.type.value;
@@ -125,7 +127,7 @@ export function compilePreferences(
 const fields: Record<Dimension, (keyof BrowseFiltersValue)[]> = {
   type: ["listingTypes"],
   budget: ["minRentUsd", "maxRentUsd"],
-  location: ["areas", "city", "placeId", "campusId", "universitySlugs", "radiusKm"],
+  location: ["areas", "city", "placeId", "locationId", "locationKind", "campusId", "universitySlugs", "radiusKm"],
   gender: ["genderRestrictions"],
   power: ["electricity"],
   wifi: ["wifiIncluded"],

@@ -22,6 +22,8 @@ export const BROWSE_URL_KEYS = [
   "q",
   "city",
   "placeId",
+  "locationId",
+  "kind",
   "campusId",
   "areas",
   "universitySlugs",
@@ -47,12 +49,20 @@ function positive(v: string | string[] | undefined) {
   const n = Number(one(v));
   return Number.isFinite(n) && n > 0 ? n : null;
 }
+/** A street/hood id is only kept with the matching `kind`, e.g. locationId=street:bliss-street-beirut&kind=street. */
+export function parseNearLocation(id: string | undefined, kind: string | undefined) {
+  const value = id?.trim() ?? "";
+  return (kind === "street" || kind === "hood") && new RegExp(`^${kind}:[a-z0-9]+(?:-[a-z0-9]+)*$`).test(value) && value.length <= 128
+    ? { locationId: value, locationKind: kind as "street" | "hood" }
+    : { locationId: null, locationKind: null };
+}
 export function parseBrowseState(params: BrowseParams): BrowseState {
   const f: BrowseFiltersValue = {
     ...EMPTY_BROWSE_FILTERS,
     q: one(params.q)?.trim() || null,
     city: one(params.city)?.trim() || null,
     placeId: one(params.placeId)?.trim() || null,
+    ...parseNearLocation(one(params.locationId), one(params.kind)),
     campusId: one(params.campusId) || null,
     areas: csv(params.areas).slice(0, 15),
     universitySlugs: csv(params.universitySlugs).slice(0, 1),
@@ -122,7 +132,8 @@ export function serializeBrowseState(
     "genderRestrictions",
   ] as const)
     out[key] = f[key].length ? f[key].join(",") : undefined;
-  for (const key of ["q", "city", "placeId", "campusId"] as const) out[key] = f[key] || undefined;
+  for (const key of ["q", "city", "placeId", "campusId", "locationId"] as const) out[key] = f[key] || undefined;
+  out.kind = f.locationId ? f.locationKind ?? undefined : undefined;
   for (const key of ["minRentUsd", "maxRentUsd", "radiusKm"] as const)
     out[key] = f[key] != null ? String(f[key]) : undefined;
   for (const key of ["wifiIncluded", "studentsOnly"] as const)

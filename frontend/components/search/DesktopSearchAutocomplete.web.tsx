@@ -6,12 +6,11 @@ import { useSearchSuggestions } from '@/features/search/useSearchSuggestions';
 import type { SearchSuggestion } from '@/features/search/types';
 import type { SearchAutocompleteProps } from './SearchAutocomplete';
 import { SearchDestinationContent } from './SearchDestinationContent';
-import { searchChipLabel as chipLabel } from './searchDisplay';
+import { searchChipLabel as chipLabel, isNearby, nearbyCountLabel, OSM_ATTRIBUTION, SEARCH_TYPE_LABEL as TYPE_LABEL } from './searchDisplay';
 import { DESKTOP_SEARCH_MOTION as M } from '@/constants/desktopSearchMotion';
 import { DESKTOP_SEARCH_CSS } from './desktopSearchStyles';
 
 const WORDS = ['City', 'University', 'Property'];
-const TYPE_LABEL = { city: 'City', area: 'Area', campus: 'Campus', place: 'Property' };
 type IconName = SearchSuggestion['type'] | 'search' | 'close' | 'history' | 'globe';
 
 function Icon({ name, size = 20, animate = false }: { name: IconName; size?: number; animate?: boolean }) {
@@ -20,6 +19,7 @@ function Icon({ name, size = 20, animate = false }: { name: IconName; size?: num
       name === 'close' ? <path d="m7 7 10 10M7 17 17 7" /> :
       name === 'campus' ? <><path d="m2 9 10-5 10 5-10 5-10-5Zm4 3v5c4 3 8 3 12 0v-5M22 9v7" /></> :
       name === 'place' ? <><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M9 7h1m4 0h1M9 11h1m4 0h1M10 21v-5h4v5" /></> :
+      name === 'street' ? <><path d="M7 3 4 21M17 3l3 18M12 4v3m0 4v3m0 4v3" /></> :
       name === 'history' ? <><path d="M3 10a9 9 0 1 1 1 7M3 4v6h6M12 7v5l3 2" /></> :
       name === 'globe' ? <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z" /></> :
       <><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z" /><circle cx="12" cy="10" r="2.5" /></>}
@@ -207,14 +207,14 @@ function DesktopSearchContent({ value, onChangeText, onSelect, onSubmitText, onC
             <div id={listId} role="listbox" aria-label="Search suggestions" aria-busy={query.isFetching}>
               {query.isFetching && !data ? <div className="sds-loading" aria-hidden="true">{[0, 1, 2].map(n => <div className="sds-skeleton" key={n}><span className="sds-bone sds-bone-icon" /><div className="sds-bone-lines"><span className="sds-bone sds-bone-line" /><span className="sds-bone sds-bone-line" /></div></div>)}</div> : query.isError ?
                 <div className="sds-empty"><span className="sds-empty-icon"><Icon name="search" /></span><strong>Suggestions are taking a moment</strong><p>You can try again or search for your own words.</p><button className="sds-retry" onClick={() => void query.refetch()}>Try again</button></div> : typed ? items.length ? items.map(item => <button className="sds-row" key={keyFor(item)} {...optionProps(item)}>
-                  <span className="sds-tile"><Icon name={item.type} size={size(21)} /></span><span className="sds-copy"><span className="sds-titles"><bdi className="sds-title" dir={arabic ? 'rtl' : 'ltr'} lang={arabic ? 'ar' : 'en'}>{arabic ? item.label.ar : item.label.en}</bdi><bdi className="sds-alias" dir={arabic ? 'ltr' : 'rtl'} lang={arabic ? 'en' : 'ar'}>{arabic ? item.label.en : item.label.ar}</bdi></span><span className="sds-context">{item.context.en}<span className="sds-separator">·</span><bdi dir="rtl" lang="ar">{item.context.ar}</bdi></span></span><span className="sds-type">{TYPE_LABEL[item.type]}</span>
+                  <span className="sds-tile"><Icon name={item.type} size={size(21)} /></span><span className="sds-copy"><span className="sds-titles"><bdi className="sds-title" dir={arabic ? 'rtl' : 'ltr'} lang={arabic ? 'ar' : 'en'}>{arabic ? item.label.ar : item.label.en}</bdi><bdi className="sds-alias" dir={arabic ? 'ltr' : 'rtl'} lang={arabic ? 'en' : 'ar'}>{arabic ? item.label.en : item.label.ar}</bdi></span><span className="sds-context">{item.context.en}<span className="sds-separator">·</span><bdi dir="rtl" lang="ar">{item.context.ar}</bdi>{isNearby(item) && <><span className="sds-separator">·</span>{nearbyCountLabel(item)}</>}</span></span><span className="sds-type">{TYPE_LABEL[item.type]}</span>
                 </button>) : <div className="sds-empty"><span className="sds-empty-icon"><Icon name="search" /></span><strong>No places found.</strong><p>Try another spelling, city, area or university.</p></div> : <>
                   {recentsError&&<div className="sds-empty" role="status">Recent searches unavailable. <button onClick={onRetryRecents}>Retry</button></div>}{recentPersistenceError&&<div className="sds-empty" role="status">Recent searches are saved for this session only.</div>}{section('Recently searched', 'history', recents)}{section('Top areas', 'area', areas)}{section('Top universities & campuses', 'campus', campuses)}
                   {!areas.length && !campuses.length && !recents.length && <div className="sds-empty"><strong>Where would you like to live?</strong><p>Type a city, area or university to find your place in Lebanon.</p></div>}
                 </>}
             </div>
           </div>
-          <div className="sds-footer">{hints}{typed ? <button className="sds-plain" onClick={submit}>Search all for “{value.trim()}”</button> : null}</div>
+          <div className="sds-footer">{hints}{typed && items.some(isNearby) ? <a className="sds-attribution" href={OSM_ATTRIBUTION.url} target="_blank" rel="noreferrer" onMouseDown={event => event.preventDefault()}>{OSM_ATTRIBUTION.text}</a> : null}{typed ? <button className="sds-plain" onClick={submit}>Search all for “{value.trim()}”</button> : null}</div>
         </div>
         <span className="sds-sr" id={`${listId}-status`} role="status" aria-live="polite">{query.isFetching ? 'Searching Lebanon' : typed ? `${items.length} suggestions available` : 'Popular locations and campuses. Use the arrow keys to explore.'}</span>
       </div>

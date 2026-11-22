@@ -122,7 +122,7 @@ export function browseFilterBadgeCount(
 ): number {
   return (
     value.areas.length +
-      (value.city ? 1 : 0) + (value.placeId ? 1 : 0) +
+      (value.city ? 1 : 0) + (value.placeId ? 1 : 0) + (value.locationId ? 1 : 0) +
     value.universitySlugs.length +
     (value.q?.trim() ? 1 : 0) +
     value.electricity.length +
@@ -227,6 +227,8 @@ export function BrowseFiltersPanel({
     () => ({
       city: applied.city,
       placeId: applied.placeId,
+      locationId: applied.locationId,
+      locationKind: applied.locationKind,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),
       institutionSlug: draftInstSlug,
@@ -248,6 +250,8 @@ export function BrowseFiltersPanel({
       applied.campusId,
       applied.city,
       applied.placeId,
+      applied.locationId,
+      applied.locationKind,
       applied.q,
       draftElectricity,
       draftWater,
@@ -376,6 +380,9 @@ export function BrowseFiltersPanel({
     onApply({
       city: draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join() ? applied.city : null,
       placeId: draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join() ? applied.placeId : null,
+      ...(draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join()
+        ? { locationId: applied.locationId, locationKind: applied.locationKind }
+        : { locationId: null, locationKind: null }),
       radiusKm: applied.radiusKm,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),

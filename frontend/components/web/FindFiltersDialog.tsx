@@ -184,6 +184,9 @@ export function FindFiltersDialog({
     onApply({
       city: draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join() ? applied.city : null,
       placeId: draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join() ? applied.placeId : null,
+      ...(draftAreas.join() === applied.areas.join() && draftSlugs.join() === applied.universitySlugs.join()
+        ? { locationId: applied.locationId, locationKind: applied.locationKind }
+        : { locationId: null, locationKind: null }),
       radiusKm: applied.radiusKm,
       areas: draftAreas,
       universitySlugs: draftSlugs.slice(0, MAX_UNIVERSITY_SLUGS),

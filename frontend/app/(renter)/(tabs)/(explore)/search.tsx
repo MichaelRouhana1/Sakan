@@ -39,6 +39,7 @@ import { WebEmptyState } from "@/components/web/WebEmptyState";
 import { isSearchLocationError } from '@/features/search/locationError';
 import { UnknownLocationState } from '@/components/search/UnknownLocationState';
 import { SearchAutocomplete } from "@/components/search/SearchAutocomplete";
+import { nearbyFallbackLabel, nearbyResultsLabel } from "@/components/search/searchDisplay";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { Studently } from "@/constants/theme";
 import { useSearchListings } from "@/features/listings/useSearchListings";
@@ -169,6 +170,8 @@ export default function RenterSearchScreen() {
       areas: [],
       city: null,
       placeId: null,
+      locationId: null,
+      locationKind: null,
       universitySlugs: [],
       institutionSlug: null,
       campusId: null,
@@ -236,9 +239,14 @@ export default function RenterSearchScreen() {
 
   useEffect(() => {
     const city = browseFilters.city?.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    if (!browseFilters.q && !city && browseFilters.locationId) {
+      const fallback = nearbyFallbackLabel(browseFilters.locationKind);
+      setSearchVal(value => value || fallback);
+      return;
+    }
     setSearchVal(browseFilters.q ?? city ?? browseFilters.areas[0] ??
       (activeUni ? campusFilterLabel(activeUni) : browseFilters.placeId ? 'Selected property' : ''));
-  }, [browseFilters.q, browseFilters.city, browseFilters.placeId, browseFilters.areas.join(','), browseFilters.campusId, activeUni?.id]);
+  }, [browseFilters.q, browseFilters.city, browseFilters.placeId, browseFilters.locationId, browseFilters.locationKind, browseFilters.areas.join(','), browseFilters.campusId, activeUni?.id]);
 
   const onCarouselOpenChange = useCallback((open: boolean) => {
     setCarouselOpen(open);
@@ -316,13 +324,14 @@ export default function RenterSearchScreen() {
   );
   const showDistanceSplit =
     isUniversityMode && deferredSort === "distance" && activeUni != null;
+  const nearby = browseFilters.locationId ? listingsQuery.data?.searchResolution?.nearby ?? null : null;
   const resultsHeading =
     showDistanceSplit && activeUni
       ? campusResultsHeading({ listings: processedListings })
-      : null;
+      : nearby ? nearbyResultsLabel(nearby) : null;
   const resultsTitle = activeUni
     ? `Student Accommodations near ${campusFilterLabel(activeUni)}`
-    : null;
+    : nearby ? `Student Accommodations near ${nearby.label.en}` : null;
 
   const clearAllFilters = useCallback(() => {
     setSearchVal("");

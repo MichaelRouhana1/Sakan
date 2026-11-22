@@ -1,6 +1,6 @@
 import {searchDebug} from '@/features/search/searchDebug';
 import React, { useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Studently } from '@/constants/theme';
@@ -12,9 +12,9 @@ import type { SearchAutocompleteProps } from './SearchAutocomplete';
 import { SearchDestinationContent } from './SearchDestinationContent';
 import { SearchSheetInput } from './SearchSheetInput';
 import type { SearchSheetInputHandle } from './SearchSheetInput.types';
-import { SEARCH_TYPE_LABEL } from './searchDisplay';
+import { isNearby, nearbyCountLabel, OSM_ATTRIBUTION, SEARCH_TYPE_LABEL } from './searchDisplay';
 const web=Platform.OS==='web';
-const icons={city:'location-outline',area:'location-outline',campus:'school-outline',place:'business-outline'} as const;
+const icons={city:'location-outline',area:'location-outline',campus:'school-outline',place:'business-outline',street:'trail-sign-outline',hood:'location-outline'} as const;
 const words=['City','University','Property'];
 function useWord(enabled:boolean,reduced:boolean) {
  const [frame,setFrame]=useState({word:0,count:0,deleting:false});
@@ -123,7 +123,7 @@ export function MobileSearchAutocomplete({value:launchValue,onSelect,onSubmitTex
      <View style={styles.rowBody}>
       <Text style={[styles.rowTitle,arabic&&styles.rtl]}>{arabic?item.label.ar:item.label.en}</Text>
       <Text style={[styles.translation,!arabic&&styles.rtl]}>{arabic?item.label.en:item.label.ar}</Text>
-      <Text style={styles.context}>{item.context.en} · {item.context.ar}</Text>
+      <Text style={styles.context}>{item.context.en} · {item.context.ar}{isNearby(item)?` · ${nearbyCountLabel(item)}`:''}</Text>
      </View>
      <Text style={styles.badge}>{SEARCH_TYPE_LABEL[item.type]}</Text>
     </>}
@@ -184,6 +184,7 @@ export function MobileSearchAutocomplete({value:launchValue,onSelect,onSubmitTex
         </>}
        </View>
        {typed&&<Pressable accessibilityRole="button" onPress={()=>close(()=>onSubmitText(value.trim()))} style={styles.searchAll}><Ionicons name="search-outline" size={17} color="#ea3f4a"/><Text style={styles.link}>Search all for “{value.trim()}”</Text><Ionicons name="arrow-forward" size={17} color="#ea3f4a"/></Pressable>}
+       {typed&&items.some(isNearby)&&<Pressable accessibilityRole="link" onPress={()=>void Linking.openURL(OSM_ATTRIBUTION.url)} hitSlop={8} style={styles.attribution}><Text style={styles.attributionText}>{OSM_ATTRIBUTION.text}</Text></Pressable>}
       </ScrollView>
       <Text accessibilityLiveRegion="polite" {...(web?{role:'status'}:{} as object)} style={styles.sr}>{query.isFetching?'Searching':typed?`${items.length} suggestions available`:'Popular locations and campuses'}</Text>
      </KeyboardAvoidingView>
@@ -198,5 +199,5 @@ const styles=StyleSheet.create({
  header:{flexDirection:'row',alignItems:'center',paddingVertical:5,paddingRight:12,paddingLeft:4,gap:2,borderBottomWidth:0,minHeight:68,backgroundColor:'#fff'},back:{width:40,height:44,alignItems:'center',justifyContent:'center'},inputWrap:{flex:1,flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:'transparent',borderRadius:28,backgroundColor:'#fff',height:48,boxShadow:'0 3px 14px rgba(16,24,40,0.10)'},clear:{height:40,width:36,alignItems:'center',justifyContent:'center'},
  listContent:{paddingBottom:24},locationHeading:{paddingHorizontal:16,paddingVertical:16,gap:8,flexDirection:'row',alignItems:'center',borderBottomColor:'#f2f4f7',borderBottomWidth:1},locationLabel:{fontFamily:Studently.type.bodyMedium,fontSize:12,color:'#344054'},section:{paddingBottom:16,borderBottomWidth:1,borderBottomColor:'#f0f1f4'},sectionHead:{paddingTop:16,paddingHorizontal:16,paddingBottom:10,flexDirection:'row',alignItems:'center',gap:6},sectionTitle:{fontFamily:Studently.type.bodyMedium,fontSize:15,color:'#667085',flex:1},clearRecents:{minHeight:44,minWidth:44,paddingVertical:4,paddingLeft:8,alignItems:'flex-end',justifyContent:'center'},horizontalGrid:{flexGrow:0,flexShrink:0,minHeight:140},gridContent:{paddingHorizontal:16,gap:8},gridRow:{width:'100%',height:64,paddingVertical:4,borderRadius:10},recentList:{paddingHorizontal:16,gap:8},recentRow:{height:64,width:'100%',paddingVertical:4,borderRadius:10},inputFocused:{borderColor:'#ea3f4a'},
  row:{flexDirection:'row',alignItems:'center',padding:16,gap:12,borderBottomColor:'#f2f4f7',borderBottomWidth:1,minHeight:88},selected:{backgroundColor:'#fff1f2',borderColor:'#f9b5ba'},iconTile:{width:34,height:34,borderRadius:9,backgroundColor:'#f3f4f6',alignItems:'center',justifyContent:'center'},rowBody:{flex:1,minWidth:0,gap:3},rowTitle:{fontFamily:Studently.type.bodyMedium,fontSize:14,lineHeight:21,color:'#111928'},translation:{fontSize:12,lineHeight:19,color:'#667085'},context:{fontFamily:Studently.type.body,fontSize:12,lineHeight:19,color:'#667085'},badge:{fontFamily:Studently.type.bodyMedium,fontSize:10,color:'#667085',borderColor:'#e4e7ec',borderWidth:1,borderRadius:5,paddingHorizontal:5,paddingVertical:2},rtl:{writingDirection:'rtl',textAlign:'right'},
- loading:{padding:20,gap:16},skeleton:{height:38,borderRadius:8,backgroundColor:'#f3f4f6'},empty:{paddingHorizontal:28,paddingVertical:48,alignItems:'center',gap:12},emptyTitle:{fontFamily:Studently.type.bodySemi,fontSize:16,color:'#344054'},emptyText:{fontFamily:Studently.type.body,fontSize:14,lineHeight:22,color:'#667085',textAlign:'center'},retry:{padding:12},link:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#ea3f4a'},searchAll:{margin:16,paddingVertical:15,paddingHorizontal:14,borderRadius:12,borderWidth:1,borderColor:'#fbd5d8',backgroundColor:'#fff8f8',flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},historyError:{padding:16,flexDirection:'row',gap:12,alignItems:'center'},sr:{position:'absolute',height:1,width:1,overflow:'hidden',opacity:0},
+ loading:{padding:20,gap:16},skeleton:{height:38,borderRadius:8,backgroundColor:'#f3f4f6'},empty:{paddingHorizontal:28,paddingVertical:48,alignItems:'center',gap:12},emptyTitle:{fontFamily:Studently.type.bodySemi,fontSize:16,color:'#344054'},emptyText:{fontFamily:Studently.type.body,fontSize:14,lineHeight:22,color:'#667085',textAlign:'center'},retry:{padding:12},link:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#ea3f4a'},searchAll:{margin:16,paddingVertical:15,paddingHorizontal:14,borderRadius:12,borderWidth:1,borderColor:'#fbd5d8',backgroundColor:'#fff8f8',flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},historyError:{padding:16,flexDirection:'row',gap:12,alignItems:'center'},attribution:{alignSelf:'center',paddingVertical:4,paddingHorizontal:8},attributionText:{fontFamily:Studently.type.body,fontSize:11,color:'#98a2b3'},sr:{position:'absolute',height:1,width:1,overflow:'hidden',opacity:0},
 });

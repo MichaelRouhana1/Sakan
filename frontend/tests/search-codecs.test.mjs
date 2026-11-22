@@ -77,3 +77,37 @@ test('campus nearby count radius survives selection, URL codecs and replacing th
  assert.equal(m.applySearchSelection(selected,fixtures[1]).filters.radiusKm,null);
  assert.equal(m.browseSearchSetParams(m.searchDestination(fixtures[1])).radiusKm,undefined);
 });
+
+const street={type:'street',id:'street:bliss-street-beirut',slug:'bliss-street-beirut',canonicalArea:'Hamra',parentAreaId:'area:hamra',
+  nearbyRadiusMeters:400,eligibleUnitCount:4,fallback:null,url:'/search?locationId=street%3Abliss-street-beirut&kind=street&radiusKm=0.4',label,context,center};
+const hood={...street,type:'hood',id:'hood:monot',slug:'monot',canonicalArea:'Achrafieh',parentAreaId:'area:achrafieh',
+  url:'/search?locationId=hood%3Amonot&kind=hood&radiusKm=0.4'};
+test('street and neighbourhood destinations match their API URL, keep the area radius and round-trip',()=>{
+  for(const item of [street,hood]) {
+    const params=m.browseSearchParams(m.searchDestination(item));
+    assert.deepEqual(params,Object.fromEntries(new URL(item.url,'https://studently.test').searchParams));
+    const state=m.parseBrowseState(params);
+    assert.equal(state.filters.locationId,item.id);assert.equal(state.filters.locationKind,item.type);assert.equal(state.filters.radiusKm,0.4);
+    assert.deepEqual(m.parseBrowseState(m.serializeBrowseState(state)),state);
+    const api=m.toListFilters(state.mode,state.filters,'newest');
+    assert.equal(api.locationId,item.id);assert.equal(api.locationKind,item.type);assert.equal(api.radiusKm,0.4);assert.equal(api.areas,undefined);
+  }
+  assert.equal(m.searchDestination({...street,nearbyRadiusMeters:800}).radiusKm,0.8);
+});
+test('selecting a street replaces every other destination, and any other selection or text clears the street',()=>{
+  const old=m.parseBrowseState({city:'beirut',placeId:fixtures[3].id,areas:'Fanar',campusId:fixtures[2].id,universitySlugs:'lau',maxRentUsd:'700',sort:'distance'});
+  const selected=m.applySearchSelection(old,street),f=selected.filters;
+  assert.deepEqual(Object.keys(m.browseSearchParams(f)).sort(),['kind','locationId','radiusKm']);assert.equal(f.maxRentUsd,700);
+  assert.equal(selected.sort,'distance');assert.equal(selected.mode,'standard');
+  for(const next of [m.applySearchSelection(selected,fixtures[1]),m.applySearchSelection(selected,fixtures[3]),m.applySearchText(selected,'quiet')]) {
+    assert.equal(next.filters.locationId,null);assert.equal(next.filters.locationKind,null);assert.equal(next.filters.radiusKm,null);
+    assert.equal(m.browseSearchParams(next.filters).kind,undefined);
+  }
+  assert.equal(m.clearSearchLocation(selected).filters.locationId,null);
+  const cleared=m.browseSearchSetParams({areas:['Hamra']});assert.equal(cleared.locationId,undefined);assert.equal(cleared.kind,undefined);
+});
+test('a kind without a location id, or a mismatched kind, never reaches the API',()=>{
+  assert.equal(m.parseBrowseState({kind:'street'}).filters.locationKind,null);
+  assert.equal(m.toListFilters('standard',m.parseBrowseState({kind:'street'}).filters,'newest').locationKind,undefined);
+  assert.equal(m.parseBrowseState({locationId:'street:bliss',kind:'bogus'}).filters.locationId,null);
+});

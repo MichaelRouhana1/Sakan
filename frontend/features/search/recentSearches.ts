@@ -27,6 +27,14 @@ export function parseRecentSearches(raw:string|null):SearchSuggestion[] {
         item={...base,type:'campus',slug:x.slug,nearbyRadiusMeters:radius,url:`/search?campusId=${encodeURIComponent(x.id)}&universitySlugs=${encodeURIComponent(x.slug)}${radius?'&radiusKm='+radius/1000:''}`};
       }
       else if(x.type==='place'&&uuid.test(x.id)&&text(x.canonicalArea))item={...base,type:'place',canonicalArea:x.canonicalArea,url:`/search?placeId=${encodeURIComponent(x.id)}`};
+      else if((x.type==='street'||x.type==='hood')&&x.id.length<=128&&new RegExp(`^${x.type}:[a-z0-9]+(?:-[a-z0-9]+)*$`).test(x.id)&&
+        typeof x.slug==='string'&&/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(x.slug)&&text(x.canonicalArea)&&typeof x.parentAreaId==='string'&&/^area:[a-z0-9-]+$/.test(x.parentAreaId)&&
+        Number.isSafeInteger(x.nearbyRadiusMeters)&&x.nearbyRadiusMeters>=100&&x.nearbyRadiusMeters<=5000) {
+        const fallback=x.fallback&&text(x.fallback.canonicalArea)&&text(x.fallback.label?.en)&&text(x.fallback.label?.ar)&&Number.isSafeInteger(x.fallback.count)&&x.fallback.count>=0
+          ?{canonicalArea:x.fallback.canonicalArea,label:{en:x.fallback.label.en,ar:x.fallback.label.ar},count:x.fallback.count}:null;
+        item={...base,type:x.type,slug:x.slug,canonicalArea:x.canonicalArea,parentAreaId:x.parentAreaId,nearbyRadiusMeters:x.nearbyRadiusMeters,fallback,
+          url:`/search?locationId=${encodeURIComponent(x.id)}&kind=${x.type}&radiusKm=${x.nearbyRadiusMeters/1000}`};
+      }
       else continue;
       if(!result.some(r=>recentKey(r)===recentKey(item)))result.push(item);
       if(result.length===RECENT_SEARCH_LIMIT)break;
