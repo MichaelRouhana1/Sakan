@@ -10,7 +10,8 @@ export type DetailSectionId =
   | "rooms"
   | "rules"
   | "map"
-  | "nearby";
+  | "nearby"
+  | "similar";
 
 export type DetailSectionTab = {
   id: DetailSectionId;

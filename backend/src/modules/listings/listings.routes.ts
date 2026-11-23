@@ -101,6 +101,10 @@ listingsRouter.get("/home-popular", (req, res, next) =>
   listingsController.homePopular(req, res, next),
 );
 
+listingsRouter.get("/batch", (req, res, next) =>
+  listingsController.listByIds(req, res, next),
+);
+
 listingsRouter.post(
   "/photos",
   requireAuth,
@@ -118,6 +122,10 @@ listingsRouter.post("/:id/contact-tap", optionalAuth, (req, res, next) =>
 
 listingsRouter.get("/:id/nearby", (req, res, next) =>
   listingsController.listNearby(req, res, next),
+);
+
+listingsRouter.get("/:id/similar", (req, res, next) =>
+  listingsController.listSimilar(req, res, next),
 );
 
 listingsRouter.get(

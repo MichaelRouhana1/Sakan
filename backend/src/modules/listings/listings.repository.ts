@@ -17,6 +17,7 @@ import {
   isNotNull,
   lte,
   ne,
+  or,
   sql,
   type SQL,
 } from "drizzle-orm";
@@ -396,6 +397,186 @@ export class ListingsRepository {
       sql`${listingResolved.hiddenReason} IS NULL`, sql`${listingResolved.expiresAt} > now()`,
     )).orderBy(asc(listingResolved.monthlyRentUsd), asc(listingResolved.id));
     return this.withPhotos(rows.map(row => ({ ...row, lng: parseCoord(row.lng), lat: parseCoord(row.lat) })));
+  }
+
+  /**
+   * Fetch source listing and tiered eligible candidate pool for similarity ranking.
+   * Tier 1: same area OR within 5 km OR same primary campus.
+   * Tier 2: widen to same city only when fewer than `minPlaces` (4) distinct places match Tier 1.
+   * Tier 3: widen nationwide only when still fewer than `minPlaces` (4) distinct places.
+   */
+  async findSimilarCandidates(
+    listingId: string,
+    opts?: { localRadiusMeters?: number; minPlaces?: number; poolLimit?: number },
+  ) {
+    const localRadiusMeters = opts?.localRadiusMeters ?? 5_000;
+    const minPlaces = opts?.minPlaces ?? 4;
+    const poolLimit = opts?.poolLimit ?? 250;
+
+    const [sourceRow] = await db
+      .select({
+        ...listingPublicColumns,
+        city: listingResolved.city,
+      })
+      .from(listingResolved)
+      .where(eq(listingResolved.id, listingId))
+      .limit(1);
+
+    if (!sourceRow) return null;
+    if (
+      sourceRow.status === "archived" ||
+      sourceRow.status === "removed" ||
+      sourceRow.hidden ||
+      sourceRow.hiddenReason ||
+      (sourceRow.expiresAt && new Date(sourceRow.expiresAt).getTime() <= Date.now())
+    ) {
+      return null;
+    }
+
+    const source = {
+      ...sourceRow,
+      lng: parseCoord(sourceRow.lng),
+      lat: parseCoord(sourceRow.lat),
+    };
+    const hasCoords = source.lat != null && source.lng != null;
+    const sourcePointSql = hasCoords
+      ? sql`ST_SetSRID(ST_MakePoint(${source.lng!}, ${source.lat!}), 4326)::geography`
+      : null;
+
+    const baseConditions: SQL[] = [
+      ne(listingResolved.id, source.id),
+      ne(listingResolved.placeId, source.placeId),
+      eq(listingResolved.status, "active"),
+      ne(listingResolved.availability, "rented"),
+      eq(listingResolved.hidden, false),
+      sql`${listingResolved.hiddenReason} IS NULL`,
+      sql`${listingResolved.expiresAt} > now()`,
+      eq(listingResolved.inventoryNeedsConfirmation, false),
+      sql`(${listingResolved.bedsAvailable} IS NULL OR ${listingResolved.bedsAvailable} > 0)`,
+    ];
+
+    if (source.genderRestriction === "girls_only") {
+      baseConditions.push(ne(listingResolved.genderRestriction, "boys_only"));
+    } else if (source.genderRestriction === "boys_only") {
+      baseConditions.push(ne(listingResolved.genderRestriction, "girls_only"));
+    }
+
+    const candidateColumns = {
+      ...listingPublicColumns,
+      city: listingResolved.city,
+      photoCount: sql<number>`(SELECT count(*)::int FROM listing_photos lp WHERE lp.listing_id = listing_resolved.id)`.as(
+        "photo_count",
+      ),
+      distanceFromSourceMeters: sourcePointSql
+        ? sql<number | null>`CASE WHEN ${listingResolved.location} IS NOT NULL THEN ST_Distance(${listingResolved.location}, ${sourcePointSql}) ELSE NULL END`.as(
+            "distance_from_source_meters",
+          )
+        : sql<number | null>`NULL`.as("distance_from_source_meters"),
+    };
+
+    const normalizeCandidate = (row: Record<string, unknown>) => ({
+      ...row,
+      id: String(row.id),
+      placeId: String(row.placeId ?? ""),
+      lng: parseCoord(row.lng),
+      lat: parseCoord(row.lat),
+      photoCount: Number(row.photoCount ?? 0),
+      distanceFromSourceMeters:
+        row.distanceFromSourceMeters == null ? null : Number(row.distanceFromSourceMeters),
+    });
+
+    const queryTier = async (extra: SQL | undefined, excludeIds: string[]) => {
+      const conditions = [...baseConditions];
+      if (extra) conditions.push(extra);
+      if (excludeIds.length > 0) {
+        conditions.push(sql`${listingResolved.id} NOT IN (${sql.join(excludeIds.map((id) => sql`${id}::uuid`), sql`, `)})`);
+      }
+      const rows = await db
+        .select(candidateColumns)
+        .from(listingResolved)
+        .where(and(...conditions))
+        .orderBy(
+          sourcePointSql
+            ? sql`CASE WHEN ${listingResolved.location} IS NOT NULL THEN ST_Distance(${listingResolved.location}, ${sourcePointSql}) ELSE 1e12 END ASC`
+            : desc(listingResolved.createdAt),
+          sql`COALESCE(${listingResolved.publishedAt}, ${listingResolved.createdAt}) DESC`,
+        )
+        .limit(poolLimit);
+      return rows.map((row) => normalizeCandidate(row as unknown as Record<string, unknown>));
+    };
+
+    // Tier 1: Local (same area OR within 5 km OR same primary campus)
+    const localPredicates: SQL[] = [];
+    const normArea = (source.area ?? "").trim().toLowerCase();
+    if (normArea) {
+      localPredicates.push(sql`lower(btrim(${listingResolved.area})) = ${normArea}`);
+    }
+    if (sourcePointSql) {
+      localPredicates.push(
+        sql`(${listingResolved.location} IS NOT NULL AND ST_DWithin(${listingResolved.location}, ${sourcePointSql}, ${localRadiusMeters}))`,
+      );
+    }
+    if (source.primaryCampusId) {
+      localPredicates.push(eq(listingResolved.primaryCampusId, source.primaryCampusId));
+    }
+
+    const merged = localPredicates.length > 0
+      ? await queryTier(or(...localPredicates), [])
+      : [];
+
+    const distinctPlaces = () =>
+      new Set(merged.map((row) => String(row.placeId ?? row.id))).size;
+
+    // Tier 2: Same city when fewer than minPlaces distinct local places exist
+    const normCity = (source.city ?? "").trim().toLowerCase();
+    if (distinctPlaces() < minPlaces && normCity) {
+      const seenIds = merged.map((row) => String(row.id));
+      const cityRows = await queryTier(
+        sql`lower(btrim(COALESCE(${listingResolved.city}, ''))) = ${normCity}`,
+        seenIds,
+      );
+      merged.push(...cityRows);
+    }
+
+    // Tier 3: Nationwide fallback when still fewer than minPlaces distinct places exist
+    if (distinctPlaces() < minPlaces) {
+      const seenIds = merged.map((row) => String(row.id));
+      const wideRows = await queryTier(undefined, seenIds);
+      merged.push(...wideRows);
+    }
+
+    return { source, candidates: merged };
+  }
+
+  /** Live public listings hydrated by IDs, preserving caller order and omitting inactive/rented items. */
+  async findPublicByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    const rows = await db
+      .select(listingPublicColumns)
+      .from(listingResolved)
+      .where(
+        and(
+          inArray(listingResolved.id, ids),
+          eq(listingResolved.status, "active"),
+          ne(listingResolved.availability, "rented"),
+          eq(listingResolved.hidden, false),
+          sql`${listingResolved.hiddenReason} IS NULL`,
+          sql`${listingResolved.expiresAt} > now()`,
+          eq(listingResolved.inventoryNeedsConfirmation, false),
+          sql`(${listingResolved.bedsAvailable} IS NULL OR ${listingResolved.bedsAvailable} > 0)`,
+        ),
+      );
+    const hydrated = await this.withPhotos(
+      rows.map((row) => ({
+        ...row,
+        lng: parseCoord(row.lng),
+        lat: parseCoord(row.lat),
+      })),
+    );
+    const byId = new Map(hydrated.map((row) => [row.id, row]));
+    return ids
+      .map((id) => byId.get(id))
+      .filter((row): row is (typeof hydrated)[number] => Boolean(row));
   }
 
   async listActiveByArea(area?: string, sort: ListingSort = "newest") {

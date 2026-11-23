@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { View } from "react-native";
 import type { Listing } from "@/types/listing";
 import { HomePropertyCard } from "./HomePropertyCard";
@@ -13,16 +13,27 @@ export function HomePropertyRail({
   filters,
   status,
   area,
+  ariaLabel = "Places across Lebanon",
+  gutter,
+  reveal = true,
+  testIdPrefix = "home-listing",
+  detail = false,
 }: {
   listings: Listing[];
-  filters: ReactNode;
+  filters?: ReactNode;
   status?: ReactNode;
   area: string;
+  ariaLabel?: string;
+  gutter?: number;
+  reveal?: boolean;
+  testIdPrefix?: string;
+  detail?: boolean;
 }) {
   const track = useRef<HTMLDivElement>(null);
   const trackId = useId();
   const [edges, setEdges] = useState({ start: true, end: true });
   const showListings = !status && listings.length > 0;
+  const showToolbar = Boolean(filters) || showListings;
 
   function updateEdges() {
     const node = track.current;
@@ -54,25 +65,39 @@ export function HomePropertyRail({
     });
   }
 
+  const railStyle =
+    gutter !== undefined
+      ? ({ "--home-property-gutter": `${gutter}px` } as CSSProperties)
+      : undefined;
+
   return (
-    <div className="home-property-rail">
-      <div className="home-property-rail__toolbar">
-        <div className="home-property-rail__filters">{filters}</div>
-        {showListings && (
-          <div className="home-property-rail__controls">
-            <button type="button" aria-label="Previous properties" aria-controls={trackId} disabled={edges.start} onClick={() => scrollByCards(-1)}>
-              <Ionicons name="chevron-back" size={12} />
-            </button>
-            <button type="button" aria-label="Next properties" aria-controls={trackId} disabled={edges.end} onClick={() => scrollByCards(1)}>
-              <Ionicons name="chevron-forward" size={12} />
-            </button>
-          </div>
-        )}
-      </div>
+    <div
+      className={detail ? "home-property-rail home-property-rail--detail" : "home-property-rail"}
+      style={railStyle}
+    >
+      {showToolbar && (
+        <div className="home-property-rail__toolbar">
+          <div className="home-property-rail__filters">{filters}</div>
+          {showListings && (
+            <div className="home-property-rail__controls">
+              <button type="button" aria-label="Previous properties" aria-controls={trackId} disabled={edges.start} onClick={() => scrollByCards(-1)}>
+                <Ionicons name="chevron-back" size={12} />
+              </button>
+              <button type="button" aria-label="Next properties" aria-controls={trackId} disabled={edges.end} onClick={() => scrollByCards(1)}>
+                <Ionicons name="chevron-forward" size={12} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {status || (
-        <div key={area} className="home-property-rail__track" id={trackId} ref={track} onScroll={updateEdges} role="region" aria-label="Places across Lebanon">
+        <div key={area} className="home-property-rail__track" id={trackId} ref={track} onScroll={updateEdges} role="region" aria-label={ariaLabel}>
           {listings.map((listing) => (
-            <View key={listing.id} {...homeRevealProps("card", 60, "listings")} testID={`home-listing-${listing.id}`}>
+            <View
+              key={listing.id}
+              {...(reveal ? homeRevealProps("card", 60, "listings") : {})}
+              testID={`${testIdPrefix}-${listing.id}`}
+            >
               <HomePropertyCard listing={listing} />
             </View>
           ))}

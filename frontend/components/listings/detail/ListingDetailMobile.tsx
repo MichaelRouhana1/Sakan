@@ -31,6 +31,8 @@ import {
 } from "@/components/listings/detail/ListingDetailGallery";
 import { ListingDetailHouseRules } from "@/components/listings/detail/ListingDetailHouseRules";
 import { ListingDetailMapSection } from "@/components/listings/detail/ListingDetailMapSection";
+import { ListingDetailDiscoverySection } from "@/components/listings/detail/ListingDetailDiscoverySection";
+import { useListingDetailDiscovery } from "@/components/listings/detail/useListingDetailDiscovery";
 import { ListingDetailNearbyRail } from "@/components/listings/detail/ListingDetailNearbyRail";
 import { ListingDetailOverview } from "@/components/listings/detail/ListingDetailOverview";
 import { ListingDetailRooms } from "@/components/listings/detail/ListingDetailRooms";
@@ -47,6 +49,7 @@ import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
+import { useRecordRecentlyViewed } from "@/features/listings/useRecentlyViewedListings";
 import { useIsReported } from "@/features/reports/useReportListing";
 import {
   useIsSaved,
@@ -79,6 +82,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   const coincident = useNearbyListings(listingId ?? "", {
     enabled: Boolean(listing?.placeId),
   });
+  const discovery = useListingDetailDiscovery(listingId ?? "");
   const [reportOpen, setReportOpen] = useState(false);
   const [galleryMode, setGalleryMode] = useState<GalleryMode>("photos");
   const [activeTab, setActiveTab] = useState<DetailSectionId | null>(null);
@@ -104,6 +108,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   }, [goBack]);
 
   useRecordListingView(listingId ?? "", Boolean(listingId) && !isError);
+  useRecordRecentlyViewed(listingId ?? "", Boolean(listing) && !isError);
 
   const isPbsa =
     listing?.isPbsa || listing?.listingType === "pbsa_building";
@@ -131,8 +136,14 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     if (multiUnit) next.push({ id: 'nearby', label: 'Other units' });
     if (hasPin) next.push({ id: "map", label: "Map" });
     if (!multiUnit && nearby.length > 0) next.push({ id: "nearby", label: "Other units" });
+    if (discovery.visible) {
+      next.push({
+        id: "similar",
+        label: discovery.hasSimilar ? "Similar" : "Recent",
+      });
+    }
     return next;
-  }, [listing, multiUnit, hasPlace, description, hasAmenities, hasRooms, isPbsa, hasRules, hasPin, nearby.length]);
+  }, [listing, multiUnit, hasPlace, description, hasAmenities, hasRooms, isPbsa, hasRules, hasPin, nearby.length, discovery.visible, discovery.hasSimilar]);
 
   useEffect(() => {
     if (tabs.length === 0) {
@@ -328,6 +339,17 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               onLayout={onSectionLayout("nearby")}
             >
               <ListingDetailNearbyRail listings={nearby} />
+            </View>
+          ) : null}
+
+          {discovery.visible ? (
+            <View
+              nativeID="listing-similar"
+              collapsable={false}
+              style={styles.sectionPad}
+              onLayout={onSectionLayout("similar")}
+            >
+              <ListingDetailDiscoverySection listingId={listing.id} variant="card" />
             </View>
           ) : null}
         </ScrollView>

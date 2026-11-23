@@ -49,6 +49,12 @@ export const listingKeys = {
   details: () => [...listingKeys.all, "detail"] as const,
   detail: (id: string) => [...listingKeys.details(), id] as const,
   nearby: (id: string) => [...listingKeys.detail(id), "nearby"] as const,
+  similar: (id: string, limit = 10) =>
+    [...listingKeys.detail(id), "similar", limit] as const,
+  batch: (ids: readonly string[]) =>
+    [...listingKeys.all, "batch", ids] as const,
+  recentlyViewedIds: (scope: string) =>
+    [...listingKeys.all, "recently-viewed-ids", scope] as const,
   hostAnalytics: () => [...listingKeys.all, "host-analytics"] as const,
   listingAnalytics: (id: string) =>
     [...listingKeys.detail(id), "analytics"] as const,

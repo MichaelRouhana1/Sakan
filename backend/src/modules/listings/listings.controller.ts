@@ -1,8 +1,10 @@
 import { activityInputSchema } from '../listing-activity/activity-policy.js';
 import { searchUnits } from '../search/unit-search.service.js';
 import type { NextFunction, Request, Response } from "express";
+import { z } from "zod";
 import { ValidationError } from "../../lib/errors.js";
 import { listingsService } from "./listings.service.js";
+import { SIMILAR_RULES } from "./similar-listings.scoring.js";
 import {
   listListingsQuerySchema,
   type CreateListingInput,
@@ -130,6 +132,62 @@ export class ListingsController {
   async listNearby(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await listingsService.listNearby(req.params.id as string);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listSimilar(req: Request, res: Response, next: NextFunction) {
+    try {
+      const idResult = z.uuid().safeParse(req.params.id);
+      if (!idResult.success) {
+        throw new ValidationError("Invalid listing id");
+      }
+      const rawLimit = queryString(req.query.limit);
+      let limit: number = SIMILAR_RULES.defaultLimit;
+      if (rawLimit !== undefined && rawLimit.trim() !== "") {
+        const parsedLimit = z.coerce
+          .number()
+          .int()
+          .min(1)
+          .max(SIMILAR_RULES.maxLimit)
+          .safeParse(rawLimit);
+        if (!parsedLimit.success) {
+          throw new ValidationError(
+            `limit must be an integer between 1 and ${SIMILAR_RULES.maxLimit}`,
+          );
+        }
+        limit = parsedLimit.data;
+      }
+      const data = await listingsService.listSimilar(idResult.data, limit);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listByIds(req: Request, res: Response, next: NextFunction) {
+    try {
+      const raw = queryString(req.query.ids)?.trim() ?? "";
+      if (!raw) {
+        res.json({ data: [] });
+        return;
+      }
+      const parts = raw
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (parts.length > SIMILAR_RULES.maxLimit) {
+        throw new ValidationError(
+          `At most ${SIMILAR_RULES.maxLimit} listing ids are allowed`,
+        );
+      }
+      const parsed = z.array(z.uuid()).safeParse(parts);
+      if (!parsed.success) {
+        throw new ValidationError("ids must be valid UUIDs");
+      }
+      const data = await listingsService.listByIds(parsed.data);
       res.json({ data });
     } catch (err) {
       next(err);

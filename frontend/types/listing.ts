@@ -215,6 +215,8 @@ export type Listing = {
   nearestCampusSlug?: string;
   /** Hub: resolved display name for nearestCampusSlug (from envelope campuses). */
   nearestCampusName?: string;
+  /** Organic similarity label returned by /similar (reserved for future UI). */
+  similarityReason?: string;
   photos: ListingPhoto[];
   coverUrl: string | null;
 

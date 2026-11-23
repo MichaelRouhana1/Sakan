@@ -347,6 +347,10 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
         ? undefined
         : Number(distance),
     nearestCampusSlug,
+    similarityReason:
+      typeof (row.similarityReason ?? row.similarity_reason) === "string"
+        ? String(row.similarityReason ?? row.similarity_reason)
+        : undefined,
     photos,
     coverUrl,
     isPbsa,

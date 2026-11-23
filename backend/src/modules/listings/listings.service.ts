@@ -20,6 +20,11 @@ import {
   type ListingWithPhotos,
 } from "./listings.repository.js";
 import {
+  rankSimilarListings,
+  SIMILAR_RULES,
+  type SimilarScoringListing,
+} from "./similar-listings.scoring.js";
+import {
   diffListingUpdate,
   isWithinStructuralWindow,
   lockedHardKeys,
@@ -140,6 +145,50 @@ export class ListingsService {
       throw new NotFoundError("Listing not found");
     }
     return rows;
+  }
+
+  /** Organic similar places (excluding same place, max 1 unit per place). */
+  async listSimilar(id: string, limit: number = SIMILAR_RULES.defaultLimit) {
+    const result = await listingsRepository.findSimilarCandidates(id, {
+      localRadiusMeters: SIMILAR_RULES.localRadiusMeters,
+      minPlaces: SIMILAR_RULES.minPlacesBeforeWiden,
+    });
+    if (!result) {
+      throw new NotFoundError("Listing not found");
+    }
+    const ranked = rankSimilarListings(
+      result.source as unknown as SimilarScoringListing,
+      result.candidates as unknown as SimilarScoringListing[],
+      { limit },
+    );
+    if (ranked.length === 0) return [];
+    const stripped = ranked.map((entry) => {
+      const {
+        distanceFromSourceMeters: _distanceFromSourceMeters,
+        photoCount: _photoCount,
+        ...rest
+      } = entry.listing as Record<string, unknown>;
+      return {
+        ...rest,
+        id: String(rest.id),
+        similarityReason: entry.reason,
+      };
+    });
+    return listingsRepository.withPhotos(stripped);
+  }
+
+  /** Live public listings hydrated by IDs, preserving order (max 12). */
+  async listByIds(ids: string[]) {
+    const unique: string[] = [];
+    const seen = new Set<string>();
+    for (const id of ids) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      unique.push(id);
+      if (unique.length >= SIMILAR_RULES.maxLimit) break;
+    }
+    if (unique.length === 0) return [];
+    return listingsRepository.findPublicByIds(unique);
   }
 
   /** Home discover: top areas by pins + top campuses by nearby pins. */

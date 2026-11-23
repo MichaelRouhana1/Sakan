@@ -33,6 +33,8 @@ import {
 } from "@/components/listings/detail/ListingDetailAmenities";
 import { ListingDetailHouseRules } from "@/components/listings/detail/ListingDetailHouseRules";
 import { ListingDetailMapSection } from "@/components/listings/detail/ListingDetailMapSection";
+import { ListingDetailDiscoverySection } from "@/components/listings/detail/ListingDetailDiscoverySection";
+import { useListingDetailDiscovery } from "@/components/listings/detail/useListingDetailDiscovery";
 import { ListingNearbyCampuses } from "@/components/listings/detail/ListingNearbyCampuses";
 import { ListingDetailRooms } from "@/components/listings/detail/ListingDetailRooms";
 import { OtherPlaceUnits } from "@/components/listings/detail/OtherPlaceUnits";
@@ -65,6 +67,7 @@ import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
 import { useListing } from "@/features/listings/useListing";
 import { useNearbyListings } from "@/features/listings/useNearbyListings";
 import { useRecordListingView } from "@/features/listings/useRecordListingView";
+import { useRecordRecentlyViewed } from "@/features/listings/useRecentlyViewedListings";
 import { useIsReported } from "@/features/reports/useReportListing";
 import {
   useIsSaved,
@@ -144,6 +147,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   const nearby = useNearbyListings(listingId, {
     enabled: Boolean(listing?.placeId),
   });
+  const discovery = useListingDetailDiscovery(listingId);
   const universities = useUniversities();
 
   const [reportOpen, setReportOpen] = useState(false);
@@ -181,6 +185,7 @@ export function ListingDetailWeb({ listingId }: Props) {
   }, [linkCopied]);
 
   useRecordListingView(listingId, Boolean(listingId) && !isError);
+  useRecordRecentlyViewed(listingId, Boolean(listing) && !isError);
 
   const currentPhotos = useMemo(
     () => (listing ? resolvePhotos(listing, null) : []),
@@ -733,6 +738,12 @@ export function ListingDetailWeb({ listingId }: Props) {
           {!multiUnit && siblings.length > 0 ? (
             <View style={styles.stackRoomy}>
               <CoincidentListingsSection listings={siblings} />
+            </View>
+          ) : null}
+
+          {discovery.visible ? (
+            <View nativeID="listing-similar" style={[styles.anchor, styles.stackRoomy]}>
+              <ListingDetailDiscoverySection listingId={listing.id} variant="web" />
             </View>
           ) : null}
         </View>
