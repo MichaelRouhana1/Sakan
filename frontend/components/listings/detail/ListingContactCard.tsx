@@ -7,7 +7,7 @@ import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStac
 import { ListingTocRail, type ListingTocItem } from "@/components/listings/detail/ListingTocRail";
 import { LText } from "@/components/lister/Typography";
 import { Studently } from "@/constants/theme";
-import { WHATSAPP_GREEN, WHATSAPP_GREEN_PRESSED } from "@/lib/whatsapp";
+import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 import { useUniversities } from "@/features/universities/useUniversities";
 import { labelPosterRole } from "@/lib/listingLabels";
 import { nearbyCampusesForListing } from "@/lib/nearbyCampuses";
@@ -185,19 +185,18 @@ export function ListingContactCard({
               accessibilityRole="button"
               accessibilityLabel="WhatsApp the poster"
               style={({ hovered, pressed }) => [
-                styles.solid,
-                styles.whatsapp,
-                (hovered || pressed) && styles.whatsappHover,
+                styles.outline,
+                (hovered || pressed) && styles.outlineHover,
               ]}
             >
-              <Ionicons name="logo-whatsapp" size={designSize(18)} color="#fff" />
-              <LText variant="subtitle" style={styles.solidText}>
+              <Ionicons name="logo-whatsapp" size={designSize(18)} color={WHATSAPP_GREEN} />
+              <LText variant="subtitle" style={styles.outlineText}>
                 WhatsApp
               </LText>
             </Pressable>
           ) : (
-            <View style={[styles.outline, styles.whatsappSoon, styles.disabled]}>
-              <LText variant="subtitle" style={styles.whatsappSoonText}>
+            <View style={[styles.outline, styles.disabled]}>
+              <LText variant="subtitle" style={styles.outlineText}>
                 WhatsApp soon
               </LText>
             </View>
@@ -417,14 +416,6 @@ const baseStyles = StyleSheet.create({
       : null),
   },
   solidHover: { backgroundColor: Studently.color.primaryPressed },
-  whatsapp: { backgroundColor: WHATSAPP_GREEN },
-  whatsappHover: { backgroundColor: WHATSAPP_GREEN_PRESSED },
-  whatsappSoon: { borderColor: WHATSAPP_GREEN },
-  whatsappSoonText: {
-    color: WHATSAPP_GREEN,
-    fontFamily: Studently.type.bodySemi,
-    fontSize: 15,
-  },
   solidText: {
     color: "#fff",
     fontFamily: Studently.type.bodySemi,
@@ -434,7 +425,7 @@ const baseStyles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: Studently.color.primary,
+    borderColor: Studently.color.ink,
     backgroundColor: Studently.color.surface,
     flexDirection: "row",
     alignItems: "center",
@@ -443,14 +434,17 @@ const baseStyles = StyleSheet.create({
     ...(IS_WEB
       ? ({
           cursor: "pointer",
-          transitionProperty: "border-color",
+          transitionProperty: "background-color, border-color",
           transitionDuration: "160ms",
         } as object)
       : null),
   },
-  outlineHover: { borderColor: Studently.color.primaryPressed },
+  outlineHover: {
+    backgroundColor: Studently.color.surfaceMuted,
+    borderColor: Studently.color.ink,
+  },
   outlineText: {
-    color: Studently.color.primary,
+    color: Studently.color.ink,
     fontFamily: Studently.type.bodySemi,
     fontSize: 15,
   },

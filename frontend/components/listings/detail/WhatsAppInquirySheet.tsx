@@ -112,8 +112,8 @@ export function WhatsAppInquirySheet({ inquiry }: { inquiry: WhatsAppInquiryCont
           </ScrollView>
           <View style={styles.actions}>
             {error && <LText accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>{error}</LText>}
-            <Pressable accessibilityRole="button" accessibilityLabel="Open WhatsApp" accessibilityState={{ disabled: isOpening, busy: isOpening }} disabled={isOpening} onPress={() => void submit()} style={[styles.primary, isOpening && styles.disabled]}>
-              {isOpening ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="logo-whatsapp" size={designSize(20)} color="#FFFFFF" />}
+            <Pressable accessibilityRole="button" accessibilityLabel="Open WhatsApp" accessibilityState={{ disabled: isOpening, busy: isOpening }} disabled={isOpening} onPress={() => void submit()} style={({ hovered, pressed }) => [styles.primary, (hovered || pressed) && styles.primaryHover, isOpening && styles.disabled]}>
+              {isOpening ? <ActivityIndicator color={Studently.color.ink} /> : <Ionicons name="logo-whatsapp" size={designSize(20)} color={WHATSAPP_GREEN} />}
               <LText variant="subtitle" style={styles.primaryText}>{isOpening ? "Opening…" : "Open WhatsApp"}</LText>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel="Skip — message anyway" accessibilityHint="Opens WhatsApp without the answers you entered" accessibilityState={{ disabled: isOpening }} disabled={isOpening} onPress={() => void submit(true)} style={styles.skip}>
@@ -147,8 +147,9 @@ const baseStyles = StyleSheet.create({
   preview: { gap: 9, marginTop: 4 },
   error: { color: Studently.color.danger, backgroundColor: Studently.color.dangerSoft, padding: 12, borderRadius: 10, marginBottom: 10 },
   actions: { borderTopWidth: 1, borderTopColor: Studently.color.border, paddingHorizontal: 20, paddingTop: 14 },
-  primary: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, backgroundColor: WHATSAPP_GREEN, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9 },
-  primaryText: { color: "#FFFFFF" },
+  primary: { minHeight: 50, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 1.5, borderColor: Studently.color.ink, backgroundColor: Studently.color.surface, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 9, ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null) },
+  primaryHover: { backgroundColor: Studently.color.surfaceMuted, borderColor: Studently.color.ink },
+  primaryText: { color: Studently.color.ink },
   disabled: { opacity: 0.65 },
   skip: { minHeight: 44, justifyContent: "center", alignItems: "center", paddingVertical: 10 },
   skipText: { color: Studently.color.primary, fontFamily: Studently.type.bodySemi },

@@ -52,14 +52,14 @@ export function ListingDetailBottomBar({
           accessibilityRole="button"
           accessibilityLabel="Contact on WhatsApp"
           onPress={onWhatsApp}
-          style={[styles.primary, styles.whatsapp]}
+          style={[styles.outline, styles.whatsapp]}
         >
           <Ionicons
             name="logo-whatsapp"
             size={18}
-            color={Studently.color.surface}
+            color={WHATSAPP_GREEN}
           />
-          <LText variant="subtitle" style={styles.primaryText}>
+          <LText variant="subtitle" style={styles.outlineText}>
             WhatsApp
           </LText>
         </Pressable>
@@ -91,9 +91,9 @@ export function ListingDetailBottomBar({
           accessibilityRole="button"
           accessibilityLabel="WhatsApp contact soon"
           disabled
-          style={[styles.primary, styles.whatsapp, styles.primaryOff]}
+          style={[styles.outline, styles.whatsapp, styles.primaryOff]}
         >
-          <LText variant="subtitle" style={styles.primaryText}>
+          <LText variant="subtitle" style={styles.outlineText}>
             WhatsApp soon
           </LText>
         </Pressable>
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
   },
-  whatsapp: { backgroundColor: WHATSAPP_GREEN },
+  whatsapp: { flex: 1.4 },
   primaryOff: { opacity: 0.5 },
   primaryText: { color: Studently.color.surface },
   outline: {
@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     borderWidth: 1.5,
-    borderColor: Studently.color.primary,
+    borderColor: Studently.color.ink,
     backgroundColor: Studently.color.surface,
   },
-  outlineText: { color: Studently.color.primary },
+  outlineText: { color: Studently.color.ink },
   reportedText: { color: Studently.color.inkMuted },
 });

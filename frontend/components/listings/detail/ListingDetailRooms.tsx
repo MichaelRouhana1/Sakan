@@ -191,10 +191,18 @@ export function ListingDetailRooms({
                 {whatsAppOpen ? (
                   <Pressable
                     accessibilityRole="button"
+                    accessibilityLabel={canContact ? "WhatsApp" : "WhatsApp soon"}
                     disabled={!canContact}
                     onPress={onWhatsApp}
                     style={[styles.book, !canContact && styles.bookOff]}
                   >
+                    {canContact ? (
+                      <Ionicons
+                        name="logo-whatsapp"
+                        size={designSize(18)}
+                        color={WHATSAPP_GREEN}
+                      />
+                    ) : null}
                     <LText variant="subtitle" style={styles.bookText}>
                       {canContact ? "WhatsApp" : "WhatsApp soon"}
                     </LText>
@@ -296,11 +304,16 @@ const baseStyles = StyleSheet.create({
   featLabel: { flex: 1, color: Studently.color.ink },
   book: {
     marginTop: 4,
-    backgroundColor: WHATSAPP_GREEN,
+    backgroundColor: Studently.color.surface,
+    borderWidth: 1.5,
+    borderColor: Studently.color.ink,
     borderRadius: Studently.radius.md,
     paddingVertical: 12,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   bookOff: { opacity: 0.45 },
-  bookText: { color: Studently.color.surface },
+  bookText: { color: Studently.color.ink },
 });
