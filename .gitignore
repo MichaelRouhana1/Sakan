@@ -79,3 +79,6 @@ brand/pin-arrow-glossy/*
 !brand/pin-arrow-glossy/pin-arrow-madder.png
 __pycache__/
 *.pyc
+
+# Generated working artifacts stay local.
+artifacts/
