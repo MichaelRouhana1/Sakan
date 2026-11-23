@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
   Image,
   Modal,
   Platform,
@@ -15,6 +14,7 @@ import {
   type View as ViewType,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SquishSwitch } from "@/components/ui/SquishSwitch";
 import { Lister } from "@/constants/listerTheme";
 import {
   callingCode,
@@ -50,49 +50,27 @@ function Flag({ code }: { code: string }) {
 }
 
 const COUNTRY_LIST: CountryChoice[] = (() => {
-  const names = new Intl.DisplayNames(["en"], { type: "region" });
+  let names: Intl.DisplayNames | null = null;
+  try {
+    if (typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function") {
+      names = new Intl.DisplayNames(["en"], { type: "region" });
+    }
+  } catch {
+    names = null;
+  }
   return getCountries().map((code) => ({
     code,
-    name: names.of(code) ?? code,
+    name: names?.of(code) ?? countryName(code),
     calling: getCountryCallingCode(code),
   }));
 })();
 
-function WhatsAppSwitch({
-  value,
-  disabled,
-  label,
-  onValueChange,
-}: {
-  value: boolean;
-  disabled?: boolean;
-  label: string;
-  onValueChange: (next: boolean) => void;
-}) {
-  const travel = useRef(new Animated.Value(value ? 18 : 0)).current;
-  useEffect(() => {
-    Animated.timing(travel, {
-      toValue: value ? 18 : 0,
-      duration: 140,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-  }, [travel, value]);
-
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityLabel={label}
-      accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
-      disabled={disabled}
-      onPress={() => onValueChange(!value)}
-      style={styles.switchHit}
-    >
-      <View style={[styles.track, value ? styles.trackOn : styles.trackOff, disabled && styles.switchDisabled]}>
-        <Animated.View style={[styles.knob, { transform: [{ translateX: travel }] }]} />
-      </View>
-    </Pressable>
-  );
-}
+const WHATSAPP_SWITCH_COLORS = {
+  track: "#D0D5DD",
+  trackOn: WHATSAPP_GREEN,
+  thumb: "#FFFFFF",
+  thumbOn: "#FFFFFF",
+};
 
 type Props = {
   value: ContactNumber;
@@ -320,11 +298,12 @@ export function LebanonPhoneField({
 
       <View style={styles.whatsappRow}>
         <Text style={[styles.whatsappLabel, fixed && styles.disabledText]}>Available on WhatsApp</Text>
-        <WhatsAppSwitch
-          label={`Number ${number} available on WhatsApp`}
+        <SquishSwitch
+          accessibilityLabel={`Number ${number} available on WhatsApp`}
           disabled={fixed}
           value={!fixed && value.whatsapp}
           onValueChange={(whatsapp) => onChange({ ...value, whatsapp })}
+          colors={WHATSAPP_SWITCH_COLORS}
         />
       </View>
       {fixed ? <Text style={styles.hint}>Landlines are for calls only.</Text> : null}
@@ -426,18 +405,6 @@ const styles = StyleSheet.create({
   whatsappRow: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   whatsappLabel: { flex: 1, fontFamily: Lister.type.body, fontSize: 15, color: Lister.color.ink },
   disabledText: { color: Lister.color.inkFaint },
-  switchHit: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  track: { width: 46, height: 28, borderRadius: 14, justifyContent: "center", padding: 2 },
-  trackOff: { backgroundColor: "#D0D5DD" },
-  trackOn: { backgroundColor: WHATSAPP_GREEN },
-  switchDisabled: { opacity: 0.45 },
-  knob: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    ...(Platform.OS === "web" ? { boxShadow: "0 1px 2px rgba(26,26,26,0.25)" } : { elevation: 1 }),
-  },
   popRoot: { flex: 1 },
   clearBackdrop: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
   popover: {

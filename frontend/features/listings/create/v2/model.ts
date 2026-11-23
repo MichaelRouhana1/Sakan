@@ -32,10 +32,18 @@ export function unitData(source: Partial<CreateListingDraft> = INITIAL_DRAFT): P
   return JSON.parse(JSON.stringify(Object.fromEntries(UNIT_KEYS.filter(k => source[k] !== undefined).map(k => [k, source[k]]))));
 }
 
+function safeUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const n = Math.floor(Math.random() * 16);
+    return (c === 'x' ? n : (n & 3) | 8).toString(16);
+  });
+}
+
 export function ensureWizardUnit(state: WizardV2Draft): WizardV2Draft {
   if (state.units.some(unit => unit.id === state.position.unitId)) return state;
   if (state.units.length) return { ...state, position: { ...state.position, unitId: state.units[0].id } };
-  const id = crypto.randomUUID();
+  const id = safeUuid();
   return { ...state, units: [{ id, data: unitData(), finished: false }], position: { ...state.position, unitId: id } };
 }
 
@@ -150,7 +158,7 @@ export function reduceWizard(state: WizardV2Draft, action: Action): WizardV2Draf
       if (state.position.screen === 'another') return { ...state, position: { ...state.position, screen: 'copy' } };
       if (state.position.screen === 'review' && state.units.length) return { ...state, position: { screen: 'another', unitId: state.units.at(-1)!.id } };
       if (state.position.screen === 'review') {
-        const id = crypto.randomUUID();
+        const id = safeUuid();
         return { ...state, units: [{ id, data: unitData(), finished: false }], position: { screen: 'layout', unitId: id }, returnTo: null };
       }
       const unitIndex = state.units.findIndex(u => u.id === state.position.unitId);

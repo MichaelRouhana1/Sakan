@@ -46,9 +46,41 @@ export function prefixesFor(kind: PhoneKind): readonly string[] {
   return kind === "landline" ? LANDLINE_PREFIXES : MOBILE_PREFIXES;
 }
 
+function safeUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const n = Math.floor(Math.random() * 16);
+    return (c === "x" ? n : (n & 3) | 8).toString(16);
+  });
+}
+
+const FALLBACK_COUNTRY_NAMES: Record<string, string> = {
+  LB: "Lebanon",
+  AE: "United Arab Emirates",
+  SA: "Saudi Arabia",
+  QA: "Qatar",
+  KW: "Kuwait",
+  JO: "Jordan",
+  EG: "Egypt",
+  SY: "Syria",
+  IQ: "Iraq",
+  CY: "Cyprus",
+  TR: "Turkey",
+  FR: "France",
+  GB: "United Kingdom",
+  DE: "Germany",
+  IT: "Italy",
+  ES: "Spain",
+  US: "United States",
+  CA: "Canada",
+  AU: "Australia",
+};
+
 export function emptyContactNumber(): ContactNumber {
   return {
-    id: crypto.randomUUID(),
+    id: safeUuid(),
     country: "LB",
     national: "",
     calls: true,
@@ -99,10 +131,13 @@ export function numberComplete(n: ContactNumber): boolean {
 
 export function countryName(country: string): string {
   try {
-    return new Intl.DisplayNames(["en"], { type: "region" }).of(country) ?? country;
+    if (typeof Intl !== "undefined" && typeof Intl.DisplayNames === "function") {
+      return new Intl.DisplayNames(["en"], { type: "region" }).of(country) ?? FALLBACK_COUNTRY_NAMES[country] ?? country;
+    }
   } catch {
-    return country;
+    // Fall through to static fallback on runtimes without Intl.DisplayNames (e.g. Hermes).
   }
+  return FALLBACK_COUNTRY_NAMES[country] ?? country;
 }
 
 export function callingCode(country: string): string {
