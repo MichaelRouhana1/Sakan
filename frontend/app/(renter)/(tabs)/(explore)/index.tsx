@@ -38,23 +38,24 @@ import { searchDestination } from '@/features/search/selection';
 import { useUniversities } from "@/features/universities/useUniversities";
 import {
   AREA_REGIONS,
-  DEMO_LISTINGS,
   DIRECTORY_AREAS,
   DIRECTORY_UNIS,
   HERO,
   HOME_DISCOVER_TABS,
-  POPULAR_SEARCHES,
   PROMO_CARDS,
   RAIL_PILLS,
   STEPS,
   TESTIMONIALS,
   VALUE_PROPS,
   areaTileImage,
-  type DemoListing,
   type HomeDiscoverTabId,
 } from "@/components/web/home/homeData";
+import { HomePropertyCardNative } from "@/components/listings/detail/HomePropertyCardNative";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
 import { useHomePopular } from "@/features/listings/useHomePopular";
+import { useListings } from "@/features/listings/useListings";
+
+const HOME_LISTING_LIMIT = 10;
 
 /** NativeTabs + groups: `/search` is unmatched at root (hits +not-found). */
 const SEARCH_PATH = "/(renter)/(tabs)/(explore)/search" as const;
@@ -123,7 +124,8 @@ export default function RenterNewHomeScreen() {
     extrapolate: "clamp",
   });
   const [discoverTab, setDiscoverTab] = useState<HomeDiscoverTabId>("areas");
-  const [railPill, setRailPill] = useState<string>(RAIL_PILLS[0]);
+  const [railPill, setRailPill] = useState<string>("All areas");
+  const railScrollRef = useRef<ScrollView>(null);
   const [dirTab, setDirTab] = useState<"areas" | "unis">("areas");
   const [searchQuery, setSearchQuery] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -131,6 +133,15 @@ export default function RenterNewHomeScreen() {
   const [campusSaving, setCampusSaving] = useState(false);
   const universities = useUniversities();
   const homePopular = useHomePopular();
+  const homeListings = useListings({
+    sort: "newest",
+    pageSize: HOME_LISTING_LIMIT,
+    areas: railPill === "All areas" ? undefined : [railPill],
+  });
+
+  useEffect(() => {
+    railScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [railPill]);
 
   const areaTiles = useMemo(() => {
     const live = homePopular.data?.areas ?? [];
@@ -207,11 +218,29 @@ export default function RenterNewHomeScreen() {
 
   const discoverTiles = discoverTab === "areas" ? areaTiles : uniTiles;
 
+  const railPills = useMemo(
+    () => [
+      "All areas",
+      ...(homePopular.data?.areas.length
+        ? homePopular.data.areas.map((area) => area.name)
+        : RAIL_PILLS),
+    ],
+    [homePopular.data?.areas],
+  );
+
   const railListings = useMemo(() => {
-    const match = DEMO_LISTINGS.filter((l) => l.area === railPill);
-    const rest = DEMO_LISTINGS.filter((l) => l.area !== railPill);
-    return [...match, ...rest].slice(0, 6);
-  }, [railPill]);
+    const seen = new Set<string>();
+    return [
+      ...(homeListings.data?.featured ?? []),
+      ...(homeListings.data?.listings ?? []),
+    ]
+      .filter((listing) => {
+        if (seen.has(listing.id)) return false;
+        seen.add(listing.id);
+        return true;
+      })
+      .slice(0, HOME_LISTING_LIMIT);
+  }, [homeListings.data]);
 
   const handleSearchQuick = (query: string, kind: "q" | "area" = "q") => {
     if (kind === "area") pushSearch({ areas: [query] });
@@ -486,7 +515,7 @@ export default function RenterNewHomeScreen() {
           </View>
         </View>
 
-        {/* DEMO LISTINGS RAIL */}
+        {/* FEATURED LISTINGS RAIL */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <LText variant="title" style={styles.sectionTitle}>
@@ -504,12 +533,14 @@ export default function RenterNewHomeScreen() {
             contentContainerStyle={styles.pillsContainer}
             style={styles.pillsOuterScroll}
           >
-            {RAIL_PILLS.map((p) => {
+            {railPills.map((p) => {
               const active = p === railPill;
               return (
                 <Pressable
                   key={p}
                   onPress={() => setRailPill(p)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                   style={[styles.regionPill, active && styles.regionPillActive]}
                 >
                   <Text style={[styles.regionPillText, active && styles.regionPillTextActive]}>
@@ -521,57 +552,47 @@ export default function RenterNewHomeScreen() {
           </ScrollView>
 
           {/* Horizontal scroll of listings */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.listingsScrollContent}
-          >
-            {railListings.map((item) => (
+          {homeListings.isLoading ? (
+            <LText variant="body" tone="muted" style={styles.sectionSub}>
+              Loading places…
+            </LText>
+          ) : homeListings.isError ? (
+            <View style={styles.railErrorWrap}>
+              <LText variant="body" tone="muted" style={styles.sectionSub}>
+                Places could not be loaded.
+              </LText>
               <Pressable
-                key={item.id}
-                style={styles.listingCard}
-                onPress={() => handleSearchQuick(item.area, "area")}
+                accessibilityRole="button"
+                onPress={() => {
+                  void homeListings.refetch();
+                }}
+                style={styles.regionPill}
               >
-                <View style={styles.listingImgContainer}>
-                  <Image
-                    source={{ uri: item.images[0] }}
-                    style={{ width: 220, height: 130 }}
-                    contentFit="cover"
-                  />
-                  {item.tag ? (
-                    <View style={styles.listingTag}>
-                      <Text style={styles.listingTagText}>{item.tag}</Text>
-                    </View>
-                  ) : null}
-                  <View style={styles.listingHeart}>
-                    <Ionicons name="heart-outline" size={16} color="#fff" />
-                  </View>
-                </View>
-                <View style={styles.listingBody}>
-                  <Text style={styles.listingTitle} numberOfLines={1}>
-                    {item.title}
-                  </Text>
-                  <Text style={styles.listingArea}>
-                    {item.area}, Lebanon
-                  </Text>
-                  
-                  {/* Utilities tags row */}
-                  <View style={styles.listingUtilRow}>
-                    {item.utilities.slice(0, 3).map((u) => (
-                      <View key={u} style={styles.listingUtilBadge}>
-                        <Text style={styles.listingUtilBadgeText}>{u}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  <Text style={styles.listingPrice}>
-                    From ${item.priceUsd}
-                    <Text style={styles.listingPriceUnit}> / month</Text>
-                  </Text>
-                </View>
+                <Text style={styles.regionPillText}>Try again</Text>
               </Pressable>
-            ))}
-          </ScrollView>
+            </View>
+          ) : railListings.length === 0 ? (
+            <LText variant="body" tone="muted" style={styles.sectionSub}>
+              No live listings in this area yet.
+            </LText>
+          ) : (
+            <ScrollView
+              ref={railScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.listingsOuterScroll}
+              contentContainerStyle={styles.listingsScrollContent}
+            >
+              {railListings.map((item) => (
+                <HomePropertyCardNative
+                  key={item.id}
+                  listing={item}
+                  hideTitle
+                  testID={`home-listing-${item.id}`}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* TRUST ACCORDIONS / SOCIAL PROOF BAND */}
@@ -1205,97 +1226,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 6,
   },
+  listingsOuterScroll: {
+    marginHorizontal: -20,
+  },
   listingsScrollContent: {
-    gap: 14,
-    paddingRight: 20,
+    paddingHorizontal: 20,
+    gap: 12,
     paddingBottom: 4,
   },
-  listingCard: {
-    width: 220,
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    overflow: "hidden",
-  },
-  listingImgContainer: {
-    height: 130,
-    width: "100%",
-    position: "relative",
-  },
-  listingImg: {
-    width: "100%",
-    height: "100%",
-  },
-  listingTag: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    backgroundColor: Studently.color.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
-  },
-  listingTagText: {
-    fontFamily: Studently.type.bodyMedium,
-    fontSize: 10,
-    color: "#ffffff",
-  },
-  listingHeart: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(18,24,38,0.4)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listingBody: {
-    padding: 12,
-    gap: 6,
-  },
-  listingTitle: {
-    fontFamily: Studently.type.bodySemi,
-    fontSize: 14,
-    color: Studently.color.ink,
-    fontWeight: "600",
-  },
-  listingArea: {
-    fontFamily: Studently.type.body,
-    fontSize: 12,
-    color: Studently.color.inkMuted,
-  },
-  listingUtilRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 4,
-    marginTop: 2,
-  },
-  listingUtilBadge: {
-    backgroundColor: "#EEF1F6",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  listingUtilBadgeText: {
-    fontFamily: Studently.type.body,
-    fontSize: 10,
-    color: Studently.color.inkMuted,
-  },
-  listingPrice: {
-    fontFamily: Studently.type.bodyBold,
-    fontSize: 14,
-    color: Studently.color.primary,
-    fontWeight: "700",
-    marginTop: 4,
-  },
-  listingPriceUnit: {
-    fontFamily: Studently.type.body,
-    fontSize: 11,
-    color: Studently.color.inkMuted,
-    fontWeight: "400",
+  railErrorWrap: {
+    gap: 8,
+    alignItems: "flex-start",
   },
   trustBand: {
     backgroundColor: "#E8EEF6",

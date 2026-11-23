@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useId, useLayoutEffect, useRef } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
 import { listingImageCornerBadge } from "@/components/listings/ListingRatingBadge";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
@@ -9,6 +10,8 @@ import { useIsSaved, useToggleSaved } from "@/features/saved/useSavedListings";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import type { Listing } from "@/types/listing";
+import { HomePropertyPreview } from "./HomePropertyPreview";
+import { useHomeCardPreview } from "./useHomeCardPreview";
 
 export function HomePropertyCard({ listing }: { listing: Listing }) {
   const router = useRouter();
@@ -70,19 +73,35 @@ export function HomePropertyCard({ listing }: { listing: Listing }) {
     return () => { observer.disconnect(); clearTimeout(timer); };
   }, [listing]);
 
+  const link = useRef<HTMLAnchorElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const preview = useHomeCardPreview(card, link, panel);
+
   const open = () => {
+    preview.close();
     rememberPlacement(listing);
     router.push(`/(renter)/listing/${listing.id}`);
   };
 
+  // Shared by the card's body link and the preview panel, so both open the listing identically.
+  const onLinkClick = (event: ReactMouseEvent<HTMLElement>) => {
+    if (event.defaultPrevented) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      rememberPlacement(listing);
+      return;
+    }
+    event.preventDefault();
+    open();
+  };
+
   return (
-    <article ref={card} className="home-property-card">
+    <article ref={card} className="home-property-card" {...preview.cardProps}>
       <div ref={media} className="home-property-card__media">
         <div className="home-property-card__photo-frame" style={hasBadge ? { clipPath: `url(#${notchId})` } : undefined}>
           <ListingCardCarousel urls={photos} fill presentation="home" onPressCard={open} />
         </div>
         {featured && <span className="home-property-card__offer">Featured</span>}
-        <div className="home-property-card__favorite">
+        <div className="home-property-card__favorite" {...preview.heartProps}>
           <FavoriteButton
             saved={saved}
             onPress={() => toggleSaved.mutate(listing)}
@@ -112,23 +131,36 @@ export function HomePropertyCard({ listing }: { listing: Listing }) {
         )}
       </div>
       <a
+        ref={link}
         className="home-property-card__body"
         href={`/listing/${listing.id}`}
         aria-label={title}
-        onClick={(event) => {
-          if (event.defaultPrevented) return;
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-            rememberPlacement(listing);
-            return;
-          }
-          event.preventDefault();
-          open();
-        }}
+        onClick={onLinkClick}
+        {...preview.linkProps}
       >
         <h3 ref={heading} className="home-property-card__title" title={title}>{title}</h3>
         <p className="home-property-card__area">{area}</p>
         <p className="home-property-card__price">From {price}/month</p>
       </a>
+      {preview.anchor &&
+        createPortal(
+          <HomePropertyPreview
+            listing={listing}
+            anchor={preview.anchor}
+            title={title}
+            area={area}
+            photos={photos}
+            saved={saved}
+            featured={featured}
+            rating={hasRating ? rating : null}
+            isNew={isNew}
+            onToggleSaved={() => toggleSaved.mutate(listing)}
+            onOpenClick={onLinkClick}
+            panelRef={panel}
+            panelProps={preview.panelProps}
+          />,
+          document.body,
+        )}
     </article>
   );
 }

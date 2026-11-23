@@ -16,7 +16,8 @@
     "test:search-desktop": "node --test tests/search-desktop-contract.test.mjs",
     "test:search-desktop-ui": "node tests/search-desktop-ui.mjs",
     "test:search-mobile": "node --test tests/search-recents.test.mjs tests/search-recents-ui.test.mjs tests/search-recents-native-path.test.mjs tests/search-diagnostics.test.mjs tests/search-suggest-ui.test.mjs",
-    "test:search-mobile-ui": "node tests/search-amber-mobile-ui.mjs"
+    "test:search-mobile-ui": "node tests/search-amber-mobile-ui.mjs",
+    "test:home-card-preview": "node tests/home-card-preview-ui.mjs"
   },
   "dependencies": {
     "@clerk/expo": "^4.15.1",

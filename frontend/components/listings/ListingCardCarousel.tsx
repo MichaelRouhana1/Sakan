@@ -61,6 +61,7 @@ export function ListingCardCarousel({
   const count = photos.length;
   const isWeb = Platform.OS === "web";
   const home = isWeb && presentation === "home";
+  const nativeHome = !isWeb && presentation === "home";
   const coarsePointer = useCoarsePointer();
   const scrollRef = useRef<ScrollView>(null);
   const lockedRef = useRef(false);
@@ -220,7 +221,7 @@ export function ListingCardCarousel({
             ))}
           </View>
         </View>
-      ) : count > 0 && cardWidth > 0 && cardHeight > 0 ? (
+      ) : !nativeHome && count > 0 && cardWidth > 0 && cardHeight > 0 ? (
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -296,7 +297,7 @@ export function ListingCardCarousel({
             contentFit="cover"
           />
         </Pressable>
-      ) : home && onPressCard ? (
+      ) : (home || nativeHome) && onPressCard ? (
         <Pressable tabIndex={-1} style={[StyleSheet.absoluteFill, styles.fallback]} onPress={onPressCard} />
       ) : (
         <View
@@ -360,7 +361,7 @@ export function ListingCardCarousel({
           </>
         ) : null}
 
-        {count > 1 ? (
+        {!nativeHome && count > 1 ? (
           <View
             {...(home ? { dataSet: { carouselDots: "" } } : {})}
             style={[styles.dots, { pointerEvents: "none" }]}
