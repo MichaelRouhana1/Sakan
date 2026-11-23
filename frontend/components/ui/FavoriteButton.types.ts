@@ -6,6 +6,7 @@ export type FavoriteButtonProps = {
   disabled?: boolean;
   accessibilityLabel?: string;
   iconSize?: number;
+  variant?: 'default' | 'overlay';
   style?: StyleProp<ViewStyle>;
 };
 

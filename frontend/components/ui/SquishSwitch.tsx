@@ -11,6 +11,7 @@ const travel = squishSize.width - inset * 2 - thumb;
 
 export function SquishSwitch(props: SquishSwitchProps) {
   const {value, disabled = false, onValueChange, accessibilityLabel} = props;
+  const palette = { ...squishColors, ...props.colors };
   const reduced = useReducedMotion();
   const latest = useRef({ ...props, reduced });
   latest.current = { ...props, reduced };
@@ -75,9 +76,9 @@ export function SquishSwitch(props: SquishSwitchProps) {
     onPressIn={() => { dragged.current = false; }}
     onPress={() => { if (!dragged.current && !disabled) onValueChange(!value); }}
     style={[StyleSheet.absoluteFill, disabled && styles.disabled]}>
-    <Animated.View pointerEvents="none" style={[styles.track, {backgroundColor: progress.interpolate({inputRange: [0, 1], outputRange: [squishColors.track, squishColors.trackOn], extrapolate: 'clamp'})}]} />
+    <Animated.View pointerEvents="none" style={[styles.track, {backgroundColor: progress.interpolate({inputRange: [0, 1], outputRange: [palette.track, palette.trackOn], extrapolate: 'clamp'})}]} />
     <Animated.View pointerEvents="none" style={[styles.thumb, {
-      backgroundColor: progress.interpolate({inputRange: [0, 1], outputRange: [squishColors.thumb, squishColors.thumbOn], extrapolate: 'clamp'}),
+      backgroundColor: progress.interpolate({inputRange: [0, 1], outputRange: [palette.thumb, palette.thumbOn], extrapolate: 'clamp'}),
       transform: [
         {translateX: progress.interpolate({inputRange: [0, 1], outputRange: [inset, inset + travel]})},
         {scaleX: stretch}, {scaleY: stretch.interpolate({inputRange: [1, peakStretch], outputRange: [1, 1 / peakStretch]})},

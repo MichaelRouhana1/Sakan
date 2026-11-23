@@ -8,7 +8,7 @@ import './RubberSegment.css';
 type Slot = { left: number; right: number; top: number; height: number };
 const spring = { type: 'spring' as const, duration: timing.land, bounce: 0 };
 
-export function RubberSegment<T extends string>({ items, value, onChange }: RubberSegmentProps<T>) {
+export function RubberSegment<T extends string>({ items, value, onChange, ariaLabel = 'Listing filters' }: RubberSegmentProps<T>) {
   const root = useRef<HTMLDivElement>(null);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const slots = useRef<Slot[]>([]);
@@ -106,12 +106,12 @@ export function RubberSegment<T extends string>({ items, value, onChange }: Rubb
     event.preventDefault(); buttons.current[next]?.focus(); onChange(items[next].value);
   }
 
-  return <div ref={root} className="studently-rubber-segment" role="group" aria-label="Listing filters">
+  return <div ref={root} className="studently-rubber-segment" role="group" aria-label={ariaLabel}>
     <motion.span aria-hidden="true" className="studently-rubber-segment__thumb" style={{ left, top, width, height, visibility: ready ? 'visible' : 'hidden' }} />
     {items.map((item, index) => <button key={item.value} ref={element => { buttons.current[index] = element; }}
-      type="button" aria-label={`Filter ${item.label}`} aria-pressed={item.value === value}
+      type="button" aria-label={item.label} aria-pressed={item.value === value}
       className="studently-rubber-segment__item" onClick={() => onChange(item.value)} onKeyDown={event => keyDown(event, index)}>
-      <span>{item.label}</span><span className="studently-rubber-segment__count">{item.count}</span>
+      <span>{item.label}</span>{item.count !== undefined ? <span className="studently-rubber-segment__count">{item.count}</span> : null}
     </button>)}
   </div>;
 }

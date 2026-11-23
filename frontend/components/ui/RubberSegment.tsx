@@ -5,7 +5,7 @@ import { Studently } from '@/constants/theme';
 import { useReducedMotion } from '@/lib/useReducedMotion';
 import { rubberTiming as timing, type RubberSegmentProps } from './RubberSegment.types';
 
-export function RubberSegment<T extends string>({ items, value, onChange }: RubberSegmentProps<T>) {
+export function RubberSegment<T extends string>({ items, value, onChange, ariaLabel = 'Listing filters' }: RubberSegmentProps<T>) {
   const [slots, setSlots] = useState<Record<string, LayoutRectangle>>({});
   const previous = useRef({ value, slots });
   const generation = useRef(0);
@@ -51,9 +51,9 @@ export function RubberSegment<T extends string>({ items, value, onChange }: Rubb
     return () => { clearTimeout(timer); ++generation.current; [left, right, top, height].forEach(edge => edge.stopAnimation()); };
   }, [value, slots, reduced, left, right, top, height]);
 
-  return <View style={styles.track} accessibilityLabel="Listing filters">
+  return <View style={styles.track} accessibilityLabel={ariaLabel}>
     {slots[value] ? <Animated.View pointerEvents="none" style={[styles.thumb, { left, top, height, width: Animated.subtract(right, left) }]} /> : null}
-    {items.map(item => <Pressable key={item.value} accessibilityRole="button" accessibilityLabel={`Filter ${item.label}`}
+    {items.map(item => <Pressable key={item.value} accessibilityRole="button" accessibilityLabel={item.label}
       accessibilityState={{ selected: item.value === value }} onPress={() => onChange(item.value)}
       onLayout={event => {
         const rect = event.nativeEvent.layout;
@@ -63,7 +63,7 @@ export function RubberSegment<T extends string>({ items, value, onChange }: Rubb
         });
       }} style={styles.item}>
       <Text style={[styles.label, item.value === value && styles.selected]}>{item.label}</Text>
-      <Text style={[styles.count, item.value === value && styles.selected]}>{item.count}</Text>
+      {item.count !== undefined ? <Text style={[styles.count, item.value === value && styles.selected]}>{item.count}</Text> : null}
     </Pressable>)}
   </View>;
 }

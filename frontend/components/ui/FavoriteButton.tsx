@@ -2,10 +2,14 @@
 import {useEffect,useRef,useState} from 'react';
 import {Animated,Easing,Pressable,StyleSheet} from 'react-native';
 import {Ionicons} from '@expo/vector-icons';
+import Svg, {Path} from 'react-native-svg';
+import {studentlyShadow} from '@/lib/studentlyShadow';
 import {useReducedMotion} from '@/lib/useReducedMotion';
 import {favoriteColor,favoriteIdleColor,favoritePulse,type FavoriteButtonProps} from './FavoriteButton.types';
 
-export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,iconSize=20,style}:FavoriteButtonProps) {
+const HEART = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z';
+
+export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,iconSize=20,variant='default',style}:FavoriteButtonProps) {
   const reduced=useReducedMotion();
   const [shown,setShown]=useState(saved);
   const previous=useRef(saved);
@@ -32,14 +36,36 @@ export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,
     return()=>{++generation.current;scale.stopAnimation();surface.stopAnimation();};
   },[saved,reduced,scale,surface]);
 
+  const isOverlay = variant === 'overlay';
+
   return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??(saved?'Remove from saved':'Save listing')}
     accessibilityState={{selected:saved,disabled}} aria-pressed={saved} disabled={disabled} hitSlop={8}
     onPressIn={event=>event.stopPropagation()} onPress={event=>{event.stopPropagation();if(!disabled)onPress();}}
-    style={[styles.frame,style,disabled&&styles.disabled]}>
-    <Animated.View pointerEvents="none" style={{transform:[{scale:surface}]}}>
-      <Animated.View style={{transform:[{scale}]}}><Ionicons name={shown?'heart':'heart-outline'} size={iconSize} color={shown?favoriteColor:favoriteIdleColor}/></Animated.View>
+    style={[styles.frame,isOverlay&&styles.overlayFrame,style,disabled&&styles.disabled]}>
+    <Animated.View pointerEvents="none" style={[isOverlay&&styles.overlayShadow,{transform:[{scale:surface}]}]}>
+      <Animated.View style={{transform:[{scale}]}}>
+        {isOverlay ? (
+          <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24">
+            <Path
+              d={HEART}
+              fill={shown ? favoriteColor : 'rgba(0,0,0,0.22)'}
+              stroke={shown ? favoriteColor : '#FFFFFF'}
+              strokeWidth={1.8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </Svg>
+        ) : (
+          <Ionicons name={shown?'heart':'heart-outline'} size={iconSize} color={shown?favoriteColor:favoriteIdleColor}/>
+        )}
+      </Animated.View>
     </Animated.View>
   </Pressable>;
 }
 
-const styles=StyleSheet.create({frame:{width:40,height:40,borderRadius:20,backgroundColor:'#FFFFFF',alignItems:'center',justifyContent:'center'},disabled:{opacity:.55}});
+const styles=StyleSheet.create({
+  frame:{width:40,height:40,borderRadius:20,backgroundColor:'#FFFFFF',alignItems:'center',justifyContent:'center'},
+  overlayFrame:{backgroundColor:'transparent'},
+  overlayShadow:{...studentlyShadow({color:'#000000',y:1,blur:3,opacity:0.45,elevation:2})},
+  disabled:{opacity:.55},
+});

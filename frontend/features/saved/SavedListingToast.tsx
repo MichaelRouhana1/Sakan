@@ -21,18 +21,27 @@ import { useToggleSaved } from "./useSavedListings";
 import { applyListingToastEvent, type ListingToastItem } from "./listingToastState";
 
 const SIDE = 16;
-const FUSE = "rgba(47, 111, 237, 1)";
+
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+const FUSE = Studently.color.primary;
 const FUSE_STOPS = [
-  "rgba(47, 111, 237, 0)",
-  "rgba(47, 111, 237, 0.18)",
-  "rgba(47, 111, 237, 0.5)",
-  "rgba(47, 111, 237, 0.84)",
+  hexToRgba(FUSE, 0),
+  hexToRgba(FUSE, 0.18),
+  hexToRgba(FUSE, 0.5),
+  hexToRgba(FUSE, 0.84),
   FUSE,
   FUSE,
-  "rgba(47, 111, 237, 0.84)",
-  "rgba(47, 111, 237, 0.5)",
-  "rgba(47, 111, 237, 0.18)",
-  "rgba(47, 111, 237, 0)",
+  hexToRgba(FUSE, 0.84),
+  hexToRgba(FUSE, 0.5),
+  hexToRgba(FUSE, 0.18),
+  hexToRgba(FUSE, 0),
 ] as const;
 const FUSE_AT = [0, 0.09, 0.18, 0.28, 0.38, 0.62, 0.72, 0.82, 0.91, 1] as const;
 

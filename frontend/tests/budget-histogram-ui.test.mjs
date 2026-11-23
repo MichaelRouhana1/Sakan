@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { build } from "../../backend/node_modules/esbuild/lib/main.js";
 import { chromium, expect } from "@playwright/test";
@@ -204,6 +204,18 @@ test("BudgetHistogramSlider contract, zero-flicker snapshot, and 3 surfaces", { 
     alias: { "react-native": "react-native-web" },
     plugins: [
       {
+        name: "css-inline",
+        setup(b) {
+          b.onLoad({ filter: /\.css$/ }, async (args) => {
+            const css = await readFile(args.path, "utf8");
+            return {
+              loader: "js",
+              contents: `const s=document.createElement('style');s.textContent=${JSON.stringify(css)};document.head.appendChild(s);`,
+            };
+          });
+        },
+      },
+      {
         name: "stubs",
         setup(b) {
           b.onResolve(
@@ -370,16 +382,22 @@ test("BudgetHistogramSlider contract, zero-flicker snapshot, and 3 surfaces", { 
       });
     }
 
-    // 5. Surface 3: Mobile BrowseFiltersPanel with narrowed range
+    // 5. Surface 3: Mobile BrowseFiltersPanel with section pills + narrowed range
     const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
     mobilePage.on("pageerror", (e) => errors.push(e.message));
     await mobilePage.goto(`${baseUrl}/?mode=mobile-panel`);
+    const pillsBar = mobilePage.getByTestId("filter-section-pills");
+    await expect(pillsBar).toBeVisible();
+    await expect(pillsBar.getByRole("radio", { name: "University" })).toHaveAttribute("aria-checked", "true");
+    await pillsBar.getByRole("radio", { name: "Rent" }).click();
+    await expect(pillsBar.getByRole("radio", { name: "Rent" })).toHaveAttribute("aria-checked", "true");
     const mobileHist = mobilePage.getByTestId("budget-histogram");
     await mobileHist.scrollIntoViewIfNeeded();
     await expect(mobileHist).toBeVisible();
     await expect(mobilePage.locator('[data-testid="budget-histogram-bar"][data-in-range="true"]')).toHaveCount(9);
     await expect(mobilePage.getByTestId("panel-applied")).toHaveText("0");
     if (shotDir) {
+      await mobilePage.waitForTimeout(260);
       await mobilePage.screenshot({
         path: path.join(shotDir, "surface-3-mobile-panel.png"),
       });

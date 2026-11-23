@@ -10,6 +10,8 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LButton } from "@/components/lister/Button";
@@ -23,6 +25,8 @@ import {
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
 import { BudgetHistogramSlider } from "@/components/listings/BudgetHistogramSlider";
+import { JellySectionPills } from "@/components/ui/JellySectionPills";
+import type { JellySectionPillItem } from "@/components/ui/JellySectionPills.types";
 import { Studently } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
@@ -228,6 +232,91 @@ export function BrowseFiltersPanel({
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [sliderDragging, setSliderDragging] = useState(false);
 
+  const hasSortSection = Boolean(sortOptions && sortOptions.length > 0 && onSortChange);
+  const sections = useMemo<JellySectionPillItem[]>(
+    () => [
+      ...(hasSortSection ? [{ id: "sort", label: "Sort" }] : []),
+      { id: "university", label: "University" },
+      { id: "listingType", label: "Type" },
+      { id: "rent", label: "Rent" },
+      { id: "electricity", label: "Electricity" },
+      { id: "water", label: "Water" },
+      { id: "gender", label: "Gender" },
+      { id: "extras", label: "Extras" },
+      { id: "area", label: "Area" },
+    ],
+    [hasSortSection],
+  );
+
+  const [activeSection, setActiveSection] = useState<string>(
+    () => sections[0]?.id ?? "university",
+  );
+  const activeSectionRef = useRef(activeSection);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef<Record<string, number>>({});
+  const scrollY = useRef(0);
+  const maxScroll = useRef(0);
+  const scrollingTo = useRef<string | null>(null);
+  const jumpToken = useRef(0);
+
+  const syncActiveSection = (id: string) => {
+    if (activeSectionRef.current === id) return;
+    activeSectionRef.current = id;
+    setActiveSection(id);
+  };
+
+  const destinationFor = (id: string) => {
+    const raw = Math.max(0, (sectionOffsets.current[id] ?? 0) - 8);
+    return maxScroll.current > 0 ? Math.min(raw, maxScroll.current) : raw;
+  };
+
+  const jumpToSection = (id: string) => {
+    const y = destinationFor(id);
+    const token = ++jumpToken.current;
+    syncActiveSection(id);
+    if (Math.abs(scrollY.current - y) <= 2) {
+      scrollingTo.current = null;
+      return;
+    }
+    scrollingTo.current = id;
+    scrollRef.current?.scrollTo({ y, animated: !reduceMotion });
+    setTimeout(() => {
+      if (jumpToken.current === token && scrollingTo.current === id) {
+        scrollingTo.current = null;
+      }
+    }, 1400);
+  };
+
+  const sectionAt = (y: number, native: NativeScrollEvent): string => {
+    const { contentSize, layoutMeasurement } = native;
+    const max = Math.max(0, contentSize.height - layoutMeasurement.height);
+    const atEnd = max > 0 && y >= max - 4;
+    if (atEnd) return sections[sections.length - 1]!.id;
+    const marker = y + 28;
+    let next = sections[0]!.id;
+    for (const section of sections) {
+      const top = sectionOffsets.current[section.id];
+      if (top != null && top <= marker) next = section.id;
+    }
+    return next;
+  };
+
+  const handleFormScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const { contentSize, layoutMeasurement } = event.nativeEvent;
+    scrollY.current = y;
+    if (layoutMeasurement.height > 0) {
+      maxScroll.current = Math.max(0, contentSize.height - layoutMeasurement.height);
+    }
+    const pending = scrollingTo.current;
+    if (pending) {
+      if (Math.abs(y - destinationFor(pending)) > 2) return;
+      scrollingTo.current = null;
+      return;
+    }
+    syncActiveSection(sectionAt(y, event.nativeEvent));
+  };
+
   const draftValue: BrowseFiltersValue = useMemo(
     () => ({
       city: applied.city,
@@ -286,7 +375,13 @@ export function BrowseFiltersPanel({
     setRentError(null);
     setAreaQuery("");
     setConfirmDiscard(false);
-  }, [visible, applied]);
+    scrollingTo.current = null;
+    scrollY.current = 0;
+    const firstId = sections[0]?.id ?? "university";
+    activeSectionRef.current = firstId;
+    setActiveSection(firstId);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [visible, applied, sections]);
 
   useEffect(() => {
     if (visible) {
@@ -456,15 +551,30 @@ export function BrowseFiltersPanel({
             <View style={styles.closeBtn} />
           </View>
 
+          <JellySectionPills
+            items={sections}
+            activeId={activeSection}
+            onSelect={jumpToSection}
+            ariaLabel="Filter sections"
+          />
+
           <ScrollView
+            ref={scrollRef}
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             scrollEnabled={!sliderDragging}
+            onScroll={handleFormScroll}
+            scrollEventThrottle={16}
           >
             {sortOptions && sortOptions.length > 0 && onSortChange ? (
-              <View style={styles.blockSection}>
+              <View
+                style={styles.blockSection}
+                onLayout={(e) => {
+                  sectionOffsets.current.sort = e.nativeEvent.layout.y;
+                }}
+              >
                 <LText variant="label" tone="muted" style={styles.sectionLabel}>
                   Sort
                 </LText>
@@ -492,7 +602,12 @@ export function BrowseFiltersPanel({
               </View>
             ) : null}
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.university = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 University
               </LText>
@@ -511,7 +626,12 @@ export function BrowseFiltersPanel({
               />
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.listingType = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Listing type
               </LText>
@@ -542,7 +662,12 @@ export function BrowseFiltersPanel({
               </View>
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.rent = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Rent (USD / month)
               </LText>
@@ -560,7 +685,12 @@ export function BrowseFiltersPanel({
               />
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.electricity = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Electricity
               </LText>
@@ -591,7 +721,12 @@ export function BrowseFiltersPanel({
               </View>
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.water = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Water
               </LText>
@@ -622,7 +757,12 @@ export function BrowseFiltersPanel({
               </View>
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.gender = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Gender
               </LText>
@@ -656,7 +796,12 @@ export function BrowseFiltersPanel({
               </View>
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.extras = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Extras
               </LText>
@@ -674,7 +819,12 @@ export function BrowseFiltersPanel({
               </View>
             </View>
 
-            <View style={styles.blockSection}>
+            <View
+              style={styles.blockSection}
+              onLayout={(e) => {
+                sectionOffsets.current.area = e.nativeEvent.layout.y;
+              }}
+            >
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Area
               </LText>
