@@ -553,6 +553,7 @@ export function FindBrowse() {
       <FindFilterBar
         key={browse.open ? "guide-open" : "guide-closed"}
         filters={filters}
+        priceHistogram={search.priceHistogram}
         matchAvailable={!!browse.prefs}
         sort={browseSort}
         sticky={!isMap}
@@ -661,6 +662,7 @@ export function FindBrowse() {
         <FindFiltersDialog
           visible={filtersOpen}
           applied={filters}
+          priceHistogram={search.priceHistogram}
           universities={universities.data ?? []}
           universitiesLoading={universities.isLoading}
           initialSection={filterSection}
@@ -672,6 +674,7 @@ export function FindBrowse() {
           visible={filtersOpen}
           mode={badgeMode}
           applied={filters}
+          priceHistogram={search.priceHistogram}
           universities={universities.data ?? []}
           universitiesLoading={universities.isLoading}
           onClose={() => setFiltersOpen(false)}

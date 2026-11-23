@@ -22,6 +22,7 @@ import {
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
+import { BudgetHistogramSlider } from "@/components/listings/BudgetHistogramSlider";
 import { Studently } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
@@ -36,6 +37,7 @@ import type {
   ListingType,
   WaterStatus,
 } from "@/types/listing";
+import type { PriceHistogram } from "@/types/priceHistogram";
 
 import { EMPTY_BROWSE_FILTERS, type BrowseFiltersValue } from "@/lib/browseFiltersValue";
 export { EMPTY_BROWSE_FILTERS, type BrowseFiltersValue } from "@/lib/browseFiltersValue";
@@ -50,6 +52,7 @@ type Props = {
   visible: boolean;
   mode: SearchMode;
   applied: BrowseFiltersValue;
+  priceHistogram?: PriceHistogram | null;
   universities: University[];
   universitiesLoading?: boolean;
   onClose: () => void;
@@ -175,6 +178,7 @@ export function BrowseFiltersPanel({
   visible,
   mode: _mode,
   applied,
+  priceHistogram,
   onClose,
   onApply,
   variant = "drawer",
@@ -222,6 +226,7 @@ export function BrowseFiltersPanel({
   const [rentError, setRentError] = useState<string | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [sliderDragging, setSliderDragging] = useState(false);
 
   const draftValue: BrowseFiltersValue = useMemo(
     () => ({
@@ -456,6 +461,7 @@ export function BrowseFiltersPanel({
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            scrollEnabled={!sliderDragging}
           >
             {sortOptions && sortOptions.length > 0 && onSortChange ? (
               <View style={styles.blockSection}>
@@ -540,50 +546,18 @@ export function BrowseFiltersPanel({
               <LText variant="label" tone="muted" style={styles.sectionLabel}>
                 Rent (USD / month)
               </LText>
-              <LText variant="caption" tone="muted" style={styles.sectionHint}>
-                Leave blank for no bound.
-              </LText>
-              <View style={styles.rentRow}>
-                <View style={styles.rentField}>
-                  <LText variant="caption" tone="muted">
-                    Min
-                  </LText>
-                  <TextInput
-                    style={styles.rentInput}
-                    value={draftMinRent}
-                    onChangeText={(t) => {
-                      setDraftMinRent(t.replace(/[^\d]/g, ""));
-                      setRentError(null);
-                    }}
-                    keyboardType="number-pad"
-                    placeholder="Any"
-                    placeholderTextColor={Studently.color.inkFaint}
-                    accessibilityLabel="Minimum monthly rent"
-                  />
-                </View>
-                <View style={styles.rentField}>
-                  <LText variant="caption" tone="muted">
-                    Max
-                  </LText>
-                  <TextInput
-                    style={styles.rentInput}
-                    value={draftMaxRent}
-                    onChangeText={(t) => {
-                      setDraftMaxRent(t.replace(/[^\d]/g, ""));
-                      setRentError(null);
-                    }}
-                    keyboardType="number-pad"
-                    placeholder="Any"
-                    placeholderTextColor={Studently.color.inkFaint}
-                    accessibilityLabel="Maximum monthly rent"
-                  />
-                </View>
-              </View>
-              {rentError ? (
-                <LText variant="caption" tone="danger" style={styles.rentError}>
-                  {rentError}
-                </LText>
-              ) : null}
+              <BudgetHistogramSlider
+                minRentUsd={parseRentDraft(draftMinRent)}
+                maxRentUsd={parseRentDraft(draftMaxRent)}
+                histogram={priceHistogram}
+                error={rentError}
+                onDragStateChange={setSliderDragging}
+                onChange={(min, max) => {
+                  setDraftMinRent(rentToDraft(min));
+                  setDraftMaxRent(rentToDraft(max));
+                  setRentError(null);
+                }}
+              />
             </View>
 
             <View style={styles.blockSection}>

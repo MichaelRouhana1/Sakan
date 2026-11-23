@@ -10,6 +10,7 @@ import type { ListListingsQuery } from '../listings/listings.schemas.js';
 import { extractMatchFacts } from './matcher.facts.js';
 import { distanceKm, explainWidening, rankListings, type MatchListing } from './matcher.scoring.js';
 import type { MatchPresentation } from './matcher.types.js';
+import { buildPriceHistogram, type PriceHistogram } from './price-histogram.js';
 
 type SearchUnit = MatchListing & Record<string, unknown> & {
   monthlyRentUsd: number; distanceMeters?: number;
@@ -51,7 +52,20 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
       location.center = center ? { lat: center.lat, lng: center.lng } : undefined;
     }
   }
-  const result = await listingsService.list(query);
+  const needsHistogram = query.view !== 'map';
+  const hasPriceFilter =
+    query.minRentUsd != null ||
+    query.maxRentUsd != null ||
+    prefs?.budget?.importance === 'required';
+
+  const [result, histResult] =
+    needsHistogram && hasPriceFilter
+      ? await Promise.all([
+          listingsService.list(query),
+          listingsService.list({ ...query, minRentUsd: null, maxRentUsd: null }),
+        ])
+      : [await listingsService.list(query), null];
+
   const candidates = result.data.map(row => ({ ...row, matchFacts: extractMatchFacts(row) })) as unknown as SearchUnit[];
   // Distance sorting can use a preferred location without making it a radius requirement.
   for (const row of candidates) {
@@ -64,6 +78,24 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
   }
   const ranked = prefs ? rankListings(candidates, prefs) : { listings: candidates, matches: {} };
   const eligible = ranked.listings as SearchUnit[];
+
+  let priceHistogram: PriceHistogram | null = null;
+  if (needsHistogram) {
+    if (histResult) {
+      const histCandidates = histResult.data.map(row => ({
+        ...row,
+        matchFacts: extractMatchFacts(row),
+      })) as unknown as SearchUnit[];
+      const nonBudgetPrefs = prefs ? { ...prefs, budget: undefined } : undefined;
+      const histEligible = nonBudgetPrefs
+        ? (rankListings(histCandidates, nonBudgetPrefs).listings as SearchUnit[])
+        : histCandidates;
+      priceHistogram = buildPriceHistogram(histEligible.map(u => u.monthlyRentUsd));
+    } else {
+      priceHistogram = buildPriceHistogram(eligible.map(u => u.monthlyRentUsd));
+    }
+  }
+
   const widening = explainWidening(eligible, prefs ?? { version: 1 });
   const resolvedQuery = { ...query, matcher: prefs, areas: result.resolution?.canonicalAreas ?? query.areas,
     q: result.resolution?.remainingQuery || undefined };
@@ -78,6 +110,7 @@ export async function searchUnits(query: ListListingsQuery, session?: string) {
   return {
     data, featured, campuses: result.campuses,
     searchResolution: result.resolution ?? null,
+    priceHistogram,
     matches: Object.fromEntries(Object.entries(ranked.matches).filter(([id]) => shown.has(id))), widening,
     pagination: { page, pageSize: query.pageSize, total, totalMatching: total + featured.length, hasNext: page * query.pageSize < total },
   };

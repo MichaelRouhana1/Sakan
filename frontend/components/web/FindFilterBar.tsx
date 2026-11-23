@@ -37,6 +37,7 @@ import type {
   ListingType,
   WaterStatus,
 } from "@/types/listing";
+import type { PriceHistogram } from "@/types/priceHistogram";
 
 export type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance" | "match";
 
@@ -149,6 +150,7 @@ function toggleInList<T extends string>(list: T[], value: T, max: number): T[] {
 type Props = {
   matchAvailable?: boolean;
   filters: BrowseFiltersValue;
+  priceHistogram?: PriceHistogram | null;
   sort: BrowseSortKey;
   onOpenFilters: () => void;
   onApplyFilters: (next: BrowseFiltersValue) => void;
@@ -184,6 +186,7 @@ function sortLabel(sort: BrowseSortKey): string {
 
 export function FindFilterBar({
   filters,
+  priceHistogram,
   sort,
   onOpenFilters,
   onApplyFilters,
@@ -411,7 +414,7 @@ export function FindFilterBar({
           {menu === "budget" ? (
             <FilterDropdownShell
               title="Budget (per month)"
-              width={340}
+              width={368}
               anchor={anchor}
               canReset={
                 filters.minRentUsd != null || filters.maxRentUsd != null
@@ -422,6 +425,7 @@ export function FindFilterBar({
               <BudgetRangeControl
                 minRentUsd={filters.minRentUsd}
                 maxRentUsd={filters.maxRentUsd}
+                histogram={priceHistogram}
                 onChange={(minRentUsd, maxRentUsd) =>
                   patch({ minRentUsd, maxRentUsd })
                 }

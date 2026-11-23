@@ -3,6 +3,7 @@ import { promotionSession } from '@/features/promotions/activity';
 import type { ListingSort } from "@/components/listings/ListingSortControl";
 import { api } from "@/lib/api";
 import type { CampusMeta, Listing } from "@/types/listing";
+import type { PriceHistogram } from "@/types/priceHistogram";
 import { listingKeys, type ListingListFilters } from "./keys";
 import { normalizeListingsPayload, normalizeListingsEnvelope } from "./normalizeListing";
 
@@ -12,6 +13,7 @@ type ListingsApiResponse = {
   /** Legacy singular — dual-read in normalize. */
   campus?: unknown;
   featured?: unknown;
+  priceHistogram?: PriceHistogram | null;
   matches?: ListingsQueryData["matches"];
   widening?: ListingsQueryData["widening"];
   pagination?: ListingsQueryData["pagination"];
@@ -33,6 +35,7 @@ export type ListingsQueryData = {
   listings: Listing[];
   campuses: CampusMeta[];
   featured: Listing[];
+  priceHistogram: PriceHistogram | null;
   matches: Record<string, import("@/features/matcher/types").MatchPresentation>;
   widening: import("@/features/matcher/types").MatchWidening;
   pagination: { page: number; pageSize: number; total: number; totalMatching: number; hasNext: boolean };
@@ -114,7 +117,7 @@ export function useListings(
       });
       const normalized = normalizeListingsEnvelope(data);
       const featured = normalizeListingsPayload(data.featured);
-      return { ...normalized, featured, matches: data.matches ?? {}, searchResolution:data.searchResolution ?? null,
+      return { ...normalized, featured, priceHistogram: data.priceHistogram ?? null, matches: data.matches ?? {}, searchResolution:data.searchResolution ?? null,
         widening: data.widening ?? { strictCount: 0, alternativeCount: 0, labels: [], shortfall: true },
         pagination: data.pagination ?? { page: 1, pageSize: 24, total: normalized.listings.length, totalMatching: normalized.listings.length + featured.length, hasNext: false },
       };

@@ -1,6 +1,6 @@
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
-import { createElement, useEffect, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   Platform,
   Pressable,
@@ -9,8 +9,10 @@ import {
   View,
 } from "react-native";
 import { LText } from "@/components/lister/Typography";
+import { BudgetHistogramSlider } from "@/components/listings/BudgetHistogramSlider";
 import { Studently } from "@/constants/theme";
 import { WEB_NAV_HEIGHT } from "@/constants/webLayout";
+import type { PriceHistogram } from "@/types/priceHistogram";
 
 export const FILTER_BAR_HEIGHT = 52;
 
@@ -194,186 +196,26 @@ export function MenuSearch({
   );
 }
 
-const RENT_MIN = 0;
-const RENT_MAX = 2500;
-const RENT_STEP = 25;
-
 export function BudgetRangeControl({
   minRentUsd,
   maxRentUsd,
+  histogram,
   onChange,
 }: {
   minRentUsd: number | null;
   maxRentUsd: number | null;
+  histogram?: PriceHistogram | null;
   onChange: (min: number | null, max: number | null) => void;
 }) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const styles = resolveStyles(baseStyles);
-  
-  const lo = minRentUsd ?? RENT_MIN;
-  const hi = maxRentUsd ?? RENT_MAX;
-
-  const commit = (nextLo: number, nextHi: number) => {
-    const clampedLo = Math.min(nextLo, nextHi);
-    const clampedHi = Math.max(nextLo, nextHi);
-    onChange(
-      clampedLo <= RENT_MIN ? null : clampedLo,
-      clampedHi >= RENT_MAX ? null : clampedHi,
-    );
-  };
-
   return (
-    <View style={styles.budget}>
-      <View style={styles.budgetCaps}>
-        <LText variant="caption" style={styles.budgetCap}>
-          Minimum
-        </LText>
-        <LText variant="caption" style={styles.budgetCap}>
-          Maximum
-        </LText>
-      </View>
-      {Platform.OS === "web" ? (
-        <View style={styles.sliderTrack}>
-          {createElement("style", {
-            dangerouslySetInnerHTML: {
-              __html: `
-                input[data-studently-range]::-webkit-slider-runnable-track {
-                  background: transparent;
-                  height: 4px;
-                }
-                input[data-studently-range]::-moz-range-track {
-                  background: transparent;
-                  height: 4px;
-                  border: none;
-                }
-                input[data-studently-range]::-webkit-slider-thumb {
-                  -webkit-appearance: none;
-                  appearance: none;
-                  width: 16px;
-                  height: 16px;
-                  margin-top: -6px;
-                  border-radius: 50%;
-                  background: ${Studently.color.primary};
-                  border: 2px solid #ffffff;
-                  box-shadow: 0 1px 4px rgba(18, 24, 38, 0.28);
-                  cursor: pointer;
-                  pointer-events: auto;
-                }
-                input[data-studently-range]::-moz-range-thumb {
-                  width: 16px;
-                  height: 16px;
-                  border-radius: 50%;
-                  background: ${Studently.color.primary};
-                  border: 2px solid #ffffff;
-                  box-shadow: 0 1px 4px rgba(18, 24, 38, 0.28);
-                  cursor: pointer;
-                  pointer-events: auto;
-                }
-              `,
-            },
-          })}
-          <View style={styles.sliderRail} />
-          <View
-            style={[
-              styles.sliderFill,
-              {
-                left: `${((lo - RENT_MIN) / (RENT_MAX - RENT_MIN)) * 100}%`,
-                width: `${((hi - lo) / (RENT_MAX - RENT_MIN)) * 100}%`,
-              },
-            ]}
-          />
-          {createElement("input", {
-            type: "range",
-            min: RENT_MIN,
-            max: RENT_MAX,
-            step: RENT_STEP,
-            value: lo,
-            "data-studently-range": "low",
-            "aria-label": "Minimum budget",
-            onChange: (e: { target: { value: string } }) =>
-              commit(Number(e.target.value), hi),
-            style: webRangeStyle("low", lo, hi),
-          })}
-          {createElement("input", {
-            type: "range",
-            min: RENT_MIN,
-            max: RENT_MAX,
-            step: RENT_STEP,
-            value: hi,
-            "data-studently-range": "high",
-            "aria-label": "Maximum budget",
-            onChange: (e: { target: { value: string } }) =>
-              commit(lo, Number(e.target.value)),
-            style: webRangeStyle("high", lo, hi),
-          })}
-        </View>
-      ) : null}
-      <View style={styles.budgetPills}>
-        <View style={styles.budgetPill}>
-          <LText variant="caption" style={styles.budgetDollar}>
-            $
-          </LText>
-          <TextInput
-            value={String(lo)}
-            keyboardType="number-pad"
-            onChangeText={(raw) => {
-              const n = Number.parseInt(raw.replace(/[^\d]/g, ""), 10);
-              if (!Number.isFinite(n)) return;
-              commit(n, hi);
-            }}
-            style={styles.budgetInput}
-          />
-        </View>
-        <View style={styles.budgetPill}>
-          <LText variant="caption" style={styles.budgetDollar}>
-            $
-          </LText>
-          <TextInput
-            value={hi >= RENT_MAX ? `${RENT_MAX}+` : String(hi)}
-            keyboardType="number-pad"
-            onChangeText={(raw) => {
-              const n = Number.parseInt(raw.replace(/[^\d]/g, ""), 10);
-              if (!Number.isFinite(n)) return;
-              commit(lo, n);
-            }}
-            style={styles.budgetInput}
-          />
-        </View>
-      </View>
-    </View>
+    <BudgetHistogramSlider
+      compact
+      minRentUsd={minRentUsd}
+      maxRentUsd={maxRentUsd}
+      histogram={histogram}
+      onCommit={onChange}
+    />
   );
-}
-
-function webRangeStyle(
-  layer: "low" | "high",
-  lo: number,
-  hi: number,
-): Record<string, string | number> {
-  // Each input only covers its own half of the track, plus a little past the
-  // midpoint so the 16px thumb is never sliced. Without this, the max input
-  // sits on top of the whole track and the min thumb cannot be dragged.
-  const mid = (lo + hi) / 2 / (RENT_MAX - RENT_MIN);
-  const clip =
-    layer === "low"
-      ? `inset(-12px calc(${(1 - mid) * 100}% - 18px) -12px -12px)`
-      : `inset(-12px -12px -12px calc(${mid * 100}% - 18px))`;
-  const close = hi - lo <= 300;
-  return {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    width: "100%",
-    height: 28,
-    margin: 0,
-    background: "transparent",
-    pointerEvents: "none",
-    zIndex: layer === "low" ? (close ? 4 : 2) : 3,
-    clipPath: clip,
-    WebkitClipPath: clip,
-    accentColor: Studently.color.primary,
-    WebkitAppearance: "none",
-    appearance: "none",
-  };
 }
 
 const baseStyles = StyleSheet.create({
@@ -472,68 +314,6 @@ const baseStyles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: Studently.color.ink,
-    outlineStyle: "none",
-    paddingVertical: 0,
-  } as Record<string, unknown>,
-  budget: {
-    gap: 12,
-  },
-  budgetCaps: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  budgetCap: {
-    color: Studently.color.inkFaint,
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    fontWeight: "600",
-  },
-  sliderTrack: {
-    height: 28,
-    justifyContent: "center",
-    marginHorizontal: 2,
-    position: "relative",
-  },
-  sliderRail: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "#E2E8F0",
-  },
-  sliderFill: {
-    position: "absolute",
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: Studently.color.primary,
-  },
-  budgetPills: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  budgetPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-    borderWidth: 1,
-    borderColor: Studently.color.border,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  budgetDollar: {
-    color: Studently.color.inkMuted,
-    fontWeight: "700",
-  },
-  budgetInput: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: "600",
     color: Studently.color.ink,
     outlineStyle: "none",
     paddingVertical: 0,

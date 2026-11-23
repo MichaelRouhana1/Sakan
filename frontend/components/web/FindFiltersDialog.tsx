@@ -20,6 +20,7 @@ import {
 } from "@/constants/areas";
 import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { UniversityCampusFilter } from "@/components/listings/UniversityCampusFilter";
+import { BudgetHistogramSlider } from "@/components/listings/BudgetHistogramSlider";
 import { Studently } from "@/constants/theme";
 import type { University } from "@/features/universities/useUniversities";
 import {
@@ -34,6 +35,7 @@ import type {
   ListingType,
   WaterStatus,
 } from "@/types/listing";
+import type { PriceHistogram } from "@/types/priceHistogram";
 
 export type FilterSection =
   | "area"
@@ -46,6 +48,7 @@ export type FilterSection =
 type Props = {
   visible: boolean;
   applied: BrowseFiltersValue;
+  priceHistogram?: PriceHistogram | null;
   universities: University[];
   universitiesLoading?: boolean;
   initialSection?: FilterSection;
@@ -97,6 +100,7 @@ function toggleInList<T extends string>(
 export function FindFiltersDialog({
   visible,
   applied,
+  priceHistogram,
   initialSection = "area",
   onClose,
   onApply,
@@ -355,48 +359,17 @@ export function FindFiltersDialog({
                     <LText variant="caption" tone="muted">
                       Monthly rent in fresh USD
                     </LText>
-                    <View style={styles.budgetRow}>
-                      <View style={styles.budgetField}>
-                        <LText variant="caption" style={styles.budgetLabel}>
-                          Min
-                        </LText>
-                        <TextInput
-                          value={draftMinRent}
-                          onChangeText={(t) => {
-                            setDraftMinRent(t);
-                            setRentError(null);
-                          }}
-                          keyboardType="number-pad"
-                          placeholder="0"
-                          placeholderTextColor={Studently.color.inkFaint}
-                          style={styles.budgetInput}
-                        />
-                      </View>
-                      <LText variant="body" tone="muted" style={styles.budgetDash}>
-                        –
-                      </LText>
-                      <View style={styles.budgetField}>
-                        <LText variant="caption" style={styles.budgetLabel}>
-                          Max
-                        </LText>
-                        <TextInput
-                          value={draftMaxRent}
-                          onChangeText={(t) => {
-                            setDraftMaxRent(t);
-                            setRentError(null);
-                          }}
-                          keyboardType="number-pad"
-                          placeholder="Any"
-                          placeholderTextColor={Studently.color.inkFaint}
-                          style={styles.budgetInput}
-                        />
-                      </View>
-                    </View>
-                    {rentError ? (
-                      <LText variant="caption" tone="danger">
-                        {rentError}
-                      </LText>
-                    ) : null}
+                    <BudgetHistogramSlider
+                      minRentUsd={parseRentDraft(draftMinRent)}
+                      maxRentUsd={parseRentDraft(draftMaxRent)}
+                      histogram={priceHistogram}
+                      error={rentError}
+                      onChange={(min, max) => {
+                        setDraftMinRent(rentToDraft(min));
+                        setDraftMaxRent(rentToDraft(max));
+                        setRentError(null);
+                      }}
+                    />
                   </View>
                 ) : null}
 

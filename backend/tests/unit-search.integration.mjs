@@ -162,6 +162,28 @@ try {
     const required = await search({matcher:JSON.stringify({version:1,budget:{value:{min:390,max:400},importance:'required'}})});
     assert.equal(required.featured.length,0); assert.equal(required.pagination.total,2);
   });
+  await check('priceHistogram matches totalMatching without featured double-counting and ignores price filters', async () => {
+    const unfiltered = await search({ pageSize: '2' });
+    assert.ok(unfiltered.featured.length > 0);
+    assert.ok(unfiltered.priceHistogram);
+    assert.ok(unfiltered.priceHistogram.buckets.length >= 20 && unfiltered.priceHistogram.buckets.length <= 30);
+    const bucketTotal = unfiltered.priceHistogram.buckets.reduce((sum, b) => sum + b.count, 0);
+    assert.equal(bucketTotal, unfiltered.pagination.totalMatching);
+    assert.equal(unfiltered.priceHistogram.totalCount, unfiltered.pagination.totalMatching);
+    const priceFiltered = await search({ minRentUsd: '300', maxRentUsd: '350' });
+    assert.ok(priceFiltered.pagination.totalMatching < unfiltered.pagination.totalMatching);
+    assert.deepEqual(priceFiltered.priceHistogram, unfiltered.priceHistogram);
+    const matcherBudget = await search({
+      matcher: JSON.stringify({ version: 1, budget: { value: { min: 390, max: 400 }, importance: 'required' } }),
+    });
+    assert.ok(matcherBudget.pagination.totalMatching < unfiltered.pagination.totalMatching);
+    assert.deepEqual(matcherBudget.priceHistogram, unfiltered.priceHistogram);
+    const narrow = await search({ q: 'Search unit 0' });
+    assert.ok(narrow.pagination.totalMatching < 5);
+    assert.equal(narrow.priceHistogram, null);
+    const mapView = await search({ view: 'map' });
+    assert.equal(mapView.priceHistogram, null);
+  });
   await check('Bump affects newest only, never price, distance or best match', async () => {
     await buy(units[30], 'bump_3');
     assert.equal((await search({ pageSize:'1' })).data[0].id,units[30].id);

@@ -623,6 +623,7 @@ export default function RenterSearchScreen() {
             variant="sheet"
             mode={mode}
             applied={browseFilters}
+            priceHistogram={listingsQuery.priceHistogram}
             universities={universities.data ?? []}
             universitiesLoading={universities.isLoading}
             sort={sort}
@@ -786,6 +787,7 @@ export default function RenterSearchScreen() {
         variant="drawer"
         mode={mode}
         applied={browseFilters}
+        priceHistogram={listingsQuery.priceHistogram}
         universities={universities.data ?? []}
         universitiesLoading={universities.isLoading}
         onClose={() => setFiltersOpen(false)}
