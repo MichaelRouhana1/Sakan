@@ -61,3 +61,25 @@ export function workspaceGroups(units: Listing[], filter: ListingsFilter, search
   groups.forEach(group => group.units.sort(compare));
   return groups.sort((a,b) => sort === 'name' ? a.name.localeCompare(b.name) : compare(a.units[0], b.units[0]) || a.name.localeCompare(b.name));
 }
+
+export const date = (value: string | number | null | undefined, full = false) => value == null ? 'Date unavailable' : new Date(value).toLocaleString(undefined, {
+  month: 'short', day: 'numeric', ...(full ? { year: 'numeric', hour: 'numeric', minute: '2-digit' } as const : {}),
+});
+
+export function autoRenewInfo(unit: Listing, now: number) {
+  const f = workspaceFacts(unit, now);
+  const ready = unit.autoRenewState != null;
+  const disabled = unit.status === 'removed' || f.rented || (!f.enabled && (f.expired || unit.status !== 'active'));
+  const reason = f.blocked === 'credits' ? 'Blocked: add credits' : f.blocked === 'beds' ? 'Blocked: confirm beds' : f.blocked === 'account' ? 'Blocked: account restricted' : f.blocked ? 'Blocked: check availability' : null;
+  const copy = f.expired ? (f.enabled ? 'Expired · renew manually' : 'Renew first to enable') : disabled ? (f.rented ? 'Unavailable while rented' : 'Unavailable') : !ready ? 'Eligibility unavailable' : f.enabled ? (reason ?? `Next renewal by ${date(unit.expiresAt)}`) : '';
+  return { f, ready, disabled, reason, copy };
+}
+
+/** One-line auto-renew caption for dense surfaces; `full` is the unabridged text for assistive tech. */
+export function autoRenewCaption(unit: Listing, now: number) {
+  const { f, ready, reason, copy } = autoRenewInfo(unit, now);
+  const deadline = unit.expiresAt ? date(unit.expiresAt) : 'Date unavailable';
+  const brief = f.blocked === 'credits' ? 'Add credits' : f.blocked === 'beds' ? 'Confirm beds' : f.blocked === 'account' ? 'Check account' : 'Check availability';
+  const short = !ready ? copy : f.rented ? 'Unavailable' : f.enabled && !f.expired ? (reason ? `${brief} · ${deadline}` : `Renews by ${deadline}`) : copy;
+  return { short, full: `${copy}${f.enabled && reason && unit.expiresAt ? ` · Due ${deadline}` : ''}`, warn: Boolean(reason) };
+}

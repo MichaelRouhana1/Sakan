@@ -25,22 +25,32 @@ export function HostListingsLayoutButton({
 }) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
-  const nextLayout = layout === "grid" ? "list" : "grid";
+  const options = [
+    { value: "grid", label: "Grid view", icon: "grid-outline" },
+    { value: "list", label: "List view", icon: "reorder-three-outline" },
+  ] as const;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={
-        layout === "grid" ? "Switch to list view" : "Switch to grid view"
-      }
-      onPress={() => onLayoutChange(nextLayout)}
-      style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-    >
-      <Ionicons
-        name={layout === "grid" ? "reorder-three-outline" : "grid-outline"}
-        size={designSize(18)}
-        color={Studently.color.ink}
-      />
-    </Pressable>
+    <View style={styles.segment} accessibilityRole="radiogroup" accessibilityLabel="Listing layout">
+      {options.map((option) => {
+        const selected = layout === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityLabel={option.label}
+            accessibilityState={{ checked: selected }}
+            onPress={() => onLayoutChange(option.value)}
+            style={({ pressed }) => [styles.segmentItem, selected && styles.segmentSelected, pressed && !selected && styles.pressed]}
+          >
+            <Ionicons
+              name={option.icon}
+              size={designSize(18)}
+              color={selected ? "#A82D36" : Studently.color.inkMuted}
+            />
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -131,6 +141,26 @@ const baseStyles = StyleSheet.create({
   pressed: {
     opacity: 0.88,
     backgroundColor: "#F8FAFC",
+  },
+  segment: {
+    flexDirection: "row",
+    padding: 3,
+    gap: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#D9DDE3",
+    backgroundColor: "#FFFFFF",
+  },
+  segmentItem: {
+    width: 40,
+    height: 36,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+  segmentSelected: {
+    backgroundColor: "#FDECEE",
   },
   disabled: {
     opacity: 0.4,

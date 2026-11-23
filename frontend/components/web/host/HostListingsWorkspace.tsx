@@ -26,19 +26,17 @@ import { api } from '@/lib/api';
 import { appleTabScrollInset } from '@/components/ui/Glass';
 import { expiryTime } from './hostListingStatus';
 import { HostListingsLayoutButton, type HostListingsLayout } from './HostListingsToolbar';
-import { listingFilters, placeName, portfolioCounts, unitTitle, unitTypeName, unitCampusName, workspaceFacts, workspaceGroups, type WorkspaceAction } from './listingsWorkspaceModel';
+import { autoRenewInfo, date, listingFilters, placeName, portfolioCounts, unitTitle, unitTypeName, unitCampusName, workspaceFacts, workspaceGroups, type WorkspaceAction } from './listingsWorkspaceModel';
+import { Button, IconButton, MenuTrigger, type Anchor } from './hostWorkspacePrimitives';
+import { CardGrid, DraftCard, GridSkeleton, PlaceHeading, UnitCard } from './HostListingCards';
 
 export type WorkspaceDraft = { key: string; title: string; subtitle: string; coverUrl?: string | null; onPress: () => void };
 const workspaceFilters = [...listingFilters, 'Drafts'] as const;
 type WorkspaceFilter = typeof workspaceFilters[number];
 type Props = { listings: Listing[]; drafts: WorkspaceDraft[]; loading: boolean; failed: boolean; refreshing: boolean; signedIn: boolean; createDisabled: boolean; onRefresh: () => Promise<unknown>; onEdit: (unit: Listing) => void };
-type Anchor = { x: number; y: number };
-type Sheet = { kind: 'menu' | 'place'; unit: Listing; anchor?: Anchor } |
+type Sheet = { kind: 'menu' | 'place'; unit: Listing; anchor?: Anchor; singlePlace?: boolean } |
   { kind: 'renew' | 'availability' | 'auto' | 'shared' | 'archive' | 'remove'; unit: Listing } |
   { kind: 'reminders' | 'add' } | null;
-const date = (value: string | number | null | undefined, full = false) => value == null ? 'Date unavailable' : new Date(value).toLocaleString(undefined, {
-  month: 'short', day: 'numeric', ...(full ? { year: 'numeric', hour: 'numeric', minute: '2-digit' } as const : {}),
-});
 const message = (error: unknown) => (error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message ?? 'Could not save. Please try again.';
 const primaryLabels: Record<WorkspaceAction, string> = { renew: 'Renew', edit: 'Edit', analytics: 'View analytics', availability: 'Update availability' };
 
@@ -80,8 +78,22 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const autoList = Platform.OS === 'web' && layoutWidth >= 1080 && count !== 1;
   const layout: HostListingsLayout = layoutChoice ?? (autoList ? 'list' : 'grid');
   const wide = layout === 'list' && Platform.OS === 'web' && layoutWidth >= 1080;
+  // Desktop card grid. Narrow web and native keep the stacked rows until the mobile pass.
+  const cards = layout === 'grid' && Platform.OS === 'web' && layoutWidth >= 720;
+  const sections = useMemo(() => {
+    const out: ({ kind: 'place'; group: typeof groups[number] } | { kind: 'loose'; groups: typeof groups })[] = [];
+    let loose: typeof groups = [];
+    for (const group of groups) {
+      if (group.total === 1) { loose.push(group); continue; }
+      if (loose.length) { out.push({ kind: 'loose', groups: loose }); loose = []; }
+      out.push({ kind: 'place', group });
+    }
+    if (loose.length) out.push({ kind: 'loose', groups: loose });
+    return out;
+  }, [groups]);
   const narrow = layoutWidth < 600;
   const known = !loading && (!failed || units.length > 0);
+  const placeCount = useMemo(() => new Set(units.map(unit => unit.placeId ?? unit.id)).size, [units]);
   const shortage = units.length > 0 && credits.data?.postCredits === 0;
   const close = () => { setSheet(null); setError(''); };
   const open = (next: Sheet) => { setError(''); setSheet(next); };
@@ -156,6 +168,8 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
     } catch (e) { setError(message(e)); }
   }
 
+  const walletCluster = <View style={[s.wallet, narrow && { gap: 8 }]}><View style={s.walletLabel}><Ionicons name="wallet-outline" size={designSize(17)} color={Studently.color.inkMuted} /><Text style={s.smallBold}>{credits.data ? `${credits.data.postCredits} post credits` : credits.isError ? 'Balance unavailable' : 'Checking credits…'}</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/hosting/credits' as never)} style={s.touch}><Text style={s.textLink}>Buy credits</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Reminder settings" onPress={() => open({ kind: 'reminders' })} style={s.touch}><Text style={s.captionLink}>Reminders</Text></Pressable></View>;
+
   return <View style={s.root} onLayout={event => setWidth(event.nativeEvent.layout.width)} testID="listings-workspace" aria-busy={loading || refreshing}>
     <ScrollView keyboardShouldPersistTaps="handled" stickyHeaderIndices={[1]} refreshControl={<RefreshControl refreshing={manualRefresh && !loading} onRefresh={refetch} tintColor={Studently.color.primary} />} contentContainerStyle={s.scroll}>
       <View style={[s.summary, narrow && s.summaryNarrow]}>
@@ -166,21 +180,43 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
             <Metric value={known ? counts.expiring : null} label="Expiring" tone="warning" onPress={() => setFilter('Needs attention')} />
             <Metric value={known ? counts.Expired : null} label="Expired" tone="danger" onPress={() => setFilter('Expired')} />
           </View>
-          <View style={[s.wallet,narrow&&{gap:8}]}><View style={s.walletLabel}><Ionicons name="wallet-outline" size={designSize(17)} color={Studently.color.inkMuted} /><Text style={s.smallBold}>{credits.data ? `${credits.data.postCredits} post credits` : credits.isError ? 'Balance unavailable' : 'Checking credits…'}</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/hosting/credits' as never)} style={s.touch}><Text style={s.textLink}>Buy credits</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Reminder settings" onPress={() => open({ kind: 'reminders' })} style={s.touch}><Text style={s.captionLink}>Reminders</Text></Pressable></View>
+          {walletCluster}
         </View>
-        {!narrow ? <View style={s.summaryFoot}><Text style={s.caption}>{known ? `${units.length} ${units.length === 1 ? 'unit' : 'units'} · ${new Set(units.map(unit => unit.placeId ?? unit.id)).size} ${new Set(units.map(unit => unit.placeId ?? unit.id)).size === 1 ? 'place' : 'places'}` : 'Your places and units'} · Expiring is included in Live</Text></View> : null}
+        {!narrow ? <View style={s.summaryFoot}><Text style={s.caption}>{known ? `${units.length} ${units.length === 1 ? 'unit' : 'units'} · ${placeCount} ${placeCount === 1 ? 'place' : 'places'}` : 'Your places and units'} · Expiring is included in Live</Text></View> : null}
       </View>
 
-      <View style={s.toolbar}>
+      <View style={[s.toolbar, !narrow && s.toolbarRow]}>
         <RubberSegment value={filter} onChange={setFilter} items={workspaceFilters.map(value => ({value, label: value === 'Drafts' ? 'In progress' : value, count: known || value === 'Drafts' ? filterCounts[value] : '—'}))} />
-        <View style={s.searchRow}><View style={s.search}><Ionicons name="search-outline" size={designSize(18)} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /><HostListingsLayoutButton layout={layout} onLayoutChange={setLayoutChoice} /></View>
+        <View style={[s.searchRow, !narrow && s.searchRowFill]}><View style={s.search}><Ionicons name="search-outline" size={designSize(18)} color={Studently.color.inkMuted} /><TextInput accessibilityLabel="Search units, places or areas" placeholder="Search units or places" placeholderTextColor="#6B7280" value={search} onChangeText={setSearch} style={s.searchInput} />{search ? <IconButton label="Clear search" icon="close" onPress={() => setSearch('')} /> : null}</View><Button minWidth={108} label={sort === 'urgency' ? 'Urgency' : 'Name'} icon="swap-vertical-outline" onPress={() => setSort(sort === 'urgency' ? 'name' : 'urgency')} /><HostListingsLayoutButton layout={layout} onLayoutChange={setLayoutChoice} /></View>
       </View>
 
       <View style={[s.body, narrow && s.bodyNarrow]}>
         {shortage ? <Notice warning text="No post credits. Each unit renewal needs 1 credit." action="Buy credits" onPress={() => router.push('/hosting/credits' as never)} /> : null}
         {failed ? <Notice text={units.length ? 'Couldn’t refresh. Showing your last saved listings.' : 'Couldn’t load your listings.'} action="Retry" onPress={refetch} /> : null}
-        {loading && units.length === 0 && drafts.length === 0 ? <WorkspaceSkeleton wide={wide} /> : units.length === 0 && drafts.length === 0 && !failed && filter !== 'Drafts' ? <Empty title="Add your first listing" detail="Start with a place, then add a whole apartment, private room or shared beds." action="Add listing" onPress={() => open({ kind: 'add' })} /> : !groups.length && !visibleDrafts.length && !failed ? <Empty title={filter === 'Drafts' && !search ? 'No drafts in progress.' : filter === 'Needs attention' && !search ? 'Nothing needs attention right now.' : 'No listings match these filters.'} detail={filter === 'Drafts' && !search ? 'New listings you save before publishing will appear here.' : filter === 'Needs attention' && !search ? 'Your listing times and auto-renew settings are looking good.' : 'Try another unit, place name or area.'} action={filter === 'Needs attention' && !search ? 'Show all' : 'Clear search and filters'} onPress={() => { setFilter('All'); setSearch(''); }} /> : null}
-        {groups.length || visibleDrafts.length ? <View style={[s.list, !wide && count === 1 && s.singleList]} testID="unit-list">
+        {loading && units.length === 0 && drafts.length === 0 ? (cards ? <GridSkeleton /> : <WorkspaceSkeleton wide={wide} />) : units.length === 0 && drafts.length === 0 && !failed && filter !== 'Drafts' ? <Empty title="Add your first listing" detail="Start with a place, then add a whole apartment, private room or shared beds." action="Add listing" onPress={() => open({ kind: 'add' })} /> : !groups.length && !visibleDrafts.length && !failed ? <Empty title={filter === 'Drafts' && !search ? 'No drafts in progress.' : filter === 'Needs attention' && !search ? 'Nothing needs attention right now.' : 'No listings match these filters.'} detail={filter === 'Drafts' && !search ? 'New listings you save before publishing will appear here.' : filter === 'Needs attention' && !search ? 'Your listing times and auto-renew settings are looking good.' : 'Try another unit, place name or area.'} action={filter === 'Needs attention' && !search ? 'Show all' : 'Clear search and filters'} onPress={() => { setFilter('All'); setSearch(''); }} /> : null}
+        {cards && (groups.length || visibleDrafts.length) ? <View style={s.cardStack} testID="unit-list">
+          {visibleDrafts.length ? <View style={s.cardSection}>
+            {groups.length ? <Text style={s.sectionTitle}>In progress</Text> : null}
+            <CardGrid>{visibleDrafts.map(draft => <DraftCard key={draft.key} testID={`draft-${draft.key}`} title={draft.title} subtitle={draft.subtitle} coverUrl={draft.coverUrl} onPress={draft.onPress} />)}</CardGrid>
+          </View> : null}
+          {sections.map(section => {
+            const renderCard = (unit: Listing, singlePlace: boolean) => <UnitCard key={unit.id} unit={unit} now={now} singlePlace={singlePlace} autoBusy={pendingAutoIds.has(unit.id)}
+              onAction={kind => action(unit, kind)} onMenu={anchor => open({ kind: 'menu', unit, anchor, singlePlace })} onToggle={enabled => auto.mutate({ id: unit.id, enabled })} onAnalytics={() => analytics(unit)} />;
+            if (section.kind === 'loose') return <View key={`loose-${section.groups[0].id}`} style={s.cardSection}>
+              {sections.some(other => other.kind === 'place') ? <Text style={s.sectionTitle}>Single-unit places</Text> : null}
+              <CardGrid>{section.groups.flatMap(group => group.units.map(unit => renderCard(unit, true)))}</CardGrid>
+            </View>;
+            const { group } = section;
+            const folded = collapsed.has(group.id) && filter === 'All' && !search;
+            return <View key={group.id} testID={`place-${group.id}`} style={s.cardSection}>
+              <PlaceHeading name={group.name} area={group.unit.area} shown={group.units.length} total={group.total} attention={group.attention} folded={folded} createDisabled={createDisabled}
+                onToggle={() => setCollapsed(previous => { const next = new Set(previous); if (next.has(group.id)) next.delete(group.id); else next.add(group.id); return next; })}
+                onAdd={() => addUnit(group.unit)} onMenu={anchor => open({ kind: 'place', unit: group.unit, anchor })} />
+              {!folded ? <CardGrid>{group.units.map(unit => renderCard(unit, false))}</CardGrid> : null}
+            </View>;
+          })}
+        </View> : null}
+        {!cards && (groups.length || visibleDrafts.length) ? <View style={[s.list, !wide && count === 1 && s.singleList]} testID="unit-list">
           {wide ? <View style={s.columnHeader}><View style={s.unitColumn}><Text style={s.columnLabel}>UNIT</Text></View><View style={s.timeColumn}><Text style={s.columnLabel}>LISTING TIME</Text></View><View style={s.availabilityColumn}><Text style={s.columnLabel}>AVAILABILITY</Text></View><View style={s.autoColumn} testID="auto-renew-column-header"><Text style={s.columnLabel}>AUTO-RENEW</Text></View><View style={s.actionColumn} testID="action-column-header"><Text style={s.columnLabel}>ACTION</Text></View></View> : null}
           {visibleDrafts.map(draft => <DraftRow key={draft.key} draft={draft} wide={wide} />)}
           {groups.map(group => {
@@ -211,6 +247,7 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
         <MenuItem label="Edit" icon="create-outline" disabled={!workspaceFacts(sheet.unit,now).canEdit} onPress={()=>action(sheet.unit,'edit')} />
         <MenuItem label="Promote" icon="trending-up-outline" disabled={sheet.unit.status==='removed'} onPress={()=>{close();router.push(`/hosting/listing/${sheet.unit.id}/promote` as never);}} />
         <MenuItem label="Was it rented?" icon="checkmark-circle-outline" disabled={sheet.unit.status==='removed'} onPress={()=>{close();router.push(`/hosting/listing/${sheet.unit.id}/outcome` as never);}} />
+        {sheet.singlePlace ? <MenuItem label="Place & shared details" icon="business-outline" onPress={()=>open({kind:'place',unit:sheet.unit})} /> : null}
         <View style={s.separator} />
         <MenuItem label="Archive" icon="archive-outline" danger disabled={sheet.unit.status!=='active'} onPress={()=>open({kind:'archive',unit:sheet.unit})} />
         <MenuItem label="Remove" icon="trash-outline" danger disabled={sheet.unit.status!=='active'} onPress={()=>open({kind:'remove',unit:sheet.unit})} />
@@ -279,15 +316,6 @@ function UnitRow({unit,now,wide,singlePlace,onAction,onMenu,onPlace,onToggle,aut
   </View>;
 }
 
-function autoRenewInfo(unit:Listing,now:number) {
-  const f=workspaceFacts(unit,now);
-  const ready=unit.autoRenewState!=null;
-  const disabled=unit.status==='removed'||f.rented||(!f.enabled&&(f.expired||unit.status!=='active'));
-  const reason=f.blocked==='credits'?'Blocked: add credits':f.blocked==='beds'?'Blocked: confirm beds':f.blocked==='account'?'Blocked: account restricted':f.blocked?'Blocked: check availability':null;
-  const copy=f.expired?(f.enabled?'Expired · renew manually':'Renew first to enable'):disabled?(f.rented?'Unavailable while rented':'Unavailable'):!ready?'Eligibility unavailable':f.enabled?(reason??`Next renewal by ${date(unit.expiresAt)}`):'';
-  return {f,ready,disabled,reason,copy};
-}
-
 function AutoRenewSummary({unit,now,onToggle,busy,compact=false,anchored=false}:{unit:Listing;now:number;onToggle:(enabled:boolean)=>void;busy:boolean;compact?:boolean;anchored?:boolean}) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const s = resolveStyles(base_s);
@@ -319,23 +347,6 @@ function WorkspaceSkeleton({wide}:{wide:boolean}) {
   const s = resolveStyles(base_s);
    const layoutWidth=useLayoutWidth(); const size=designSize(layoutWidth>=1024?72:layoutWidth>=768?64:56); return <View testID="listings-loading" accessibilityLabel="Loading listings">{[0,1,2,3].map(i=><View key={i} style={[s.unitRow,!wide&&s.compactRow,{minHeight:designSize(wide?96:180),gap:designSize(14)}]}><View style={[s.thumbnailFallback,{width:size,height:size}]}/><View style={{flex:1,gap:designSize(10)}}><View style={{height:designSize(15),width:'60%',backgroundColor:'#E8EAED',borderRadius:designSize(4)}}/><View style={{height:designSize(10),width:'40%',backgroundColor:'#E8EAED',borderRadius:designSize(4)}}/><View style={{height:designSize(10),width:'50%',backgroundColor:'#E8EAED',borderRadius:designSize(4)}}/></View></View>)}</View>; }
 
-function Button({label,onPress,primary=false,disabled=false,icon,accessibilityLabel}:{label:string;onPress:()=>void;primary?:boolean;disabled?:boolean;icon?:keyof typeof Ionicons.glyphMap;accessibilityLabel?:string}) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const s = resolveStyles(base_s);
-  
-  return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} disabled={disabled} accessibilityState={{disabled}} onPress={onPress} style={({pressed})=>[s.button,primary&&s.primaryButton,pressed&&{opacity:.8},disabled&&{opacity:.45}]}>{icon?<Ionicons name={icon} size={designSize(16)} color={primary?'#FFFFFF':'#52525B'}/>:null}<Text style={[s.buttonText,primary&&s.primaryButtonText]}>{label}</Text></Pressable>;
-}
-function IconButton({label,icon,onPress}:{label:string;icon:keyof typeof Ionicons.glyphMap;onPress:()=>void}) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const s = resolveStyles(base_s);
-   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={s.iconButton}><Ionicons name={icon} size={designSize(20)} color="#5E5A55"/></Pressable>; }
-function MenuTrigger({label,onPress}:{label:string;onPress:(anchor:Anchor)=>void}) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
-  const s = resolveStyles(base_s);
-  
-  const ref=useRef<View>(null);
-  return <Pressable ref={ref} accessibilityRole="button" accessibilityLabel={label} onPress={()=>ref.current?.measureInWindow((x,y,w,h)=>onPress({x:x+w,y:y+h}))} style={s.iconButton}><Ionicons name="ellipsis-horizontal" size={designSize(20)} color="#5E5A55"/></Pressable>;
-}
 function MenuItem({label,icon,onPress,disabled=false,danger=false}:{label:string;icon:keyof typeof Ionicons.glyphMap;onPress:()=>void;disabled?:boolean;danger?:boolean}) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const s = resolveStyles(base_s);
@@ -386,11 +397,13 @@ function WorkspaceSheet({sheet,onClose,children}:{sheet:Sheet;onClose:()=>void;c
 
 const base_s = StyleSheet.create({
   root:{flex:1,minHeight:0,width:'100%'},scroll:{paddingBottom:Platform.OS==='web'?40:appleTabScrollInset+24},flex:{flex:1,minWidth:0},
-  summary:{paddingHorizontal:28,paddingTop:24,paddingBottom:8,gap:12},summaryNarrow:{paddingHorizontal:16,paddingTop:16,gap:10},headingRow:{flexDirection:'row',alignItems:'center',gap:12},
-  eyebrow:{fontFamily:Studently.type.bodySemi,fontSize:13,letterSpacing:1.6,color:'#6B6460',marginBottom:5},title:{fontFamily:Studently.type.bodyBold,fontSize:28,lineHeight:34,color:'#1A1A1A',letterSpacing:-.7},
-  summaryBottom:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12},metrics:{flexDirection:'row',gap:28},metric:{minHeight:48,justifyContent:'center',gap:1},metricValue:{fontFamily:Studently.type.bodyBold,fontSize:28,lineHeight:34,color:'#1A1A1A'},metricLabel:{fontFamily:Studently.type.body,fontSize:13,color:'#5E5A55'},
+  summary:{paddingHorizontal:28,paddingTop:16,paddingBottom:4,gap:6},summaryNarrow:{paddingHorizontal:16,paddingTop:16,gap:10},headingRow:{flexDirection:'row',alignItems:'center',gap:12},
+  title:{fontFamily:Studently.type.bodyBold,fontSize:28,lineHeight:34,color:'#1A1A1A',letterSpacing:-.7},
+  summaryBottom:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12},metrics:{flexDirection:'row',gap:28},metric:{minHeight:44,justifyContent:'center',gap:0},metricValue:{fontFamily:Studently.type.bodyBold,fontSize:26,lineHeight:30,color:'#1A1A1A'},metricLabel:{fontFamily:Studently.type.body,fontSize:13,color:'#5E5A55'},
   wallet:{flexDirection:'row',alignItems:'center',gap:14},walletLabel:{flexDirection:'row',alignItems:'center',gap:7},summaryFoot:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:4},
   touch:{minHeight:44,justifyContent:'center'},small:{fontFamily:Studently.type.body,fontSize:14,lineHeight:20,color:'#37332F'},smallBold:{fontFamily:Studently.type.bodySemi,fontSize:14,lineHeight:20,color:'#242321'},typePrice:{fontFamily:Studently.type.body,fontSize:14,lineHeight:20,color:'#625E59'},muted:{fontFamily:Studently.type.body,fontSize:13,lineHeight:19,color:'#625E59'},caption:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460'},textLink:{fontFamily:Studently.type.bodySemi,fontSize:13,color:'#AD2D37'},captionLink:{fontFamily:Studently.type.bodyMedium,fontSize:13,lineHeight:18,color:'#6B6460',textDecorationLine:'underline'},
+  toolbarRow:{flexDirection:'row',flexWrap:'wrap',alignItems:'center'},searchRowFill:{flex:1,minWidth:360},
+  eyebrow:{fontFamily:Studently.type.bodySemi,fontSize:13,letterSpacing:1.6,color:'#6B6460',marginBottom:2},cardStack:{gap:36,paddingBottom:8},cardSection:{gap:10},sectionTitle:{fontFamily:Studently.type.bodySemi,fontSize:17,lineHeight:24,color:'#1A1A1A',letterSpacing:-.2},
   toolbar:{backgroundColor:'#F9FAFB',paddingHorizontal:16,paddingTop:8,paddingBottom:12,gap:10,borderBottomWidth:1,borderBottomColor:'#E4E5E7',zIndex:2},searchRow:{flexDirection:'row',alignItems:'center',gap:10},search:{flex:1,flexDirection:'row',alignItems:'center',paddingLeft:12,minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,backgroundColor:'#FFFFFF',gap:8},searchInput:{flex:1,minWidth:0,minHeight:44,paddingVertical:9,paddingRight:8,fontFamily:Studently.type.body,fontSize:15,color:'#1A1A1A'},
   body:{paddingHorizontal:16,paddingTop:16,gap:14},bodyNarrow:{paddingHorizontal:12},notice:{padding:12,borderWidth:1,borderColor:'#D9DDE3',borderRadius:10,backgroundColor:'#FFFFFF',flexDirection:'row',alignItems:'center',gap:9,flexWrap:'wrap'},noticeWarning:{backgroundColor:'#FFFBEB',borderColor:'#F0D59D'},warningText:{color:'#92400E'},error:{color:'#B42318',fontFamily:Studently.type.body,fontSize:13,lineHeight:19},toast:{position:'absolute',bottom:24,left:16,right:16,maxWidth:460,alignSelf:'center',zIndex:100,flexDirection:'row',alignItems:'center',gap:10,backgroundColor:'#FFFFFF',borderWidth:1,borderColor:'#D9DDE3',paddingLeft:16,borderRadius:12,boxShadow:'0 4px 20px rgba(26,26,26,0.16)'},
   list:{borderWidth:1,borderColor:'#DFE2E6',borderRadius:12,overflow:'hidden',backgroundColor:'#FFFFFF'},singleList:{maxWidth:720,width:'100%'},columnHeader:{flexDirection:'row',gap:12,paddingHorizontal:16,paddingVertical:12,backgroundColor:'#FAFAFA',borderBottomWidth:1,borderColor:'#E4E5E7'},columnLabel:{fontFamily:Studently.type.bodySemi,fontSize:12,letterSpacing:.7,color:'#6B6460'},unitColumn:{flex:1,minWidth:220},timeColumn:{width:162,justifyContent:'center',gap:4},availabilityColumn:{width:110,justifyContent:'center'},autoColumn:{width:175,justifyContent:'center',alignItems:'center'},actionColumn:{width:210,justifyContent:'center',alignItems:'center'},
@@ -398,7 +411,6 @@ const base_s = StyleSheet.create({
   unitRow:{paddingHorizontal:16,paddingVertical:12,flexDirection:'row',alignItems:'center',gap:12,borderTopWidth:1,borderTopColor:'#ECEDEF',minHeight:96},compactRow:{flexDirection:'column',alignItems:'stretch',gap:10,padding:14},identity:{flexDirection:'row',gap:12,flex:1,minWidth:0,alignItems:'center'},identityCopy:{flex:1,minWidth:0},thumbnail:{width:72,height:72,borderRadius:10,backgroundColor:'#E8EAED'},thumbnailFallback:{width:72,height:72,borderRadius:10,backgroundColor:'#F0F1F3',alignItems:'center',justifyContent:'center'},unitTitle:{fontFamily:Studently.type.bodySemi,fontSize:16,lineHeight:22,color:'#242321'},performance:{minHeight:26,justifyContent:'center',alignSelf:'flex-start'},rowActions:{flexDirection:'row',alignItems:'center',gap:2,justifyContent:'center'},compactTop:{flexDirection:'row',alignItems:'flex-start',gap:8},compactStatus:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8},compactBottom:{flexDirection:'row',alignItems:'center',gap:12},
   status:{flexDirection:'row',alignItems:'center',gap:6,alignSelf:'flex-start',maxWidth:'100%',paddingVertical:4},statusWarning:{backgroundColor:'#FFFBEB',paddingHorizontal:7,borderRadius:6},statusExpired:{backgroundColor:'#FEF3F2',paddingHorizontal:7,borderRadius:6},statusDot:{width:5,height:5,borderRadius:3,flexShrink:0},statusText:{fontFamily:Studently.type.bodyMedium,fontSize:14,lineHeight:20,color:'#37332F',flexShrink:1},
   autoAnchor:{height:28,width:'100%',alignItems:'center'},autoStateBelow:{position:'absolute',top:32,left:0,right:0},autoWrap:{gap:4,alignItems:'center'},autoState:{fontFamily:Studently.type.bodyMedium,fontSize:13,lineHeight:18,color:'#5E5A55',textAlign:'center'},autoHelper:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460',textAlign:'center'},
-  button:{minHeight:44,borderWidth:1,borderColor:'#D9DDE3',borderRadius:8,paddingHorizontal:12,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:'#FFFFFF'},buttonText:{fontFamily:Studently.type.bodySemi,fontSize:14,color:'#37332F'},primaryButton:{backgroundColor:'#EA3F4A',borderColor:'#EA3F4A'},primaryButtonText:{color:'#FFFFFF'},iconButton:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:8},
   draftBadge:{backgroundColor:'#F3F4F6',paddingHorizontal:8,borderRadius:6},draftCaption:{fontFamily:Studently.type.body,fontSize:13,lineHeight:18,color:'#6B6460',marginTop:4},draftCompactActions:{flexDirection:'row',justifyContent:'flex-end',alignItems:'center',gap:2},
   empty:{paddingHorizontal:24,paddingVertical:48,alignItems:'center',gap:14},emptyIcon:{width:60,height:60,borderRadius:18,backgroundColor:'#FDECEE',alignItems:'center',justifyContent:'center'},emptyTitle:{fontFamily:Studently.type.bodySemi,fontSize:21,color:'#242321',textAlign:'center'},emptyDetail:{fontFamily:Studently.type.body,fontSize:14,lineHeight:21,color:'#625E59',textAlign:'center',maxWidth:360},
   scrim:{flex:1,backgroundColor:'rgba(26,26,26,0.35)',justifyContent:'center',alignItems:'center',padding:24},mobileScrim:{justifyContent:'flex-end',paddingHorizontal:10,paddingBottom:16},sheet:{width:'100%',maxWidth:560,maxHeight:'90%',borderRadius:16,backgroundColor:'#FFFFFF',overflow:'hidden',boxShadow:'0 12px 48px rgba(26,26,26,0.12)'},mobileSheet:{maxWidth:600,maxHeight:'88%'},sheetClose:{height:44,alignItems:'flex-end',paddingRight:4},sheetContent:{padding:20,paddingTop:0,gap:10},sheetTitle:{fontFamily:Studently.type.bodySemi,fontSize:20,lineHeight:27,color:'#242321',marginBottom:5},paragraph:{fontFamily:Studently.type.body,fontSize:14,lineHeight:21,color:'#37332F'},menuItem:{minHeight:44,flexDirection:'row',alignItems:'center',gap:12,borderRadius:7,paddingHorizontal:8},menuText:{fontFamily:Studently.type.bodyMedium,fontSize:14,color:'#37332F',flexShrink:1},separator:{height:1,backgroundColor:'#E4E5E7',marginVertical:6},
