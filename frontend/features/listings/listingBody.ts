@@ -28,11 +28,15 @@ export type CreateListingBody = {
   availableFrom?: string | null;
   paymentModality: PaymentModality;
   electricity: Listing["electricity"];
+  powerSources?: Listing["powerSources"];
+  powerHours?: Listing["powerHours"];
   electricityCutsStart?: string | null;
   electricityCutsEnd?: string | null;
   electricityHoursOn?: number | null;
   electricityCutWindows?: { start: string; end: string }[];
   water: Listing["water"];
+  waterSources?: Listing["waterSources"];
+  hotWater?: Listing["hotWater"];
   wifiIncluded: boolean;
   routerUps: boolean;
   elevator24_7: boolean;

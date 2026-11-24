@@ -1,8 +1,8 @@
 import { type CreateListingDraft } from './draft';
 
 export const SHARED_GROUPS = {
- electricity:['electricity','electricityCutsStart','electricityCutsEnd','electricityHoursOn','electricityCutWindows','generatorAmperes','hasSolar','generatorIncluded'],
- water:['water','waterBillIncluded'],
+ electricity:['electricity','powerSources','powerHours','electricityCutsStart','electricityCutsEnd','electricityHoursOn','electricityCutWindows','generatorAmperes','hasSolar','generatorIncluded'],
+ water:['water','waterSources','hotWater','waterBillIncluded'],
  comforts:['wifiIncluded','routerUps','hasElevator','elevator24_7','conciergeIncluded','cookingGasIncluded','buildingFeesIncluded','parkingIncludedInRent','amenities'],
  rules:['smokingPolicy','petsPolicy','guestsPolicy','quietHours','targetAudience'],
 } as const;

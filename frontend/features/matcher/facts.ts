@@ -1,4 +1,6 @@
 import type { MatchFacts } from "./types";
+import { legacyElectricity } from "@/lib/electricityFacts";
+import type { PowerHours, PowerSource } from "@/types/listing";
 
 export function enumFact<T extends string>(
   value: unknown,
@@ -19,13 +21,18 @@ export function extractMatchFacts(row: Record<string, unknown>): MatchFacts {
   const lat = numberFact(row.lat);
   const lng = numberFact(row.lng);
   const wifi = row.wifiIncluded ?? row.wifi_included;
-  return {
+    const powerHours = row.powerHours ?? row.power_hours;
+    const powerSources = row.powerSources ?? row.power_sources;
+    const electricity = Array.isArray(powerSources) && powerSources.length
+      ? legacyElectricity(powerSources as PowerSource[], (powerHours as PowerHours | null) ?? null)
+      : row.electricity;
+    return {
     reportedUtilityKeys: [
-      row.electricity === "solar"
+      electricity === "solar"
         ? "solar"
-        : row.electricity === "generator_24_7"
+        : electricity === "generator_24_7"
           ? "power_24"
-          : row.electricity === "scheduled_cuts"
+          : electricity === "scheduled_cuts"
             ? "cuts"
             : "",
       wifi === true ? "wifi" : "",

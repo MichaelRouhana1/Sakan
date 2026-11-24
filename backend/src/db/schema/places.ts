@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, integer, jsonb, pgTable, timestamp, unique, uuid, varchar, doublePrecision } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, jsonb, pgTable, text, timestamp, unique, uuid, varchar, doublePrecision } from "drizzle-orm/pg-core";
 import { geographyPoint } from "../types/geography.js";
 import { electricityStatusEnum, waterStatusEnum, smokingPolicyEnum, petsPolicyEnum, guestsPolicyEnum, targetAudienceEnum, placeKindEnum } from "./enums.js";
 import { users } from "./users.js";
@@ -21,11 +21,15 @@ export const places = pgTable("places", {
   primaryCampusId: uuid('primary_campus_id').references(() => universities.id, { onDelete: 'set null' }),
   location: geographyPoint('location'),
   electricity: electricityStatusEnum('electricity').notNull(),
+  powerSources: text('power_sources').array().notNull().default(sql`'{}'::text[]`),
+  powerHours: varchar('power_hours', { length: 16 }),
   electricityCutsStart: varchar('electricity_cuts_start', { length: 5 }),
   electricityCutsEnd: varchar('electricity_cuts_end', { length: 5 }),
   electricityHoursOn: integer('electricity_hours_on'),
   electricityCutWindows: jsonb('electricity_cut_windows').$type<{ start: string; end: string }[]>().notNull().default(sql`'[]'::jsonb`),
   water: waterStatusEnum('water').notNull(),
+  waterSources: text('water_sources').array().notNull().default(sql`'{}'::text[]`),
+  hotWater: varchar('hot_water', { length: 16 }),
   wifiIncluded: boolean('wifi_included').notNull().default(false),
   routerUps: boolean('router_ups').notNull().default(false),
   elevator247: boolean('elevator_24_7').notNull().default(false),
@@ -56,11 +60,15 @@ export const places = pgTable("places", {
 // JSON null explicitly clears a nullable value; removing a key restores inheritance.
 export type PlaceOverrides = Partial<{
   electricity: typeof places.$inferSelect["electricity"];
+  power_sources: typeof places.$inferSelect["powerSources"];
+  power_hours: typeof places.$inferSelect["powerHours"];
   electricity_cuts_start: typeof places.$inferSelect["electricityCutsStart"];
   electricity_cuts_end: typeof places.$inferSelect["electricityCutsEnd"];
   electricity_hours_on: typeof places.$inferSelect["electricityHoursOn"];
   electricity_cut_windows: typeof places.$inferSelect["electricityCutWindows"];
   water: typeof places.$inferSelect["water"];
+  water_sources: typeof places.$inferSelect["waterSources"];
+  hot_water: typeof places.$inferSelect["hotWater"];
   wifi_included: typeof places.$inferSelect["wifiIncluded"];
   router_ups: typeof places.$inferSelect["routerUps"];
   elevator_24_7: typeof places.$inferSelect["elevator247"];

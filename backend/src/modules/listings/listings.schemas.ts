@@ -103,6 +103,8 @@ export const createListingFields = z.object({
     .enum(["monthly", "semester", "quarterly"])
     .default("monthly"),
   electricity: z.enum(["solar", "generator_24_7", "scheduled_cuts"]),
+  powerSources: z.array(z.enum(["state_power", "generator", "solar"])).max(3).optional(),
+  powerHours: z.enum(["always", "scheduled_cuts"]).nullable().optional(),
   electricityCutsStart: z
     .string()
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24h)")
@@ -124,6 +126,8 @@ export const createListingFields = z.object({
     .max(6)
     .optional(),
   water: z.enum(["state_well_24_7", "tank_delivery"]),
+  waterSources: z.array(z.enum(["state_water", "salty_water", "tank_delivery"])).max(3).optional(),
+  hotWater: z.enum(["always", "state_power", "none"]).nullable().optional(),
   wifiIncluded: z.boolean().default(false),
   routerUps: z.boolean().default(false),
   elevator24_7: z.boolean().default(false),
@@ -278,8 +282,8 @@ export const createListingSchema = createListingFields.superRefine((data, ctx) =
 /** Shared editing validates only shared fields, never a representative unit's photos/copy. */
 export const sharedDetailsSchema = createListingFields.pick({
   area:true,landmark:true,addressLine:true,buildingName:true,primaryCampusId:true,locationWkt:true,
-  electricity:true,electricityCutsStart:true,electricityCutsEnd:true,electricityHoursOn:true,electricityCutWindows:true,
-  water:true,wifiIncluded:true,routerUps:true,elevator24_7:true,hasElevator:true,hasSolar:true,generatorAmperes:true,generatorIncluded:true,
+  electricity:true,powerSources:true,powerHours:true,electricityCutsStart:true,electricityCutsEnd:true,electricityHoursOn:true,electricityCutWindows:true,
+  water:true,waterSources:true,hotWater:true,wifiIncluded:true,routerUps:true,elevator24_7:true,hasElevator:true,hasSolar:true,generatorAmperes:true,generatorIncluded:true,
   conciergeIncluded:true,cookingGasIncluded:true,waterBillIncluded:true,buildingFeesIncluded:true,parkingIncludedInRent:true,
   amenities:true,smokingPolicy:true,petsPolicy:true,guestsPolicy:true,quietHours:true,targetAudience:true,
 }).superRefine((data,ctx)=>{

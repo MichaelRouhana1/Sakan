@@ -316,6 +316,20 @@
       "when": 1795867200000,
       "tag": "0044_search_osm_streets",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1796000000000,
+      "tag": "0045_place_water_facts",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1796100000000,
+      "tag": "0046_place_power_facts",
+      "breakpoints": true
     }
   ]
 }

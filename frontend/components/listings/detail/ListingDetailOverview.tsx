@@ -7,6 +7,7 @@ import { ListingListRatingDisplay } from "@/components/listings/ListingRatingBad
 import { ListingMoneyStack } from "@/components/listings/detail/ListingMoneyStack";
 import { RentInclusionLines } from "@/components/listings/detail/RentInclusionLines";
 import { UtilityBadges } from "@/components/listings/UtilityBadges";
+import { PowerFactChip, WaterFactChips } from "@/components/listings/WaterFactChips";
 import { Studently } from "@/constants/theme";
 import { formatFreshUsd } from "@/lib/format";
 import { formatDistanceMeters } from "@/lib/formatDistance";
@@ -164,6 +165,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
                 Electricity
               </LText>
               <LText variant="subtitle">{labelElectricity(elec)}</LText>
+              <PowerFactChip listing={listing} />
               {listing.electricity === "scheduled_cuts" ||
               elec === "scheduled_cuts" ? (
                 <LText variant="caption" tone="muted">
@@ -197,6 +199,7 @@ export function ListingDetailOverview({ listing, onViewMap }: Props) {
                 Water
               </LText>
               <LText variant="subtitle">{labelWater(water)}</LText>
+              <WaterFactChips listing={listing} />
             </View>
           </View>
           <View style={styles.infraBox}>

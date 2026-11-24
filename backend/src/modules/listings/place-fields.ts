@@ -3,9 +3,9 @@ import { resolveCutWindows, hoursWithPowerFromWindows } from '../../lib/electric
 
 // Explicit API-to-resolver mapping. Location always belongs to the place.
 export const sharedFields = {
- electricity:'electricity', electricityCutsStart:'electricity_cuts_start', electricityCutsEnd:'electricity_cuts_end',
+ electricity:'electricity', powerSources:'power_sources', powerHours:'power_hours', electricityCutsStart:'electricity_cuts_start', electricityCutsEnd:'electricity_cuts_end',
  electricityHoursOn:'electricity_hours_on', electricityCutWindows:'electricity_cut_windows',
- water:'water', wifiIncluded:'wifi_included', routerUps:'router_ups', elevator24_7:'elevator_24_7',
+ water:'water', waterSources:'water_sources', hotWater:'hot_water', wifiIncluded:'wifi_included', routerUps:'router_ups', elevator24_7:'elevator_24_7',
  hasElevator:'has_elevator', hasSolar:'has_solar', generatorAmperes:'generator_amperes', generatorIncluded:'generator_included',
  conciergeIncluded:'concierge_included', cookingGasIncluded:'cooking_gas_included', waterBillIncluded:'water_bill_included',
  buildingFeesIncluded:'building_fees_included', parkingIncludedInRent:'parking_included_in_rent',
@@ -14,8 +14,22 @@ export const sharedFields = {
 export const locationFields = {area:'area', landmark:'landmark', addressLine:'address_line', buildingName:'building_name', primaryCampusId:'primary_campus_id'} as const;
 type SharedInput = Pick<CreateListingInput, keyof typeof sharedFields>;
 export function normalizedShared(input: SharedInput) {
- const windows = input.electricity === 'scheduled_cuts' ? resolveCutWindows(input) : [];
- return {...input, electricityCutWindows:windows, electricityCutsStart:windows[0]?.start ?? null,
+ const powerSources = input.powerSources?.length
+  ? input.powerSources
+  : input.electricity === 'scheduled_cuts' ? ['state_power']
+  : input.electricity === 'solar' ? ['solar']
+  : input.electricity === 'generator_24_7' ? ['generator']
+  : [];
+ const powerHours = input.powerHours ?? (input.electricity === 'scheduled_cuts' ? 'scheduled_cuts' : input.electricity ? 'always' : null);
+ const electricity = powerSources.length && powerHours
+  ? (powerHours === 'scheduled_cuts' ? 'scheduled_cuts' : powerSources.includes('solar') && !powerSources.includes('generator') ? 'solar' : 'generator_24_7')
+  : input.electricity;
+ const windows = electricity === 'scheduled_cuts' ? resolveCutWindows(input) : [];
+ const waterSources = input.waterSources?.length
+  ? input.waterSources
+  : input.water === 'tank_delivery' ? ['tank_delivery'] : ['state_water'];
+ const water = waterSources.length === 1 && waterSources[0] === 'tank_delivery' ? 'tank_delivery' : 'state_well_24_7';
+ return {...input, electricity, powerSources, powerHours, hasSolar: powerSources.length ? powerSources.includes('solar') : input.hasSolar, water, waterSources, hotWater: input.hotWater ?? null, electricityCutWindows:windows, electricityCutsStart:windows[0]?.start ?? null,
   electricityCutsEnd:windows[0]?.end ?? null, electricityHoursOn:hoursWithPowerFromWindows(windows)};
 }
 export function sharedSqlValues(input: SharedInput) {

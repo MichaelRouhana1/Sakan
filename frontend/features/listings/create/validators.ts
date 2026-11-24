@@ -3,6 +3,7 @@ import {
   windowComplete,
   type CutWindow,
 } from "@/lib/electricityCuts";
+import { powerFromLegacy } from "@/lib/electricityFacts";
 import { numberComplete, numbersFromLegacy } from "@/lib/lebanonPhone";
 import type { CreateListingDraft } from "./draft";
 import {
@@ -25,8 +26,11 @@ const FIELD_MESSAGES: Record<string, string> = {
   beds: "Add at least one bed",
   maxOccupancy: "Set max occupancy to at least 1",
   electricity: "Select electricity status",
+  powerSources: "Choose the power sources",
+  powerHours: "Choose how many hours of power",
   generatorAmperes: "Select generator / ishtirak amps",
-  water: "Select water status",
+  waterSources: "Choose where the water comes from",
+  hotWater: "Choose if there is hot water",
   photos: "Finish uploading 3–15 unit photos",
   bathroomPrivacy: "Choose a private or shared bathroom",
   bedsAvailable: "Confirm available beds between 1 and the total",
@@ -103,11 +107,10 @@ export function stepFieldErrors(
     }
     case 3: {
       const errors: string[] = [];
-      if (!draft.electricity) errors.push("electricity");
-      if (
-        draft.electricity === "generator_24_7" ||
-        draft.electricity === "scheduled_cuts"
-      ) {
+      const power = powerFromLegacy(draft);
+      if (!power.sources.length) errors.push("powerSources");
+      if (!power.hours) errors.push("powerHours");
+      if (power.hours === "scheduled_cuts" || power.sources.includes("generator")) {
         if (
           draft.generatorAmperes == null ||
           !(GENERATOR_AMP_OPTIONS as readonly number[]).includes(
@@ -117,7 +120,7 @@ export function stepFieldErrors(
           errors.push("generatorAmperes");
         }
       }
-      if (draft.electricity === "scheduled_cuts") {
+      if (power.hours === "scheduled_cuts") {
         const windows: CutWindow[] =
           draft.electricityCutWindows?.length > 0
             ? draft.electricityCutWindows
@@ -130,7 +133,8 @@ export function stepFieldErrors(
           if (!windowComplete(w)) errors.push(`electricityCutWindows.${i}`);
         });
       }
-      if (!draft.water) errors.push("water");
+      if (!draft.waterSources?.length && !draft.water) errors.push("waterSources");
+      if (!draft.hotWater) errors.push("hotWater");
       return errors;
     }
     case 4: {

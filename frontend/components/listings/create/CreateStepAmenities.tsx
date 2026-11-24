@@ -18,8 +18,13 @@ import {
   AMENITY_OPTIONS,
   GENERATOR_AMP_OPTIONS,
 } from "@/constants/listingWizard";
-import { ELECTRICITY_LABELS, WATER_LABELS } from "@/constants/utilities";
 import { Lister } from "@/constants/listerTheme";
+import {
+  POWER_HOURS_OPTIONS,
+  POWER_SOURCE_OPTIONS,
+  legacyElectricity,
+  powerFromLegacy,
+} from "@/lib/electricityFacts";
 import { WaterSectionMarker } from '@/features/listings/create/WizardArtSync';
 import { useListingForm } from "@/features/listings/forms/ListingFormContext";
 import {
@@ -29,10 +34,15 @@ import {
   hoursWithPowerFromWindows,
   type CutWindow,
 } from "@/lib/electricityCuts";
-import type { ElectricityStatus, WaterStatus } from "@/types/listing";
+import {
+  HOT_WATER_OPTIONS,
+  WATER_SOURCE_OPTIONS,
+  legacyWaterStatus,
+  sourcesFromLegacyWater,
+} from "@/lib/waterFacts";
+import type { PowerSource, WaterSource } from "@/types/listing";
 
-const ELEC: ElectricityStatus[] = ["generator_24_7", "scheduled_cuts", "solar"];
-const WATER: WaterStatus[] = ["state_well_24_7", "tank_delivery"];
+const ELEC_KEYS = ["electricity", "powerSources", "powerHours", "hasSolar"] as const;
 
 const CUT_KEYS = [
   "electricityCutWindows",
@@ -98,14 +108,17 @@ export function CreateStepAmenities() {
   const change = (values: Partial<CreateListingDraft>, keys: readonly string[]) =>
     patchOverride(draft, patch, values, keys);
   const reset = (keys: readonly string[]) => resetOverride(draft, patch, keys);
-  const electricityInvalid = fieldInvalid("electricity");
+  const sourcesInvalid = fieldInvalid("powerSources");
+  const hoursInvalid = fieldInvalid("powerHours");
   const windowsInvalid = fieldInvalid("electricityCutWindows");
-  const waterInvalid = fieldInvalid("water");
+  const waterInvalid = fieldInvalid("waterSources");
+  const hotWaterInvalid = fieldInvalid("hotWater");
+  const power = powerFromLegacy(draft);
+  const waterSources = sourcesFromLegacyWater(draft.water, draft.waterSources);
   const showUtilityDisclaimer =
     formChrome !== "edit" &&
-    (draft.electricity === "generator_24_7" ||
-      draft.electricity === "solar" ||
-      draft.hasSolar ||
+    (power.sources.includes("generator") ||
+      power.sources.includes("solar") ||
       draft.elevator24_7);
 
   const windows: CutWindow[] =
@@ -151,29 +164,64 @@ export function CreateStepAmenities() {
     <View style={{ gap: designSize(16) }}>
       {formChrome==='edit' ? <BuildingAccessFields/> : null}
       <Enter>
-        <WizardFieldLabel required>Electricity</WizardFieldLabel>
-        <FieldSource label="electricity" keys={["electricity"]} draft={draft} onReset={reset} />
+        <WizardFieldLabel required>What power sources does the place have?</WizardFieldLabel>
+        <FieldSource label="electricity" keys={ELEC_KEYS} draft={draft} onReset={reset} />
         <View style={{ height: designSize(8) }} />
-        <WizardFieldGroup field="electricity" style={{ gap: designSize(8) }}>
-          {ELEC.map((value) => (
+        <WizardFieldGroup field="powerSources" style={{ gap: designSize(8) }}>
+          {POWER_SOURCE_OPTIONS.map((option) => {
+            const selected = power.sources.includes(option.value);
+            return (
+              <SelectableCard
+                key={option.value}
+                selected={selected}
+                title={option.title}
+                icon={option.value === "solar" ? "sunny-outline" : "flash-outline"}
+                error={sourcesInvalid}
+                onPress={() => {
+                  const next: PowerSource[] = selected
+                    ? power.sources.filter((source) => source !== option.value)
+                    : [...power.sources, option.value];
+                  change(
+                    {
+                      powerSources: next,
+                      powerHours: power.hours,
+                      hasSolar: next.includes("solar"),
+                      electricity: next.length && power.hours ? legacyElectricity(next, power.hours) : draft.electricity,
+                    },
+                    ELEC_KEYS,
+                  );
+                }}
+              />
+            );
+          })}
+        </WizardFieldGroup>
+        <View style={{ height: designSize(16) }} />
+        <WizardFieldLabel required>How many hours of power does the place get?</WizardFieldLabel>
+        <View style={{ height: designSize(8) }} />
+        <WizardFieldGroup field="powerHours" style={{ gap: designSize(8) }}>
+          {POWER_HOURS_OPTIONS.map((option) => (
             <SelectableCard
-              key={value}
-              selected={draft.electricity === value}
-              title={ELECTRICITY_LABELS[value]}
-              icon="flash-outline"
-              error={electricityInvalid}
+              key={option.value}
+              selected={power.hours === option.value}
+              title={option.title}
+              icon="time-outline"
+              error={hoursInvalid}
               onPress={() => {
+                const hours = option.value;
+                const electricity = power.sources.length ? legacyElectricity(power.sources, hours) : draft.electricity;
                 if (draft.sharedValues) {
-                  change({ electricity: value }, ["electricity"]);
+                  change({ powerHours: hours, electricity }, ELEC_KEYS);
                   return;
                 }
                 patch({
-                  electricity: value,
-                  hasSolar: value === "solar" ? true : draft.hasSolar,
+                  powerHours: hours,
+                  electricity,
                   generatorAmperes:
-                    value === "solar" ? null : draft.generatorAmperes,
+                    hours === "always" && !power.sources.includes("generator")
+                      ? null
+                      : draft.generatorAmperes,
                   electricityCutWindows:
-                    value === "scheduled_cuts" && windows.length === 0
+                    hours === "scheduled_cuts" && windows.length === 0
                       ? [emptyCutWindow()]
                       : draft.electricityCutWindows,
                 });
@@ -181,8 +229,7 @@ export function CreateStepAmenities() {
             />
           ))}
         </WizardFieldGroup>
-        {draft.electricity === "generator_24_7" ||
-        draft.electricity === "scheduled_cuts" ? (
+        {power.hours === "scheduled_cuts" || power.sources.includes("generator") ? (
           <>
             <View style={{ height: designSize(8) }} />
             <WizardFieldLabel required>Generator / ishtirak amps</WizardFieldLabel>
@@ -205,7 +252,7 @@ export function CreateStepAmenities() {
           </>
         ) : null}
       </Enter>
-      {draft.electricity === "scheduled_cuts" ? (
+      {power.hours === "scheduled_cuts" ? (
         <Enter delay={40}>
           <View style={[styles.cutsBox, windowsInvalid && styles.cutsBoxError]}>
             <WizardFieldLabel required>When are the cuts?</WizardFieldLabel>
@@ -289,15 +336,6 @@ export function CreateStepAmenities() {
         </Enter>
       ) : null}
       <Enter delay={80}>
-        <SelectableCard
-          selected={draft.hasSolar}
-          title="Solar / UPS inverter"
-          body="Backup present even if generator is the main source."
-          icon="sunny-outline"
-          onPress={() => change({ hasSolar: !draft.hasSolar }, ["hasSolar"])}
-        />
-        <FieldSource label="solar" keys={["hasSolar"]} draft={draft} onReset={reset} />
-        <View style={{ height: designSize(8) }} />
         <IncludedInRent>
           <SelectableCard
             selected={draft.generatorIncluded}
@@ -334,38 +372,61 @@ export function CreateStepAmenities() {
       ) : null}
       <Enter delay={140}>
         <WaterSectionMarker />
-        <WizardFieldLabel required>Water</WizardFieldLabel>
-        <FieldSource label="water" keys={["water"]} draft={draft} onReset={reset} />
+        <WizardFieldLabel required>Where does the water come from?</WizardFieldLabel>
+        <FieldSource label="water" keys={["water", "waterSources"]} draft={draft} onReset={reset} />
         <View style={{ height: designSize(8) }} />
-        <WizardFieldGroup field="water" style={{ gap: designSize(8) }}>
-          {WATER.map((value) => (
+        <WizardFieldGroup field="waterSources" style={{ gap: designSize(8) }}>
+          {WATER_SOURCE_OPTIONS.map((option) => {
+            const selected = waterSources.includes(option.value);
+            return (
+              <SelectableCard
+                key={option.value}
+                selected={selected}
+                title={option.title}
+                icon="water-outline"
+                error={waterInvalid}
+                onPress={() => {
+                  const next: WaterSource[] = selected
+                    ? waterSources.filter((source) => source !== option.value)
+                    : [...waterSources, option.value];
+                  change(
+                    { waterSources: next, water: next.length ? legacyWaterStatus(next) : null },
+                    ["water", "waterSources"],
+                  );
+                }}
+              />
+            );
+          })}
+        </WizardFieldGroup>
+        <View style={{ height: designSize(16) }} />
+        <WizardFieldLabel required>Is there hot water?</WizardFieldLabel>
+        <View style={{ height: designSize(8) }} />
+        <WizardFieldGroup field="hotWater" style={{ gap: designSize(8) }}>
+          {HOT_WATER_OPTIONS.map((option) => (
             <SelectableCard
-              key={value}
-              selected={draft.water === value}
-              title={WATER_LABELS[value]}
-              icon="water-outline"
-              error={waterInvalid}
-              onPress={() => change({ water: value }, ["water"])}
+              key={option.value}
+              selected={draft.hotWater === option.value}
+              title={option.title}
+              body={option.body}
+              icon="flame-outline"
+              error={hotWaterInvalid}
+              onPress={() => change({ hotWater: option.value }, ["hotWater"])}
             />
           ))}
         </WizardFieldGroup>
-        {draft.water ? (
-          <>
-            <View style={{ height: designSize(8) }} />
-            <IncludedInRent>
-              <SelectableCard
-                selected={draft.waterBillIncluded}
-                title="Water bill included in rent"
-                body="Off = renter pays municipality / tanker / overage separately."
-                icon="cash-outline"
-                onPress={() =>
-                  change({ waterBillIncluded: !draft.waterBillIncluded }, ["waterBillIncluded"])
-                }
-              />
-              <FieldSource label="water bill" keys={["waterBillIncluded"]} draft={draft} onReset={reset} />
-            </IncludedInRent>
-          </>
-        ) : null}
+        <View style={{ height: designSize(16) }} />
+        <IncludedInRent>
+          <SelectableCard
+            selected={draft.waterBillIncluded}
+            title="Water bill included in rent"
+            body="Off = renter pays municipality / tanker / overage separately."
+            icon="cash-outline"
+            onPress={() =>
+              change({ waterBillIncluded: !draft.waterBillIncluded }, ["waterBillIncluded"])
+            }
+          />
+          <FieldSource label="water bill" keys={["waterBillIncluded"]} draft={draft} onReset={reset} />
+        </IncludedInRent>
       </Enter>
       <Enter delay={180}>
         <IncludedInRent>

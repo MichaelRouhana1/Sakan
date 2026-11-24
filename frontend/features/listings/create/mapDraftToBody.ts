@@ -11,6 +11,8 @@ import { deriveListingType } from "./deriveListingType";
 import type { CreateListingDraft } from "./draft";
 import { previewListingFromDraft } from "./previewListingFromDraft";
 import { draftCardBadgeKeys } from "@/lib/listingCardBadges";
+import { legacyElectricity, powerFromLegacy } from "@/lib/electricityFacts";
+import { legacyWaterStatus, sourcesFromLegacyWater } from "@/lib/waterFacts";
 
 export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
   const rent = Number(draft.monthlyRentUsd);
@@ -30,8 +32,12 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     .filter((n): n is NonNullable<typeof n> => n != null);
   const derivedPhones = deriveContactPhones(rawNumbers);
 
+  const power = powerFromLegacy(draft);
+  const electricity = power.sources.length && power.hours
+    ? legacyElectricity(power.sources, power.hours)
+    : draft.electricity;
   const cutWindows =
-    draft.electricity === "scheduled_cuts"
+    power.hours === "scheduled_cuts"
       ? (draft.electricityCutWindows ?? [])
           .map((w) => ({
             start: toHHMM(w.start) ?? "",
@@ -56,22 +62,28 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     leaseTerm: draft.leaseTerm!,
     availableFrom: draft.availableImmediate ? null : draft.availableFrom,
     paymentModality: draft.paymentModality!,
-    electricity: draft.electricity!,
+    electricity: electricity!,
+    powerSources: power.sources,
+    powerHours: power.hours,
     electricityCutsStart: first?.start ?? null,
     electricityCutsEnd: first?.end ?? null,
     electricityHoursOn:
-      draft.electricity === "scheduled_cuts"
+      power.hours === "scheduled_cuts"
         ? hoursWithPowerFromWindows(cutWindows)
         : null,
     electricityCutWindows: cutWindows,
-    water: draft.water!,
+    water: (draft.waterSources?.length ? legacyWaterStatus(draft.waterSources) : draft.water)!,
+    waterSources: sourcesFromLegacyWater(draft.water, draft.waterSources),
+    hotWater: draft.hotWater,
     wifiIncluded: draft.wifiIncluded,
     routerUps: draft.routerUps,
     elevator24_7: draft.elevator24_7,
     hasElevator: draft.hasElevator,
     hasSolar: draft.hasSolar,
     generatorAmperes:
-      draft.electricity === "solar" ? null : draft.generatorAmperes,
+      power.sources.includes("generator") || power.hours === "scheduled_cuts"
+        ? draft.generatorAmperes
+        : null,
     generatorIncluded: draft.generatorIncluded,
     conciergeIncluded: draft.conciergeIncluded,
     cookingGasIncluded: draft.cookingGasIncluded,

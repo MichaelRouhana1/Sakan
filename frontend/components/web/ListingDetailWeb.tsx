@@ -4,6 +4,7 @@ import { PlaceListingIntro } from '@/components/listings/detail/PlaceDetailSecti
 import { elevatorStatus, placeExtras } from '@/lib/listingDetailDisplay';
 import { DETAIL_SIDE_WIDTH, DETAIL_HERO_HEIGHT, DETAIL_GALLERY_GAP, DETAIL_COLUMN_GAP, DETAIL_THUMBS_WIDTH } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
+import { PowerFactChip, WaterFactChips } from "@/components/listings/WaterFactChips";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -622,6 +623,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                   Electricity
                 </LText>
                 <LText variant="subtitle">{labelElectricity(elec)}</LText>
+                <PowerFactChip listing={listing} />
                 {elecNote ? (
                   <LText variant="caption" tone="muted">
                     {elecNote}
@@ -635,6 +637,7 @@ export function ListingDetailWeb({ listingId }: Props) {
                   Water
                 </LText>
                 <LText variant="subtitle">{labelWater(water)}</LText>
+                <WaterFactChips listing={listing} />
                 {listing.infrastructure?.water.notes ? (
                   <LText variant="caption" tone="muted">
                     {listing.infrastructure.water.notes}

@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SquishSwitch } from "@/components/ui/SquishSwitch";
 import { Lister } from "@/constants/listerTheme";
+import { publishListingFeedback } from "@/features/saved/savedToast";
 import {
   callingCode,
   countryName,
@@ -65,12 +66,8 @@ const COUNTRY_LIST: CountryChoice[] = (() => {
   }));
 })();
 
-const WHATSAPP_SWITCH_COLORS = {
-  track: "#D0D5DD",
-  trackOn: WHATSAPP_GREEN,
-  thumb: "#FFFFFF",
-  thumbOn: "#FFFFFF",
-};
+/** Same red knob as auto-renew. Only the on-track is WhatsApp green. */
+const WHATSAPP_SWITCH_COLORS = { trackOn: WHATSAPP_GREEN };
 
 type Props = {
   value: ContactNumber;
@@ -302,7 +299,13 @@ export function LebanonPhoneField({
           accessibilityLabel={`Number ${number} available on WhatsApp`}
           disabled={fixed}
           value={!fixed && value.whatsapp}
-          onValueChange={(whatsapp) => onChange({ ...value, whatsapp })}
+          onValueChange={(whatsapp) => {
+            onChange({ ...value, whatsapp });
+            publishListingFeedback(
+              `whatsapp:${value.id}`,
+              whatsapp ? "Available on WhatsApp." : "Not on WhatsApp.",
+            );
+          }}
           colors={WHATSAPP_SWITCH_COLORS}
         />
       </View>

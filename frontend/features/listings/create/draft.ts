@@ -3,6 +3,8 @@ import type { ListingPin } from "@/components/listings/LocationPicker";
 import type { LebanonArea } from "@/constants/areas";
 import type {
   ElectricityStatus,
+  PowerHours,
+  PowerSource,
   FurnishingType,
   GenderRestriction,
   GuestsPolicy,
@@ -15,6 +17,8 @@ import type {
   SmokingPolicy,
   SpaceType,
   TargetAudience,
+  HotWater,
+  WaterSource,
   WaterStatus,
 } from "@/types/listing";
 
@@ -61,6 +65,8 @@ export type CreateListingDraft = {
   hasElevator: boolean;
   elevator24_7: boolean;
   electricity: ElectricityStatus | null;
+  powerSources: PowerSource[];
+  powerHours: PowerHours | null;
   electricityCutWindows: CutWindow[];
   electricityCutsStart: string;
   electricityCutsEnd: string;
@@ -69,6 +75,8 @@ export type CreateListingDraft = {
   hasSolar: boolean;
   generatorIncluded: boolean;
   water: WaterStatus | null;
+  waterSources: WaterSource[];
+  hotWater: HotWater | null;
   wifiIncluded: boolean;
   routerUps: boolean;
   conciergeIncluded: boolean;
@@ -127,6 +135,8 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   hasElevator: false,
   elevator24_7: false,
   electricity: null,
+  powerSources: [],
+  powerHours: null,
   electricityCutWindows: [emptyCutWindow()],
   electricityCutsStart: "",
   electricityCutsEnd: "",
@@ -135,6 +145,8 @@ export const INITIAL_DRAFT: CreateListingDraft = {
   hasSolar: false,
   generatorIncluded: false,
   water: null,
+  waterSources: [],
+  hotWater: null,
   wifiIncluded: false,
   routerUps: false,
   conciergeIncluded: false,

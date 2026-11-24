@@ -254,11 +254,19 @@ export function normalizeListing(row: Record<string, unknown>): Listing {
     paymentModality: (row.paymentModality ??
       row.payment_modality) as Listing["paymentModality"],
     electricity,
+    powerSources: Array.isArray(row.powerSources ?? row.power_sources)
+      ? ((row.powerSources ?? row.power_sources) as Listing["powerSources"])
+      : undefined,
+    powerHours: (row.powerHours ?? row.power_hours ?? null) as Listing["powerHours"],
     electricityCutsStart: cutsStart,
     electricityCutsEnd: cutsEnd,
     electricityHoursOn,
     electricityCutWindows,
     water,
+    waterSources: Array.isArray(row.waterSources ?? row.water_sources)
+      ? ((row.waterSources ?? row.water_sources) as Listing["waterSources"])
+      : undefined,
+    hotWater: (row.hotWater ?? row.hot_water ?? null) as Listing["hotWater"],
     wifiIncluded,
     routerUps,
     elevator24_7: Boolean(row.elevator24_7 ?? row.elevator_24_7),

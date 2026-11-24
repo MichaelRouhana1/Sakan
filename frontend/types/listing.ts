@@ -35,8 +35,12 @@ export type ListingPosterRole = "landlord" | "student_sublet" | "agent";
 export type GenderRestriction = "anyone" | "boys_only" | "girls_only";
 
 export type ElectricityStatus = "solar" | "generator_24_7" | "scheduled_cuts";
+export type PowerSource = "state_power" | "generator" | "solar";
+export type PowerHours = "always" | "scheduled_cuts";
 
 export type WaterStatus = "state_well_24_7" | "tank_delivery";
+export type WaterSource = "state_water" | "salty_water" | "tank_delivery";
+export type HotWater = "always" | "state_power" | "none";
 
 export type ListingPhoto = {
   id: string;
@@ -126,11 +130,15 @@ export type Listing = {
   availableFrom?: string | null;
   paymentModality?: PaymentModality;
   electricity: ElectricityStatus;
+  powerSources?: PowerSource[];
+  powerHours?: PowerHours | null;
   electricityCutsStart?: string | null;
   electricityCutsEnd?: string | null;
   electricityHoursOn?: number | null;
   electricityCutWindows?: { start: string; end: string }[];
   water: WaterStatus;
+  waterSources?: WaterSource[];
+  hotWater?: HotWater | null;
   wifiIncluded: boolean;
   routerUps: boolean;
   elevator24_7: boolean;
