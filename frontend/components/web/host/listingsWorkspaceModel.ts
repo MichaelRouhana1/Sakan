@@ -11,7 +11,7 @@ export const placeName = (unit: Listing) => unit.buildingName?.trim() || `${unit
 
 export function workspaceFacts(unit: Listing, now: number) {
   const shared = unit.unitType === 'shared_bed';
-  const rented = unit.availability === 'rented' || (shared && unit.bedsAvailable === 0 && !unit.inventoryNeedsConfirmation);
+  const rented = unit.availability === 'rented';
   const terminal = unit.status === 'draft' || unit.status === 'removed';
   const hidden = Boolean(unit.hidden || unit.hiddenReason);
   const expired = !terminal && !rented && isPastExpiry(unit.expiresAt, now);
@@ -29,7 +29,17 @@ export function workspaceFacts(unit: Listing, now: number) {
     status.label = status.label.startsWith('Live · ') ? status.label.replace('Live · ', 'Hidden · ') : `Hidden · ${status.label}`;
     status.tone = 'muted';
   }
-  const availability = needsBeds ? 'Bed count needed' : shared ? `${unit.bedsAvailable} of ${unit.bedsTotal ?? '?'} beds free` : rented ? 'Rented' : unit.availability === 'pending' ? 'Under offer' : 'Available';
+  const availability = needsBeds
+    ? 'Bed count needed'
+    : shared && unit.bedsAvailable === 0
+      ? 'Full'
+      : shared
+        ? `${unit.bedsAvailable} of ${unit.bedsTotal ?? '?'} beds available`
+        : rented
+          ? 'Rented'
+          : unit.availability === 'pending'
+            ? 'Under offer'
+            : 'Available';
   const rank = terminal ? 6 : rented ? 5 : expired ? 0 : blocked ? 1 : expiring ? 2 : needsBeds ? 3 : unit.status === 'archived' ? 6 : 4;
   return { rented, hidden, expired, expiring, live, enabled, blocked, needsBeds, attention, canEdit, canRenew, primary, status, availability, rank };
 }

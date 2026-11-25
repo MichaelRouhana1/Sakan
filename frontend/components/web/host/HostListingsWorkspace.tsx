@@ -17,6 +17,7 @@ import { useDeleteListing } from '@/features/listings/useDeleteListing';
 import { fetchInventory, inventoryKey, setPlaceVisibility, type UnitInventory } from '@/features/listings/hostInventory';
 import { openNewCreateListing } from '@/features/auth/useEnsureSession';
 import { hostListingAnalyticsPath, posterListingAnalyticsPath } from '@/constants/hostRoutes';
+import { HostBedsControl } from '@/components/listings/HostBedsControl';
 import { HostInventoryControl } from '@/components/listings/HostInventoryControl';
 import { PlaceEditor } from '@/components/listings/edit/PlaceEditor';
 import { HostNotificationPreferences } from './HostNotificationPreferences';
@@ -295,9 +296,9 @@ function UnitRow({unit,now,wide,singlePlace,onAction,onMenu,onPlace,onToggle,aut
   const status=<View style={[s.status,f.expiring&&s.statusWarning,f.expired&&s.statusExpired]}><View style={[s.statusDot,{backgroundColor:f.expired?'#B42318':f.expiring?'#B45309':f.live?'#25814C':'#6B7280'}]} /><Text style={[s.statusText,f.expiring&&s.warningText,f.expired&&{color:'#B42318'}]}>{f.status.label}</Text></View>;
   const identity=<View style={s.identity}>
     {photo?<Image source={{uri:photo}} testID="listing-thumbnail" style={[s.thumbnail,thumbnailStyle]} contentFit="cover" />:<View style={[s.thumbnailFallback,thumbnailStyle]} testID="listing-thumbnail"><Ionicons name="home-outline" size={designSize(24)} color="#8A847C" /></View>}
-    <View style={s.identityCopy}>{singlePlace?<Pressable accessibilityRole="button" accessibilityLabel={`Place options for ${placeName(unit)}`} onPress={()=>onPlace({x:0,y:0})}>{title}</Pressable>:title}<Text style={s.typePrice}>{unitTypeName(unit)} · ${unit.monthlyRentUsd.toLocaleString()}/{unit.priceBasis==='per_bed_month'?'bed/mo':'mo'}{unitCampusName(unit)?` · ${unitCampusName(unit)}`:''}</Text>
+    <View style={s.identityCopy}>{singlePlace?<Pressable accessibilityRole="button" accessibilityLabel={`Place options for ${placeName(unit)}`} onPress={()=>onPlace({x:0,y:0})}>{title}</Pressable>:title}<Text style={s.typePrice}>{unitTypeName(unit)} · ${unit.monthlyRentUsd.toLocaleString()}/{unit.priceBasis==='per_bed_month'?'bed/mo':unit.priceBasis==='per_room_month'?'room/mo':'mo'}{unitCampusName(unit)?` · ${unitCampusName(unit)}`:''}</Text>
       <Pressable accessibilityRole="button" accessibilityLabel={`Analytics for ${unitTitle(unit)}`} onPress={onAnalytics} style={s.performance}><Text style={s.caption}>{unit.viewCount??0} views · {unit.contactTapCount??0} taps</Text></Pressable>
-
+      <HostBedsControl listing={unit} compact />
     </View>
   </View>;
   const availability=<View><Text style={[s.small,f.needsBeds&&s.warningText]}>{f.availability}</Text>{f.hidden?<Text style={s.caption}>{unit.hidden?'Hidden by you':unit.hiddenReason?.replaceAll('_',' ')||'Hidden from search'}</Text>:null}</View>;

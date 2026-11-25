@@ -33,10 +33,10 @@ const FIELD_MESSAGES: Record<string, string> = {
   hotWater: "Choose if there is hot water",
   photos: "Finish uploading 3–15 unit photos",
   bathroomPrivacy: "Choose a private or shared bathroom",
-  bedsAvailable: "Confirm available beds between 1 and the total",
+  bedsAvailable: "Set beds available between 1 and the Beds count",
   sharedPhotos: "Finish uploading the shared photos (maximum 15)",
   monthlyRentUsd: RENT_USD_MESSAGE,
-  priceBasis: "Choose how rent is listed",
+  priceBasis: "Choose a rental type so rent can be labeled",
   depositPreset: "Choose a security deposit",
   securityDepositUsd: DEPOSIT_USD_MESSAGE,
   leaseTerm: "Choose a minimum lease",
@@ -100,9 +100,12 @@ export function stepFieldErrors(
       const errors: string[] = [];
       if (!draft.furnishingType) errors.push("furnishingType");
       if (!draft.sharedValues && !draft.bathroomPrivacy) errors.push('bathroomPrivacy');
-      if (!draft.sharedValues && draft.spaceType==='shared_room' && (!Number.isInteger(draft.bedsAvailable) || Number(draft.bedsAvailable)<1 || Number(draft.bedsAvailable)>draft.beds)) errors.push('bedsAvailable');
-      if (draft.beds < 1) errors.push("beds");
-      if (draft.maxOccupancy < 1) errors.push("maxOccupancy");
+      if (draft.spaceType === "shared_room") {
+        if (draft.beds < 2) errors.push("beds");
+      } else if (draft.beds < 1) {
+        errors.push("beds");
+      }
+      if (draft.spaceType !== "shared_room" && draft.maxOccupancy < 1) errors.push("maxOccupancy");
       return errors;
     }
     case 3: {
@@ -155,8 +158,16 @@ export function stepFieldErrors(
     case 6: {
       const errors: string[] = [];
       const rent = Number(draft.monthlyRentUsd);
-      if (!draft.priceBasis) errors.push("priceBasis");
+      if (!draft.spaceType && !draft.priceBasis) errors.push("priceBasis");
       if (!Number.isInteger(rent) || rent <= 0 || rent > MAX_MONTHLY_RENT_USD) errors.push("monthlyRentUsd");
+      if (
+        draft.spaceType === "shared_room" &&
+        (!Number.isInteger(draft.bedsAvailable) ||
+          Number(draft.bedsAvailable) < 1 ||
+          Number(draft.bedsAvailable) > draft.beds)
+      ) {
+        errors.push("bedsAvailable");
+      }
       if (!draft.depositPreset) errors.push("depositPreset");
       if (draft.depositPreset === "custom") {
         const dep = Number(draft.securityDepositUsd);

@@ -65,6 +65,21 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
   const furnishingInvalid = useWizardFieldInvalid("furnishingType");
   const bedsInvalid = useWizardFieldInvalid("beds");
   const occupancyInvalid = useWizardFieldInvalid("maxOccupancy");
+  const sharedRoom = draft.spaceType === "shared_room";
+  const bedsMin = sharedRoom ? 2 : 1;
+
+  function setBeds(beds: number) {
+    if (sharedRoom) {
+      const next = Math.max(beds, 2);
+      const available =
+        draft.bedsAvailable == null
+          ? next
+          : Math.min(Math.max(1, draft.bedsAvailable), next);
+      patch({ beds: next, maxOccupancy: next, bedsAvailable: available });
+      return;
+    }
+    patch({ beds });
+  }
 
   return (
     <View style={{ gap: designSize(8) }}>
@@ -72,14 +87,7 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
       <SegmentedPills options={[{value:'private',label:'Private bathroom'},{value:'shared',label:'Shared bathroom'}]}
         value={draft.bathroomPrivacy ?? null} error={useWizardFieldInvalid('bathroomPrivacy')}
         onChange={v=>patch({bathroomPrivacy:v as 'private'|'shared'})} />
-      {draft.spaceType==='shared_room' && formChrome!=='edit' ? <>
-        <WizardFieldLabel required>Available beds in this room</WizardFieldLabel>
-        <TextInput accessibilityLabel="Available beds in this room" keyboardType="number-pad"
-          value={draft.bedsAvailable == null ? '' : String(draft.bedsAvailable)}
-          onChangeText={v=>patch({bedsAvailable:v===''?null:Number(v)})} style={wizardInputStyle(undefined, designSize)} />
-        <LText variant="caption">Confirm the total below and the beds you can rent now.</LText>
-      </> : null}
-      {(draft.spaceType==='shared_room' || !showSharedDetails) && formChrome!=='edit' ? <>
+      {(sharedRoom || !showSharedDetails) && formChrome!=='edit' ? <>
         <WizardFieldLabel>Gender rule</WizardFieldLabel>
         <SegmentedPills options={[{value:'anyone',label:'All / mixed'},{value:'girls_only',label:'Female only'},{value:'boys_only',label:'Male only'}]}
           value={draft.genderRestriction} onChange={v=>patch({genderRestriction:v as typeof draft.genderRestriction})} />
@@ -104,12 +112,12 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
         />
         <StepperControl
           label="Beds"
-          value={draft.beds}
-          min={1}
+          value={Math.max(draft.beds, bedsMin)}
+          min={bedsMin}
           max={12}
           required
           error={bedsInvalid}
-          onChange={(beds) => patch({ beds })}
+          onChange={setBeds}
         />
         <StepperControl
           label="Bathrooms"
@@ -119,15 +127,17 @@ export function CreateStepSpecs({showSharedDetails=true}:{showSharedDetails?:boo
           step={0.5}
           onChange={(bathrooms) => patch({ bathrooms })}
         />
-        <StepperControl
-          label="Max occupancy"
-          value={draft.maxOccupancy}
-          min={1}
-          max={12}
-          required
-          error={occupancyInvalid}
-          onChange={(maxOccupancy) => patch({ maxOccupancy })}
-        />
+        {sharedRoom ? null : (
+          <StepperControl
+            label="Max occupancy"
+            value={draft.maxOccupancy}
+            min={1}
+            max={12}
+            required
+            error={occupancyInvalid}
+            onChange={(maxOccupancy) => patch({ maxOccupancy })}
+          />
+        )}
         <StepperControl
           label="Floor"
           value={draft.floorNumber}

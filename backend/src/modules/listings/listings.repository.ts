@@ -456,7 +456,6 @@ export class ListingsRepository {
       sql`${listingResolved.hiddenReason} IS NULL`,
       sql`${listingResolved.expiresAt} > now()`,
       eq(listingResolved.inventoryNeedsConfirmation, false),
-      sql`(${listingResolved.bedsAvailable} IS NULL OR ${listingResolved.bedsAvailable} > 0)`,
     ];
 
     if (source.genderRestriction === "girls_only") {
@@ -567,7 +566,6 @@ export class ListingsRepository {
           sql`${listingResolved.hiddenReason} IS NULL`,
           sql`${listingResolved.expiresAt} > now()`,
           eq(listingResolved.inventoryNeedsConfirmation, false),
-          sql`(${listingResolved.bedsAvailable} IS NULL OR ${listingResolved.bedsAvailable} > 0)`,
         ),
       );
     const hydrated = await this.withPhotos(

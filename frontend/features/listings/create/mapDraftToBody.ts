@@ -13,6 +13,7 @@ import { previewListingFromDraft } from "./previewListingFromDraft";
 import { draftCardBadgeKeys } from "@/lib/listingCardBadges";
 import { legacyElectricity, powerFromLegacy } from "@/lib/electricityFacts";
 import { legacyWaterStatus, sourcesFromLegacyWater } from "@/lib/waterFacts";
+import { priceBasisForSpaceType } from "@/lib/bedsAvailability";
 
 export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
   const rent = Number(draft.monthlyRentUsd);
@@ -53,7 +54,7 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
     expectedPlaceUpdatedAt:draft.expectedPlaceUpdatedAt,
     spaceType: draft.spaceType!,
     propertyType: draft.propertyType!,
-    priceBasis: draft.priceBasis!,
+    priceBasis: priceBasisForSpaceType(draft.spaceType!),
     listingType: deriveListingType(draft.spaceType!, draft.propertyType!),
     targetAudience: draft.targetAudience!,
     genderRestriction: draft.genderRestriction,
@@ -93,9 +94,10 @@ export function mapDraftToBody(draft: CreateListingDraft): CreateListingBody {
       draft.amenities.includes("parking") && draft.parkingIncludedInRent,
     amenities: draft.amenities,
     bedrooms: draft.bedrooms,
-    beds: draft.beds,
+    beds: draft.spaceType === "shared_room" ? Math.max(draft.beds, 2) : draft.beds,
     bathrooms: draft.bathrooms,
-    maxOccupancy: draft.maxOccupancy,
+    maxOccupancy:
+      draft.spaceType === "shared_room" ? Math.max(draft.beds, 2) : draft.maxOccupancy,
     furnishingType: draft.furnishingType!,
     floorNumber: draft.floorNumber,
     areaSqm: areaSqm != null && Number.isFinite(areaSqm) ? areaSqm : null,

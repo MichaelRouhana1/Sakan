@@ -42,7 +42,7 @@ export function inventoryMessage(row: UnitInventory): string | null {
   if (row.hidden) return 'Hidden by you or staff';
   if (row.placeHidden) return 'Hidden because this place is hidden';
   if (row.inventoryNeedsConfirmation) return 'Hidden until you confirm available beds';
-  if (row.availability === 'rented') return row.unitType === 'shared_bed' ? 'Hidden because all beds are rented' : 'Hidden because this unit is rented';
+  if (row.availability === 'rented') return 'Hidden because this unit is rented';
   if (row.blockers.length) return row.blockers.map(b => b.inventoryNeedsConfirmation
     ? `Hidden until available beds in ${b.title} are confirmed`
     : `Hidden because ${b.title} is rented`).join('. ');

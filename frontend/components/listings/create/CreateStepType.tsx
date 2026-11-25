@@ -1,7 +1,6 @@
 import { View } from "react-native";
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Enter } from "@/components/lister/Enter";
-import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
 import { SelectableCard } from "@/components/listings/create/SelectableCard";
 import { LockedCluster } from "@/components/listings/create/LockedCluster";
@@ -11,12 +10,12 @@ import {
   useWizardFieldInvalid,
 } from "@/components/listings/create/WizardField";
 import {
-  PRICE_BASIS_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
   SPACE_TYPE_OPTIONS,
 } from "@/constants/listingWizard";
 import { useListingForm } from "@/features/listings/forms/ListingFormContext";
-import type { PriceBasis, PropertyType, SpaceType } from "@/types/listing";
+import { priceBasisForSpaceType } from "@/lib/bedsAvailability";
+import type { PropertyType, SpaceType } from "@/types/listing";
 
 export function CreateStepType() {
   const { size: designSize } = useDesktopDesign();
@@ -25,13 +24,22 @@ export function CreateStepType() {
   const propertyInvalid = useWizardFieldInvalid("propertyType");
 
   function pickSpace(spaceType: SpaceType) {
-    const priceBasis: PriceBasis =
-      spaceType === "shared_room"
-        ? "per_bed_month"
-        : spaceType === "private_room"
-          ? "per_room_month"
-          : "per_unit_month";
-    patch({ spaceType, priceBasis });
+    const priceBasis = priceBasisForSpaceType(spaceType);
+    if (spaceType === "shared_room") {
+      const beds = Math.max(draft.beds, 2);
+      patch({
+        spaceType,
+        priceBasis,
+        beds,
+        maxOccupancy: beds,
+        bedsAvailable:
+          draft.bedsAvailable == null || draft.bedsAvailable > beds
+            ? beds
+            : Math.max(1, draft.bedsAvailable),
+      });
+      return;
+    }
+    patch({ spaceType, priceBasis, bedsAvailable: null });
   }
 
   return (
@@ -66,15 +74,6 @@ export function CreateStepType() {
           />
         </Enter>
       </LockedCluster>
-      <Enter delay={310}>
-        <LText variant="subtitle">How is rent listed?</LText>
-        <View style={{ height: designSize(8) }} />
-        <SegmentedPills
-          options={PRICE_BASIS_OPTIONS}
-          value={draft.priceBasis}
-          onChange={(v) => patch({ priceBasis: v as PriceBasis })}
-        />
-      </Enter>
     </View>
   );
 }

@@ -6,6 +6,7 @@ import { Enter } from "@/components/lister/Enter";
 import { LText } from "@/components/lister/Typography";
 import { SegmentedPills } from "@/components/listings/create/SegmentedPills";
 import { SelectableCard } from "@/components/listings/create/SelectableCard";
+import { StepperControl } from "@/components/listings/create/StepperControl";
 import {
   WizardFieldLabel,
   useWizardFieldInvalid,
@@ -17,6 +18,10 @@ import {
 } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
 import { useListingForm } from "@/features/listings/forms/ListingFormContext";
+import {
+  monthlyRentFieldLabel,
+  priceBasisForSpaceType,
+} from "@/lib/bedsAvailability";
 import type { LeaseTerm, PaymentModality } from "@/types/listing";
 import { usePriceGuide } from "@/features/listings/usePriceGuide";
 import { PriceGuideCard } from "./PriceGuideCard";
@@ -26,18 +31,28 @@ export function CreateStepPricing() {
   const { draft, patch } = useListingForm();
   const guide = usePriceGuide(draft);
   const rentInvalid = useWizardFieldInvalid("monthlyRentUsd");
+  const bedsAvailableInvalid = useWizardFieldInvalid("bedsAvailable");
   const depositInvalid = useWizardFieldInvalid("securityDepositUsd");
   const depositChoiceInvalid = useWizardFieldInvalid("depositPreset");
   const leaseInvalid = useWizardFieldInvalid("leaseTerm");
   const availableInvalid = useWizardFieldInvalid("availableFrom");
   const paymentInvalid = useWizardFieldInvalid("paymentModality");
+  const rentLabel = monthlyRentFieldLabel(draft.spaceType);
+  const priceBasis = draft.spaceType
+    ? priceBasisForSpaceType(draft.spaceType)
+    : draft.priceBasis;
+  const bedsMax = Math.max(draft.beds, 1);
+  const bedsAvailable =
+    draft.bedsAvailable == null
+      ? Math.min(bedsMax, Math.max(1, draft.beds))
+      : draft.bedsAvailable;
 
   return (
     <View style={{ gap: designSize(16) }}>
       <Enter>
-        <WizardFieldLabel required>Monthly rent (USD)</WizardFieldLabel>
+        <WizardFieldLabel required>{rentLabel}</WizardFieldLabel>
         <TextInput
-          accessibilityLabel="Monthly rent in USD"
+          accessibilityLabel={rentLabel}
           keyboardType="number-pad"
           placeholder="650"
           placeholderTextColor={Lister.color.inkFaint}
@@ -46,10 +61,26 @@ export function CreateStepPricing() {
           style={wizardInputStyle(rentInvalid, designSize)}
         />
       </Enter>
-      {guide && draft.priceBasis ? (
+      {draft.spaceType === "shared_room" ? (
+        <Enter delay={40}>
+          <StepperControl
+            label="Beds available"
+            value={bedsAvailable}
+            min={1}
+            max={bedsMax}
+            required
+            error={bedsAvailableInvalid}
+            onChange={(next) => patch({ bedsAvailable: next })}
+          />
+          <LText variant="caption" tone="muted">
+            One price per bed. Set how many beds you can rent now (up to {bedsMax}).
+          </LText>
+        </Enter>
+      ) : null}
+      {guide && priceBasis ? (
         <PriceGuideCard
           guide={guide}
-          priceBasis={draft.priceBasis}
+          priceBasis={priceBasis}
           onUse={() => patch({ monthlyRentUsd: String(guide.medianUsd) })}
         />
       ) : null}

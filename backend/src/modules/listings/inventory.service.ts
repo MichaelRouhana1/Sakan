@@ -60,12 +60,10 @@ export async function changeUnitInventory(tx: Tx, listingId: string, input: Inve
   if ((bedChange || input.availability !== undefined) && available === null) throw new ValidationError('Confirm the number of available beds first');
   if (available !== null && (!total || available > total)) throw new ValidationError('Available beds cannot exceed total beds');
   if (input.availability === 'rented' && input.bedsAvailable === undefined) available = 0;
-  if (available === 0) {
-   if (input.availability && input.availability !== 'rented') throw new ValidationError('Add available beds before reopening this unit');
-   availability = 'rented';
-  } else if (available !== null && available > 0) {
+  // bedsAvailable=0 means Full. Visibility follows the listing cycle; do not auto-mark rented.
+  if (available !== null && available > 0) {
    if (input.availability === 'rented') throw new ValidationError('A rented unit must have zero available beds');
-   if (availability === 'rented') availability = 'available';
+   if (availability === 'rented' && input.availability === undefined) availability = 'available';
   }
  }
  await tx.execute(sql`UPDATE listings SET hidden=${input.hidden ?? unit.hidden},

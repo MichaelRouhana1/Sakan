@@ -29,9 +29,12 @@ test('filters preserve actual place membership and search every token',()=>{
   assert.equal(workspaceGroups(units,'Rented','','urgency',now)[0].units[0].id,'Room 2');
   assert.equal(workspaceGroups(units,'Needs attention','','urgency',now).length,0);
 });
-test('unknown beds are not rented; zero vacancy is rented; removed records never demand renewal',()=>{
+test('unknown beds need confirmation; zero vacancy is Full and still listed; removed records never demand renewal',()=>{
   assert.equal(workspaceFacts(unit('beds',{unitType:'shared_bed',bedsAvailable:null,inventoryNeedsConfirmation:true}),now).availability,'Bed count needed');
-  assert.equal(workspaceFacts(unit('zero',{unitType:'shared_bed',bedsAvailable:0,bedsTotal:4}),now).rented,true);
+  const full=workspaceFacts(unit('zero',{unitType:'shared_bed',bedsAvailable:0,bedsTotal:4}),now);
+  assert.equal(full.rented,false);
+  assert.equal(full.availability,'Full');
+  assert.equal(full.live,true);
   const removed=workspaceFacts(unit('removed',{status:'removed',expiresAt:new Date(now-1).toISOString()}),now);
   assert.equal(removed.expired,false);assert.equal(removed.attention,false);assert.equal(removed.primary,'analytics');
 });

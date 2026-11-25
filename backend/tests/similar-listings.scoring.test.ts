@@ -49,7 +49,7 @@ describe("similar-listings scoring", () => {
     assert.equal(isSimilarCandidateEligible(source, makeListing({ id: "c6", placeId: "p6", hiddenReason: "place_hidden" }), NOW), false);
     assert.equal(isSimilarCandidateEligible(source, makeListing({ id: "c7", placeId: "p7", expiresAt: "2026-11-20T00:00:00Z" }), NOW), false);
     assert.equal(isSimilarCandidateEligible(source, makeListing({ id: "c8", placeId: "p8", inventoryNeedsConfirmation: true }), NOW), false);
-    assert.equal(isSimilarCandidateEligible(source, makeListing({ id: "c9", placeId: "p9", bedsAvailable: 0 }), NOW), false);
+    assert.equal(isSimilarCandidateEligible(source, makeListing({ id: "c9", placeId: "p9", bedsAvailable: 0 }), NOW), true);
 
     const girlsSource = makeListing({ genderRestriction: "girls_only" });
     assert.equal(isSimilarCandidateEligible(girlsSource, makeListing({ id: "c10", placeId: "p10", genderRestriction: "boys_only" }), NOW), false);

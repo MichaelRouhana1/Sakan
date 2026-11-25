@@ -28,7 +28,7 @@ export function ListingInventory({listing,onSaved}:{listing:AdminListing;onSaved
  }
  return <NeuSurface inset className="space-y-3 px-4 py-3">
   <H as="h3" className="font-semibold">Unit inventory</H>
-  <H className="text-xs text-clay-700">{listing.hiddenReason?({unit_hidden:'Hidden by host or staff',place_hidden:'Building hidden',confirm_beds:'Confirm bed availability',no_beds:'No beds available',occupied_alternative:'Another offer in this apartment is occupied'}[listing.hiddenReason]??'Hidden'):'Visible when live and available'}</H>
+  <H className="text-xs text-clay-700">{listing.hiddenReason?({unit_hidden:'Hidden by host or staff',place_hidden:'Building hidden',confirm_beds:'Confirm bed availability',no_beds:'Full (legacy hide — reopen by saving beds)',occupied_alternative:'Another offer in this apartment is occupied'}[listing.hiddenReason]??'Hidden'):'Visible when live and available'}</H>
   <H as="label" className="flex items-center gap-2"><H as="input" type="checkbox" className="h-4 w-4" style={{appearance:'auto',accentColor:'var(--admin-moss)'}} checked={hidden} disabled={busy} onChange={(e:{target:{checked:boolean}})=>setHidden(e.target.checked)}/>Hide this unit</H>
   <H as="label" className="block">Availability<H as="select" className="mt-1 block w-full rounded-neu-md bg-clay-100 px-3 py-2 shadow-neu-in-sm" aria-label="Unit availability" value={availability} disabled={busy} onChange={(e:{target:{value:string}})=>{const next=e.target.value as typeof availability;setAvailability(next);if(shared&&next==='rented')setAvailable('0')}}>
    <H as="option" value="available">Available</H><H as="option" value="pending">Under offer</H><H as="option" value="rented">Rented</H>

@@ -179,7 +179,7 @@ export function rankListings<T extends MatchListing>(
   const eligible = listings
     .filter((l) => {
       if (
-        l.status !== "active" || l.availability === "rented" || l.hidden || !!l.hiddenReason || l.inventoryNeedsConfirmation || l.bedsAvailable === 0 ||
+        l.status !== "active" || l.availability === "rented" || l.hidden || !!l.hiddenReason || l.inventoryNeedsConfirmation ||
         (l.expiresAt && new Date(l.expiresAt).getTime() <= now)
       )
         return false;

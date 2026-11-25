@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useDesktopDesign } from '@/components/ui/DesktopDesign';
 import { Studently } from '@/constants/theme';
+import { HostBedsControl } from '@/components/listings/HostBedsControl';
 import { fetchInventory, inventoryError, inventoryKey, inventoryMessage, saveInventory, setPlaceVisibility, type InventoryChange, type UnitInventory } from '@/features/listings/hostInventory';
 import type { GenderRestriction } from '@/types/listing';
 
@@ -64,10 +65,6 @@ export function HostInventoryControl({listingId}: {listingId: string}) {
     setBedSource(row);
     setError(null); setDialog('beds');
   }
-  async function bedAction(action: 'rent_one' | 'free_one') {
-    const result = await save({bedAction: action});
-    if (result && action === 'rent_one') {setGenderSource(result); setDialog('moved_in');}
-  }
   async function confirmGender() {
     const source = genderSource ?? row;
     const result = await save({genderRestriction: gender}, source);
@@ -101,14 +98,25 @@ export function HostInventoryControl({listingId}: {listingId: string}) {
 
   // List rows are pressable too. Inventory interactions must not open the editor.
   return <Pressable style={styles.box} accessible={false} focusable={false} onPress={event => event.stopPropagation()}>
-    {reason ? <Text style={styles.reason}>{reason}</Text> : <Text style={styles.body}>{row.availability === 'pending' ? 'Under offer' : 'Available'}</Text>}
+    {reason ? <Text style={styles.reason}>{reason}</Text> : <Text style={styles.body}>{row.availability === 'rented' ? 'Rented' : row.availability === 'pending' ? 'Under offer' : shared && row.bedsAvailable === 0 ? 'Full' : 'Available'}</Text>}
     {row.status !== 'active' ? <Text style={styles.body}>This listing is {row.status}. Freeing it updates occupancy; it does not publish or renew it.</Text> : null}
-    {shared && !row.inventoryNeedsConfirmation ? <Text style={styles.body}>{row.bedsAvailable} of {row.bedsTotal} beds available</Text> : null}
+    {shared && !row.inventoryNeedsConfirmation ? (
+      <HostBedsControl
+        listing={{
+          id: row.id,
+          unitType: row.unitType,
+          bedsTotal: row.bedsTotal,
+          bedsAvailable: row.bedsAvailable,
+          inventoryVersion: row.inventoryVersion,
+          inventoryNeedsConfirmation: row.inventoryNeedsConfirmation,
+        }}
+      />
+    ) : null}
     <View style={styles.actions}>
       {shared ? row.inventoryNeedsConfirmation
         ? <Button label="Confirm available beds" onPress={confirmBeds} disabled={busy}/>
-        : <><Button label="Mark 1 bed rented" disabled={busy || blocked || !row.bedsAvailable} onPress={() => void bedAction('rent_one')}/>
-          <Button label="Free a bed" disabled={busy || row.bedsAvailable === row.bedsTotal} onPress={() => void bedAction('free_one')}/></>
+        : <Button label={row.availability === 'rented' ? 'Mark vacant' : 'Mark rented'} disabled={busy || blocked}
+          onPress={() => row.availability === 'rented' ? void save({availability: 'available'}) : setDialog('rented')}/>
         : <Button label={row.availability === 'rented' ? 'Mark vacant' : 'Mark rented'} disabled={busy || (blocked && row.availability !== 'rented')}
           onPress={() => row.availability === 'rented' ? void save({availability: 'available'}) : setDialog('rented')}/>}
       <Button label="Manage availability" onPress={() => {setError(null); setDialog('manage');}} disabled={busy}/>

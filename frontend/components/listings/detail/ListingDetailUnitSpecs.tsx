@@ -73,8 +73,11 @@ export function ListingDetailUnitSpecs({ listing, variant = "card" }: Props) {co
   }
   if (listing.bedsAvailable != null && listing.bedsTotal != null) {
     rows.push({
-      label: "Beds open",
-      value: `${listing.bedsAvailable} of ${listing.bedsTotal} available`,
+      label: "Beds",
+      value:
+        listing.bedsAvailable === 0
+          ? "Full"
+          : `${listing.bedsAvailable} of ${listing.bedsTotal} beds available`,
       icon: "people-outline",
     });
   }

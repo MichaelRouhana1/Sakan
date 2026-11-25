@@ -7,6 +7,7 @@ import { SquishSwitch } from '@/components/ui/SquishSwitch';
 import { Studently } from '@/constants/theme';
 import { resolveMediaUrl } from '@/lib/mediaUrl';
 import type { Listing } from '@/types/listing';
+import { HostBedsControl } from '@/components/listings/HostBedsControl';
 import { Button, MenuTrigger, type Anchor } from './hostWorkspacePrimitives';
 import { autoRenewCaption, autoRenewInfo, date, unitCampusName, unitTitle, unitTypeName, workspaceFacts, type WorkspaceAction } from './listingsWorkspaceModel';
 
@@ -65,7 +66,7 @@ export function UnitCard({ unit, now, singlePlace, autoBusy, onAction, onMenu, o
   const photo = resolveMediaUrl(unit.coverUrl ?? unit.photos?.[0]?.url ?? null);
   const dim = f.expired || f.rented;
   const meta = [unitTypeName(unit), singlePlace ? unit.area : null, unitCampusName(unit)].filter(Boolean).join(' · ');
-  const unitSuffix = unit.priceBasis === 'per_bed_month' ? '/bed/mo' : '/mo';
+  const unitSuffix = unit.priceBasis === 'per_bed_month' ? '/bed/mo' : unit.priceBasis === 'per_room_month' ? '/room/mo' : '/mo';
   const tone = f.expired ? 'expired' : f.expiring ? 'expiring' : f.live ? 'live' : 'muted';
   const dot = { expired: '#B42318', expiring: '#B45309', live: '#25814C', muted: '#6B7280' }[tone];
 
@@ -88,6 +89,7 @@ export function UnitCard({ unit, now, singlePlace, autoBusy, onAction, onMenu, o
         <Text style={s.price}>${unit.monthlyRentUsd.toLocaleString()}<Text style={s.priceUnit}>{unitSuffix}</Text></Text>
         <Text style={[s.availability, f.needsBeds && s.warnText]} numberOfLines={1}>{f.availability}</Text>
       </View>
+      <HostBedsControl listing={unit} compact />
       <Pressable accessibilityRole="button" accessibilityLabel={`Analytics for ${title}`} onPress={onAnalytics} style={s.stats}>
         <Ionicons name="stats-chart-outline" size={designSize(14)} color={Studently.color.inkMuted} />
         <Text style={s.statsText}>{unit.viewCount ?? 0} views · {unit.contactTapCount ?? 0} taps</Text>

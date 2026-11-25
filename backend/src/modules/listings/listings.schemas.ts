@@ -271,8 +271,18 @@ export const createListingSchema = createListingFields.superRefine((data, ctx) =
       ? { ...data, generatorAmperes: null }
       : data;
   const hasParking = withPower.amenities.includes("parking");
+  const priceBasis =
+    data.spaceType === "shared_room"
+      ? ("per_bed_month" as const)
+      : data.spaceType === "private_room"
+        ? ("per_room_month" as const)
+        : ("per_unit_month" as const);
+  const sharedBeds = data.spaceType === "shared_room" ? Math.max(data.beds, 2) : data.beds;
   return {
     ...withPower,
+    priceBasis,
+    beds: sharedBeds,
+    maxOccupancy: data.spaceType === "shared_room" ? sharedBeds : withPower.maxOccupancy,
     parkingIncludedInRent: hasParking
       ? withPower.parkingIncludedInRent
       : false,

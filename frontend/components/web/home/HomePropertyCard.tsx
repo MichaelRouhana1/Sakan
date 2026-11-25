@@ -7,6 +7,7 @@ import { listingImageCornerBadge } from "@/components/listings/ListingRatingBadg
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { recordFeaturedImpression, rememberPlacement } from "@/features/promotions/activity";
 import { useIsSaved, useToggleSaved } from "@/features/saved/useSavedListings";
+import { bedsAvailableLabel } from "@/lib/bedsAvailability";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import type { Listing } from "@/types/listing";
@@ -24,6 +25,7 @@ export function HomePropertyCard({ listing }: { listing: Listing }) {
   const title = listingCardTitle(listing);
   const area = listingCardSubtitle(listing);
   const price = formatFreshUsd(listing.monthlyRentUsd);
+  const bedsLabel = bedsAvailableLabel(listing.bedsAvailable, listing.bedsTotal);
   const photos = [...(listing.photos ?? [])]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((photo) => photo.url)
@@ -141,6 +143,7 @@ export function HomePropertyCard({ listing }: { listing: Listing }) {
         <h3 ref={heading} className="home-property-card__title" title={title}>{title}</h3>
         <p className="home-property-card__area">{area}</p>
         <p className="home-property-card__price">From {price}/month</p>
+        {bedsLabel ? <p className="home-property-card__beds">{bedsLabel}</p> : null}
       </a>
       {preview.anchor &&
         createPortal(

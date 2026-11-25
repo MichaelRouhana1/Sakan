@@ -26,7 +26,8 @@ import { CreateFooter } from './CreateFooter';
 import { CreationWizardStage } from './CreationWizardStage';
 import { Lister } from '@/constants/listerTheme';
 import { Studently } from '@/constants/theme';
-import { PROPERTY_TYPE_OPTIONS, PRICE_BASIS_OPTIONS, SPACE_TYPE_OPTIONS } from '@/constants/listingWizard';
+import { PROPERTY_TYPE_OPTIONS, SPACE_TYPE_OPTIONS } from '@/constants/listingWizard';
+import { priceBasisForSpaceType } from '@/lib/bedsAvailability';
 import { HOST_CREDITS_PATH, HOST_LISTINGS_PATH } from '@/constants/hostRoutes';
 import { useAuthSession } from '@/features/auth/AuthSessionProvider';
 import { ListingFormContext, type ListingFormApi } from '@/features/listings/forms/ListingFormContext';
@@ -204,10 +205,18 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
             {screen === 'rules' ? <CreateStepRules sharedOnly /> : null}
             {screen === 'building-photos' ? <PhotoPickerGrid shared photos={state.place.photos} setPhotos={update => send({ type: 'gallery', id: 'place', update })} /> : null}
             {screen === 'layout' ? <View style={s.fields}><Text style={s.sectionLabel}>Rental type</Text>
-              {SPACE_TYPE_OPTIONS.filter(o => state.place.kind !== 'building' || o.value === 'entire_place').map(o => <SelectableCard key={o.value} title={o.title} body={o.body} icon={o.icon} selected={draft.spaceType === o.value} onPress={() => patch({ spaceType: o.value })} />)}
+              {SPACE_TYPE_OPTIONS.filter(o => state.place.kind !== 'building' || o.value === 'entire_place').map(o => <SelectableCard key={o.value} title={o.title} body={o.body} icon={o.icon} selected={draft.spaceType === o.value} onPress={() => {
+                const priceBasis = priceBasisForSpaceType(o.value);
+                if (o.value === 'shared_room') {
+                  const beds = Math.max(draft.beds, 2);
+                  patch({ spaceType: o.value, priceBasis, beds, maxOccupancy: beds, bedsAvailable: draft.bedsAvailable == null || draft.bedsAvailable > beds ? beds : Math.max(1, draft.bedsAvailable) });
+                  return;
+                }
+                patch({ spaceType: o.value, priceBasis, bedsAvailable: null });
+              }} />)}
               <Text style={s.sectionLabel}>Property type</Text><SegmentedPills options={PROPERTY_TYPE_OPTIONS} value={draft.propertyType} error={form.fieldInvalid('propertyType')} onChange={v => patch({ propertyType: v as typeof draft.propertyType })} /><CreateStepSpecs showSharedDetails={false} /></View> : null}
             {screen === 'photos' ? <PhotoPickerGrid photos={draft.photos} setPhotos={setPhotos} /> : null}
-            {screen === 'rent' ? <View style={s.fields}><Text style={s.sectionLabel}>How is rent listed?</Text><SegmentedPills options={PRICE_BASIS_OPTIONS} value={draft.priceBasis} error={form.fieldInvalid('priceBasis')} onChange={v => patch({ priceBasis: v as typeof draft.priceBasis })} /><CreateStepPricing /></View> : null}
+            {screen === 'rent' ? <View style={s.fields}><CreateStepPricing /></View> : null}
             {screen === 'copy' ? <CreateStepCopy /> : null}
             {screen === 'another' ? <><Text style={s.sectionTitle}>Your units so far</Text>{rows()}<View style={s.options}>
               <Choice title="Copy this unit" detail="Keep layout, rent and writing. Add new photos." icon="copy-outline" disabled={state.units.length >= 20} onPress={() => add(activeId)} />

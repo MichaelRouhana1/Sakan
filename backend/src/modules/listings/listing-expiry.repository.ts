@@ -155,7 +155,7 @@ export class ListingExpiryRepository {
       if (listing.status === "removed" || listing.status === "draft") {
         throw new ConflictError("This listing cannot be renewed");
       }
-      if (inventory.inventory_needs_confirmation || (inventory.unit_type === 'shared_bed' && (inventory.beds_available == null || Number(inventory.beds_available) <= 0))) {
+      if (inventory.inventory_needs_confirmation || (inventory.unit_type === 'shared_bed' && inventory.beds_available == null)) {
         throw new ConflictError('Confirm available beds before renewing');
       }
       if (inventory.availability === 'rented') {

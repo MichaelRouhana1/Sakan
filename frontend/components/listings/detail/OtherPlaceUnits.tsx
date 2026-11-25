@@ -136,7 +136,7 @@ function UnitRow({ unit, compact }: { unit: Listing; compact: boolean }) {const 
     { icon: typeDetails[type].icon, label: name },
     ...(unit.areaSqm ? [{ icon: 'resize-outline' as const, label: `${unit.areaSqm} m²` }] : []),
     ...(unit.bathroomPrivacy ? [{ icon: 'water-outline' as const, label: `${unit.bathroomPrivacy === 'private' ? 'Private' : 'Shared'} bathroom` }] : []),
-    ...(type === 'shared_bed' && unit.bedsAvailable != null && unit.bedsTotal != null ? [{ icon: 'people-outline' as const, label: `${unit.bedsAvailable} of ${unit.bedsTotal} beds` }] : []),
+    ...(type === 'shared_bed' && unit.bedsAvailable != null && unit.bedsTotal != null ? [{ icon: 'people-outline' as const, label: unit.bedsAvailable === 0 ? 'Full' : `${unit.bedsAvailable} of ${unit.bedsTotal} beds available` }] : []),
   ];
   const status = unit.availability === 'pending' ? 'Under offer' : 'Available';
   return (

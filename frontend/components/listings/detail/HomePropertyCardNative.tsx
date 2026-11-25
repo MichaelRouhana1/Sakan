@@ -8,6 +8,7 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { Studently } from "@/constants/theme";
 import { rememberPlacement } from "@/features/promotions/activity";
 import { useIsSaved, useToggleSaved } from "@/features/saved/useSavedListings";
+import { bedsAvailableLabel } from "@/lib/bedsAvailability";
 import { formatFreshUsd } from "@/lib/format";
 import { listingCardSubtitle, listingCardTitle } from "@/lib/listingCardMeta";
 import { studentlyShadow } from "@/lib/studentlyShadow";
@@ -36,6 +37,7 @@ export function HomePropertyCardNative({
   const title = listingCardTitle(listing);
   const area = listingCardSubtitle(listing);
   const price = formatFreshUsd(listing.monthlyRentUsd);
+  const bedsLabel = bedsAvailableLabel(listing.bedsAvailable, listing.bedsTotal);
   const photos = [...(listing.photos ?? [])]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((photo) => photo.url)
@@ -146,6 +148,11 @@ export function HomePropertyCardNative({
         <Text style={styles.price} numberOfLines={1}>
           From {price}/month
         </Text>
+        {bedsLabel ? (
+          <Text style={styles.beds} numberOfLines={1}>
+            {bedsLabel}
+          </Text>
+        ) : null}
       </Pressable>
     </View>
   );
@@ -265,6 +272,12 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 13,
     lineHeight: 16,
+    fontFamily: Studently.type.body,
+  },
+  beds: {
+    color: "#6B7280",
+    fontSize: 12,
+    lineHeight: 15,
     fontFamily: Studently.type.body,
   },
 });

@@ -11,13 +11,12 @@ export const unitAutoRenew = {
   async list(ownerId: string, listingId?: string) {
     return db.execute(sql`
       SELECT l.id,l.auto_renew AS enabled,l.expires_at AS "expiresAt",l.status,
-        CASE WHEN l.inventory_needs_confirmation OR (l.unit_type='shared_bed' AND COALESCE(l.beds_available,0)<=0) THEN 'beds'
+        CASE WHEN l.inventory_needs_confirmation THEN 'beds'
           WHEN l.availability<>'available' OR unit_hidden_reason(l) IS NOT NULL THEN 'unavailable'
           WHEN u.account_status IN ('restricted','banned') THEN 'account'
           WHEN u.post_credits < (SELECT count(*) FROM listings a WHERE a.poster_id=l.poster_id AND a.auto_renew
             AND a.status='active' AND a.availability='available' AND NOT a.inventory_needs_confirmation
             AND unit_hidden_reason(a) IS NULL AND a.expires_at>now()
-            AND (a.unit_type<>'shared_bed' OR COALESCE(a.beds_available,0)>0)
             AND (a.expires_at,a.id)<=(l.expires_at,l.id)) THEN 'credits' ELSE NULL END AS blocked
       FROM listings l JOIN users u ON u.id=l.poster_id
       WHERE l.poster_id=${ownerId}::uuid

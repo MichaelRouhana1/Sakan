@@ -191,7 +191,6 @@ export function isSimilarCandidateEligible(
   if (candidate.availability === "rented") return false;
   if (candidate.hidden || Boolean(candidate.hiddenReason)) return false;
   if (candidate.inventoryNeedsConfirmation) return false;
-  if (candidate.bedsAvailable === 0) return false;
   if (!candidate.expiresAt) return false;
   const expiresMs = new Date(candidate.expiresAt).getTime();
   if (!Number.isFinite(expiresMs) || expiresMs <= now) return false;
