@@ -47,12 +47,20 @@ type Props = {
   area: LebanonArea;
   value: ListingPin;
   onChange: (next: ListingPin) => void;
+  invalid?: boolean;
+  variant?: "classic" | "refined";
 };
 
 /**
  * Web location picker — Mapbox GL loaded client-side only (Expo SSR safe).
  */
-export function LocationPicker({ area, value, onChange }: Props) {
+export function LocationPicker({
+  area,
+  value,
+  onChange,
+  invalid,
+  variant = "classic",
+}: Props) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -67,6 +75,7 @@ export function LocationPicker({ area, value, onChange }: Props) {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(() => Boolean(value.landmarkLabel.trim()));
   const [labelOverride, setLabelOverride] = useState(value.landmarkLabel);
   const [mapReady, setMapReady] = useState(false);
 
@@ -299,6 +308,266 @@ export function LocationPicker({ area, value, onChange }: Props) {
     } finally {
       setGpsBusy(false);
     }
+  }
+
+  if (variant === "refined") {
+    const sourceDetail =
+      value.source === "landmark"
+        ? value.landmarkLabel
+          ? `Landmark · ${value.landmarkLabel}`
+          : "Landmark preset"
+        : value.source === "gps"
+          ? "Set from your current location"
+          : value.source === "link"
+            ? value.confirmed
+              ? "Confirmed from pasted link"
+              : "Pin placed from link — nudge if needed, then confirm"
+            : value.confirmed
+              ? `Exact map pin · ${area}`
+              : "Tap the map or drag the pin, then confirm";
+
+    return (
+      <View style={styles.refinedRoot}>
+        <PasteLocationLinkField
+          compact
+          onResolved={applyPastedLink}
+          onError={setLinkError}
+        />
+        {linkError ? (
+          <LText variant="caption" tone="danger" accessibilityRole="alert">
+            {linkError}
+          </LText>
+        ) : null}
+
+        <View
+          style={[
+            styles.refinedMapCard,
+            invalid && styles.refinedMapCardInvalid,
+          ]}
+        >
+          <View
+            style={styles.refinedMapCanvas}
+            accessibilityLabel="Map to place listing pin"
+          >
+            {!mapReady && !tokenMissing ? (
+              <View style={styles.refinedMapLoading}>
+                <ActivityIndicator color={Lister.color.primary} />
+                <LText variant="caption" tone="muted">
+                  Loading map…
+                </LText>
+              </View>
+            ) : null}
+            {tokenMissing ? (
+              <View style={styles.refinedMapLoading}>
+                <LText variant="caption" tone="muted">
+                  {MAP_TOKEN_MISSING_COPY}
+                </LText>
+              </View>
+            ) : null}
+            <div
+              ref={hostRef}
+              className="studently-mapbox-map"
+              style={{ width: "100%", height: "100%" }}
+            />
+            <View style={[styles.refinedMapChrome, { pointerEvents: "box-none" }]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Use area center as pin"
+                onPress={confirmAreaCentroid}
+                style={({ pressed }) => [
+                  styles.refinedMapBtn,
+                  pressed && styles.refinedPressed,
+                ]}
+              >
+                <Ionicons
+                  name="navigate-outline"
+                  size={designSize(14)}
+                  color={Lister.color.ink}
+                />
+                <LText variant="caption" style={styles.refinedMapBtnText}>
+                  {area} center
+                </LText>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Use my current location"
+                onPress={() => void useMyLocation()}
+                style={({ pressed }) => [
+                  styles.refinedMapBtn,
+                  pressed && styles.refinedPressed,
+                ]}
+                disabled={gpsBusy}
+              >
+                {gpsBusy ? (
+                  <ActivityIndicator size="small" color={Lister.color.primary} />
+                ) : (
+                  <Ionicons
+                    name="locate-outline"
+                    size={designSize(15)}
+                    color={Lister.color.primary}
+                  />
+                )}
+                <LText variant="caption" style={styles.refinedMapBtnText}>
+                  My location
+                </LText>
+              </Pressable>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.refinedStatusFooter,
+              value.confirmed && styles.refinedStatusFooterConfirmed,
+            ]}
+          >
+            <View
+              style={[
+                styles.refinedStatusIcon,
+                value.confirmed && styles.refinedStatusIconConfirmed,
+              ]}
+            >
+              <Ionicons
+                name={value.confirmed ? "checkmark" : "location-outline"}
+                size={designSize(13)}
+                color={value.confirmed ? Lister.color.surface : Lister.color.inkMuted}
+              />
+            </View>
+            <View style={styles.statusCopy}>
+              <LText variant="caption" style={styles.refinedStatusTitle}>
+                {value.confirmed ? "Pin confirmed" : "Pin not confirmed yet"}
+              </LText>
+              <LText variant="caption" tone="muted" style={styles.refinedStatusSub}>
+                {sourceDetail}
+              </LText>
+            </View>
+            {!value.confirmed ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Confirm pin"
+                onPress={confirmCurrentPin}
+                style={({ pressed }) => [
+                  styles.refinedConfirmBtn,
+                  pressed && styles.refinedPressed,
+                ]}
+              >
+                <LText variant="caption" style={styles.refinedConfirmText}>
+                  Confirm pin
+                </LText>
+              </Pressable>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ expanded: advancedOpen }}
+                onPress={() => setAdvancedOpen((v) => !v)}
+                style={styles.refinedCoordsBtn}
+              >
+                <LText variant="caption" tone="muted" style={styles.refinedCoordsText}>
+                  {advancedOpen ? "Hide coords" : "Coords"}
+                </LText>
+              </Pressable>
+            )}
+          </View>
+
+          {advancedOpen ? (
+            <View style={styles.refinedCoordsDrawer}>
+              <LText variant="caption" tone="muted" style={styles.refinedCoordsValue}>
+                {formatCoordLabel({ lng: value.lng, lat: value.lat })}
+              </LText>
+            </View>
+          ) : null}
+        </View>
+
+        {gpsError ? (
+          <LText variant="caption" tone="danger" accessibilityRole="alert">
+            {gpsError}
+          </LText>
+        ) : null}
+
+        {landmarks.length > 0 ? (
+          <View style={styles.refinedLandmarkSection}>
+            <LText variant="caption" tone="muted" style={styles.refinedSubLabel}>
+              Quick landmarks in {area}
+            </LText>
+            <View style={styles.refinedLandmarkWrap}>
+              {landmarks.map((l) => {
+                const on = value.landmarkId === l.id;
+                return (
+                  <Pressable
+                    key={l.id}
+                    onPress={() => onSelectLandmark(l.id)}
+                    style={({ pressed }) => [
+                      styles.refinedLandmarkChip,
+                      on && styles.refinedLandmarkChipOn,
+                      pressed && styles.refinedPressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={l.label}
+                  >
+                    <Ionicons
+                      name={on ? "location" : "location-outline"}
+                      size={designSize(14)}
+                      color={on ? Lister.color.primary : Lister.color.inkMuted}
+                    />
+                    <LText
+                      variant="caption"
+                      style={[
+                        styles.refinedLandmarkText,
+                        on && styles.refinedLandmarkTextOn,
+                      ]}
+                    >
+                      {l.label}
+                    </LText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        {noteOpen || labelOverride.trim().length > 0 ? (
+          <View style={styles.refinedNoteField}>
+            <View style={styles.refinedNoteHeader}>
+              <LText variant="caption" style={styles.refinedNoteLabel}>
+                Landmark note
+              </LText>
+              <LText variant="caption" tone="faint">
+                Optional · doesn’t move pin
+              </LText>
+            </View>
+            <TextInput
+              style={styles.refinedNoteInput}
+              value={labelOverride}
+              placeholder="e.g. Opposite Sassine Square, next to Spinneys"
+              placeholderTextColor={Lister.color.inkFaint}
+              onChangeText={(text) => {
+                setLabelOverride(text);
+                onChange({
+                  ...value,
+                  landmarkLabel: text,
+                });
+              }}
+              accessibilityLabel="Landmark label override"
+            />
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setNoteOpen(true)}
+            style={styles.refinedNoteToggle}
+          >
+            <Ionicons
+              name="add-outline"
+              size={designSize(15)}
+              color={Lister.color.inkMuted}
+            />
+            <LText variant="caption" tone="muted" style={styles.refinedNoteToggleText}>
+              Add landmark note (optional)
+            </LText>
+          </Pressable>
+        )}
+      </View>
+    );
   }
 
   return (
@@ -711,5 +980,203 @@ const baseStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Lister.color.border,
     backgroundColor: Lister.color.bgWash,
+  },
+  /* Refined variant (Step 2 redesign) */
+  refinedRoot: { gap: 12 },
+  refinedPressed: { opacity: 0.9 },
+  refinedMapCard: {
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    backgroundColor: Lister.color.surface,
+  },
+  refinedMapCardInvalid: {
+    borderWidth: 2,
+    borderColor: Lister.color.danger,
+  },
+  refinedMapCanvas: {
+    height: 270,
+    backgroundColor: Lister.color.surfaceMuted,
+    position: "relative",
+  },
+  refinedMapLoading: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Lister.color.surfaceMuted,
+  },
+  refinedMapChrome: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 500,
+    flexDirection: "row",
+    gap: 6,
+  },
+  refinedMapBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "rgba(255,255,255,0.96)",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    cursor: "pointer" as unknown as undefined,
+  },
+  refinedMapBtnText: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Lister.color.ink,
+  },
+  refinedStatusFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: Lister.color.border,
+    backgroundColor: Lister.color.bg,
+  },
+  refinedStatusFooterConfirmed: {
+    backgroundColor: Lister.color.surface,
+  },
+  refinedStatusIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: Lister.color.borderStrong,
+    backgroundColor: Lister.color.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  refinedStatusIconConfirmed: {
+    borderWidth: 0,
+    backgroundColor: Lister.color.primary,
+  },
+  refinedStatusTitle: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Lister.color.ink,
+  },
+  refinedStatusSub: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  refinedConfirmBtn: {
+    backgroundColor: Lister.color.ink,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    cursor: "pointer" as unknown as undefined,
+  },
+  refinedConfirmText: {
+    color: Lister.color.surface,
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  refinedCoordsBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+    cursor: "pointer" as unknown as undefined,
+  },
+  refinedCoordsText: {
+    fontFamily: Lister.type.bodyMedium,
+    fontSize: 12,
+  },
+  refinedCoordsDrawer: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderTopColor: Lister.color.border,
+    backgroundColor: Lister.color.surfaceMuted,
+  },
+  refinedCoordsValue: {
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
+  },
+  refinedLandmarkSection: { gap: 8 },
+  refinedSubLabel: {
+    fontFamily: Lister.type.bodyMedium,
+    fontSize: 12.5,
+  },
+  refinedLandmarkWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  refinedLandmarkChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 9,
+    backgroundColor: Lister.color.surface,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    cursor: "pointer" as unknown as undefined,
+  },
+  refinedLandmarkChipOn: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 2,
+    borderColor: Lister.color.ink,
+    backgroundColor: Lister.color.bg,
+  },
+  refinedLandmarkText: {
+    fontFamily: Lister.type.bodyMedium,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Lister.color.ink,
+  },
+  refinedLandmarkTextOn: {
+    fontFamily: Lister.type.bodySemi,
+  },
+  refinedNoteToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingVertical: 4,
+    cursor: "pointer" as unknown as undefined,
+  },
+  refinedNoteToggleText: {
+    fontFamily: Lister.type.bodyMedium,
+    fontSize: 13,
+  },
+  refinedNoteField: { gap: 6 },
+  refinedNoteHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  refinedNoteLabel: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 13,
+    color: Lister.color.ink,
+  },
+  refinedNoteInput: {
+    backgroundColor: Lister.color.surface,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontFamily: Lister.type.body,
+    fontSize: 14,
+    color: Lister.color.ink,
   },
 });

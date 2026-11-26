@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useIsFocused } from 'expo-router/react-navigation';
 import { useDesktopDesign } from '@/components/ui/DesktopDesign';
 import { DesktopScaleToggle } from '@/components/ui/DesktopScaleToggle';
 import { DESKTOP_SEARCH_MOTION as M, DESKTOP_SEARCH_HEADER as H } from '@/constants/desktopSearchMotion';
@@ -20,6 +21,7 @@ export function DesktopSearchHeader({children,home=false,visible=true}:{children
 }
 export function FloatingDesktopScaleControl(){
  const {scale,isDesktop}=useDesktopDesign();
- if(!__DEV__||!isDesktop||typeof document==='undefined')return null;
+ const isFocused=useIsFocused();
+ if(!__DEV__||!isDesktop||!isFocused||typeof document==='undefined')return null;
  return createPortal(<div className="sdh-scale" data-testid="desktop-scale-toggle" style={{'--ds':scale} as CSSProperties}><DesktopScaleToggle/></div>,document.body);
 }

@@ -262,7 +262,7 @@ export default function RenterNewHomeScreen() {
       setAuthModalOpen(true);
       return;
     }
-    router.push("/(poster)/(tabs)" as never);
+    router.replace("/(poster)/(tabs)" as never);
   };
 
   /** Always keep header CTA slot filled (old List Property). Label follows desktop host logic. */

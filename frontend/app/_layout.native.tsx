@@ -113,7 +113,13 @@ function RootLayoutNav() {
       <SaveAuthPrompt />
       <GestureHandlerRootView style={{ flex: 1 }}>
         <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: "fade",
+              gestureEnabled: false,
+            }}
+          >
             <Stack.Screen name="index" />
             <Stack.Screen name="(renter)" />
             <Stack.Screen name="(poster)" />

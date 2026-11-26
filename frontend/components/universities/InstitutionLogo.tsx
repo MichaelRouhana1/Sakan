@@ -107,8 +107,8 @@ const baseStyles = StyleSheet.create({
     overflow: "hidden",
   },
   fallbackText: {
+    fontFamily: Studently.type.bodyBold,
     fontSize: 10,
-    fontWeight: "700",
     color: Studently.color.primary,
   },
 });

@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import { ConflictError, NotFoundError } from '../../lib/errors.js';
 
-const screen = z.enum(['place-type','location','utilities','rules','building-photos','layout','photos','rent','copy','another','review','success']);
+const screen = z.enum(['place-type','location','utilities','rules','building-photos','layout','photos','rent','copy','card','another','review','success']);
 const position = z.object({ screen, unitId: z.string().max(100) });
 const fields = z.record(z.string(), z.unknown());
 const photo = z.object({ localId: z.string().max(100), uri: z.string().max(2048), url: z.string().max(2048).optional(),

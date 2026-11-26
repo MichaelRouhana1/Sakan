@@ -125,8 +125,9 @@ export function useCreationWizard({ userId, draftId, placeId, fresh = false }: {
     const sub = AppState.addEventListener('change', value => { if (value === 'active') void check(); else void persist().catch(() => {}); });
     const timer = setInterval(() => { if (AppState.currentState === 'active') void check(); }, 15000);
     const focus = () => { void check(); };
-    if (typeof window !== 'undefined') window.addEventListener('focus', focus);
-    return () => { sub.remove(); clearInterval(timer); if (typeof window !== 'undefined') window.removeEventListener('focus', focus); };
+    const hasWebFocus = typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+    if (hasWebFocus) window.addEventListener('focus', focus);
+    return () => { sub.remove(); clearInterval(timer); if (hasWebFocus) window.removeEventListener('focus', focus); };
   }, [publishing, persist, apply, invalidate]);
   const finish = useCallback((result: PublishedResult) => {
     if (!stored.current || stored.current.status === 'published') return;

@@ -1,7 +1,4 @@
 import {
-  PlayfairDisplay_700Bold,
-} from "@expo-google-fonts/playfair-display";
-import {
   DMSans_400Regular,
   DMSans_500Medium,
   DMSans_600SemiBold,
@@ -9,32 +6,16 @@ import {
 } from "@expo-google-fonts/dm-sans";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
-import { Lister } from "@/constants/listerTheme";
 
 export default function PosterLayout() {
-  const [loaded] = useFonts({
+  // Keep <Stack> mounted on first render so Expo Router never dispatches
+  // ROUTE_NAMES_CHANGED / PRELOAD to an unmounted navigator while fonts resolve.
+  useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
-    PlayfairDisplay_700Bold,
   });
-
-  if (!loaded) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: Lister.color.bg,
-        }}
-      >
-        <ActivityIndicator color={Lister.color.primary} />
-      </View>
-    );
-  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -45,6 +26,7 @@ export default function PosterLayout() {
           headerShown: false,
           animation: "slide_from_bottom",
           presentation: "fullScreenModal",
+          gestureEnabled: false,
         }}
       />
       <Stack.Screen

@@ -5,7 +5,6 @@ import {
   DMSans_600SemiBold,
   DMSans_700Bold,
 } from "@expo-google-fonts/dm-sans";
-import { PlayfairDisplay_700Bold } from "@expo-google-fonts/playfair-display";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -33,6 +32,10 @@ import { CreateStepReview } from "@/components/listings/create/CreateStepReview"
 import { CreateStepRules } from "@/components/listings/create/CreateStepRules";
 import { CreateStepSpecs } from "@/components/listings/create/CreateStepSpecs";
 import { CreateStepType } from "@/components/listings/create/CreateStepType";
+import {
+  PhotoDragScrollContext,
+  usePhotoDragScrollController,
+} from "@/components/listings/photoDragScroll";
 import { HOST_LISTINGS_PATH } from "@/constants/hostRoutes";
 import { LISTING_FORM_SECTIONS } from "@/constants/listingWizard";
 import { Lister } from "@/constants/listerTheme";
@@ -91,7 +94,6 @@ export function EditListingScreen({
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
-    PlayfairDisplay_700Bold,
   });
   const insets = useSafeAreaInsets();
   const meta = useEditListingMeta();
@@ -100,6 +102,7 @@ export function EditListingScreen({
   const archive = useArchiveListing();
   const reduced = useReducedMotion();
   const scrollRef = useRef<ScrollView>(null);
+  const dragScroll = usePhotoDragScrollController(scrollRef);
   const offsets = useRef<Record<string, number>>({});
   const heights = useRef<Record<string, number>>({});
   const activeRef = useRef(LISTING_FORM_SECTIONS[0].id);
@@ -357,7 +360,7 @@ export function EditListingScreen({
             <LText variant="caption" tone="muted">
               Edit listing
             </LText>
-            <LText variant="subtitle" numberOfLines={1} style={styles.serifTitle}>
+            <LText variant="subtitle" numberOfLines={1} style={styles.headerTitle}>
               {meta.title}
             </LText>
             <LText
@@ -410,12 +413,15 @@ export function EditListingScreen({
 
       <SectionPills activeId={active} onSelect={jumpTo} />
 
+      <PhotoDragScrollContext.Provider value={dragScroll.api}>
       <ScrollView
-        ref={scrollRef}
+        ref={dragScroll.scrollRef}
         style={styles.formScroll}
         contentContainerStyle={panel ? styles.scrollPanel : styles.scroll}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
+        onLayout={dragScroll.measureViewport}
+        onContentSizeChange={dragScroll.onContentSizeChange}
         onTouchStart={() => {
           userDragging.current = true;
         }}
@@ -431,7 +437,10 @@ export function EditListingScreen({
           if (!userDragging.current) return;
           scrollingTo.current = null;
         }}
-        onScroll={onFormScroll}
+        onScroll={(event) => {
+          dragScroll.onScroll(event);
+          onFormScroll(event);
+        }}
       >
         {LISTING_FORM_SECTIONS.map((step, index) => {
           const Step = SECTIONS[index];
@@ -456,6 +465,7 @@ export function EditListingScreen({
           );
         })}
       </ScrollView>
+      </PhotoDragScrollContext.Provider>
     </View>
   );
 }
@@ -512,8 +522,8 @@ const baseStyles = StyleSheet.create({
     opacity: 0.7,
   },
   topCopy: { flex: 1, minWidth: 0 },
-  serifTitle: {
-    fontFamily: Lister.type.displaySerif,
+  headerTitle: {
+    fontFamily: Lister.type.display,
   },
   openBanner: {
     marginHorizontal: 16,
@@ -556,7 +566,7 @@ const baseStyles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: {
-    fontFamily: Lister.type.displaySerif,
+    fontFamily: Lister.type.display,
     fontSize: 22,
     lineHeight: 28,
   },

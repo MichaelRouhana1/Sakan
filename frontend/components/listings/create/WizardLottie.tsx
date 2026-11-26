@@ -13,9 +13,10 @@ type Props = {
   width: number;
   height: number;
   reducedMotion?: boolean;
+  loop?: boolean;
 };
 
-export function WizardLottie({ assetId, width, height, reducedMotion }: Props) {
+export function WizardLottie({ assetId, width, height, reducedMotion, loop = true }: Props) {
   const preference = useReducedMotion();
   const reduce = reducedMotion ?? preference;
   const [data, setData] = useState<AnimationObject | null>(null);
@@ -53,7 +54,7 @@ export function WizardLottie({ assetId, width, height, reducedMotion }: Props) {
           key={assetId}
           source={data}
           autoPlay={!reduce}
-          loop={!reduce}
+          loop={!reduce && loop}
           progress={reduce ? 0.55 : undefined}
           style={{ width, height }}
         />

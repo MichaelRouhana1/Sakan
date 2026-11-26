@@ -14,6 +14,7 @@ import {
   type View as ViewType,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { SquishSwitch } from "@/components/ui/SquishSwitch";
 import { Lister } from "@/constants/listerTheme";
 import { publishListingFeedback } from "@/features/saved/savedToast";
@@ -36,9 +37,11 @@ import { WHATSAPP_GREEN } from "@/lib/whatsapp";
 import { getCountries, getCountryCallingCode } from "libphonenumber-js";
 
 function Flag({ code }: { code: string }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const [failed, setFailed] = useState(false);
   if (failed) {
-    return <Ionicons name="earth-outline" size={16} color={Lister.color.inkMuted} />;
+    return <Ionicons name="earth-outline" size={designSize(16)} color={Lister.color.inkMuted} />;
   }
   return (
     <Image
@@ -92,6 +95,8 @@ export function LebanonPhoneField({
   onRemove,
   onMakePrimary,
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const sheet = Platform.OS !== "web" || windowWidth < 768;
@@ -217,10 +222,11 @@ export function LebanonPhoneField({
     </View>
   );
 
-  const popWidth = Math.min(Math.max(anchor.w, 320), windowWidth - 16);
+  const popWidth = Math.min(Math.max(anchor.w, designSize(320)), windowWidth - 16);
+  const popHeight = designSize(380);
   const left = Math.max(8, Math.min(anchor.x, windowWidth - popWidth - 8));
   let top = anchor.y + anchor.h + 4;
-  if (top + 380 > windowHeight) top = Math.max(8, anchor.y - 380 - 4);
+  if (top + popHeight > windowHeight) top = Math.max(8, anchor.y - popHeight - 4);
 
   return (
     <View style={styles.block}>
@@ -253,7 +259,7 @@ export function LebanonPhoneField({
             onPress={onRemove}
             style={styles.remove}
           >
-            <Ionicons name="trash-outline" size={18} color={canRemove ? Lister.color.inkMuted : Lister.color.border} />
+            <Ionicons name="trash-outline" size={designSize(18)} color={canRemove ? Lister.color.inkMuted : Lister.color.border} />
           </Pressable>
         </View>
       </View>
@@ -267,7 +273,7 @@ export function LebanonPhoneField({
         >
           <Flag code={country} />
           <Text style={styles.code}>+{callingCode(country)}</Text>
-          <Ionicons name="chevron-down" size={14} color={Lister.color.inkMuted} />
+          <Ionicons name="chevron-down" size={designSize(14)} color={Lister.color.inkMuted} />
         </Pressable>
         <TextInput
           accessibilityLabel={`Phone number ${number}`}
@@ -333,6 +339,8 @@ export function LebanonPhoneField({
 }
 
 export function AddNumberButton({ onPress }: { onPress: () => void }) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   return (
     <Pressable
       accessibilityRole="button"
@@ -340,13 +348,13 @@ export function AddNumberButton({ onPress }: { onPress: () => void }) {
       onPress={onPress}
       style={styles.add}
     >
-      <Ionicons name="add" size={18} color={Lister.color.ink} />
+      <Ionicons name="add" size={designSize(18)} color={Lister.color.ink} />
       <Text style={styles.addText}>Add another number</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   block: { gap: 6 },
   head: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headLabel: { fontFamily: Lister.type.bodySemi, fontSize: 14, color: Lister.color.ink },

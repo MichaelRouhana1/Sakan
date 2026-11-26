@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Platform, StyleSheet, View, type ViewStyle } from "react-native";
+import { LText } from "@/components/lister/Typography";
 import { Lister } from "@/constants/listerTheme";
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -18,9 +19,14 @@ export type DragGhostModel = {
 type Props = {
   ghost: DragGhostModel;
   pointer: { x: number; y: number };
+  showCover?: boolean;
 };
 
-export function PhotoPickerGridDragGhost({ ghost, pointer }: Props) {
+export function PhotoPickerGridDragGhost({
+  ghost,
+  pointer,
+  showCover = false,
+}: Props) {
   const { styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   const reducedMotion = useReducedMotion();
@@ -54,6 +60,13 @@ export function PhotoPickerGridDragGhost({ ghost, pointer }: Props) {
         contentFit="cover"
         transition={0}
       />
+      {showCover ? (
+        <View style={styles.coverBadge}>
+          <LText variant="caption" style={styles.coverBadgeText}>
+            Cover
+          </LText>
+        </View>
+      ) : null}
     </View>,
     portalRoot,
   );
@@ -66,21 +79,36 @@ const baseStyles = StyleSheet.create({
     borderRadius: Lister.radius.lg,
     overflow: "hidden",
     backgroundColor: Lister.color.surface,
-    borderWidth: 1,
-    borderColor: Lister.color.border,
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.85)",
     ...(Platform.OS === "web"
       ? ({ pointerEvents: "none" } as ViewStyle)
       : null),
   },
   ghostLift: Platform.select({
     web: {
-      transform: [{ scale: 1.06 }],
-      boxShadow: "0 16px 40px rgba(18, 24, 38, 0.22)",
+      transform: [{ scale: 1.05 }],
+      boxShadow: "0 16px 40px rgba(18, 24, 38, 0.24)",
     } as ViewStyle,
     default: {},
   }),
   image: {
     width: "100%",
     height: "100%",
+  },
+  coverBadge: {
+    position: "absolute",
+    bottom: 8,
+    left: 8,
+    backgroundColor: Lister.color.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Lister.radius.pill,
+    pointerEvents: "none",
+  },
+  coverBadgeText: {
+    color: Lister.color.surface,
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 11,
   },
 });

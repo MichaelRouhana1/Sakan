@@ -46,8 +46,8 @@ async function capture(p,name){
   // The form has its own scroll area so the fixed actions stay visible. Capture its remaining fields too.
   const form=p.locator('[data-testid^="screen-"]');
   if(!await form.count())return;
-  await expect(form.getByRole('heading').first()).toHaveCSS('font-family',/PlayfairDisplay/);
-  assert.ok(await p.evaluate(()=>[...document.fonts].some(font=>font.family.includes('PlayfairDisplay_700Bold')&&font.status==='loaded')),`${name}: original display font loaded`);
+  await expect(form.getByRole('heading').first()).toHaveCSS('font-family',/DMSans_700Bold|DM Sans/);
+  assert.ok(await p.evaluate(()=>[...document.fonts].some(font=>(font.family.includes('DMSans_700Bold')||font.family.includes('DM Sans'))&&font.status==='loaded')),`${name}: display font loaded`);
   await expect(form).toHaveCSS('border-top-width','0px');
   assert.ok(!/prototype|saved on this browser/i.test(await form.innerText()),`${name}: production copy`);
   const scroller=await form.evaluateHandle(el=>{for(let a=el.parentElement;a;a=a.parentElement)if(a.scrollHeight>a.clientHeight+10&&getComputedStyle(a).overflowY==='auto')return a;return null;});
@@ -196,7 +196,7 @@ try{
     const mutations=()=>max.p.evaluate(()=>new Promise(resolve=>{let count=0;const svg=document.querySelector('[data-wizard-art-asset] svg');const observer=new MutationObserver(records=>{count+=records.length;});observer.observe(svg,{attributes:true,subtree:true});setTimeout(()=>{observer.disconnect();resolve(count);},700);}));
     await max.p.emulateMedia({reducedMotion:'no-preference'});await expect(motion).toHaveAttribute('data-wizard-motion','playing');await max.p.waitForTimeout(300);assert.ok(await mutations()>0,'Original artwork animates with motion enabled');
     await max.p.emulateMedia({reducedMotion:'reduce'});await expect(motion).toHaveAttribute('data-wizard-motion','still');await max.p.waitForTimeout(300);assert.equal(await mutations(),0,'Reduced motion freezes the artwork');
-    checks.push('The original illustration assets render on every screen, Playfair headings and the unboxed layout are restored, and motion preferences start/stop the artwork');
+    checks.push('The original illustration assets render on every screen, DM Sans headings and the unboxed layout are in place, and motion preferences start/stop the artwork');
   }finally{await max.c.close();}
   assert.deepEqual(errors,[]);
 }catch(e){for(const c of contexts){const p=c.pages().at(-1);if(p&&!p.isClosed())await p.screenshot({path:path.join(out,'failure-screen.png')}).catch(()=>{});}await writeFile(path.join(out,'failure.json'),JSON.stringify({error:String(e),checks,errors},null,2));throw e;}

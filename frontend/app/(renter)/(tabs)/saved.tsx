@@ -7,7 +7,6 @@ import {
   View,
 } from "react-native";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
-import { SwitchRoleControl } from "@/components/auth/SwitchRoleControl";
 import { Enter } from "@/components/lister/Enter";
 import { EmptyState } from "@/components/lister/EmptyState";
 import { ListerScreen } from "@/components/lister/Screen";
@@ -86,9 +85,6 @@ export default function SavedScreen() {
                 Synced to your account — tap the heart on any listing to keep
                 it here across devices.
               </LText>
-              <View style={styles.switchWrap}>
-                <SwitchRoleControl currentRole="renter" />
-              </View>
             </View>
           </Enter>
         }
@@ -122,7 +118,7 @@ export default function SavedScreen() {
               title="Nothing saved yet"
               body="When a place feels right, tap the heart. It’ll stay on your account for quick return visits."
               ctaLabel="Browse listings"
-              onCta={() => router.push("/(renter)" as never)}
+              onCta={() => router.navigate("/(renter)/(tabs)/(explore)" as never)}
               icon="heart-outline"
             />
           )
@@ -154,10 +150,6 @@ const styles = StyleSheet.create({
     paddingTop: Studently.space.sm,
     paddingBottom: Studently.space.md,
     gap: 4,
-  },
-  switchWrap: {
-    marginTop: 12,
-    alignItems: "flex-start",
   },
   cardWrap: {
     marginBottom: Studently.space.md,

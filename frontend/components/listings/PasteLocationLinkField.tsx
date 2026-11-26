@@ -20,6 +20,7 @@ import {
 type Props = {
   onResolved: (coord: LatLng) => void;
   onError: (message: string | null) => void;
+  compact?: boolean;
 };
 
 const AUTO_RESOLVE_MS = 350;
@@ -28,11 +29,16 @@ const AUTO_RESOLVE_MS = 350;
  * Paste-first Maps / WhatsApp location link → coordinates (caller drops pin).
  * Resolves automatically on clipboard paste or when a link appears in the field.
  */
-export function PasteLocationLinkField({ onResolved, onError }: Props) {
+export function PasteLocationLinkField({
+  onResolved,
+  onError,
+  compact = false,
+}: Props) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [focused, setFocused] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResolvedRef = useRef<string | null>(null);
   const resolveGen = useRef(0);
@@ -107,6 +113,71 @@ export function PasteLocationLinkField({ onResolved, onError }: Props) {
     } catch {
       onError("Couldn’t read the clipboard.");
     }
+  }
+
+  if (compact) {
+    return (
+      <View style={styles.compactRoot}>
+        <View style={[styles.compactRow, focused && styles.compactRowFocused]}>
+          <Ionicons
+            name="link-outline"
+            size={designSize(17)}
+            color={focused ? Lister.color.ink : Lister.color.inkFaint}
+          />
+          <TextInput
+            style={styles.compactInput}
+            value={text}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onChangeText={(t) => {
+              setText(t);
+              onError(null);
+              scheduleResolve(t);
+            }}
+            placeholder="Paste Maps or WhatsApp link…"
+            placeholderTextColor={Lister.color.inkFaint}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            returnKeyType="done"
+            editable={!busy}
+            onSubmitEditing={() => void resolve(text)}
+            accessibilityLabel="Paste location link"
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Paste from clipboard"
+            onPress={() => void pasteFromClipboard()}
+            disabled={busy}
+            style={({ pressed }) => [
+              styles.compactPasteBtn,
+              pressed && styles.pressed,
+              busy && styles.disabled,
+            ]}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color={Lister.color.ink} />
+            ) : (
+              <>
+                <Ionicons
+                  name="clipboard-outline"
+                  size={designSize(14)}
+                  color={Lister.color.ink}
+                />
+                <LText variant="caption" style={styles.compactPasteText}>
+                  Paste
+                </LText>
+              </>
+            )}
+          </Pressable>
+        </View>
+        {busy ? (
+          <LText variant="caption" tone="muted">
+            Reading link…
+          </LText>
+        ) : null}
+      </View>
+    );
   }
 
   return (
@@ -201,4 +272,47 @@ const baseStyles = StyleSheet.create({
   },
   pressed: { opacity: 0.88 },
   disabled: { opacity: 0.5 },
+  compactRoot: { gap: 6 },
+  compactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingLeft: 12,
+    paddingRight: 6,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    backgroundColor: Lister.color.surface,
+  },
+  compactRowFocused: {
+    borderColor: Lister.color.ink,
+  },
+  compactInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 7,
+    fontFamily: Lister.type.body,
+    fontSize: 14,
+    color: Lister.color.ink,
+    outlineStyle: "none" as unknown as undefined,
+  },
+  compactPasteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 7,
+    backgroundColor: Lister.color.surfaceMuted,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    cursor: "pointer" as unknown as undefined,
+  },
+  compactPasteText: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Lister.color.ink,
+  },
 });

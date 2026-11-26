@@ -262,7 +262,7 @@ const baseStyles = StyleSheet.create({
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center" },
   heroCopy: { flex: 1, justifyContent: "center", gap: 8 },
   eyebrow: { fontFamily: Studently.type.bodyBold, fontSize: 11, letterSpacing: 1.7, textTransform: "uppercase", color: Studently.color.primarySoft },
-  headline: { fontFamily: Studently.type.displaySerif, fontSize: 38, lineHeight: 44, color: "#FFFFFF" },
+  headline: { fontFamily: Studently.type.display, fontSize: 38, lineHeight: 44, letterSpacing: -0.7, color: "#FFFFFF" },
   lede: { fontFamily: Studently.type.body, fontSize: 15, lineHeight: 22, color: "#D7DEE9", maxWidth: 560 },
   listingMeta: { marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.16)", gap: 3 },
   listingTitle: { fontFamily: Studently.type.bodySemi, fontSize: 15, color: "#FFFFFF" },

@@ -1,12 +1,13 @@
 import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRef, useState } from "react";
 import { LButton } from "@/components/lister/Button";
 import { EditBadgesSheet } from "@/components/listings/edit/EditBadgesSheet";
 import { Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
-import { ListingResultCard, badgeBandMaxHeight } from "@/components/web/ListingResultCard";
+import { ListingResultCard, badgeBandMaxHeight, splitIntoTwoBadgeRows } from "@/components/web/ListingResultCard";
 import { Lister } from "@/constants/listerTheme";
 import { WEB_CONTENT_MAX, WEB_CONTENT_PAD_X } from "@/constants/webLayout";
 import {
@@ -21,6 +22,7 @@ import {
   listingCardPills,
   sameBadgeKeys,
 } from "@/lib/listingCardBadges";
+import { useCoarsePointer } from "@/lib/useCoarsePointer";
 import type { Listing } from "@/types/listing";
 import { useCardBadgeDrag } from "./useCardBadgeDrag";
 import { useListingForm } from "@/features/listings/forms/ListingFormContext";
@@ -273,7 +275,7 @@ const baseStyles = StyleSheet.create({
   endMarker: { position: "relative", width: 0, height: 28 },
   empty: { paddingVertical: 8, lineHeight: 20 },
   reorderControls: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8, borderTopWidth: 1, borderTopColor: Lister.color.border, paddingTop: 8 },
-  controlLabel: { flex: 1 },
+  controlLabel: { flex: 1, minWidth: 0 },
   reorderButton: { width: 36, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: Lister.color.surfaceMuted, cursor: "pointer" },
   disabled: { opacity: 0.35 },
   pool: { gap: 12, borderRadius: 16, borderWidth: 1, borderColor: "transparent", padding: 12 },
@@ -304,11 +306,14 @@ const SEARCH_LIST_GAP = 24;
 const SEARCH_DESKTOP_MIN = 1024;
 
 /** Width of one list card in the search results column. */
-function searchListCardWidth(viewport: number): number {
-  const content = Math.min(viewport, WEB_CONTENT_MAX);
-  const inner = content - WEB_CONTENT_PAD_X * 2;
-  if (viewport >= SEARCH_DESKTOP_MIN) return inner - SEARCH_LIST_GAP - SEARCH_LIST_SIDEBAR;
-  return inner;
+function searchListCardWidth(viewport: number, scale = 1): number {
+  const s = scale || 1;
+  const content = Math.min(viewport, WEB_CONTENT_MAX * s);
+  const inner = content - WEB_CONTENT_PAD_X * s * 2;
+  if (viewport / s >= SEARCH_DESKTOP_MIN) {
+    return Math.round(inner - SEARCH_LIST_GAP * s - SEARCH_LIST_SIDEBAR * s);
+  }
+  return Math.round(inner);
 }
 
 const base_wizardStyles = StyleSheet.create({
@@ -318,13 +323,104 @@ const base_wizardStyles = StyleSheet.create({
   listCard: { width: "100%", alignSelf: "stretch" },
   listCardFull: { width: LIST_CARD_MIN },
   gridStage: { width: "100%", maxWidth: 440, alignSelf: "flex-start" },
+  gridStageMobile: { alignSelf: "center" },
   dropZone: {
-    maxHeight: badgeBandMaxHeight(LIST_BADGE_ROWS),
     borderWidth: 1,
     borderColor: "transparent",
     borderRadius: 10,
     width: "100%",
+  },
+  dropZoneList: {
+    maxHeight: badgeBandMaxHeight(LIST_BADGE_ROWS),
     ...(Platform.OS === "web" ? { overflowY: "auto", overflowX: "hidden" } as unknown as ViewStyle : null),
+  },
+  mobileRailClip: {
+    height: 58,
+    justifyContent: "center",
+    position: "relative",
+    width: "100%",
+  },
+  mobileRailScroller: {
+    flexGrow: 0,
+    width: "100%",
+  },
+  mobileRailContent: {
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  mobileRailOverflow: {
+    paddingRight: 20,
+  },
+  mobileRailTwoRows: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    gap: 5,
+  },
+  mobileRailRow: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "center",
+    gap: 5,
+  },
+  mobileRailChip: {
+    position: "relative",
+    flexShrink: 0,
+  },
+  mobileRailFade: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 28,
+    pointerEvents: "none",
+  },
+  mobileTouchPill: Platform.OS === "web"
+    ? ({ touchAction: "pan-x", cursor: "pointer", userSelect: "none", borderRadius: 999 } as unknown as ViewStyle)
+    : { borderRadius: 999 },
+  mobileReorderBar: {
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E2DD",
+    backgroundColor: "#FAF9F7",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  mobileReorderMeta: {
+    flex: 1,
+    minWidth: 0,
+  },
+  mobileReorderName: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 13,
+    lineHeight: 17,
+    color: Lister.color.ink,
+  },
+  mobileReorderPos: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontVariant: ["tabular-nums"],
+  },
+  firstButton: {
+    minHeight: 36,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Lister.color.border,
+    backgroundColor: Lister.color.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as unknown as ViewStyle) : {}),
+  },
+  firstButtonText: {
+    fontFamily: Lister.type.bodySemi,
+    fontSize: 12,
+    lineHeight: 16,
+    color: Lister.color.ink,
   },
   badgeWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
   chip: { position: "relative", maxWidth: "100%" },
@@ -338,14 +434,31 @@ const base_wizardStyles = StyleSheet.create({
 });
 
 export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchSearchList = false }: Props) {
-  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const { size: designSize, scale: designScale, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   const wizardStyles = resolveStyles(base_wizardStyles);
   
   const reduced = useReducedMotion();
+  const coarsePointer = useCoarsePointer();
   const { width: viewport } = useWindowDimensions();
+  const layoutWidth = useLayoutWidth();
+  const mobileOnly = Platform.OS !== "web" || layoutWidth < 768;
+  const mobileTouchScroll = mobileOnly && (Platform.OS !== "web" || coarsePointer);
+  const railWidthRef = useRef(0);
+  const railContentRef = useRef(0);
+  const [railViewportWidth, setRailViewportWidth] = useState(0);
+  const [railOverflows, setRailOverflows] = useState(false);
   const [contentWidth, setContentWidth] = useState(0);
-  const searchListWidth = matchSearchList ? searchListCardWidth(viewport) : 0;
+  const searchListWidth = matchSearchList ? searchListCardWidth(viewport, designScale) : 0;
+
+  function checkRailOverflow(nextWidth = railWidthRef.current, nextContent = railContentRef.current) {
+    if (nextWidth > 0 && nextWidth !== railWidthRef.current) {
+      setRailViewportWidth(nextWidth);
+    }
+    railWidthRef.current = nextWidth;
+    railContentRef.current = nextContent;
+    setRailOverflows(nextContent > nextWidth + 1);
+  }
   const [activeControl, setActiveControl] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const keys = listing.cardBadges ?? [];
@@ -387,11 +500,141 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
     ) : null;
   }
 
-  const listBadges = (
+  const [mobileRow1, mobileRow2] = splitIntoTwoBadgeRows(pills, railViewportWidth);
+
+  function renderMobileRailChip(pill: (typeof pills)[number], index: number) {
+    const marker = drag.markerProps(pill.key, "card");
+    const handle = mobileTouchScroll ? {} : drag.handleProps(pill.key, "card");
+    return (
+      <View
+        key={pill.key}
+        style={[wizardStyles.mobileRailChip, drag.activeKey === pill.key && styles.dragging]}
+      >
+        {insertion(index)}
+        <Pressable
+          {...marker}
+          {...handle}
+          {...({
+            dataSet: {
+              ...(marker.dataSet as Record<string, string>),
+              ...((handle as { dataSet?: Record<string, string> }).dataSet ?? {}),
+            },
+          } as Record<string, unknown>)}
+          accessibilityRole="button"
+          accessibilityLabel={`Arrange ${pill.label}, badge ${index + 1} of ${pills.length}`}
+          accessibilityHint="Tap to move this badge earlier or later."
+          accessibilityState={{ expanded: activeControl === pill.key }}
+          onPress={() => setActiveControl(activeControl === pill.key ? null : pill.key)}
+          {...keyboardProps(pill.key)}
+          style={[
+            mobileTouchScroll ? wizardStyles.mobileTouchPill : wizardStyles.badgeButton,
+            !reduced && wizardStyles.badgeMotion,
+          ]}
+        >
+          <ListingAmberPillView
+            pill={pill}
+            compact
+            highlight={isHighlightCardBadge(pill.key)}
+            style={activeControl === pill.key ? styles.focusedPill : undefined}
+          />
+        </Pressable>
+      </View>
+    );
+  }
+
+  const mobileBadgeRail = (
     <View
       {...drag.zoneProps("card")}
       testID="card-badge-drop-zone"
-      style={[wizardStyles.dropZone, !!cardTarget && styles.dropZoneActive]}
+      style={wizardStyles.mobileRailClip}
+    >
+      <ScrollView
+        horizontal
+        testID="grid-badge-scroller"
+        showsHorizontalScrollIndicator={false}
+        nestedScrollEnabled
+        directionalLockEnabled
+        style={wizardStyles.mobileRailScroller}
+        contentContainerStyle={[
+          wizardStyles.mobileRailContent,
+          railOverflows && wizardStyles.mobileRailOverflow,
+        ]}
+        onLayout={(event) => checkRailOverflow(event.nativeEvent.layout.width, railContentRef.current)}
+        onContentSizeChange={(w) => checkRailOverflow(railWidthRef.current, w)}
+      >
+        <View style={wizardStyles.mobileRailTwoRows}>
+          <View style={wizardStyles.mobileRailRow}>
+            {mobileRow1.map(({ pill, index }) => renderMobileRailChip(pill, index))}
+            {mobileRow2.length === 0 ? <View style={styles.endMarker}>{insertion(pills.length)}</View> : null}
+            {pills.length === 0 ? (
+              <LText variant="caption" tone="muted" style={styles.empty}>
+                Add details in the earlier steps to see badges on the card.
+              </LText>
+            ) : null}
+          </View>
+          {mobileRow2.length > 0 ? (
+            <View style={wizardStyles.mobileRailRow}>
+              {mobileRow2.map(({ pill, index }) => renderMobileRailChip(pill, index))}
+              <View style={styles.endMarker}>{insertion(pills.length)}</View>
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+      {railOverflows ? (
+        <LinearGradient
+          colors={["rgba(255,255,255,0)", "#FFFFFF"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={wizardStyles.mobileRailFade}
+        />
+      ) : null}
+    </View>
+  );
+
+  const mobileReorderControls = mobileOnly && controlPill && !drag.activeKey ? (
+    <View testID="mobile-badge-reorder-bar" style={wizardStyles.mobileReorderBar}>
+      <View style={wizardStyles.mobileReorderMeta}>
+        <LText variant="caption" numberOfLines={1} style={wizardStyles.mobileReorderName}>
+          {controlPill.label}
+        </LText>
+        <LText variant="caption" tone="muted" style={wizardStyles.mobileReorderPos}>
+          Position {controlIndex + 1} of {keys.length}
+        </LText>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Move ${controlPill.label} first`}
+        disabled={controlIndex === 0}
+        onPress={() => drop(controlPill.key, { zone: "card", index: 0 })}
+        style={[wizardStyles.firstButton, controlIndex === 0 && styles.disabled]}
+      >
+        <LText variant="caption" style={wizardStyles.firstButtonText}>1st</LText>
+      </Pressable>
+      <ReorderButton
+        label={`Move ${controlPill.label} earlier`}
+        icon="chevron-back"
+        disabled={controlIndex === 0}
+        onPress={() => drop(controlPill.key, { zone: "card", index: controlIndex - 1 })}
+      />
+      <ReorderButton
+        label={`Move ${controlPill.label} later`}
+        icon="chevron-forward"
+        disabled={controlIndex === keys.length - 1}
+        onPress={() => drop(controlPill.key, { zone: "card", index: controlIndex + 2 })}
+      />
+      <ReorderButton label="Close badge controls" icon="close" onPress={() => setActiveControl(null)} />
+    </View>
+  ) : null;
+
+  const editableBadges = (
+    <View
+      {...drag.zoneProps("card")}
+      testID="card-badge-drop-zone"
+      style={[
+        wizardStyles.dropZone,
+        wizardStyles.dropZoneList,
+        !!cardTarget && styles.dropZoneActive,
+      ]}
     >
       <View style={wizardStyles.badgeWrap}>
         {pills.map((pill, index) => {
@@ -420,9 +663,13 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
               >
                 <ListingAmberPillView
                   pill={pill}
+                  compact={mobileOnly}
                   highlight={isHighlightCardBadge(pill.key)}
-                  style={[wizardStyles.listPill, activeControl === pill.key ? styles.focusedPill : undefined]}
-                  textStyle={wizardStyles.listPillText}
+                  style={[
+                    !mobileOnly && wizardStyles.listPill,
+                    activeControl === pill.key ? styles.focusedPill : undefined,
+                  ]}
+                  textStyle={!mobileOnly ? wizardStyles.listPillText : undefined}
                 />
               </Pressable>
             </View>
@@ -437,7 +684,9 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
       </View>
       {controlPill && !drag.activeKey ? (
         <View style={styles.reorderControls}>
-          <LText variant="caption" tone="muted" style={styles.controlLabel}>{controlPill.label}</LText>
+          <LText variant="caption" tone="muted" numberOfLines={1} style={styles.controlLabel}>
+            {controlPill.label}
+          </LText>
           <ReorderButton
             label={`Move ${controlPill.label} earlier`}
             icon="chevron-back"
@@ -473,7 +722,7 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
         listing={listing}
         variant="list"
         interactive={false}
-        renderListBadges={() => listBadges}
+        renderListBadges={() => editableBadges}
       />
     </View>
   );
@@ -484,6 +733,9 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
         ? "Swipe the card sideways to the badges, then drag one to set the order."
         : "Drag a badge to set the order. Alt and the arrow keys work too.")
       : "Tap a badge, then move it earlier or later.");
+
+  const mobileHint = message
+    || "Scroll the badges right to see them all. Tap a badge to reorder it.";
 
   const listStage = (
     <View
@@ -507,15 +759,25 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
   );
 
   const gridStage = (
-    <View testID="grid-card-preview" style={wizardStyles.gridStage}>
+    <View testID="grid-card-preview" style={[wizardStyles.gridStage, mobileOnly && wizardStyles.gridStageMobile]}>
       <ListingResultCard
         listing={listing}
         interactive={false}
         badgeLimit={null}
-        badgeMaxRows={2}
+        badgeOverflow={mobileOnly ? "scroll-x" : "wrap"}
+        badgeMaxRows={mobileOnly ? undefined : 2}
+        renderGridBadges={mobileOnly ? () => mobileBadgeRail : undefined}
       />
-      <LText variant="caption" tone="muted" style={styles.cardCaption}>
-        Grid view · two rows of badges. Scroll the band if there are more.
+      {mobileReorderControls}
+      <LText
+        variant="caption"
+        tone="muted"
+        accessibilityLiveRegion={mobileOnly ? "polite" : "none"}
+        style={styles.cardCaption}
+      >
+        {mobileOnly
+          ? mobileHint
+          : "Grid view · two rows of badges. Scroll the band if there are more."}
       </LText>
     </View>
   );
@@ -524,7 +786,7 @@ export function WizardBadgeOrder({ listing, onChange, showHeading = true, matchS
     <View style={styles.root} onLayout={(event) => setContentWidth(event.nativeEvent.layout.width)}>
       {showHeading ? heading : null}
       <View style={wizardStyles.stage}>
-        {listStage}
+        {!mobileOnly ? listStage : null}
         {gridStage}
       </View>
       {drag.overlay}

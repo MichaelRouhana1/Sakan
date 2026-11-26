@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { ProfileIdentityPanel } from "@/components/web/ProfileIdentityPanel";
+import { ProfileModePill, type ProfileMode } from "@/components/profile/ProfileModePill";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { LText } from "@/components/lister/Typography";
@@ -78,7 +79,7 @@ function coverOf(listing: Listing): string | null {
 
 const profileCss = desktopCssLengths(PROFILE_CSS);
 
-export function ProfileWeb() {
+export function ProfileWeb({ mode = "renter" }: { mode?: ProfileMode }) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   const { isSignedIn, hasClerkSession, isLoading: authLoading, user, logout, refreshUser } =
@@ -87,6 +88,7 @@ export function ProfileWeb() {
   const saved = useSavedListings();
   const width = useLayoutWidth();
   const compact = width < 640;
+  const mobile = width < 768;
   const stacked = width < 900;
 
   const [authOpen, setAuthOpen] = useState(false);
@@ -134,7 +136,7 @@ export function ProfileWeb() {
   }
 
   return (
-    <View nativeID="studently-profile" style={styles.page}>
+    <View nativeID="studently-profile" style={[styles.page, mobile && styles.pageMobile]}>
       <View style={styles.hero}>
         <View style={styles.kickerRow}>
           <View style={styles.kicker}>
@@ -500,6 +502,13 @@ export function ProfileWeb() {
           </View>
         </View>
       </Modal>
+      {mobile ? (
+        <ProfileModePill
+          mode={mode}
+          onRequireAuth={() => setAuthOpen(true)}
+          webFixed
+        />
+      ) : null}
     </View>
   );
 }
@@ -512,6 +521,9 @@ const baseStyles = StyleSheet.create({
     gap: 32,
     paddingTop: 8,
     paddingBottom: 8,
+  },
+  pageMobile: {
+    paddingBottom: 96,
   },
   center: {
     paddingVertical: 80,

@@ -7,12 +7,14 @@ import {
   Modal,
   Platform,
   Pressable,
+  StyleSheet,
   Text,
   useWindowDimensions,
   View,
   type View as ViewType,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Lister } from "@/constants/listerTheme";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { wizardInputStyle } from "./WizardField";
@@ -59,6 +61,8 @@ export function DatePicker({
   disabled,
   testID = "wizard-date",
 }: Props) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
   const insets = useSafeAreaInsets();
   const reducedMotion = useReducedMotion();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -166,8 +170,8 @@ export function DatePicker({
   }
 
   const shown = value ? formatWizardDate(value) : "";
-  const popoverWidth = 340;
-  const calendarHeight = 380;
+  const popoverWidth = designSize(340);
+  const calendarHeight = designSize(380);
   const left = Math.max(8, Math.min(anchor.x, windowWidth - popoverWidth - 8));
   const below = anchor.y + anchor.height + 8;
   const spaceBelow = windowHeight - below;
@@ -193,7 +197,7 @@ export function DatePicker({
           style={[styles.nav, !canPrev && styles.navDisabled]}
           {...chromeProps()}
         >
-          <Ionicons name="chevron-back" size={20} color={canPrev ? Lister.color.ink : Lister.color.inkFaint} />
+          <Ionicons name="chevron-back" size={designSize(20)} color={canPrev ? Lister.color.ink : Lister.color.inkFaint} />
         </Pressable>
         <Text
           accessibilityRole="header"
@@ -211,7 +215,7 @@ export function DatePicker({
           style={[styles.nav, !canNext && styles.navDisabled]}
           {...chromeProps()}
         >
-          <Ionicons name="chevron-forward" size={20} color={canNext ? Lister.color.ink : Lister.color.inkFaint} />
+          <Ionicons name="chevron-forward" size={designSize(20)} color={canNext ? Lister.color.ink : Lister.color.inkFaint} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -220,7 +224,7 @@ export function DatePicker({
           style={styles.nav}
           {...chromeProps()}
         >
-          <Ionicons name="close" size={20} color={Lister.color.ink} />
+          <Ionicons name="close" size={designSize(20)} color={Lister.color.ink} />
         </Pressable>
       </View>
       <View style={styles.weekRow}>
@@ -292,10 +296,10 @@ export function DatePicker({
         disabled={disabled}
         onPress={openPicker}
         testID={testID}
-        style={[wizardInputStyle(invalid), styles.field, disabled && styles.fieldDisabled]}
+        style={[wizardInputStyle(invalid, designSize), styles.field, disabled && styles.fieldDisabled]}
       >
         <Text style={[styles.fieldText, !shown && styles.placeholder]}>{shown || placeholder}</Text>
-        <Ionicons name="calendar-outline" size={20} color={Lister.color.inkMuted} />
+        <Ionicons name="calendar-outline" size={designSize(20)} color={Lister.color.inkMuted} />
       </Pressable>
       <Modal
         visible={open}
@@ -345,7 +349,7 @@ function dayProps(iso: string) {
   return Platform.OS === "web" ? { dataSet: { date: iso } } : {};
 }
 
-const styles = {
+const baseStyles = StyleSheet.create({
   field: {
     minHeight: 48,
     flexDirection: "row" as const,
@@ -469,4 +473,4 @@ const styles = {
     backgroundColor: Lister.color.inkMuted,
   },
   todayDotOn: { backgroundColor: "#FFFFFF" },
-};
+});

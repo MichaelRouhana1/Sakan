@@ -68,12 +68,18 @@ async function signIn(target: Page) {
   });
 }
 
-async function dashboard() {
+// Narrow and mid-width screens default to the card grid, wide ones to the table. The table suites
+// pin the list layout so they assert the same UI at every width; pass 'grid' to keep the default.
+async function dashboard(layout:'list'|'grid'='list') {
   const link=page.getByRole('link',{name:'Listings',exact:true});
   if(new URL(page.url()).pathname!=='/hosting/listing' && await link.isVisible().catch(()=>false)) await link.click();
   else await page.goto('/hosting/listing',{waitUntil:'domcontentloaded'});
   await expect(page.getByTestId('listings-workspace')).toBeVisible({timeout:30000});
   await expect(page.getByTestId('listings-loading')).toHaveCount(0,{timeout:30000});
+  if(layout==='list'){
+    const option=page.getByRole('radio',{name:'List view'});
+    if(await option.isVisible().catch(()=>false))await option.click();
+  }
 }
 async function screenshot(name:string) {
   await page.screenshot({path:path.join(output,`${name}.png`)});
@@ -151,7 +157,7 @@ test.describe('host listings workspace',()=>{
    const overflow=await page.evaluate(()=>({body:document.documentElement.scrollWidth>innerWidth,workspace:(()=>{const el=document.querySelector('[data-testid="listings-workspace"]')!;return el.scrollWidth>el.clientWidth+1;})()}));
    expect(overflow).toEqual({body:false,workspace:false});
    const first=page.getByTestId(`unit-${units[0].id}`);
-   await expect(first.getByTestId('listing-thumbnail')).toHaveCSS('width',`${width===1440?72:width===768?64:56}px`);
+   await expect(first.getByTestId('listing-thumbnail')).toHaveCSS('width',`${width===1440?72:64}px`);
    await expect(first.getByText('Sunny home',{exact:true})).toHaveCSS('font-size','16px');
    const smallText=await page.getByTestId('unit-list').evaluate(el=>Array.from(el.querySelectorAll('div')).filter(node=>node.childElementCount===0&&node.textContent?.trim()).filter(node=>parseFloat(getComputedStyle(node).fontSize)<13).map(node=>node.textContent));
    if(width===375)expect(smallText).toEqual([]);

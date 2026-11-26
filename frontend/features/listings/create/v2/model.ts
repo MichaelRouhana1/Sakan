@@ -4,7 +4,7 @@ import { COPY_TITLE_MAX, isPhotoReady, stepFieldErrors } from '../validators';
 import { nextParkingIncludedInRent } from '../parkingIncluded';
 
 export const PLACE_SCREENS = ['place-type', 'location', 'utilities', 'rules', 'building-photos'] as const;
-export const UNIT_SCREENS = ['layout', 'photos', 'rent', 'copy'] as const;
+export const UNIT_SCREENS = ['layout', 'photos', 'rent', 'copy', 'card'] as const;
 export type PlaceScreen = typeof PLACE_SCREENS[number];
 export type UnitScreen = typeof UNIT_SCREENS[number];
 export type Screen = PlaceScreen | UnitScreen | 'another' | 'review' | 'success';
@@ -66,6 +66,7 @@ export function unitErrors(state: WizardV2Draft, id: string, screen: UnitScreen)
     ...stepFieldErrors(draft, 0, true), ...stepFieldErrors(draft, 2, true),
     ...(state.place.kind === 'building' && draft.spaceType !== 'entire_place' ? ['A building contains whole apartments'] : []),
   ];
+  if (screen === 'card') return [];
   return stepFieldErrors(draft, { photos: 5, rent: 6, copy: 7 }[screen], true);
 }
 export function unitComplete(state: WizardV2Draft, unit: Unit): boolean {
@@ -80,7 +81,7 @@ export function placeErrors(state: WizardV2Draft, screen: PlaceScreen): string[]
 export function screenErrors(state: WizardV2Draft): string[] {
   const screen = state.position.screen;
   if (PLACE_SCREENS.includes(screen as PlaceScreen)) return placeErrors(state, screen as PlaceScreen);
-  if (screen === 'copy') return UNIT_SCREENS.flatMap(s => unitErrors(state, state.position.unitId, s));
+  if (screen === 'card') return UNIT_SCREENS.flatMap(s => unitErrors(state, state.position.unitId, s));
   if (UNIT_SCREENS.includes(screen as UnitScreen)) return unitErrors(state, state.position.unitId, screen as UnitScreen);
   if (screen === 'another') return state.units.flatMap((u, i) => {
     const errors = UNIT_SCREENS.flatMap(s => unitErrors(state, u.id, s));
@@ -155,7 +156,7 @@ export function reduceWizard(state: WizardV2Draft, action: Action): WizardV2Draf
       if (ui === 0 && state.returnTo) return { ...state, position: state.returnTo, returnTo: null };
       if (pi > 0) return { ...state, position: { ...state.position, screen: PLACE_SCREENS[pi - 1] } };
       if (ui > 0) return { ...state, position: { ...state.position, screen: UNIT_SCREENS[ui - 1] } };
-      if (state.position.screen === 'another') return { ...state, position: { ...state.position, screen: 'copy' } };
+      if (state.position.screen === 'another') return { ...state, position: { ...state.position, screen: 'card' } };
       if (state.position.screen === 'review' && state.units.length) return { ...state, position: { screen: 'another', unitId: state.units.at(-1)!.id } };
       if (state.position.screen === 'review') {
         const id = safeUuid();

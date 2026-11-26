@@ -18,6 +18,7 @@ type Props = {
   width: number;
   height: number;
   reducedMotion?: boolean;
+  loop?: boolean;
 };
 
 const dataCache = new Map<WizardLottieAssetId, Promise<object>>();
@@ -71,7 +72,7 @@ function loadAnimationData(id: WizardLottieAssetId): Promise<object> {
   return pending;
 }
 
-export function WizardLottie({ assetId, width, height, reducedMotion }: Props) {
+export function WizardLottie({ assetId, width, height, reducedMotion, loop = true }: Props) {
   const preference = useReducedMotion();
   const reduce = reducedMotion ?? preference;
   const host = useRef<HTMLDivElement | null>(null);
@@ -128,14 +129,15 @@ export function WizardLottie({ assetId, width, height, reducedMotion }: Props) {
       active.current = player;
       el.replaceChildren(player.container);
       player.animation.resize();
-      player.animation.loop = !reduce;
+      player.animation.loop = !reduce && loop;
       if (reduce) player.animation.goToAndStop(Math.floor(player.animation.totalFrames * .55), true);
+      else if (changed && !loop) player.animation.goToAndPlay(0, true);
       else player.animation.play();
       if (changed && !reduce) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' });
     }).catch(() => {});
 
     return () => { cancelled = true; };
-  }, [assetId, prepare, reduce]);
+  }, [assetId, loop, prepare, reduce]);
 
   // Prepare likely next artwork while the question is idle, not during Next.
   useEffect(() => {

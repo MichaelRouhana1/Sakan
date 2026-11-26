@@ -8,7 +8,7 @@ Use the saved white, full-height shell: Save & exit on the left, compact progres
 
 Restore the original 46% web illustration pane (42% native; 30% at web Review), without a vertical divider, tinted panel or added place captions. Use the saved aspect-aware `wizardLottieFrame` dimensions: up to 680px wide / 560px high on desktop and 340px wide / 260px high on mobile. Web Review uses the original square up to 640px. The form uses the saved 640px desktop maximum with 48px side padding. No enclosing form card.
 
-Restore Playfair Display 700 questions at 42/50px desktop, 36/43px tablet and 32/39px mobile. Body text and controls remain DM Sans; introductory text is 16/25px with a generous 32px gap before the form. Brand red remains #ea3f4a. Links use dark ink and an underline, and selected controls keep the existing red treatment.
+Use DM Sans 700 questions at 42/50px desktop, 36/43px tablet and 32/39px mobile. Body text and controls also use DM Sans; introductory text is 16/25px with a generous 32px gap before the form. Brand red remains #ea3f4a. Links use dark ink and an underline, and selected controls keep the existing red treatment.
 
 On mobile, show the original illustration above the question in the original 240px web band (220px native), followed by the form with 24px side padding. Keep actions fixed at the bottom with thin progress tracks and Place/unit/Review labels. Reuse the saved footer: wide red action and ghost Back on desktop, black Next pill and underlined Back on mobile. Long forms scroll independently; the header and primary action stay available.
 

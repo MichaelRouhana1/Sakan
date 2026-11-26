@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useDesktopDesign } from '@/components/ui/DesktopDesign';
@@ -27,11 +27,11 @@ export function CardGrid({ children, testID }: { children: ReactNode; testID?: s
 
 type HeadingProps = {
   name: string; area: string; shown: number; total: number; attention: number; folded: boolean;
-  createDisabled: boolean; onToggle: () => void; onAdd: () => void; onMenu: (anchor: Anchor) => void;
+  createDisabled: boolean; compact?: boolean; onToggle: () => void; onAdd: () => void; onMenu: (anchor: Anchor) => void;
 };
 
 /** A place is a section, not a container: plain heading, no fill, no border. */
-export function PlaceHeading({ name, area, shown, total, attention, folded, createDisabled, onToggle, onAdd, onMenu }: HeadingProps) {
+export function PlaceHeading({ name, area, shown, total, attention, folded, createDisabled, compact = false, onToggle, onAdd, onMenu }: HeadingProps) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const s = resolveStyles(base);
   return <View style={s.placeHead}>
@@ -45,7 +45,7 @@ export function PlaceHeading({ name, area, shown, total, attention, folded, crea
         </Text>
       </View>
     </Pressable>
-    <Button label="Add unit" icon="add" disabled={createDisabled} onPress={onAdd} />
+    {compact ? null : <Button label="Add unit" icon="add" disabled={createDisabled} onPress={onAdd} />}
     <MenuTrigger label={`Place options for ${name}`} onPress={onMenu} />
   </View>;
 }
@@ -90,7 +90,7 @@ export function UnitCard({ unit, now, singlePlace, autoBusy, onAction, onMenu, o
         <Text style={[s.availability, f.needsBeds && s.warnText]} numberOfLines={1}>{f.availability}</Text>
       </View>
       <HostBedsControl listing={unit} compact />
-      <Pressable accessibilityRole="button" accessibilityLabel={`Analytics for ${title}`} onPress={onAnalytics} style={s.stats}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Analytics for ${title}`} hitSlop={6} onPress={onAnalytics} style={s.stats}>
         <Ionicons name="stats-chart-outline" size={designSize(14)} color={Studently.color.inkMuted} />
         <Text style={s.statsText}>{unit.viewCount ?? 0} views · {unit.contactTapCount ?? 0} taps</Text>
       </Pressable>
@@ -147,7 +147,9 @@ export function GridSkeleton() {
 
 const base = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(296px, 1fr))', gap: 20 } as Record<string, unknown>,
+  grid: (Platform.OS === 'web'
+    ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }
+    : { flexDirection: 'column', gap: 16 }) as Record<string, unknown>,
 
   placeHead: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   placeToggle: { flex: 1, minWidth: 0, minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -155,15 +157,43 @@ const base = StyleSheet.create({
   placeArea: { fontFamily: Studently.type.body, color: '#625E59' },
   placeMeta: { fontFamily: Studently.type.body, fontSize: 13, lineHeight: 18, color: '#625E59' },
 
-  card: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E4E8', borderRadius: 14, overflow: 'hidden', transitionProperty: 'box-shadow, border-color', transitionDuration: '180ms', transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' } as Record<string, unknown>,
-  cardHover: { borderColor: '#C3C9D2', boxShadow: '0 8px 24px rgba(26,26,26,0.08)' },
+  card: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E1E4E8',
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? { transitionProperty: 'box-shadow, border-color', transitionDuration: '180ms', transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+      : {}),
+  } as Record<string, unknown>,
+  cardHover: Platform.OS === 'web'
+    ? { borderColor: '#C3C9D2', boxShadow: '0 8px 24px rgba(26,26,26,0.08)' }
+    : {},
 
-  photo: { aspectRatio: 1.8, backgroundColor: '#E8EAED' },
-  photoDim: { filter: 'grayscale(0.8)', opacity: 0.8 } as Record<string, unknown>,
+  photo: { flex: 1, minHeight: 88, backgroundColor: '#E8EAED', overflow: 'hidden' },
+  photoDim: (Platform.OS === 'web' ? { filter: 'grayscale(0.8)', opacity: 0.8 } : { opacity: 0.65 }) as Record<string, unknown>,
   photoFallback: { backgroundColor: '#F0F1F3', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  skeletonPhoto: { aspectRatio: 1.8, backgroundColor: '#F0F1F3' },
+  skeletonPhoto: { flex: 1, minHeight: 88, backgroundColor: '#F0F1F3' },
   photoMenuSlot: { position: 'absolute', top: 10, right: 10 },
-  chip: { position: 'absolute', top: 12, left: 12, maxWidth: '75%', flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.96)', boxShadow: '0 1px 4px rgba(26,26,26,0.22)' },
+  chip: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    maxWidth: '75%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 1px 4px rgba(26,26,26,0.22)' }
+      : { shadowColor: '#1A1A1A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.18, shadowRadius: 3, elevation: 2 }),
+  },
   chipExpiring: { backgroundColor: '#FFFBEB' },
   chipExpired: { backgroundColor: '#FEF3F2' },
   chipText: { fontFamily: Studently.type.bodySemi, fontSize: 13, lineHeight: 18, color: '#242321', flexShrink: 1 },
@@ -171,17 +201,17 @@ const base = StyleSheet.create({
   expiredText: { color: '#B42318' },
   dot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
 
-  body: { flex: 1, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, gap: 2 },
-  title: { fontFamily: Studently.type.bodySemi, fontSize: 16, lineHeight: 22, color: '#1A1A1A', minHeight: 22 },
-  meta: { fontFamily: Studently.type.body, fontSize: 13, lineHeight: 19, color: '#625E59' },
-  priceRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 8 },
-  price: { fontFamily: Studently.type.bodyBold, fontSize: 20, lineHeight: 26, color: '#1A1A1A', letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+  body: { flexShrink: 0, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8, gap: 2 },
+  title: { fontFamily: Studently.type.bodySemi, fontSize: 16, lineHeight: 21, color: '#1A1A1A', minHeight: 21 },
+  meta: { fontFamily: Studently.type.body, fontSize: 13, lineHeight: 18, color: '#625E59' },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 4 },
+  price: { fontFamily: Studently.type.bodyBold, fontSize: 19, lineHeight: 24, color: '#1A1A1A', letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
   priceUnit: { fontFamily: Studently.type.body, fontSize: 13, color: '#625E59', letterSpacing: 0 },
   availability: { flexShrink: 1, fontFamily: Studently.type.bodyMedium, fontSize: 13, lineHeight: 18, color: '#37332F' },
-  stats: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 2 },
+  stats: { minHeight: 24, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 2 },
   statsText: { fontFamily: Studently.type.body, fontSize: 13, lineHeight: 18, color: '#625E59', fontVariant: ['tabular-nums'] },
 
-  footer: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#EDEEF0' },
+  footer: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#EDEEF0' },
   autoCopy: { flex: 1, minWidth: 0 },
   autoLabel: { fontFamily: Studently.type.bodySemi, fontSize: 13, lineHeight: 18, color: '#242321' },
   autoCaption: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 17, color: '#625E59' },

@@ -1,9 +1,8 @@
 import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
+import { DesktopScaleToggle } from "@/components/ui/DesktopScaleToggle";
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { useFonts } from 'expo-font';
-import { PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { router } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, ActivityIndicator, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -13,13 +12,16 @@ import { StudentlyAuthModal } from '@/components/auth/StudentlyAuthModal';
 import { LButton } from '@/components/lister/Button';
 import { PhotoPickerGrid } from '@/components/listings/PhotoPickerGrid';
 import { SelectableCard } from './SelectableCard';
+import { CreateStepPlaceType, PlaceTypeLookToggle, usePlaceTypeLook } from './CreateStepPlaceType';
 import { SegmentedPills } from './SegmentedPills';
-import { CreateStepLocation } from './CreateStepLocation';
-import { CreateStepAmenities } from './CreateStepAmenities';
-import { CreateStepRules } from './CreateStepRules';
-import { BuildingAccessFields, CreateStepSpecs } from './CreateStepSpecs';
+import { CreateStepLocation, LocationLookToggle, useLocationLook } from './CreateStepLocation';
+import { CreateStepAmenities, UtilitiesLookToggle, useUtilitiesLook } from './CreateStepAmenities';
+import { CreateStepRules, RulesLookToggle, useRulesLook } from './CreateStepRules';
+import { BuildingAccessFields, CreateStepSpecs, LayoutLookToggle, useLayoutLook } from './CreateStepSpecs';
 import { CreateStepPricing } from './CreateStepPricing';
-import { CreateStepCopy } from './CreateStepCopy';
+import { CopyLookToggle, CreateStepCopy, useCopyLook } from './CreateStepCopy';
+import { CreateStepReview } from './CreateStepReview';
+import { ReviewCostLedger, ReviewLookToggle, ReviewUnitsLedger, useReviewLook } from './CreateStepPublishReview';
 import { CreateStepContact } from './CreateStepContact';
 import { EnterAnimationContext } from '@/components/lister/Enter';
 import { CreateFooter } from './CreateFooter';
@@ -49,6 +51,7 @@ const META: Record<Screen, { title: string; subtitle: string; section: number }>
   photos: { title: 'Show this unit.', subtitle: 'Add 3–15 photos of this unit. The first photo is its search cover.', section: 5 },
   rent: { title: 'Set the rent and terms.', subtitle: 'What does this unit cost, and when can someone move in?', section: 6 },
   copy: { title: 'Give this unit a story.', subtitle: 'A clear title and a few helpful details make it easier to find the right match.', section: 7 },
+  card: { title: 'Customize how your card looks.', subtitle: 'Every badge on this unit is on the card. Drag to set the order renters see in list and grid views.', section: 9 },
   another: { title: 'Add another unit?', subtitle: 'Your place is already described. Add another space or review your units.', section: 9 },
   review: { title: 'One place. Ready to share.', subtitle: 'Check your units, add your contact details once, and publish everything together.', section: 8 },
   success: { title: 'Your listing is published', subtitle: 'Your units are now available for students to find.', section: 9 },
@@ -68,9 +71,7 @@ export function CreationWizard(props: { draftId?: string; placeId?: string; fres
   const auth = useAuthSession();
   const [authOpen, setAuthOpen] = useState(false);
   const layoutWidth = useLayoutWidth();
-  const [fontsLoaded, fontError] = useFonts({ PlayfairDisplay_700Bold });
-  useEffect(() => { if (fontError) throw fontError; }, [fontError]);
-  if (auth.isLoading || !fontsLoaded) return <View style={s.center}><ActivityIndicator color={Studently.color.primary} accessibilityLabel="Loading your account" /></View>;
+  if (auth.isLoading) return <View style={s.center}><ActivityIndicator color={Studently.color.primary} accessibilityLabel="Loading your account" /></View>;
   if (!auth.isSignedIn || !auth.session) return <View style={s.root}>
     <View style={[s.header, layoutWidth < 600 && s.headerStacked]}><Text style={s.brandText}>studently<Text style={s.brandDot}>.</Text></Text></View>
     <CreationWizardStage screen="place-type"><View style={[s.formCard, layoutWidth < 1024 && s.formStacked, layoutWidth < 600 && s.formNarrow]}>
@@ -90,6 +91,13 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
   
   const flow = useCreationWizard(props);
   const { state, record, send, persist, saveState } = flow;
+  const [placeTypeLook, setPlaceTypeLook] = usePlaceTypeLook();
+  const [locationLook, setLocationLook] = useLocationLook();
+  const [utilitiesLook, setUtilitiesLook] = useUtilitiesLook();
+  const [rulesLook, setRulesLook] = useRulesLook();
+  const [layoutLook, setLayoutLook] = useLayoutLook();
+  const [copyLook, setCopyLook] = useCopyLook();
+  const [reviewLook, setReviewLook] = useReviewLook();
   const [showValidation, setShowValidation] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
   const heading = useRef<Text>(null);
@@ -172,7 +180,7 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
           onLayout={x => progressLayout(u.id, x)} />)}
         <Phase label="Review" current={screen === 'review' || screen === 'success'} complete={record.status === 'published'} disabled={locked || !state.reviewVisited || screen === 'review'} onPress={() => send({ type: 'review' })} onLayout={x => progressLayout('review', x)} />
       </ScrollView></View>;
-  const footerLabel = screen === 'success' ? 'Your listings' : screen === 'review' ? flow.publishing ? 'Publishing…' : state.pendingAttempt ? 'Retry publishing' : state.units.length > 1 ? 'Publish all' : 'Publish' : screen === 'another' ? 'Done — review units' : screen === 'copy' ? state.returnTo ? 'Save unit' : 'Finish unit' : screen === 'building-photos' && !state.place.photos.length ? 'Skip for now' : 'Next';
+  const footerLabel = screen === 'success' ? 'Your listings' : screen === 'review' ? flow.publishing ? 'Publishing…' : state.pendingAttempt ? 'Retry publishing' : state.units.length > 1 ? 'Publish all' : 'Publish' : screen === 'another' ? 'Done — review units' : screen === 'card' ? state.returnTo ? 'Save unit' : 'Finish unit' : screen === 'building-photos' && !state.place.photos.length ? 'Skip for now' : 'Next';
   const footerAction = () => {
     if (screen === 'success') exit();
     else if (screen === 'review') goPublish();
@@ -182,51 +190,107 @@ function Wizard(props: { userId: string; draftId?: string; placeId?: string; fre
   return <ListingFormContext.Provider value={form}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[s.root, { paddingTop: insets.top }]} testID="creation-wizard">
       <View style={[s.header, !split && s.headerStacked]} testID="wizard-header">
-        <View style={[s.headerSide, !split && s.headerSideMobile]}>
+        <View style={[s.headerSide, s.headerLeft, !split && s.headerSideMobile]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Save & exit" onPress={() => void saveExit()} style={[s.saveExit, !split && s.saveExitPill]}><Text style={[s.saveExitText, !split && s.saveExitPillText]}>Save & exit</Text></Pressable>
+          <DesktopScaleToggle />
         </View>
         {split ? <View style={s.headerProgress}>{progressControl}</View> : null}
         <View style={[s.headerSide, s.saveActions, !split && s.headerStatusMobile]}>
+          {screen === 'place-type' ? <PlaceTypeLookToggle look={placeTypeLook} onChange={setPlaceTypeLook} /> : null}
+          {screen === 'location' ? <LocationLookToggle look={locationLook} onChange={setLocationLook} /> : null}
+          {screen === 'utilities' ? <UtilitiesLookToggle look={utilitiesLook} onChange={setUtilitiesLook} /> : null}
+          {screen === 'rules' ? <RulesLookToggle look={rulesLook} onChange={setRulesLook} /> : null}
+          {screen === 'layout' ? <LayoutLookToggle look={layoutLook} onChange={setLayoutLook} /> : null}
+          {screen === 'copy' ? <CopyLookToggle look={copyLook} onChange={setCopyLook} /> : null}
+          {screen === 'review' ? <ReviewLookToggle look={reviewLook} onChange={setReviewLook} /> : null}
           <Text accessibilityLiveRegion="polite" role="status" style={[s.saveLabel, saveState === 'error' && s.errorText]}>{saveState === 'saved' ? 'Saved' : saveState === 'saving' ? 'Saving…' : 'Couldn’t save'}</Text>
           {saveState === 'error' ? <Link label="Retry" onPress={() => { void persist().catch(() => {}); }} /> : null}
         </View>
       </View>
       {flow.changedElsewhere && screen !== 'success' ? <View style={s.notice} accessibilityRole="alert"><Text style={s.noticeText}>Updated on another device. Reload?</Text><Link label="Reload" onPress={() => void flow.reload()} /><Link label="Dismiss" onPress={flow.dismissNotice} /></View> : null}
       <CreationWizardStage screen={screen} unitId={activeId} placeName={state.place.data.buildingName} unitCount={state.units.length} scrollRef={content}>
-        <EnterAnimationContext.Provider value={false}><Animated.View key={`${screen}:${activeId}`} entering={reduced ? undefined : FadeIn.duration(160)} style={[s.formCard, screen === 'review' && s.reviewCard, !split && s.formStacked, narrow && s.formNarrow]} testID={`screen-${screen}`}>
-          <Text style={s.eyebrow}>{isPlace ? `Place · ${PLACE_SCREENS.indexOf(screen as typeof PLACE_SCREENS[number]) + 1} of 5` : isUnit ? `Unit ${index + 1} · ${UNIT_SCREENS.indexOf(screen as typeof UNIT_SCREENS[number]) + 1} of 4` : screen === 'another' ? `${state.units.length} ${state.units.length === 1 ? 'unit' : 'units'} added` : 'Your place, together'}</Text>
+        <EnterAnimationContext.Provider value={false}><Animated.View key={`${screen}:${activeId}`} entering={reduced ? undefined : FadeIn.duration(160)} style={[screen === 'card' && split ? s.cardCard : s.formCard, screen === 'review' && s.reviewCard, screen === 'card' && !split && s.cardCardFull, !split && s.formStacked, narrow && s.formNarrow]} testID={`screen-${screen}`}>
+          <Text style={s.eyebrow}>{isPlace ? `Place · ${PLACE_SCREENS.indexOf(screen as typeof PLACE_SCREENS[number]) + 1} of ${PLACE_SCREENS.length}` : isUnit ? `Unit ${index + 1} · ${UNIT_SCREENS.indexOf(screen as typeof UNIT_SCREENS[number]) + 1} of ${UNIT_SCREENS.length}` : screen === 'another' ? `${state.units.length} ${state.units.length === 1 ? 'unit' : 'units'} added` : 'Your place, together'}</Text>
           <Text ref={heading} accessibilityRole="header" tabIndex={-1} style={[s.title, !split && s.titleCompact, narrow && s.titleNarrow]}>{screen === 'success' && state.units.length > 1 ? 'Your listings are published' : meta.title}</Text>
-          <Text style={s.intro}>{meta.subtitle}</Text>
+          <Text style={s.intro}>{screen === 'card' && (Platform.OS !== 'web' || layoutWidth < 768) ? 'Swipe right on the badges to see them all. Tap any badge to change its order.' : meta.subtitle}</Text>
           {state.place.id && screen !== 'success' ? <View style={s.placeContext}><Ionicons name="business-outline" size={designSize(20)} color={Studently.color.inkMuted} /><View style={s.flex}><Text style={s.sectionLabel}>{state.place.data.buildingName || 'Existing place'}</Text><Text style={s.helper}>{state.place.data.area} · Shared place details already saved</Text></View></View> : null}
           <View ref={fields} pointerEvents={locked && screen !== 'success' ? 'none' : 'auto'} accessibilityElementsHidden={locked} importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'} style={locked && screen !== 'success' ? s.locked : undefined}>
-            {screen === 'place-type' ? <View style={s.fields}><SelectableCard title="An apartment" body="A whole apartment, or rooms and beds within it." icon="home-outline" selected={state.place.kind === 'apartment'} onPress={() => send({ type: 'kind', kind: 'apartment' })} /><SelectableCard title="A building" body="Whole apartments that share one building." icon="business-outline" selected={state.place.kind === 'building'} onPress={() => send({ type: 'kind', kind: 'building' })} /></View> : null}
-            {screen === 'location' ? <CreateStepLocation /> : null}
-            {screen === 'utilities' ? <><BuildingAccessFields /><View style={s.spacer} /><CreateStepAmenities /></> : null}
-            {screen === 'rules' ? <CreateStepRules sharedOnly /> : null}
+            {screen === 'place-type' ? <CreateStepPlaceType kind={state.place.kind} look={placeTypeLook} onSelect={kind => send({ type: 'kind', kind })} /> : null}
+            {screen === 'location' ? <CreateStepLocation look={locationLook} /> : null}
+            {screen === 'utilities' ? (
+              utilitiesLook === '1'
+                ? <><BuildingAccessFields /><View style={s.spacer} /><CreateStepAmenities look="1" /></>
+                : <CreateStepAmenities look="2" />
+            ) : null}
+            {screen === 'rules' ? <CreateStepRules sharedOnly look={rulesLook} /> : null}
             {screen === 'building-photos' ? <PhotoPickerGrid shared photos={state.place.photos} setPhotos={update => send({ type: 'gallery', id: 'place', update })} /> : null}
-            {screen === 'layout' ? <View style={s.fields}><Text style={s.sectionLabel}>Rental type</Text>
-              {SPACE_TYPE_OPTIONS.filter(o => state.place.kind !== 'building' || o.value === 'entire_place').map(o => <SelectableCard key={o.value} title={o.title} body={o.body} icon={o.icon} selected={draft.spaceType === o.value} onPress={() => {
-                const priceBasis = priceBasisForSpaceType(o.value);
-                if (o.value === 'shared_room') {
-                  const beds = Math.max(draft.beds, 2);
-                  patch({ spaceType: o.value, priceBasis, beds, maxOccupancy: beds, bedsAvailable: draft.bedsAvailable == null || draft.bedsAvailable > beds ? beds : Math.max(1, draft.bedsAvailable) });
-                  return;
-                }
-                patch({ spaceType: o.value, priceBasis, bedsAvailable: null });
-              }} />)}
-              <Text style={s.sectionLabel}>Property type</Text><SegmentedPills options={PROPERTY_TYPE_OPTIONS} value={draft.propertyType} error={form.fieldInvalid('propertyType')} onChange={v => patch({ propertyType: v as typeof draft.propertyType })} /><CreateStepSpecs showSharedDetails={false} /></View> : null}
+            {screen === 'layout' ? (
+              layoutLook === '1' ? (
+                <View style={s.fields}><Text style={s.sectionLabel}>Rental type</Text>
+                  {SPACE_TYPE_OPTIONS.filter(o => state.place.kind !== 'building' || o.value === 'entire_place').map(o => <SelectableCard key={o.value} title={o.title} body={o.body} icon={o.icon} selected={draft.spaceType === o.value} onPress={() => {
+                    const priceBasis = priceBasisForSpaceType(o.value);
+                    if (o.value === 'shared_room') {
+                      const beds = Math.max(draft.beds, 2);
+                      patch({ spaceType: o.value, priceBasis, beds, maxOccupancy: beds, bedsAvailable: draft.bedsAvailable == null || draft.bedsAvailable > beds ? beds : Math.max(1, draft.bedsAvailable) });
+                      return;
+                    }
+                    patch({ spaceType: o.value, priceBasis, bedsAvailable: null });
+                  }} />)}
+                  <Text style={s.sectionLabel}>Property type</Text><SegmentedPills options={PROPERTY_TYPE_OPTIONS} value={draft.propertyType} error={form.fieldInvalid('propertyType')} onChange={v => patch({ propertyType: v as typeof draft.propertyType })} /><CreateStepSpecs showSharedDetails={false} look="1" /></View>
+              ) : (
+                <CreateStepSpecs showSharedDetails={false} showRentalAndProperty placeKind={state.place.kind} look="2" />
+              )
+            ) : null}
             {screen === 'photos' ? <PhotoPickerGrid photos={draft.photos} setPhotos={setPhotos} /> : null}
             {screen === 'rent' ? <View style={s.fields}><CreateStepPricing /></View> : null}
-            {screen === 'copy' ? <CreateStepCopy /> : null}
+            {screen === 'copy' ? <CreateStepCopy look={copyLook} /> : null}
+            {screen === 'card' ? <CreateStepReview showHeading={false} matchSearchList /> : null}
             {screen === 'another' ? <><Text style={s.sectionTitle}>Your units so far</Text>{rows()}<View style={s.options}>
               <Choice title="Copy this unit" detail="Keep layout, rent and writing. Add new photos." icon="copy-outline" disabled={state.units.length >= 20} onPress={() => add(activeId)} />
               <Choice title="Start blank" detail="Add a different unit with fresh details." icon="add-outline" disabled={state.units.length >= 20} onPress={() => add()} />
             </View>{state.units.length >= 20 ? <Text style={s.helper}>You’ve reached the limit of 20 units in this batch.</Text> : null}</> : null}
-            {screen === 'review' ? <>{state.units.length ? rows(true) : <Text style={s.empty}>No units yet. Add a unit to continue.</Text>}<Link label="+ Add another unit" disabled={state.units.length >= 20} onPress={() => add()} /><View style={s.contact}><Text style={s.sectionTitle}>One contact for every unit</Text><CreateStepContact /></View></> : null}
+            {screen === 'review' ? (
+              reviewLook === '1' ? (
+                <>{state.units.length ? rows(true) : <Text style={s.empty}>No units yet. Add a unit to continue.</Text>}<Link label="+ Add another unit" disabled={state.units.length >= 20} onPress={() => add()} /><View style={s.contact}><Text style={s.sectionTitle}>One contact for every unit</Text><CreateStepContact look="1" /></View></>
+              ) : (
+                <View style={s.reviewV2}>
+                  <ReviewUnitsLedger
+                    units={state.units}
+                    isComplete={u => unitComplete(state, u)}
+                    creditsFor={i => quoteReady ? quote.data!.units[i].credits : undefined}
+                    locked={locked}
+                    onEdit={id => send({ type: 'editUnit', id })}
+                    onRemove={id => setRemoveId(id)}
+                    onAdd={() => add()}
+                  />
+                  <View style={s.contactV2}>
+                    <View style={s.contactV2Head}>
+                      <Text style={s.contactV2Title}>One contact for every unit</Text>
+                      <Text style={s.contactV2Sub}>Applied across all units in this place so students know who to reach.</Text>
+                    </View>
+                    <CreateStepContact look="2" />
+                  </View>
+                </View>
+              )
+            ) : null}
           </View>
-          {screen === 'review' ? <View style={s.cost} accessibilityLabel="Credit total"><Text style={s.sectionTitle}>Publishing cost</Text>
-            {!state.units.length ? <Text style={s.helper}>Add a unit to see the total.</Text> : quote.isError ? <><Text accessibilityRole="alert" style={s.errorText}>Couldn’t load the credit total.</Text><Link label="Retry credit total" onPress={() => void quote.refetch()} /></> : quoteReady ? <><View style={s.totalRow}><Text style={s.body}>Total for {state.units.length} {state.units.length === 1 ? 'unit' : 'units'}</Text><Text style={s.total}>{quote.data!.total} {quote.data!.total === 1 ? 'credit' : 'credits'}</Text></View><Text style={s.helper}>Your balance: {quote.data!.balance} credits. All units publish together.</Text>{!afford ? <><Text accessibilityRole="alert" style={s.errorText}>You need more credits to publish this batch.</Text><Link label="Buy credits" onPress={() => void buyCredits()} /></> : null}</> : <Text role="status" style={s.helper}>Checking credit total…</Text>}
-          </View> : null}
+          {screen === 'review' ? (
+            reviewLook === '1' ? (
+              <View style={s.cost} accessibilityLabel="Credit total"><Text style={s.sectionTitle}>Publishing cost</Text>
+                {!state.units.length ? <Text style={s.helper}>Add a unit to see the total.</Text> : quote.isError ? <><Text accessibilityRole="alert" style={s.errorText}>Couldn’t load the credit total.</Text><Link label="Retry credit total" onPress={() => void quote.refetch()} /></> : quoteReady ? <><View style={s.totalRow}><Text style={s.body}>Total for {state.units.length} {state.units.length === 1 ? 'unit' : 'units'}</Text><Text style={s.total}>{quote.data!.total} {quote.data!.total === 1 ? 'credit' : 'credits'}</Text></View><Text style={s.helper}>Your balance: {quote.data!.balance} credits. All units publish together.</Text>{!afford ? <><Text accessibilityRole="alert" style={s.errorText}>You need more credits to publish this batch.</Text><Link label="Buy credits" onPress={() => void buyCredits()} /></> : null}</> : <Text role="status" style={s.helper}>Checking credit total…</Text>}
+              </View>
+            ) : (
+              <ReviewCostLedger
+                unitCount={state.units.length}
+                quote={quote.data}
+                quoteReady={Boolean(quoteReady)}
+                quoteError={quote.isError}
+                afford={Boolean(afford)}
+                onRetry={() => void quote.refetch()}
+                onBuyCredits={() => void buyCredits()}
+              />
+            )
+          ) : null}
           {screen === 'success' ? <><View style={s.success}><Ionicons name="checkmark-circle-outline" size={designSize(44)} color={Studently.color.primary} /><Text style={s.sectionTitle}>{record.result?.listingIds.length} {state.units.length === 1 ? 'unit' : 'units'} published</Text><Text style={s.body}>{record.result?.total} {record.result?.total === 1 ? 'credit' : 'credits'} used</Text></View>{rows()}{state.units.length === 1 && record.result ? <Link label="Promote your listing" onPress={() => router.push({ pathname: '/hosting/listing/[id]/promote', params: { id: record.result!.listingIds[0], published: '1' } })} /> : null}</> : null}
           {flow.publishError ? <View style={s.errors} accessibilityRole="alert"><Text style={s.errorText}>{flow.publishError}</Text></View> : null}
           {state.pendingAttempt && !flow.publishing && screen !== 'success' ? <Text style={s.helper}>Publishing hasn’t been confirmed yet. Retry safely to check before making changes.</Text> : null}
@@ -283,24 +347,24 @@ const base_s = StyleSheet.create({
   center: { flex: 1, minHeight: 400, padding: 32, gap: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Platform.OS === 'web' ? 32 : 24, paddingTop: Platform.OS === 'web' ? 20 : 0, paddingBottom: 12, gap: 16, backgroundColor: Lister.color.surface }, headerStacked: { paddingTop: 12, paddingBottom: 12 },
   brandText: { fontFamily: Studently.type.bodyBold, fontSize: 29, letterSpacing: -1.3, color: '#242321' }, brandDot: { color: '#EA3F4A' },
-  headerSide: { width: 160, minHeight: 44, justifyContent: 'center', alignItems: 'flex-start' }, headerSideMobile: { width: undefined }, headerStatusMobile: { width: undefined, flex: 1, minWidth: 0 }, headerProgress: { flex: 1, minWidth: 0, flexDirection: 'row', justifyContent: 'center' },
-  saveActions: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, width: 88, textAlign: 'right', color: '#6B6460' },
+  headerSide: { width: 248, minHeight: 44, justifyContent: 'center', alignItems: 'flex-start' }, headerLeft: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'flex-start' }, headerSideMobile: { width: undefined }, headerStatusMobile: { width: undefined, flex: 1, minWidth: 0 }, headerProgress: { flex: 1, minWidth: 0, flexDirection: 'row', justifyContent: 'center' },
+  saveActions: { flexDirection: 'row', gap: 12, alignItems: 'center', justifyContent: 'flex-end' }, saveLabel: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, minWidth: 52, textAlign: 'right', color: '#6B6460' },
   saveExit: { paddingVertical: 10, paddingHorizontal: 4, cursor: 'pointer' }, saveExitText: { fontFamily: Lister.type.bodySemi, fontSize: 15, lineHeight: 20, color: Lister.color.ink, textDecorationLine: 'underline' },
   saveExitPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: '#B0B0B0', backgroundColor: Lister.color.surface }, saveExitPillText: { fontSize: 14, textDecorationLine: 'none' },
   progressWrap: { flex: 1, minWidth: 0 }, progressDesktop: { maxWidth: 720, transform: [{ translateY: 18 }] }, progress: { flexGrow: 1, gap: 5 }, footerProgress: { paddingHorizontal: 24, paddingTop: 12 },
   phase: { flex: 1, minWidth: 68, minHeight: 44, justifyContent: 'center' }, phaseTick: { position: 'absolute', top: 2, left: 0, height: 3, borderRadius: 2, backgroundColor: Lister.color.border, width: '100%' }, phaseTickDone: { backgroundColor: Lister.color.primary }, phaseTickCurrent: { backgroundColor: Lister.color.primaryDeep },
   footerTick: { height: 2, borderRadius: 1, backgroundColor: '#DDDDDD' }, footerTickDone: { backgroundColor: '#222222' },
   phaseText: { fontFamily: Studently.type.body, fontSize: 12, lineHeight: 20, color: '#6B6460', textAlign: 'center' }, activePhaseText: { fontFamily: Studently.type.bodySemi, color: Lister.color.ink },
-  formCard: { width: '100%', maxWidth: 640, paddingHorizontal: Platform.OS === 'web' ? 48 : 28, paddingTop: 48, paddingBottom: 64, alignSelf: 'flex-start' }, reviewCard: { maxWidth: 900 }, formStacked: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48 }, formNarrow: { paddingHorizontal: 24, paddingTop: 8 },
+  formCard: { width: '100%', maxWidth: 640, paddingHorizontal: Platform.OS === 'web' ? 48 : 28, paddingTop: 48, paddingBottom: 64, alignSelf: 'flex-start' }, reviewCard: { maxWidth: 900 }, cardCard: { width: '100%', maxWidth: '100%', paddingLeft: Platform.OS === 'web' ? 48 : 28, paddingRight: Platform.OS === 'web' ? 20 : 28, paddingTop: Platform.OS === 'web' ? 24 : 48, paddingBottom: 64, alignSelf: 'flex-start' }, cardCardFull: { maxWidth: '100%' }, formStacked: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 48 }, formNarrow: { paddingHorizontal: 24, paddingTop: 8 },
   eyebrow: { fontFamily: Studently.type.bodySemi, fontSize: 11, lineHeight: 18, letterSpacing: 1.5, textTransform: 'uppercase', color: '#6B6460', marginBottom: 14 },
-  title: { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 42, lineHeight: 50, letterSpacing: -.8, color: '#242321', maxWidth: 560 }, titleCompact: { fontSize: 36, lineHeight: 43 }, titleNarrow: { fontSize: 32, lineHeight: 39 }, intro: { fontFamily: Studently.type.body, fontSize: 16, lineHeight: 25, color: '#6B6460', marginTop: 16, marginBottom: 32, maxWidth: 530 },
+  title: { fontFamily: Studently.type.display, fontSize: 42, lineHeight: 50, letterSpacing: -.8, color: '#242321', maxWidth: 560 }, titleCompact: { fontSize: 36, lineHeight: 43 }, titleNarrow: { fontSize: 32, lineHeight: 39 }, intro: { fontFamily: Studently.type.body, fontSize: 16, lineHeight: 25, color: '#6B6460', marginTop: 16, marginBottom: 32, maxWidth: 530 },
   sectionTitle: { fontFamily: Studently.type.bodySemi, fontSize: 20, lineHeight: 27, color: '#242321', marginBottom: 16 }, sectionLabel: { fontFamily: Studently.type.bodySemi, fontSize: 16, lineHeight: 22, color: '#242321' },
   body: { fontFamily: Studently.type.body, fontSize: 14, lineHeight: 22, color: '#37332F' }, helper: { fontFamily: Studently.type.body, fontSize: 13, lineHeight: 19, color: '#625E59' }, fields: { gap: 18 }, spacer: { height: 20 }, flex: { flex: 1, minWidth: 0 },
   placeContext: { flexDirection: 'row', gap: 12, alignItems: 'center', padding: 14, borderWidth: 1, borderColor: '#E4E5E7', borderRadius: 8, backgroundColor: '#F9FAFB', marginBottom: 24 },
   unitList: { borderTopWidth: 1, borderTopColor: '#E4E5E7' }, unitRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#E4E5E7' },
   thumbnail: { width: 72, height: 72, borderRadius: 8, backgroundColor: '#F3F4F6' }, thumbnailNarrow: { width: 52, height: 62 }, photoEmpty: { width: 52, height: 62, borderRadius: 8, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }, unitTitle: { fontFamily: Studently.type.bodySemi, fontSize: 16, lineHeight: 22, color: '#242321', marginVertical: 3 },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginVertical: 24 }, choice: { flex: 1, minWidth: 125, gap: 10, padding: 18, borderWidth: 1, borderColor: '#DED7D2', borderRadius: 12, backgroundColor: '#FFFFFF', cursor: 'pointer' }, selectedChoice: { borderColor: '#EA3F4A', backgroundColor: '#FDECEE' },
-  contact: { borderTopWidth: 1, borderTopColor: '#E4E5E7', marginTop: 24, paddingTop: 28 }, cost: { marginTop: 28, padding: 20, gap: 10, borderWidth: 1, borderColor: '#E4E5E7', borderRadius: 8, backgroundColor: '#F9FAFB' }, totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, total: { fontFamily: Studently.type.bodyBold, fontSize: 18, color: '#1A1A1A' },
+  contact: { borderTopWidth: 1, borderTopColor: '#E4E5E7', marginTop: 24, paddingTop: 28 }, reviewV2: { gap: 36 }, contactV2: { paddingTop: 28, borderTopWidth: 1, borderTopColor: '#ECEAE6', gap: 20 }, contactV2Head: { gap: 4 }, contactV2Title: { fontFamily: Studently.type.bodySemi, fontSize: 18, lineHeight: 24, letterSpacing: -0.2, color: '#1C1917' }, contactV2Sub: { fontFamily: Studently.type.body, fontSize: 14, lineHeight: 20, color: '#5C5752' }, cost: { marginTop: 28, padding: 20, gap: 10, borderWidth: 1, borderColor: '#E4E5E7', borderRadius: 8, backgroundColor: '#F9FAFB' }, totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, total: { fontFamily: Studently.type.bodyBold, fontSize: 18, color: '#1A1A1A' },
   primary: { minHeight: 52, borderRadius: 8, minWidth: 100, paddingHorizontal: 24 },
   link: { minHeight: 44, justifyContent: 'center', cursor: 'pointer' }, linkText: { fontFamily: Studently.type.bodySemi, fontSize: 14, color: '#242321', textDecorationLine: 'underline' }, locked: { opacity: .55 },
   notice: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', paddingHorizontal: 20, gap: 18, backgroundColor: '#FFFBEB', borderBottomWidth: 1, borderBottomColor: '#F0D59D' }, noticeText: { fontFamily: Studently.type.body, fontSize: 13, color: '#92400E' },

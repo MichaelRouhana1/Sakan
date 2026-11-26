@@ -120,6 +120,10 @@ function settleDraftPhoto(
   });
 }
 
+export function photoDisplayUri(photo: DraftPhoto) {
+  return photo.status === "ready" && photo.url ? photo.url : photo.uri;
+}
+
 export function TileEnter({
   index,
   children,
@@ -130,6 +134,8 @@ export function TileEnter({
   const reduceMotion = useReducedMotion();
   const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
   const translate = useRef(new Animated.Value(reduceMotion ? 0 : 12)).current;
+  const enteredRef = useRef(reduceMotion);
+  const initialIndexRef = useRef(index);
 
   useEffect(() => {
     if (reduceMotion) {
@@ -137,25 +143,29 @@ export function TileEnter({
       translate.stopAnimation();
       opacity.setValue(1);
       translate.setValue(0);
+      enteredRef.current = true;
       return;
     }
+    if (enteredRef.current) return;
+    enteredRef.current = true;
+    const delay = Math.min(initialIndexRef.current, 6) * 40;
     const animation = Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
         duration: 280,
-        delay: Math.min(index, 6) * 40,
+        delay,
         useNativeDriver: true,
       }),
       Animated.timing(translate, {
         toValue: 0,
         duration: 280,
-        delay: Math.min(index, 6) * 40,
+        delay,
         useNativeDriver: true,
       }),
     ]);
     animation.start();
     return () => animation.stop();
-  }, [index, opacity, reduceMotion, translate]);
+  }, [opacity, reduceMotion, translate]);
 
   return (
     <Animated.View
@@ -268,18 +278,14 @@ export function PhotoTile({
   const { size: designSize } = useDesktopDesign();
   const photoPickerStyles = usePhotoPickerStyles();
   const reduceMotion = useReducedMotion();
-  const imageUri =
-    photo.status === "ready" && photo.url ? photo.url : photo.uri;
+  const imageUri = photoDisplayUri(photo);
 
   return (
     <View
       style={[
         photoPickerStyles.tileWrap,
-        isDragging && photoPickerStyles.cellDragging,
-        isDragging && Platform.OS === "web"
-          ? photoPickerStyles.cellPlaceholder
-          : null,
-        isDropTarget && photoPickerStyles.cellDropTarget,
+        isDragging ? photoPickerStyles.cellPlaceholder : null,
+        isDropTarget ? photoPickerStyles.cellDropTarget : null,
         style,
       ]}
       {...(Platform.OS === "web" && photoTileId
@@ -291,9 +297,7 @@ export function PhotoTile({
         style={[
           photoPickerStyles.tile,
           Platform.OS === "web" ? photoPickerStyles.webDraggable : null,
-          isDragging && Platform.OS === "web"
-            ? photoPickerStyles.tilePlaceholder
-            : null,
+          isDragging ? photoPickerStyles.tilePlaceholder : null,
         ]}
       >
         <Pressable
@@ -302,19 +306,15 @@ export function PhotoTile({
             photo.status === "error"
               ? "Retry photo upload"
               : index === 0 && !shared
-                ? "Cover photo, drag to reorder"
-                : `Photo ${index + 1}, drag to reorder`
+                ? "Cover photo, hold and drag to reorder"
+                : `Photo ${index + 1}, hold and drag to reorder`
           }
-          onPress={() => {
-            if (photo.status === "error") onRetry();
-          }}
+          onPress={photo.status === "error" ? onRetry : undefined}
           onLongPress={onDrag}
-          delayLongPress={120}
+          delayLongPress={onDrag ? 180 : undefined}
           style={[
             StyleSheet.absoluteFill,
-            isDragging && Platform.OS === "web"
-              ? photoPickerStyles.tileContentHidden
-              : null,
+            isDragging ? photoPickerStyles.tileContentHidden : null,
             {
               pointerEvents:
                 Platform.OS === "web" && photo.status !== "error"
@@ -391,7 +391,12 @@ export function PhotoTile({
           </View>
         ) : null}
       </View>
-      <View style={{ marginTop: designSize(8), gap: designSize(4) }}>
+      <View
+        style={[
+          { marginTop: designSize(8), gap: designSize(4) },
+          isDragging ? photoPickerStyles.captionDragging : null,
+        ]}
+      >
         <LText variant="caption" tone="muted">
           Optional caption
         </LText>
@@ -401,6 +406,7 @@ export function PhotoTile({
           placeholderTextColor={Lister.color.inkMuted}
           value={photo.caption ?? ""}
           maxLength={PHOTO_CAPTION_LIMIT}
+          editable={!isDragging}
           onChangeText={onCaption}
           onBlur={() => onCaption(normalizePhotoCaption(photo.caption))}
           style={{
@@ -429,17 +435,19 @@ export function AddPhotoTile({
   onPress,
   dropActive,
   disabled = false,
+  style,
 }: {
   remaining: number;
   index: number;
   onPress: () => void;
   dropActive?: boolean;
   disabled?: boolean;
+  style?: ViewStyle;
 }) {
   const { size: designSize } = useDesktopDesign();
   const photoPickerStyles = usePhotoPickerStyles();
   return (
-    <View style={photoPickerStyles.cell}>
+    <View style={[photoPickerStyles.cell, style]}>
       <TileEnter index={index}>
         <Pressable
           accessibilityRole="button"
@@ -502,9 +510,13 @@ export function PhotoGridHeader({
             {shared ? 'Shared photos · optional' : 'Unit photos'}
           </LText>
           <LText variant="body" tone="muted">
-            {shared ? 'Shared spaces and building photos. Add up to 15; these never become a unit cover.' : Platform.OS === "web"
-              ? "Drop images here or click to add. Drag photos to reorder. First is the search cover."
-              : "Drag to reorder. First photo is the cover renters see in search."}
+            {shared
+              ? Platform.OS === "web"
+                ? "Shared spaces and building photos. Add up to 15; these never become a unit cover."
+                : "Shared spaces and building photos. Hold and drag to reorder; these never become a unit cover."
+              : Platform.OS === "web"
+                ? "Drop images here or click to add. Drag photos to reorder. First is the search cover."
+                : "Hold and drag to reorder. First photo is the cover renters see in search."}
           </LText>
         </View>
         <View
@@ -569,20 +581,32 @@ const photoPickerBase = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
+  grid: Platform.select({
+    web: {
+      display: "grid",
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+      gap: 12,
+    } as unknown as ViewStyle,
+    default: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
+    },
+  }),
   nativeGrid: {
     gap: 12,
   },
   columnWrap: {
     gap: 12,
   },
-  cell: {
-    width: "47.5%",
-  },
+  cell: Platform.select({
+    web: {
+      width: "100%",
+    } as ViewStyle,
+    default: {
+      width: "48%",
+    },
+  }),
   tileWrap: {
     width: "100%",
   },
@@ -590,30 +614,24 @@ const photoPickerBase = StyleSheet.create({
     flex: 1,
     marginBottom: 12,
   },
-  cellDragging: Platform.select({
-    web: { opacity: 1 } as ViewStyle,
-    default: { opacity: 0.72 },
-  }),
-  cellPlaceholder: Platform.select({
-    web: {
-      opacity: 1,
-    } as ViewStyle,
-    default: {},
-  }),
-  tilePlaceholder: Platform.select({
-    web: {
-      borderStyle: "dashed",
-      borderColor: Lister.color.border,
-      backgroundColor: Lister.color.bgWash,
-    } as ViewStyle,
-    default: {},
-  }),
-  tileContentHidden: Platform.select({
-    web: {
-      opacity: 0,
-    } as ViewStyle,
-    default: {},
-  }),
+  cellDragging: {
+    opacity: 1,
+  },
+  cellPlaceholder: {
+    opacity: 1,
+  },
+  tilePlaceholder: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: Lister.color.borderStrong,
+    backgroundColor: Lister.color.surfaceMuted,
+  },
+  tileContentHidden: {
+    opacity: 0,
+  },
+  captionDragging: {
+    opacity: 0.35,
+  },
   cellDropTarget: {
     borderWidth: 2,
     borderColor: Lister.color.primary,
@@ -622,8 +640,10 @@ const photoPickerBase = StyleSheet.create({
   webDraggable: Platform.select({
     web: {
       cursor: "grab",
-      touchAction: "none",
+      touchAction: "pan-y",
       userSelect: "none",
+      WebkitUserSelect: "none",
+      WebkitTouchCallout: "none",
     } as unknown as ViewStyle,
     default: {},
   }),

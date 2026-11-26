@@ -26,7 +26,7 @@ export const Lister = {
   },
   type: {
     display: "DMSans_700Bold",
-    displaySerif: "PlayfairDisplay_700Bold",
+    displaySerif: "DMSans_700Bold",
     displayMedium: "DMSans_600SemiBold",
     body: "DMSans_400Regular",
     bodyMedium: "DMSans_500Medium",

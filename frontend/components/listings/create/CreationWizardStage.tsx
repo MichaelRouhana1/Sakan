@@ -1,6 +1,10 @@
 import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { useState, type ReactNode, type RefObject } from 'react';
 import { Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import {
+  PhotoDragScrollContext,
+  usePhotoDragScrollController,
+} from '@/components/listings/photoDragScroll';
 import { Lister } from '@/constants/listerTheme';
 import { WizardArtProvider, useWizardLottieAsset, useWizardScrollContentRef, useWizardScrollHandler } from '@/features/listings/create/WizardArtSync';
 import type { Screen } from '@/features/listings/create/v2/model';
@@ -12,7 +16,7 @@ import { WizardLottie } from './WizardLottie';
 const ART: Record<Screen, WizardStepId> = {
   'place-type': 'type', location: 'location', utilities: 'utilities', rules: 'rules',
   'building-photos': 'photos', layout: 'specs', photos: 'photos', rent: 'pricing',
-  copy: 'copy', another: 'review', review: 'review', success: 'review',
+  copy: 'copy', card: 'review', another: 'review', review: 'review', success: 'review',
 };
 
 type Props = {
@@ -43,27 +47,42 @@ function Stage({ screen, unitId, placeName, unitCount = 1, scrollRef, children, 
   const asset = useWizardLottieAsset(ART[screen]);
   const contentRef = useWizardScrollContentRef();
   const handleScroll = useWizardScrollHandler();
-  const final = screen === 'review' || screen === 'success';
+  const dragScroll = usePhotoDragScrollController(scrollRef);
+  const final = screen === 'card' || screen === 'review' || screen === 'success';
   const frame = final && Platform.OS === 'web' && split
     ? { width: Math.min(640, width * .33), height: Math.min(640, width * .33) }
     : wizardLottieFrame(asset, width, split);
   const art = <View testID="wizard-illustration">
-    <WizardLottie assetId={asset} {...frame} reducedMotion={reduced} />
+    <WizardLottie assetId={asset} {...frame} reducedMotion={reduced} loop={screen !== 'place-type' && screen !== 'location'} />
   </View>;
-  return <View style={[s.stage, split && s.split]} onLayout={e => onHeight(e.nativeEvent.layout.height)} testID="wizard-stage">
+  return <View style={[s.stage, split && s.split]} onLayout={e => { onHeight(e.nativeEvent.layout.height); dragScroll.measureViewport(); }} testID="wizard-stage">
     {split ? <View style={[s.art, final && s.reviewArt]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><WizardGrain />{art}</View> : null}
-    <ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets onScroll={handleScroll} scrollEventThrottle={16}>
-      <View ref={contentRef} collapsable={false}>
-        {!split ? <View style={s.artBand} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><WizardGrain />{art}</View> : null}
-        {children}
-      </View>
-    </ScrollView>
+    <PhotoDragScrollContext.Provider value={dragScroll.api}>
+      <ScrollView
+        ref={dragScroll.scrollRef}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        onContentSizeChange={dragScroll.onContentSizeChange}
+        onScroll={(event) => {
+          dragScroll.onScroll(event);
+          handleScroll(event);
+        }}
+        scrollEventThrottle={16}
+      >
+        <View ref={contentRef} collapsable={false}>
+          {!split ? <View style={s.artBand} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"><WizardGrain />{art}</View> : null}
+          {children}
+        </View>
+      </ScrollView>
+    </PhotoDragScrollContext.Provider>
   </View>;
 }
 
 const base_s = StyleSheet.create({
   stage: { flex: 1, minHeight: 0, overflow: 'hidden' }, split: { flexDirection: 'row' },
   art: { width: Platform.OS === 'web' ? '46%' : '42%', backgroundColor: Lister.color.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  reviewArt: { width: '30%' }, artBand: { height: Platform.OS === 'web' ? 240 : 220, marginBottom: Platform.OS === 'web' ? 12 : 4, backgroundColor: Lister.color.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  reviewArt: { width: '30%', maxWidth: 700 }, artBand: { height: Platform.OS === 'web' ? 240 : 220, marginBottom: Platform.OS === 'web' ? 12 : 4, backgroundColor: Lister.color.surface, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   scroll: { flex: 1, minWidth: 0 }, scrollContent: { flexGrow: 1, paddingBottom: 0 },
 });

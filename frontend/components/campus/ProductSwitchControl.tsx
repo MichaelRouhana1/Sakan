@@ -1,6 +1,7 @@
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useRouter } from "expo-router";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -32,11 +33,12 @@ export function ProductSwitchControl({
 
   const onPress = () => {
     void setStudentlyProduct(variant === "toCampus" ? "campus" : "housing");
-    if (variant === "toCampus") {
-      router.push("/campus" as never);
+    const target = (variant === "toCampus" ? "/campus" : "/") as never;
+    if (Platform.OS === "web") {
+      router.push(target);
       return;
     }
-    router.push("/" as never);
+    router.replace(target);
   };
 
   return (

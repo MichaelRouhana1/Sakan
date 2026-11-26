@@ -1,7 +1,7 @@
-import { useDesktopDesign } from "@/components/ui/DesktopDesign";
+import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import type { MatchPresentation } from "@/features/matcher/types";
 import { useId } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, View } from "react-native";
 import { LText } from "@/components/lister/Typography";
 import { CampusFarSeparator } from "@/components/listings/CampusFarSeparator";
 import { ListingResultCard } from "@/components/web/ListingResultCard";
@@ -215,6 +215,8 @@ export function FindResultsGrid({
 }: Props) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
+  const layoutWidth = useLayoutWidth();
+  const mobileHorizontalBadges = variant === "grid" && (Platform.OS !== "web" || layoutWidth < 768);
   
   const reduced = useReducedMotion();
   const transitionScope = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -300,6 +302,8 @@ export function FindResultsGrid({
                 listing={row.listing}
                 match={matches?.[row.listing.id]}
                 variant={variant}
+                badgeOverflow={mobileHorizontalBadges ? "scroll-x" : "wrap"}
+                badgeLimit={mobileHorizontalBadges ? null : undefined}
                 onHoverListing={onHoverListing}
               />
             </View>

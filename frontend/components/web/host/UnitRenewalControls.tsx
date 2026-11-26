@@ -1,6 +1,6 @@
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Modal, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
@@ -23,8 +23,14 @@ export function useListingClock() {
   useEffect(() => {
     const update = () => setNow(Date.now());
     const timer = setInterval(update, 15000);
-    if (typeof window !== 'undefined') window.addEventListener('focus', update);
-    return () => { clearInterval(timer); if (typeof window !== 'undefined') window.removeEventListener('focus', update); };
+    const hasWebFocus = Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+    if (hasWebFocus) window.addEventListener('focus', update);
+    const sub = Platform.OS !== 'web' ? AppState.addEventListener('change', (state) => { if (state === 'active') update(); }) : null;
+    return () => {
+      clearInterval(timer);
+      if (hasWebFocus) window.removeEventListener('focus', update);
+      sub?.remove();
+    };
   }, []);
   return now;
 }
@@ -132,7 +138,7 @@ const base_s = StyleSheet.create({
   caption:{fontFamily:Studently.type.body,fontSize:11,lineHeight:17,color:Studently.color.inkMuted},warning:{fontFamily:Studently.type.body,fontSize:12,lineHeight:18,color:'#9C4E10'},
   overlay:{flex:1,backgroundColor:'rgba(15,23,42,0.45)',alignItems:'center',justifyContent:'center',padding:20},
   panel:{width:'100%',maxWidth:440,backgroundColor:'#FFFFFF',borderRadius:20,padding:28,gap:16},
-  heading:{fontFamily:Studently.type.displaySerif,fontSize:29,lineHeight:35,color:Studently.color.ink},eyebrow:{fontFamily:Studently.type.bodySemi,fontSize:10,letterSpacing:2,color:Studently.color.primary},
+  heading:{fontFamily:Studently.type.display,fontSize:29,lineHeight:35,letterSpacing:-0.5,color:Studently.color.ink},eyebrow:{fontFamily:Studently.type.bodySemi,fontSize:10,letterSpacing:2,color:Studently.color.primary},
   body:{fontFamily:Studently.type.body,fontSize:14,lineHeight:21,color:Studently.color.ink},dates:{gap:5,borderTopWidth:1,borderBottomWidth:1,borderColor:Studently.color.border,paddingVertical:18},
   date:{fontFamily:Studently.type.body,fontSize:15,color:Studently.color.ink,marginBottom:8},next:{fontFamily:Studently.type.bodySemi,fontSize:17,color:Studently.color.primary},
   button:{backgroundColor:Studently.color.primary,borderRadius:10,padding:14,alignItems:'center'},buttonText:{fontFamily:Studently.type.bodySemi,fontSize:14,color:'#fff'},cancel:{alignItems:'center',padding:8},

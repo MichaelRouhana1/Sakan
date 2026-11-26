@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
+import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
 import {
   ListingFeatureBadge,
   ListingGridRatingBadge,
@@ -72,6 +73,45 @@ export function badgeBandMaxHeight(rows: number, compact = false): number {
   return row * rows + gap * Math.max(0, rows - 1);
 }
 
+/**
+ * Splits ordered badges into 2 horizontally scrolling rows so the first screen
+ * fills Row 1 then Row 2 in reading order, and overflow badges stay balanced
+ * across both rows as the user scrolls right.
+ */
+export function splitIntoTwoBadgeRows<T extends { label: string; icon?: unknown }>(
+  pills: T[],
+  containerWidth: number,
+): [Array<{ pill: T; index: number }>, Array<{ pill: T; index: number }>] {
+  const row1: Array<{ pill: T; index: number }> = [];
+  const row2: Array<{ pill: T; index: number }> = [];
+  const budget = Math.max(240, containerWidth > 0 ? containerWidth : 303);
+  const gap = 5;
+  let w1 = 0;
+  let w2 = 0;
+  let fillingRow1 = true;
+
+  pills.forEach((pill, index) => {
+    const est = 18 + (pill.icon ? 14 : 0) + pill.label.length * 5.2;
+    if (fillingRow1) {
+      if (row1.length === 0 || w1 + gap + est <= budget) {
+        row1.push({ pill, index });
+        w1 += (row1.length > 1 ? gap : 0) + est;
+        return;
+      }
+      fillingRow1 = false;
+    }
+    if (w2 <= w1) {
+      row2.push({ pill, index });
+      w2 += (row2.length > 1 ? gap : 0) + est;
+    } else {
+      row1.push({ pill, index });
+      w1 += (row1.length > 1 ? gap : 0) + est;
+    }
+  });
+
+  return [row1, row2];
+}
+
 function hoverPointFromEvent(e: { nativeEvent?: { clientX?: number; clientY?: number }; clientX?: number; clientY?: number }): HoverPoint | undefined {
   const src = e.nativeEvent ?? e;
   if (typeof src.clientX !== "number" || typeof src.clientY !== "number") {
@@ -81,11 +121,12 @@ function hoverPointFromEvent(e: { nativeEvent?: { clientX?: number; clientY?: nu
 }
 
 const CARD_BORDER = "#E2E8F0";
-/** Minimum grid body height; six badges may wrap onto additional rows. */
+/** Minimum grid body height; badges fit in two rows. */
 const GRID_BODY_HEIGHT = 143;
 const GRID_HEADER_MIN_HEIGHT = 38;
 const GRID_PROXIMITY_HEIGHT = 15;
-const GRID_PILL_SLOT_MIN_HEIGHT = 49;
+const GRID_PILL_SLOT_MIN_HEIGHT = 56;
+const GRID_PILL_TWO_ROW_HEIGHT = 58;
 
 function photoUrls(listing: Listing): string[] {
   const fromPhotos = (listing.photos ?? [])
@@ -140,35 +181,85 @@ function ScrollBadgeRow({
 }) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
+  const { lockListScroll, unlockListScroll } = useCarouselListScroll();
+  const lockedRef = useRef(false);
   const width = useRef(0);
   const contentWidth = useRef(0);
+  const [viewportWidth, setViewportWidth] = useState(0);
   const [overflows, setOverflows] = useState(false);
 
+  const setParentLocked = (next: boolean) => {
+    if (lockedRef.current === next) return;
+    lockedRef.current = next;
+    if (next) lockListScroll();
+    else unlockListScroll();
+  };
+
+  useEffect(
+    () => () => {
+      if (lockedRef.current) {
+        lockedRef.current = false;
+        unlockListScroll();
+      }
+    },
+    [unlockListScroll],
+  );
+
   function check(nextWidth = width.current, nextContent = contentWidth.current) {
+    if (nextWidth > 0 && nextWidth !== width.current) {
+      setViewportWidth(nextWidth);
+    }
     width.current = nextWidth;
     contentWidth.current = nextContent;
     setOverflows(nextContent > nextWidth + 1);
   }
 
+  const [row1, row2] = splitIntoTwoBadgeRows(pills, viewportWidth);
+
   return (
-    <View style={styles.scrollClip}>
+    <View style={[styles.scrollClip, Platform.OS === "web" ? ({ touchAction: "pan-x" } as object) : null]}>
       <ScrollView
         horizontal
         testID="grid-badge-scroller"
-        showsHorizontalScrollIndicator
+        showsHorizontalScrollIndicator={false}
+        nestedScrollEnabled
+        directionalLockEnabled
+        keyboardShouldPersistTaps="handled"
+        bounces={overflows}
         style={styles.badgeScroller}
-        contentContainerStyle={styles.badgeScrollerContent}
+        contentContainerStyle={[
+          styles.badgeScrollerContent,
+          overflows && styles.badgeScrollerOverflow,
+        ]}
         onLayout={(event) => check(event.nativeEvent.layout.width, contentWidth.current)}
         onContentSizeChange={(w) => check(width.current, w)}
+        onScrollBeginDrag={() => {
+          if (overflows) setParentLocked(true);
+        }}
+        onScrollEndDrag={() => setParentLocked(false)}
+        onMomentumScrollEnd={() => setParentLocked(false)}
       >
-        <View style={styles.badgeRowNowrap}>
-          <PillChips
-            pills={pills}
-            highlight={highlight}
-            compact={compact}
-            mixedHighlight={mixedHighlight}
-            nowrap
-          />
+        <View style={styles.badgeTwoRows}>
+          <View style={styles.badgeRowNowrap}>
+            <PillChips
+              pills={row1.map((entry) => entry.pill)}
+              highlight={highlight}
+              compact={compact}
+              mixedHighlight={mixedHighlight}
+              nowrap
+            />
+          </View>
+          {row2.length > 0 ? (
+            <View style={styles.badgeRowNowrap}>
+              <PillChips
+                pills={row2.map((entry) => entry.pill)}
+                highlight={highlight}
+                compact={compact}
+                mixedHighlight={mixedHighlight}
+                nowrap
+              />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
       {overflows ? (
@@ -257,16 +348,44 @@ function ImageCornerBadge({
   return <ListingFeatureBadge label={badge.label!} />;
 }
 
-function GridCardBody({ interactive, onOpen, label, children }: {
+function GridCardBody({ interactive, onOpen, label, footer, children }: {
   interactive: boolean;
   onOpen: () => void;
   label: string;
+  footer?: ReactNode;
   children: ReactNode;
 }) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   // Preview controls must not be nested inside a clickable card body.
-  if (!interactive) return <View style={styles.gridBody}>{children}</View>;
+  if (!interactive) {
+    return (
+      <View style={styles.gridBody}>
+        {children}
+        {footer}
+      </View>
+    );
+  }
+  // Horizontal badge rails must sit outside Pressable so touch swipes scroll
+  // the rail on iOS/Android instead of being captured by Pressable.
+  if (footer) {
+    return (
+      <View style={styles.gridBody}>
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={label}
+          onPress={onOpen}
+          style={({ hovered, pressed }) => [
+            styles.gridBodyLink,
+            (hovered || pressed) && styles.cardHover,
+          ]}
+        >
+          {children}
+        </Pressable>
+        {footer}
+      </View>
+    );
+  }
   return (
     <Pressable accessibilityRole="link" accessibilityLabel={label} onPress={onOpen}
       style={({ hovered, pressed }) => [styles.gridBody, (hovered || pressed) && styles.cardHover]}>
@@ -512,6 +631,23 @@ export function ListingResultCard({
     : gridSource.slice(0, badgeLimit ?? GRID_TAG_LIMIT);
   const metaLine = [subtitle, typeBadge].filter(Boolean).join(" · ");
 
+  const gridBadgeSlot = (
+    <View style={[
+      styles.gridPillSlot,
+      badgeOverflow === "scroll-x" && !badgeMaxRows && styles.gridPillSlotFixed,
+      badgeMaxRows ? { maxHeight: designSize(badgeBandMaxHeight(badgeMaxRows, true)), overflow: "hidden" } : null,
+    ]}>
+      {renderGridBadges ? renderGridBadges(gridPills) : (
+        <PillRow
+          pills={gridPills}
+          compact
+          overflow={badgeOverflow}
+          maxRows={badgeMaxRows}
+        />
+      )}
+    </View>
+  );
+
   return frameMatch(
     <View ref={impressionRef} onLayout={onCardLayout} style={[styles.card, styles.cardGrid]} {...mapHoverHandlers}>
       <View testID="listing-grid-media" style={[touchPanX, styles.gridMedia]}>
@@ -527,7 +663,12 @@ export function ListingResultCard({
         <ImageCornerBadge listing={listing} variant="grid" />
       </View>
 
-      <GridCardBody interactive={interactive} onOpen={onOpen} label={`${title}, ${rentLabel} per month`}>
+      <GridCardBody
+        interactive={interactive}
+        onOpen={onOpen}
+        label={`${title}, ${rentLabel} per month`}
+        footer={badgeOverflow === "scroll-x" ? gridBadgeSlot : undefined}
+      >
         <View style={styles.gridHeader}>
           <View style={styles.gridHeaderLeft}>
             <Text style={styles.gridTitle} numberOfLines={titleLines}>
@@ -567,20 +708,7 @@ export function ListingResultCard({
 
         <View style={styles.gridDivider} />
 
-        <View style={[
-          styles.gridPillSlot,
-          badgeOverflow === "scroll-x" && !badgeMaxRows && styles.gridPillSlotFixed,
-          badgeMaxRows ? { maxHeight: designSize(badgeBandMaxHeight(badgeMaxRows, true)), overflow: "hidden" } : null,
-        ]}>
-          {renderGridBadges ? renderGridBadges(gridPills) : (
-            <PillRow
-              pills={gridPills}
-              compact
-              overflow={badgeOverflow}
-              maxRows={badgeMaxRows}
-            />
-          )}
-        </View>
+        {badgeOverflow !== "scroll-x" ? gridBadgeSlot : null}
       </GridCardBody>
     </View>
     );
@@ -823,6 +951,9 @@ const baseStyles = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 6,
   },
+  gridBodyLink: {
+    gap: 6,
+  },
   gridHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -902,13 +1033,14 @@ const baseStyles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   gridPillSlotFixed: {
-    height: GRID_PILL_SLOT_MIN_HEIGHT,
-    maxHeight: GRID_PILL_SLOT_MIN_HEIGHT,
+    height: GRID_PILL_TWO_ROW_HEIGHT,
+    minHeight: GRID_PILL_TWO_ROW_HEIGHT,
+    maxHeight: GRID_PILL_TWO_ROW_HEIGHT,
     overflow: "hidden",
     justifyContent: "center",
   },
   scrollClip: {
-    height: GRID_PILL_SLOT_MIN_HEIGHT,
+    height: GRID_PILL_TWO_ROW_HEIGHT,
     justifyContent: "center",
     position: "relative",
   },
@@ -916,7 +1048,17 @@ const baseStyles = StyleSheet.create({
     flexGrow: 0,
   },
   badgeScrollerContent: {
-    alignItems: "center",
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  badgeScrollerOverflow: {
+    paddingRight: 20,
+  },
+  badgeTwoRows: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    gap: 5,
   },
   badgeRowNowrap: {
     flexDirection: "row",

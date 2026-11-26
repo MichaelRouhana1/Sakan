@@ -210,7 +210,7 @@ const baseStyles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontFamily: Lister.type.displaySerif,
+    fontFamily: Lister.type.display,
     fontSize: 20,
     lineHeight: 26,
   },

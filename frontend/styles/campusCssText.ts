@@ -82,9 +82,15 @@ export const CAMPUS_CSS = `
 }
 .campus-cal-day:focus-visible,
 .campus-cal-chip:focus-visible,
-.campus-cal-month:focus-visible {
+.campus-cal-month:focus-visible,
+.campus-home-focus:focus-visible {
   outline: calc(2px * var(--sk-desktop-scale, 1)) solid var(--sk-primary);
   outline-offset: calc(2px * var(--sk-desktop-scale, 1));
+  z-index: 2;
+}
+.campus-home-row-focus:focus-visible {
+  outline: 2px solid var(--sk-primary);
+  outline-offset: -2px;
   z-index: 2;
 }
 @media (max-width: 979px) {

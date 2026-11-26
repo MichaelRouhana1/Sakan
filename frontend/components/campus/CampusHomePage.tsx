@@ -100,9 +100,15 @@ export function CampusHomePage() {const { size: designSize, styles: resolveStyle
     null;
 
   const compact = width < 640;
+  const narrowPhone = width < 390;
   const stacked = width < 980;
-  // 4 across on desktop, 2x2 on tablet, 1 column on phones.
+  // 4 across on desktop, 2x2 on tablet, single interactive list on phones.
   const perRow = compact ? 1 : stacked ? 2 : 4;
+  // On mobile, surface live tools first so the three working tools stay
+  // immediately reachable above/near the fold, with upcoming items last.
+  const orderedTools = compact
+    ? [...TOOLS.filter((t) => t.live), ...TOOLS.filter((t) => !t.live)]
+    : TOOLS;
   // Pull the hero up under the top nav so its background runs flush against
   // it, then give back the same distance as inner top padding so the copy,
   // the cap and everything below stay exactly where they were.
@@ -119,22 +125,42 @@ export function CampusHomePage() {const { size: designSize, styles: resolveStyle
       );
   const heroLift = {
     marginTop: -lift,
-    paddingTop: (stacked ? 8 : 0) + lift,
+    paddingTop: (compact ? 14 : stacked ? 8 : 0) + lift,
     ...(stacked ? null : { minHeight: heroInner + lift }),
   };
 
   const go = (href: string) => router.push(href as never);
 
   return (
-    <View style={[styles.page, !stacked && styles.pageDesktop]}>
-      <View style={[styles.hero, stacked && styles.heroStacked, heroLift]}>
+    <View style={[styles.page, compact && styles.pageCompact, !stacked && styles.pageDesktop]}>
+      <View
+        style={[
+          styles.hero,
+          stacked && styles.heroStacked,
+          compact && styles.heroCompact,
+          compact && web && styles.heroCompactBleed,
+          heroLift,
+        ]}
+      >
         <View style={styles.rippleHost}>
           <HeroRipple />
         </View>
 
-        <View style={[styles.copy, !stacked && styles.copyDesktop]}>
-          <View style={[styles.copyRead, !stacked && styles.copyReadDesktop]}>
-            <View style={styles.badge}>
+        <View
+          style={[
+            styles.copy,
+            compact && styles.copyCompact,
+            !stacked && styles.copyDesktop,
+          ]}
+        >
+          <View
+            style={[
+              styles.copyRead,
+              compact && styles.copyReadCompact,
+              !stacked && styles.copyReadDesktop,
+            ]}
+          >
+            <View style={[styles.badge, compact && styles.badgeCompact]}>
               <Ionicons name="school" size={designSize(13)} color="#FFFFFF" />
               <LText style={styles.badgeText}>
                 {uni ? `Campus · ${uni}` : "Campus · Lebanon"}
@@ -142,9 +168,9 @@ export function CampusHomePage() {const { size: designSize, styles: resolveStyle
             </View>
             <StrokeHeadline
               text={uni ? `Your ${uni} student home` : "Your student home"}
-              fontSize={compact ? 36 : 56}
-              lineHeight={compact ? 42 : 62}
-              letterSpacing={compact ? -0.8 : -1.6}
+              fontSize={compact ? (narrowPhone ? 32 : 34) : 56}
+              lineHeight={compact ? (narrowPhone ? 38 : 40) : 62}
+              letterSpacing={compact ? -0.85 : -1.6}
             />
             <LText
               variant="body"
@@ -160,36 +186,150 @@ export function CampusHomePage() {const { size: designSize, styles: resolveStyle
             onPress={() => go("/campus/calculator")}
             accessibilityRole="link"
             accessibilityLabel="Open tuition calculator"
+            {...(web ? ({ className: "campus-home-focus" } as object) : null)}
             style={({ pressed, hovered }: PressState) => [
               styles.cta,
+              compact && styles.ctaCompact,
               !stacked && styles.ctaDesktop,
               styles.motion,
               (hovered || pressed) && styles.ctaHover,
             ]}
           >
-            <LText style={styles.ctaText}>Open tuition calculator</LText>
+            <LText style={[styles.ctaText, compact && styles.ctaTextCompact]}>
+              Open tuition calculator
+            </LText>
             <Ionicons name="arrow-forward" size={designSize(16)} color={Studently.color.ink} />
           </Pressable>
         </View>
 
-        <View style={[styles.visual, stacked && styles.visualStacked]}>
+        <View
+          style={[
+            styles.visual,
+            stacked && !compact && styles.visualStacked,
+            compact && styles.visualCompact,
+            compact && narrowPhone && styles.visualCompactNarrow,
+          ]}
+        >
           <HeroCap />
         </View>
       </View>
 
-      <View style={[styles.tools, !stacked && styles.toolsDesktop]}>
+      <View
+        style={[
+          styles.tools,
+          compact && styles.toolsCompact,
+          !stacked && styles.toolsDesktop,
+        ]}
+      >
+        {!compact ? (
+          <View
+            style={[
+              styles.divider,
+              !stacked && styles.dividerDesktop,
+            ]}
+          />
+        ) : null}
+
         <View
           style={[
-            styles.divider,
-            compact && styles.dividerCompact,
-            !stacked && styles.dividerDesktop,
+            styles.cols,
+            compact && styles.colsCompact,
+            !stacked && styles.colsDesktop,
           ]}
-        />
-
-        <View style={[styles.cols, !stacked && styles.colsDesktop]}>
-          {TOOLS.map((tool, i) => {
+        >
+          {orderedTools.map((tool, i) => {
             const lastInRow = (i + 1) % perRow === 0;
-            const lastRow = i >= TOOLS.length - perRow;
+            const lastRow = i >= orderedTools.length - perRow;
+
+            if (compact) {
+              const rowInner = (active: boolean) => (
+                <>
+                  <View
+                    style={[
+                      styles.mobileIconWell,
+                      !tool.live && styles.mobileIconWellSoon,
+                    ]}
+                  >
+                    <Ionicons
+                      name={tool.icon}
+                      size={20}
+                      color={
+                        tool.live
+                          ? Studently.color.primary
+                          : Studently.color.inkFaint
+                      }
+                    />
+                  </View>
+                  <View style={styles.mobileRowBody}>
+                    <LText
+                      variant="subtitle"
+                      tone={tool.live ? undefined : "muted"}
+                      style={styles.mobileRowTitle}
+                    >
+                      {tool.title}
+                    </LText>
+                    <LText
+                      variant="caption"
+                      tone="muted"
+                      style={styles.mobileRowDesc}
+                    >
+                      {tool.body}
+                    </LText>
+                  </View>
+                  {tool.live ? (
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={
+                        active
+                          ? Studently.color.primary
+                          : Studently.color.inkFaint
+                      }
+                      style={styles.mobileRowChevron}
+                    />
+                  ) : null}
+                </>
+              );
+
+              if (tool.live && tool.href) {
+                return (
+                  <Pressable
+                    key={tool.id}
+                    onPress={() => go(tool.href!)}
+                    accessibilityRole="link"
+                    accessibilityLabel={tool.title}
+                    {...(web
+                      ? ({ className: "campus-home-row-focus" } as object)
+                      : null)}
+                    style={({ pressed, hovered }: PressState) => [
+                      styles.mobileRow,
+                      !lastRow && styles.mobileRowRule,
+                      styles.motion,
+                      (hovered || pressed) && styles.mobileRowPressed,
+                    ]}
+                  >
+                    {({ pressed, hovered }: PressState) =>
+                      rowInner(Boolean(pressed || hovered))
+                    }
+                  </Pressable>
+                );
+              }
+
+              return (
+                <View
+                  key={tool.id}
+                  style={[
+                    styles.mobileRow,
+                    !lastRow && styles.mobileRowRule,
+                    styles.colSoon,
+                  ]}
+                  accessibilityLabel={`${tool.title}, coming later`}
+                >
+                  {rowInner(false)}
+                </View>
+              );
+            }
+
             const inner = (
               <>
                 <Ionicons
@@ -215,7 +355,6 @@ export function CampusHomePage() {const { size: designSize, styles: resolveStyle
               perRow === 4 && styles.colQuarter,
               perRow === 2 && styles.colHalf,
               perRow === 1 && styles.colFull,
-              compact && styles.colCompact,
               !lastInRow && styles.colRule,
               !lastRow && styles.colRuleBottom,
             ];
@@ -227,6 +366,9 @@ export function CampusHomePage() {const { size: designSize, styles: resolveStyle
                   onPress={() => go(tool.href!)}
                   accessibilityRole="link"
                   accessibilityLabel={tool.title}
+                  {...(web
+                    ? ({ className: "campus-home-row-focus" } as object)
+                    : null)}
                   style={({ pressed, hovered }: PressState) => [
                     ...colStyle,
                     styles.motion,
@@ -261,6 +403,10 @@ const baseStyles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "space-between",
     gap: 8,
+  },
+  pageCompact: {
+    justifyContent: "flex-start",
+    gap: 0,
   },
   pageDesktop: {
     gap: 0,
@@ -299,6 +445,17 @@ const baseStyles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 36,
   },
+  heroCompact: {
+    flexDirection: "column-reverse",
+    justifyContent: "flex-start",
+    gap: 16,
+    paddingBottom: 20,
+  },
+  heroCompactBleed: {
+    width: "auto" as unknown as number,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
   copy: {
     flex: 1,
     maxWidth: 560,
@@ -308,12 +465,24 @@ const baseStyles = StyleSheet.create({
     zIndex: 1,
     pointerEvents: "none",
   },
+  copyCompact: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
+    justifyContent: "flex-start",
+    maxWidth: "100%",
+    width: "100%",
+    gap: 14,
+  },
   copyDesktop: {
     gap: 10,
   },
   copyRead: {
     gap: 18,
     pointerEvents: "none",
+  },
+  copyReadCompact: {
+    gap: 8,
   },
   copyReadDesktop: {
     gap: 8,
@@ -328,6 +497,10 @@ const baseStyles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: Studently.color.primary,
     pointerEvents: "auto",
+  },
+  badgeCompact: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
   },
   badgeText: {
     fontFamily: Studently.type.bodySemi,
@@ -345,7 +518,8 @@ const baseStyles = StyleSheet.create({
   },
   ledeCompact: {
     fontSize: 15,
-    lineHeight: 23,
+    lineHeight: 22,
+    maxWidth: "100%",
   },
   cta: {
     flexDirection: "row",
@@ -361,6 +535,16 @@ const baseStyles = StyleSheet.create({
     cursor: "pointer",
     pointerEvents: "auto",
   },
+  ctaCompact: {
+    alignSelf: "stretch",
+    width: "100%",
+    justifyContent: "center",
+    marginTop: 2,
+    minHeight: 48,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    backgroundColor: Studently.color.surface,
+  },
   ctaDesktop: {
     marginTop: 0,
     paddingVertical: 11,
@@ -375,6 +559,10 @@ const baseStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: Studently.color.ink,
+  },
+  ctaTextCompact: {
+    fontSize: 15,
+    lineHeight: 20,
   },
   visual: {
     flex: 1.4,
@@ -395,6 +583,21 @@ const baseStyles = StyleSheet.create({
     height: HERO_STACKED_VISUAL,
     alignSelf: "auto",
   },
+  visualCompact: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: "auto",
+    height: 136,
+    minHeight: 136,
+    width: "100%",
+    maxWidth: 236,
+    alignSelf: "center",
+  },
+  visualCompactNarrow: {
+    height: 120,
+    minHeight: 120,
+    maxWidth: 208,
+  },
   motion: web
     ? ({
         transitionProperty: "background-color, border-color",
@@ -404,6 +607,9 @@ const baseStyles = StyleSheet.create({
     : {},
   tools: {
     width: "100%",
+  },
+  toolsCompact: {
+    marginTop: 4,
   },
   toolsDesktop: {
     marginTop: -24,
@@ -418,9 +624,6 @@ const baseStyles = StyleSheet.create({
   dividerDesktop: {
     marginBottom: 8,
   },
-  dividerCompact: {
-    marginBottom: 8,
-  },
   cols: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -429,6 +632,16 @@ const baseStyles = StyleSheet.create({
     // Bottom space lives on the grid, not the cards, so the vertical
     // rules end just under the text instead of running to the bottom.
     paddingBottom: 28,
+  },
+  colsCompact: {
+    flexDirection: "column",
+    flexWrap: "nowrap",
+    backgroundColor: Studently.color.surface,
+    borderWidth: 1,
+    borderColor: Studently.color.border,
+    borderRadius: 16,
+    overflow: "hidden",
+    paddingBottom: 0,
   },
   colsDesktop: {
     paddingBottom: 4,
@@ -452,11 +665,6 @@ const baseStyles = StyleSheet.create({
   colFull: {
     width: "100%",
   },
-  colCompact: {
-    paddingTop: 22,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-  },
   colRule: {
     borderRightWidth: 1,
     borderRightColor: Studently.color.border,
@@ -466,11 +674,11 @@ const baseStyles = StyleSheet.create({
     borderBottomColor: Studently.color.border,
   },
   colHover: {
-    backgroundColor: "rgba(47, 111, 237, 0.04)",
+    backgroundColor: Studently.color.primaryMist,
   },
   colSoon: {
     cursor: "auto",
-    opacity: 0.72,
+    opacity: 0.68,
   },
   colTitle: {
     fontSize: 17,
@@ -481,5 +689,52 @@ const baseStyles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     maxWidth: 280,
+  },
+  mobileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    width: "100%",
+    minHeight: 72,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    cursor: "pointer",
+  },
+  mobileRowRule: {
+    borderBottomWidth: 1,
+    borderBottomColor: Studently.color.bgWash,
+  },
+  mobileRowPressed: {
+    backgroundColor: Studently.color.primaryMist,
+  },
+  mobileIconWell: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: Studently.color.primaryMist,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  mobileIconWellSoon: {
+    backgroundColor: Studently.color.surfaceMuted,
+  },
+  mobileRowBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  mobileRowTitle: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontFamily: Studently.type.bodySemi,
+  },
+  mobileRowDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  mobileRowChevron: {
+    flexShrink: 0,
+    marginLeft: 2,
   },
 });

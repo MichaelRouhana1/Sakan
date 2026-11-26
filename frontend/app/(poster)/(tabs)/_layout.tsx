@@ -1,14 +1,5 @@
-import { DynamicColorIOS, Platform } from "react-native";
 import { NativeTabs } from "expo-router/native-tabs";
 import { Lister } from "@/constants/listerTheme";
-
-const tint =
-  Platform.OS === "ios"
-    ? DynamicColorIOS({
-        light: Lister.color.primary,
-        dark: "#6B9CF5",
-      })
-    : Lister.color.primary;
 
 /**
  * SDK 55+ uses NativeTabs.Trigger.Label / .Icon (standalone Label/Icon
@@ -18,10 +9,11 @@ const tint =
 export default function PosterTabsLayout() {
   return (
     <NativeTabs
-      tintColor={tint}
+      tintColor={Lister.color.primary}
       labelStyle={{ color: Lister.color.inkMuted }}
       minimizeBehavior="onScrollDown"
       disableTransparentOnScrollEdge
+      unstable_nativeProps={{ colorScheme: "light" }}
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Listings</NativeTabs.Trigger.Label>
@@ -42,6 +34,13 @@ export default function PosterTabsLayout() {
         <NativeTabs.Trigger.Icon
           sf={{ default: "wallet.pass", selected: "wallet.pass.fill" }}
           md="account_balance_wallet"
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="host-profile">
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: "person", selected: "person.fill" }}
+          md="person"
         />
       </NativeTabs.Trigger>
     </NativeTabs>

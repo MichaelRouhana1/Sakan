@@ -26,7 +26,7 @@ export function PhotoCropper({ source, onCrop, disabled }: CropperProps) {
         flexDirection: "column",
         gap: designSize(12),
         color: "#121826",
-        fontFamily: Lister.type.body,
+        fontFamily: `${Lister.type.body}, "DM Sans", system-ui, sans-serif`,
       }}
     >
       <div

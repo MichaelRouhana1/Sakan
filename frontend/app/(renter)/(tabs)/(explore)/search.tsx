@@ -747,7 +747,13 @@ export default function RenterSearchScreen() {
               <View style={styles.cardContainer}>
                 {item.listing.id === featured[0]?.id ? <LText variant="subtitle">Featured</LText> : null}
                 {featured.length > 0 && item.listing.id === listings[0]?.id ? <LText variant="subtitle">All results</LText> : null}
-                <ListingResultCard listing={item.listing} variant="grid" match={matching ? ranked.matches[item.listing.id] : undefined} />
+                <ListingResultCard
+                  listing={item.listing}
+                  variant="grid"
+                  badgeOverflow="scroll-x"
+                  badgeLimit={null}
+                  match={matching ? ranked.matches[item.listing.id] : undefined}
+                />
               </View>
             )
           }
