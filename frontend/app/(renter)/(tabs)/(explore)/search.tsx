@@ -63,7 +63,7 @@ import {
   type MixedListingRow,
 } from "@/lib/campusProximity";
 import type { SearchSuggestion } from '@/features/search/types';
-import type { CampusMeta } from "@/types/listing";
+import type { CampusMeta, Listing } from "@/types/listing";
 
 type BrowseSortKey = "newest" | "rent_asc" | "rent_desc" | "distance" | "match";
 type SearchMode = "standard" | "university";
@@ -152,6 +152,20 @@ export default function RenterSearchScreen() {
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [mapListingId, setMapListingId] = useState<string | null>(null);
+  const mapFocusSeqRef = useRef(0);
+  const [mapFocusListing, setMapFocusListing] = useState<{
+    id: string;
+    nonce: number;
+  } | null>(null);
+
+  const openMapWithListing = useCallback(
+    (listing: Listing) => {
+      closeSheets();
+      setMapFocusListing({ id: listing.id, nonce: ++mapFocusSeqRef.current });
+      setViewMode("map");
+    },
+    [closeSheets],
+  );
 
   const { user } = useAuthSession();
   const universities = useUniversities();
@@ -165,6 +179,7 @@ export default function RenterSearchScreen() {
   const resetSearch = useCallback(() => {
     setSearchVal("");
     setFocusPoint(null);
+    setMapFocusListing(null);
     setBrowseFilters((prev) => ({
       ...prev,
       areas: [],
@@ -183,12 +198,14 @@ export default function RenterSearchScreen() {
   const applySuggestion = useCallback((suggestion: SearchSuggestion) => {
     setSearchVal(suggestion.label.en);
     setFocusPoint(suggestion.center);
+    setMapFocusListing(null);
     browse.selectSearch(suggestion);
     setMapSearchOpen(false);
   }, [browse.selectSearch]);
 
   const switchMapCampus = useCallback(
     (campus: CampusMeta) => {
+      setMapFocusListing(null);
       const uni = universities.data?.find((u) => u.slug === campus.slug);
       setBrowseFilters((prev) => ({
         ...prev,
@@ -208,6 +225,7 @@ export default function RenterSearchScreen() {
   const applyTextQuery = useCallback((text: string) => {
     setSearchVal(text);
     setFocusPoint(null);
+    setMapFocusListing(null);
     browse.submitSearch(text);
     setMapSearchOpen(false);
   }, [browse.submitSearch]);
@@ -336,6 +354,7 @@ export default function RenterSearchScreen() {
   const clearAllFilters = useCallback(() => {
     setSearchVal("");
     setFocusPoint(null);
+    setMapFocusListing(null);
     browse.clear();
     setSort("newest");
     setMode("university");
@@ -381,7 +400,11 @@ export default function RenterSearchScreen() {
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
-          style={styles.backBtn}
+          style={({ pressed }) => [
+            styles.headerIconBtn,
+            pressed && styles.headerIconBtnPressed,
+          ]}
+          hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -391,6 +414,30 @@ export default function RenterSearchScreen() {
         <View style={[styles.searchBar, { zIndex: 50, overflow: "visible" }]}>
           {searchField}
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            badgeCount > 0 ? `Filters, ${badgeCount} active` : "Filters"
+          }
+          onPress={openFilters}
+          hitSlop={6}
+          style={({ pressed }) => [
+            styles.headerIconBtn,
+            pressed && styles.headerIconBtnPressed,
+          ]}
+        >
+          <Ionicons
+            name="options-outline"
+            size={22}
+            color={Studently.color.ink}
+          />
+          {badgeCount > 0 ? (
+            <View style={styles.headerFilterBadge}>
+              <Text style={styles.headerFilterBadgeText}>{badgeCount}</Text>
+            </View>
+          ) : null}
+        </Pressable>
       </View>
 
       {/* HORIZONTAL FILTERS RAIL */}
@@ -400,52 +447,6 @@ export default function RenterSearchScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRail}
         >
-          {/* Filters — first, with clear-X when anything is applied */}
-          <View
-            style={[styles.filterPill, filtersActive && styles.filterPillActive]}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                badgeCount > 0 ? `Filters, ${badgeCount} active` : "Filters"
-              }
-              onPress={openFilters}
-              style={styles.filterPillMain}
-            >
-              <Ionicons
-                name="options-outline"
-                size={15}
-                color={filtersActive ? "#ffffff" : Studently.color.inkMuted}
-              />
-              <Text
-                style={[
-                  styles.filterPillLabel,
-                  filtersActive && styles.filterPillLabelActive,
-                ]}
-              >
-                Filters{badgeCount > 0 ? ` (${badgeCount})` : ""}
-              </Text>
-            </Pressable>
-            {filtersActive ? (
-              <>
-                <View
-                  style={styles.filterPillSep}
-                  accessibilityElementsHidden
-                  importantForAccessibility="no"
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Clear all filters"
-                  onPress={clearAllFilters}
-                  hitSlop={6}
-                  style={styles.filterPillClear}
-                >
-                  <Ionicons name="close" size={14} color="#ffffff" />
-                </Pressable>
-              </>
-            ) : null}
-          </View>
-
           {/* University */}
           <Pressable
             onPress={openUni}
@@ -526,6 +527,22 @@ export default function RenterSearchScreen() {
             </Pressable>
           ) : null}
 
+          {filtersActive ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear all filters"
+              onPress={clearAllFilters}
+              style={styles.clearFiltersPill}
+            >
+              <Ionicons
+                name="close"
+                size={14}
+                color={Studently.color.primary}
+              />
+              <Text style={styles.clearFiltersPillLabel}>Clear all</Text>
+            </Pressable>
+          ) : null}
+
         </ScrollView>
       </View>
       </>
@@ -543,6 +560,7 @@ export default function RenterSearchScreen() {
             setFiltersOpen(false);
             setMapSearchOpen(false);
             setMapListingId(null);
+            setMapFocusListing(null);
             setViewMode("list");
           }}
         >
@@ -561,6 +579,7 @@ export default function RenterSearchScreen() {
                   ? null
                   : focusPoint
               }
+              focusListingRequest={mapFocusListing}
               onSelectCampus={switchMapCampus}
               loading={listingsQuery.mapLoading}
               fillContainer
@@ -603,6 +622,7 @@ export default function RenterSearchScreen() {
                 accessibilityLabel="Show list view"
                 onPress={() => {
                   setMapListingId(null);
+                  setMapFocusListing(null);
                   setFiltersOpen(false);
                   setMapSearchOpen(false);
                   setViewMode("list");
@@ -631,6 +651,7 @@ export default function RenterSearchScreen() {
             onSortChange={(value) => setSort(value as BrowseSortKey)}
             onClose={() => setFiltersOpen(false)}
             onApply={(next) => {
+              setMapFocusListing(null);
               setBrowseFilters(next);
               setMode("university");
               if (next.universitySlugs.length > 0 && browse.sort !== "match") setSort("distance");
@@ -753,6 +774,7 @@ export default function RenterSearchScreen() {
                   badgeOverflow="scroll-x"
                   badgeLimit={null}
                   match={matching ? ranked.matches[item.listing.id] : undefined}
+                  onOpenMap={openMapWithListing}
                 />
               </View>
             )
@@ -774,6 +796,7 @@ export default function RenterSearchScreen() {
         accessibilityLabel="Show map view"
         onPress={() => {
           closeSheets();
+          setMapFocusListing(null);
           setViewMode("map");
         }}
         style={({ pressed }) => [
@@ -939,16 +962,43 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-    gap: 12,
+    gap: 10,
     zIndex: 50,
     overflow: "visible",
   },
-  backBtn: {
-    padding: 4,
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerIconBtnPressed: {
+    backgroundColor: "#F1F5F9",
+  },
+  headerFilterBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Studently.color.primary,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  headerFilterBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontFamily: Studently.type.bodyBold,
+    fontWeight: "700",
   },
   searchBar: {
     flex: 1,
@@ -996,22 +1046,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  filterPillMain: {
+  clearFiltersPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Studently.color.primaryMist,
+    borderWidth: 1,
+    borderColor: Studently.color.primary,
   },
-  filterPillSep: {
-    width: 1,
-    alignSelf: "stretch",
-    marginVertical: 2,
-    backgroundColor: "rgba(255,255,255,0.55)",
-  },
-  filterPillClear: {
-    paddingLeft: 2,
-    paddingRight: 0,
-    alignItems: "center",
-    justifyContent: "center",
+  clearFiltersPillLabel: {
+    fontFamily: Studently.type.bodyMedium,
+    fontSize: 12,
+    color: Studently.color.primary,
+    fontWeight: "600",
   },
   filterPillActive: {
     backgroundColor: Studently.color.primary,

@@ -57,7 +57,12 @@ const styles = StyleSheet.create({
   mobile: {
     flex: 1,
     width: "100%",
-    minHeight: "100vh" as unknown as number,
     backgroundColor: "#F9FAFB",
+    ...(Platform.OS === "web"
+      ? ({
+          height: "100dvh",
+          overflow: "hidden",
+        } as unknown as object)
+      : null),
   },
 });

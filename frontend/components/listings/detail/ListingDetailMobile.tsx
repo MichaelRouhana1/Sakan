@@ -1,21 +1,29 @@
-import { SharedPhotoGallery } from './SharedPhotoGallery';
-import { PlaceListingIntro } from './PlaceDetailSections';
-import { detailLabels } from '@/lib/listingDetailOwnership';
-import { placeExtras } from '@/lib/listingDetailDisplay';
+import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
+import { SharedPhotoGallery } from "./SharedPhotoGallery";
+import { PlaceListingIntro } from "./PlaceDetailSections";
+import { detailLabels } from "@/lib/listingDetailOwnership";
+import { placeExtras } from "@/lib/listingDetailDisplay";
 import { mobileHeroHeight } from "@/lib/listingPhotoFrames";
 import { WhatsAppInquirySheet } from "@/components/listings/detail/WhatsAppInquirySheet";
 import { useWhatsAppInquiry } from "@/features/listings/useWhatsAppInquiry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   BackHandler,
   Platform,
+  Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LButton } from "@/components/lister/Button";
 import { ListerScreen } from "@/components/lister/Screen";
 import { LText } from "@/components/lister/Typography";
@@ -31,6 +39,10 @@ import {
 } from "@/components/listings/detail/ListingDetailGallery";
 import { ListingDetailHouseRules } from "@/components/listings/detail/ListingDetailHouseRules";
 import { ListingDetailMapSection } from "@/components/listings/detail/ListingDetailMapSection";
+import {
+  ListingDetailMobileHeader,
+  MOBILE_DETAIL_HEADER_ROW_HEIGHT,
+} from "@/components/listings/detail/ListingDetailMobileHeader";
 import { ListingDetailDiscoverySection } from "@/components/listings/detail/ListingDetailDiscoverySection";
 import { useListingDetailDiscovery } from "@/components/listings/detail/useListingDetailDiscovery";
 import { ListingDetailNearbyRail } from "@/components/listings/detail/ListingDetailNearbyRail";
@@ -72,7 +84,9 @@ type Props = {
 
 export function ListingDetailMobile({ listingId, onClose }: Props) {
   const { height: winH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const galleryH = mobileHeroHeight(winH);
+  const headerHeight = insets.top + MOBILE_DETAIL_HEADER_ROW_HEIGHT;
   const { session } = useAuthSession();
   const { data: listing, isLoading, isError } = useListing(listingId ?? "");
   const inquiry = useWhatsAppInquiry(listing);
@@ -86,9 +100,18 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   const [reportOpen, setReportOpen] = useState(false);
   const [galleryMode, setGalleryMode] = useState<GalleryMode>("photos");
   const [activeTab, setActiveTab] = useState<DetailSectionId | null>(null);
-  const [tabH, setTabH] = useState(48);
+  const [tabH, setTabH] = useState(46);
+  const [tabsY, setTabsY] = useState(0);
+  const [headerSolid, setHeaderSolid] = useState(false);
+  const [tabsPinned, setTabsPinned] = useState(false);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
   const offsets = useRef<Partial<Record<DetailSectionId, number>>>({});
+  const headerSolidRef = useRef(false);
+  const tabsPinnedRef = useRef(false);
+  const activeTabRef = useRef<DetailSectionId | null>(null);
+  const manualScrollUntilRef = useRef(0);
 
   const goBack = useCallback(() => {
     if (onClose) {
@@ -106,6 +129,16 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     });
     return () => sub.remove();
   }, [goBack]);
+
+  useEffect(() => {
+    scrollY.setValue(0);
+    headerSolidRef.current = false;
+    tabsPinnedRef.current = false;
+    setHeaderSolid(false);
+    setTabsPinned(false);
+    setTabsY(0);
+    offsets.current = {};
+  }, [listingId, scrollY]);
 
   useRecordListingView(listingId ?? "", Boolean(listingId) && !isError);
   useRecordRecentlyViewed(listingId ?? "", Boolean(listing) && !isError);
@@ -130,10 +163,10 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     if (hasRooms) next.push({ id: "rooms", label: "Room types" });
     else if (!isPbsa) next.push({ id: "unit", label: "The unit" });
     if (description) next.push({ id: "description", label: "Description" });
-    if (hasPlace) next.push({ id: 'place', label: detailLabels(listing).placeTitle });
+    if (hasPlace) next.push({ id: "place", label: detailLabels(listing).placeTitle });
     if (hasAmenities) next.push({ id: "amenities", label: "Amenities" });
     if (hasRules) next.push({ id: "rules", label: "House rules" });
-    if (multiUnit) next.push({ id: 'nearby', label: 'Other units' });
+    if (multiUnit) next.push({ id: "nearby", label: "Other units" });
     if (hasPin) next.push({ id: "map", label: "Map" });
     if (!multiUnit && nearby.length > 0) next.push({ id: "nearby", label: "Other units" });
     if (discovery.visible) {
@@ -147,16 +180,105 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
 
   useEffect(() => {
     if (tabs.length === 0) {
+      activeTabRef.current = null;
       setActiveTab(null);
       return;
     }
-    setActiveTab((cur) =>
-      cur && tabs.some((t) => t.id === cur) ? cur : tabs[0].id,
-    );
+    setActiveTab((cur) => {
+      const next = cur && tabs.some((t) => t.id === cur) ? cur : tabs[0].id;
+      activeTabRef.current = next;
+      return next;
+    });
   }, [tabs]);
 
+  const scrollMetaRef = useRef({
+    galleryH,
+    headerHeight,
+    tabsY,
+    tabH,
+    tabs,
+  });
+  scrollMetaRef.current = { galleryH, headerHeight, tabsY, tabH, tabs };
+
+  const handleScrollPosition = useCallback((y: number) => {
+    const meta = scrollMetaRef.current;
+    const solidThreshold = Math.max(24, meta.galleryH - meta.headerHeight - 20);
+    const nextSolid = y >= solidThreshold;
+    if (nextSolid !== headerSolidRef.current) {
+      headerSolidRef.current = nextSolid;
+      setHeaderSolid(nextSolid);
+    }
+
+    const nextPinned =
+      meta.tabs.length > 0 &&
+      meta.tabsY > 0 &&
+      y >= meta.tabsY - meta.headerHeight;
+    if (nextPinned !== tabsPinnedRef.current) {
+      tabsPinnedRef.current = nextPinned;
+      setTabsPinned(nextPinned);
+    }
+
+    if (Date.now() < manualScrollUntilRef.current || meta.tabs.length === 0) {
+      return;
+    }
+
+    const probeY = y + meta.headerHeight + meta.tabH + 24;
+    let matched: DetailSectionId | null = meta.tabs[0].id;
+    for (const tab of meta.tabs) {
+      const sectionY = offsets.current[tab.id];
+      if (sectionY != null && sectionY <= probeY) {
+        matched = tab.id;
+      }
+    }
+    if (matched && matched !== activeTabRef.current) {
+      activeTabRef.current = matched;
+      setActiveTab(matched);
+    }
+  }, []);
+
+  const onScroll = useMemo(
+    () =>
+      Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        {
+          useNativeDriver: Platform.OS !== "web",
+          listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+            handleScrollPosition(event.nativeEvent.contentOffset.y);
+          },
+        },
+      ),
+    [scrollY, handleScrollPosition],
+  );
+
+  const shareListing = useCallback(async () => {
+    if (!listing) return;
+    const title = listing.title?.trim() || listing.pbsaBuildingName?.trim() || listing.area;
+    const url =
+      Platform.OS === "web" && typeof window !== "undefined"
+        ? `${window.location.origin}/listing/${listing.id}`
+        : undefined;
+    const message = url ? `${title} — ${url}` : title;
+    try {
+      await Share.share(
+        Platform.OS === "ios" && url
+          ? { title, url, message: title }
+          : { title, message },
+      );
+    } catch {
+      if (Platform.OS === "web" && url) {
+        try {
+          await Clipboard.setStringAsync(url);
+        } catch {
+          // Ignore clipboard errors.
+        }
+      }
+    }
+  }, [listing]);
+
   const jumpTo = (id: DetailSectionId) => {
+    activeTabRef.current = id;
     setActiveTab(id);
+    manualScrollUntilRef.current = Date.now() + 550;
     if (Platform.OS === "web" && multiUnit && (id === "nearby" || id === "place")) {
       scrollToListingSection(id === "nearby" ? "listing-other-units" : "listing-place");
       return;
@@ -164,7 +286,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
     const y = offsets.current[id];
     if (y == null) return;
     scrollRef.current?.scrollTo({
-      y: Math.max(0, y - tabH),
+      y: Math.max(0, y - headerHeight - tabH),
       animated: true,
     });
   };
@@ -200,14 +322,17 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
   }
 
   const posterPhone = listingWhatsApp(listing);
+  const canReport = session?.role !== "poster";
 
   return (
     <ListerScreen edges={["left", "right"]}>
       <View style={styles.flex}>
-        <ScrollView
+        <Animated.ScrollView
           ref={scrollRef}
+          testID="listing-detail-scroll"
           showsVerticalScrollIndicator={false}
-          stickyHeaderIndices={tabs.length > 0 ? [1] : undefined}
+          scrollEventThrottle={16}
+          onScroll={onScroll}
           contentContainerStyle={styles.content}
         >
           <View>
@@ -221,6 +346,7 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               onToggleSave={() => toggleSaved.mutate(listing)}
               mode={galleryMode}
               onModeChange={setGalleryMode}
+              hideTopBar
             />
             <ListingDetailOverview
               listing={listing}
@@ -236,7 +362,14 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
           </View>
 
           {tabs.length > 0 ? (
-            <View onLayout={(e) => setTabH(e.nativeEvent.layout.height)}>
+            <View
+              onLayout={(e) => {
+                setTabsY(e.nativeEvent.layout.y);
+                setTabH(e.nativeEvent.layout.height);
+              }}
+              style={tabsPinned ? styles.tabsPlaceholder : undefined}
+              pointerEvents={tabsPinned ? "none" : "auto"}
+            >
               <ListingDetailSectionTabs
                 tabs={tabs}
                 activeId={activeTab}
@@ -245,17 +378,30 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             </View>
           ) : null}
 
-          {!multiUnit ? <View style={styles.sectionPad}><SharedPhotoGallery listing={listing}/></View> : null}
+          {!multiUnit ? (
+            <View style={styles.sectionPad}>
+              <SharedPhotoGallery listing={listing} />
+            </View>
+          ) : null}
           {hasRooms ? (
             <View
               collapsable={false}
               style={styles.sectionPad}
               onLayout={onSectionLayout("rooms")}
             >
-              <ListingDetailRooms listing={listing} posterPhone={posterPhone} onWhatsApp={inquiry.open} />
+              <ListingDetailRooms
+                listing={listing}
+                posterPhone={posterPhone}
+                onWhatsApp={inquiry.open}
+              />
             </View>
           ) : !isPbsa ? (
-            <View testID="listing-unit" collapsable={false} style={styles.sectionPad} onLayout={onSectionLayout("unit")}>
+            <View
+              testID="listing-unit"
+              collapsable={false}
+              style={styles.sectionPad}
+              onLayout={onSectionLayout("unit")}
+            >
               <ListingDetailUnitSpecs listing={listing} />
             </View>
           ) : null}
@@ -308,7 +454,12 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
             <View
               nativeID="listing-other-units"
               collapsable={false}
-              style={styles.otherUnits}
+              style={[
+                styles.otherUnits,
+                Platform.OS === "web"
+                  ? ({ scrollMarginTop: headerHeight + tabH + 8 } as object)
+                  : null,
+              ]}
               onLayout={onSectionLayout("nearby")}
             >
               <OtherPlaceUnits
@@ -317,7 +468,9 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
                 siblings={nearby}
                 loading={coincident.isLoading}
                 error={coincident.isError}
-                onRetry={() => { void coincident.refetch(); }}
+                onRetry={() => {
+                  void coincident.refetch();
+                }}
               />
             </View>
           ) : null}
@@ -349,18 +502,79 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
               style={styles.sectionPad}
               onLayout={onSectionLayout("similar")}
             >
-              <ListingDetailDiscoverySection listingId={listing.id} variant="card" />
+              <ListingDetailDiscoverySection
+                listingId={listing.id}
+                variant="card"
+              />
             </View>
           ) : null}
-        </ScrollView>
+
+          {canReport ? (
+            <View style={styles.reportWrap}>
+              {reported.data ? (
+                <View
+                  testID="listing-detail-reported"
+                  style={styles.reportRow}
+                >
+                  <Ionicons
+                    name="flag"
+                    size={15}
+                    color={Studently.color.inkMuted}
+                  />
+                  <LText variant="caption" tone="muted">
+                    You reported this listing
+                  </LText>
+                </View>
+              ) : (
+                <Pressable
+                  testID="listing-detail-report"
+                  accessibilityRole="button"
+                  accessibilityLabel="Report this listing"
+                  accessibilityHint="Opens reasons to flag this listing"
+                  onPress={() => setReportOpen(true)}
+                  style={({ pressed }) => [
+                    styles.reportRow,
+                    pressed && styles.reportRowPressed,
+                  ]}
+                >
+                  <Ionicons
+                    name="flag-outline"
+                    size={15}
+                    color={Studently.color.inkMuted}
+                  />
+                  <LText variant="caption" style={styles.reportLabel}>
+                    Report this listing
+                  </LText>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
+        </Animated.ScrollView>
+
+        <ListingDetailMobileHeader
+          scrollY={scrollY}
+          galleryHeight={galleryH}
+          saved={Boolean(saved.data)}
+          savePending={toggleSaved.isPending}
+          isSolid={headerSolid}
+          tabsPinned={tabsPinned}
+          onBack={goBack}
+          onShare={() => void shareListing()}
+          onToggleSave={() => toggleSaved.mutate(listing)}
+        >
+          {tabs.length > 0 && tabsPinned ? (
+            <ListingDetailSectionTabs
+              tabs={tabs}
+              activeId={activeTab}
+              onJump={jumpTo}
+            />
+          ) : null}
+        </ListingDetailMobileHeader>
 
         <ListingDetailBottomBar
           onWhatsApp={inquiry.open}
           listing={listing}
           posterPhone={posterPhone}
-          reported={Boolean(reported.data)}
-          onReport={() => setReportOpen(true)}
-          canReport={session?.role !== "poster"}
         />
 
         <WhatsAppInquirySheet inquiry={inquiry} />
@@ -368,7 +582,9 @@ export function ListingDetailMobile({ listingId, onClose }: Props) {
         <ReportListingSheet
           listingId={listing.id}
           listingTitle={
-            listing.title?.trim() || listing.pbsaBuildingName?.trim() || listing.area
+            listing.title?.trim() ||
+            listing.pbsaBuildingName?.trim() ||
+            listing.area
           }
           visible={reportOpen}
           onClose={() => setReportOpen(false)}
@@ -390,6 +606,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: Studently.space.lg,
   },
+  tabsPlaceholder: {
+    opacity: 0,
+  },
   intro: {
     marginHorizontal: 16,
     marginTop: 8,
@@ -401,10 +620,33 @@ const styles = StyleSheet.create({
   otherUnits: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    ...(Platform.OS === "web" ? ({ scrollMarginTop: 90 } as object) : null),
   },
   nearbyPad: {
     paddingTop: 16,
     paddingBottom: 8,
+  },
+  reportWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  reportRow: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    ...(Platform.OS === "web" ? ({ cursor: "pointer" } as object) : null),
+  },
+  reportRowPressed: {
+    opacity: 0.65,
+  },
+  reportLabel: {
+    fontSize: 13,
+    fontFamily: Studently.type.bodyMedium,
+    color: Studently.color.inkMuted,
+    textDecorationLine: "underline",
   },
 });

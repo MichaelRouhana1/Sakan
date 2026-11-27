@@ -244,7 +244,7 @@ test("BudgetHistogramSlider contract, zero-flicker snapshot, and 3 surfaces", { 
               return {
                 resolveDir: frontend,
                 loader: "tsx",
-                contents: `export const useSafeAreaInsets = () => ({ top: 12, bottom: 16, left: 0, right: 0 });`,
+                contents: `import React, { useEffect } from 'react'; import { View } from 'react-native'; export const initialWindowMetrics = null; export const useSafeAreaInsets = () => ({ top: 12, bottom: 92, left: 0, right: 0 }); export const SafeAreaListener = ({ onChange, style, children }) => { useEffect(() => { onChange?.({ insets: { top: 12, bottom: 16, left: 0, right: 0 }, frame: { x: 0, y: 0, width: 390, height: 844 } }); }, []); return <View style={style}>{children}</View>; };`,
               };
             }
             if (args.path.includes("UniversityCampusFilter")) {
@@ -382,15 +382,34 @@ test("BudgetHistogramSlider contract, zero-flicker snapshot, and 3 surfaces", { 
       });
     }
 
-    // 5. Surface 3: Mobile BrowseFiltersPanel with section pills + narrowed range
+    // 5. Surface 3: Mobile BrowseFiltersPanel with section pills, collapsible sections, compact footer, + narrowed range
     const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
     mobilePage.on("pageerror", (e) => errors.push(e.message));
     await mobilePage.goto(`${baseUrl}/?mode=mobile-panel`);
     const pillsBar = mobilePage.getByTestId("filter-section-pills");
     await expect(pillsBar).toBeVisible();
     await expect(pillsBar.getByRole("radio", { name: "University" })).toHaveAttribute("aria-checked", "true");
+
+    // Verify footer uses modal insets (not parent tab bar bottom inset of 92) and stays compact
+    const footerBox = await mobilePage.getByTestId("filters-footer").boundingBox();
+    assert.ok(footerBox && footerBox.height <= 90, `expected compact footer height <= 90px, got ${footerBox?.height}`);
+
+    // Verify sections collapse and expand via their headers, and pill selection re-expands a collapsed section
+    const uniToggle = mobilePage.getByTestId("filter-section-toggle-university");
+    const uniBody = mobilePage.getByTestId("filter-section-body-university");
+    await expect(uniBody).toBeVisible();
+    await uniToggle.click();
+    await expect(uniBody).toHaveCount(0);
+    await expect(uniToggle).toHaveAttribute("aria-expanded", "false");
+
+    const rentToggle = mobilePage.getByTestId("filter-section-toggle-rent");
+    const rentBody = mobilePage.getByTestId("filter-section-body-rent");
+    await rentToggle.click();
+    await expect(rentBody).toHaveCount(0);
+
     await pillsBar.getByRole("radio", { name: "Rent" }).click();
     await expect(pillsBar.getByRole("radio", { name: "Rent" })).toHaveAttribute("aria-checked", "true");
+    await expect(rentBody).toBeVisible();
     const mobileHist = mobilePage.getByTestId("budget-histogram");
     await mobileHist.scrollIntoViewIfNeeded();
     await expect(mobileHist).toBeVisible();

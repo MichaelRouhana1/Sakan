@@ -13,6 +13,8 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { DeviceHistoryMobileSection } from "@/components/profile/DeviceHistoryMobileSection";
+import { ProfileDeviceHistory } from "@/components/web/ProfileDeviceHistory";
 import { ProfileIdentityPanel } from "@/components/web/ProfileIdentityPanel";
 import { ProfileModePill, type ProfileMode } from "@/components/profile/ProfileModePill";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
@@ -368,6 +370,14 @@ export function ProfileWeb({ mode = "renter" }: { mode?: ProfileMode }) {
       </View>
 
       {isSignedIn ? <ProfileIdentityPanel stacked={stacked} /> : null}
+
+      {isSignedIn ? (
+        mobile ? (
+          <DeviceHistoryMobileSection enabled variant="inline" />
+        ) : (
+          <ProfileDeviceHistory stacked={stacked} />
+        )
+      ) : null}
 
       <View style={styles.trioWrap}>
         <View style={styles.rule} />

@@ -27,6 +27,7 @@ type Props = {
   onToggleSave: () => void;
   mode: GalleryMode;
   onModeChange: (mode: GalleryMode) => void;
+  hideTopBar?: boolean;
 };
 
 function OverlayBtn({
@@ -75,6 +76,7 @@ export function ListingDetailGallery({
   onToggleSave,
   mode,
   onModeChange,
+  hideTopBar = false,
 }: Props) {const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   
@@ -126,20 +128,22 @@ export function ListingDetailGallery({
         />
       )}
 
-      <View
-        style={[styles.topBar, { top: Math.max(insets.top, 8) + 8, pointerEvents: "box-none" }]}
-      >
-        <OverlayBtn
-          icon="chevron-back"
-          label="Back"
-          onPress={onBack}
-        />
-        <View style={styles.topRight}>
-          <OverlayBtn icon="share-outline" label="Share listing" onPress={() => void share()} />
-          <FavoriteButton saved={saved} disabled={savePending} onPress={onToggleSave}
-            accessibilityLabel={saved ? 'Remove from shortlist' : 'Save to shortlist'} style={styles.iconBtn}/>
+      {!hideTopBar ? (
+        <View
+          style={[styles.topBar, { top: Math.max(insets.top, 8) + 8, pointerEvents: "box-none" }]}
+        >
+          <OverlayBtn
+            icon="chevron-back"
+            label="Back"
+            onPress={onBack}
+          />
+          <View style={styles.topRight}>
+            <OverlayBtn icon="share-outline" label="Share listing" onPress={() => void share()} />
+            <FavoriteButton saved={saved} disabled={savePending} onPress={onToggleSave}
+              accessibilityLabel={saved ? 'Remove from shortlist' : 'Save to shortlist'} style={styles.iconBtn}/>
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <View style={[styles.bottomRow, { pointerEvents: "box-none" }]}>
         <View style={styles.dotsSlot}>

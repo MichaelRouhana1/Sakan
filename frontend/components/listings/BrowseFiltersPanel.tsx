@@ -1,10 +1,11 @@
 import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Animated,
   Dimensions,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,11 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  initialWindowMetrics,
+  SafeAreaListener,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { LButton } from "@/components/lister/Button";
 import { LText } from "@/components/lister/Typography";
 import type { SearchMode } from "@/components/listings/SearchModeToggle";
@@ -174,6 +179,99 @@ function FilterToggle({
   );
 }
 
+function FilterSection({
+  id,
+  title,
+  summary,
+  collapsed,
+  onToggle,
+  first = false,
+  onLayout,
+  reduceMotion,
+  children,
+}: {
+  id: string;
+  title: string;
+  summary?: string | null;
+  collapsed: boolean;
+  onToggle: () => void;
+  first?: boolean;
+  onLayout: (y: number) => void;
+  reduceMotion: boolean;
+  children: ReactNode;
+}) {
+  const { size: designSize, styles: resolveStyles } = useDesktopDesign();
+  const styles = resolveStyles(baseStyles);
+  const rot = useRef(new Animated.Value(collapsed ? 0 : 1)).current;
+
+  useEffect(() => {
+    Animated.timing(rot, {
+      toValue: collapsed ? 0 : 1,
+      duration: reduceMotion ? 0 : 180,
+      useNativeDriver: true,
+    }).start();
+  }, [collapsed, reduceMotion, rot]);
+
+  const chevronRotate = rot.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
+
+  return (
+    <View
+      style={[
+        styles.blockSection,
+        first && styles.blockSectionFirst,
+        collapsed && styles.blockSectionCollapsed,
+      ]}
+      onLayout={(e) => onLayout(e.nativeEvent.layout.y)}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !collapsed }}
+        aria-expanded={!collapsed}
+        accessibilityLabel={`${title} filters`}
+        testID={`filter-section-toggle-${id}`}
+        onPress={onToggle}
+        hitSlop={6}
+        style={({ pressed }) => [
+          styles.sectionHeader,
+          pressed && styles.sectionHeaderPressed,
+        ]}
+      >
+        <LText variant="label" tone="muted" style={styles.sectionHeaderLabel}>
+          {title}
+        </LText>
+        <View style={styles.sectionHeaderRight}>
+          {summary ? (
+            <View style={styles.sectionSummaryPill}>
+              <LText
+                variant="caption"
+                numberOfLines={1}
+                style={styles.sectionSummaryText}
+              >
+                {summary}
+              </LText>
+            </View>
+          ) : null}
+          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+            <Ionicons
+              name="chevron-down"
+              size={designSize(18)}
+              color={Studently.color.inkMuted}
+            />
+          </Animated.View>
+        </View>
+      </Pressable>
+      {!collapsed ? (
+        <View testID={`filter-section-body-${id}`} style={styles.sectionBody}>
+          {children}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 /**
  * Full-screen Filters panel — slides in from the left.
  * Dirty close confirms discard; Clear resets draft; Apply commits + closes.
@@ -183,6 +281,7 @@ export function BrowseFiltersPanel({
   mode: _mode,
   applied,
   priceHistogram,
+  universities,
   onClose,
   onApply,
   variant = "drawer",
@@ -193,7 +292,18 @@ export function BrowseFiltersPanel({
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   
-  const insets = useSafeAreaInsets();
+  const parentInsets = useSafeAreaInsets();
+  const [modalInsets, setModalInsets] = useState(() => ({
+    top: initialWindowMetrics?.insets.top ?? parentInsets.top,
+    bottom: initialWindowMetrics?.insets.bottom ?? parentInsets.bottom,
+    left: initialWindowMetrics?.insets.left ?? parentInsets.left,
+    right: initialWindowMetrics?.insets.right ?? parentInsets.right,
+  }));
+  const insets = modalInsets;
+  const footerBottomPad =
+    Platform.OS === "ios" && insets.bottom >= 24
+      ? Math.max(insets.bottom - 12, 14)
+      : Math.max(insets.bottom, 12);
   const reduceMotion = useReducedMotion();
   const screenW = Dimensions.get("window").width;
   const screenH = Dimensions.get("window").height;
@@ -231,6 +341,13 @@ export function BrowseFiltersPanel({
   const [areaQuery, setAreaQuery] = useState("");
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [sliderDragging, setSliderDragging] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({});
+
+  const toggleSection = (id: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const hasSortSection = Boolean(sortOptions && sortOptions.length > 0 && onSortChange);
   const sections = useMemo<JellySectionPillItem[]>(
@@ -255,6 +372,7 @@ export function BrowseFiltersPanel({
   const scrollRef = useRef<ScrollView>(null);
   const sectionOffsets = useRef<Record<string, number>>({});
   const scrollY = useRef(0);
+  const scrollViewportH = useRef(0);
   const maxScroll = useRef(0);
   const scrollingTo = useRef<string | null>(null);
   const jumpToken = useRef(0);
@@ -270,10 +388,9 @@ export function BrowseFiltersPanel({
     return maxScroll.current > 0 ? Math.min(raw, maxScroll.current) : raw;
   };
 
-  const jumpToSection = (id: string) => {
+  const scrollToSectionNow = (id: string, token: number) => {
+    if (jumpToken.current !== token) return;
     const y = destinationFor(id);
-    const token = ++jumpToken.current;
-    syncActiveSection(id);
     if (Math.abs(scrollY.current - y) <= 2) {
       scrollingTo.current = null;
       return;
@@ -285,6 +402,17 @@ export function BrowseFiltersPanel({
         scrollingTo.current = null;
       }
     }, 1400);
+  };
+
+  const jumpToSection = (id: string) => {
+    const token = ++jumpToken.current;
+    syncActiveSection(id);
+    if (collapsedSections[id]) {
+      setCollapsedSections((prev) => ({ ...prev, [id]: false }));
+      setTimeout(() => scrollToSectionNow(id, token), 50);
+      return;
+    }
+    scrollToSectionNow(id, token);
   };
 
   const sectionAt = (y: number, native: NativeScrollEvent): string => {
@@ -375,6 +503,7 @@ export function BrowseFiltersPanel({
     setRentError(null);
     setAreaQuery("");
     setConfirmDiscard(false);
+    setCollapsedSections({});
     scrollingTo.current = null;
     scrollY.current = 0;
     const firstId = sections[0]?.id ?? "university";
@@ -457,22 +586,28 @@ export function BrowseFiltersPanel({
   const handleApply = () => {
     const minRentUsd = parseRentDraft(draftMinRent);
     const maxRentUsd = parseRentDraft(draftMaxRent);
+    const revealRentError = (msg: string) => {
+      setRentError(msg);
+      if (collapsedSections.rent) {
+        jumpToSection("rent");
+      }
+    };
     if (
       draftMinRent.trim() !== "" &&
       minRentUsd == null
     ) {
-      setRentError("Min rent must be a positive whole number.");
+      revealRentError("Min rent must be a positive whole number.");
       return;
     }
     if (
       draftMaxRent.trim() !== "" &&
       maxRentUsd == null
     ) {
-      setRentError("Max rent must be a positive whole number.");
+      revealRentError("Max rent must be a positive whole number.");
       return;
     }
     if (minRentUsd != null && maxRentUsd != null && minRentUsd > maxRentUsd) {
-      setRentError("Min rent must be ≤ max rent.");
+      revealRentError("Min rent must be ≤ max rent.");
       return;
     }
     setRentError(null);
@@ -507,6 +642,67 @@ export function BrowseFiltersPanel({
 
   if (!mounted) return null;
 
+  const parsedMinRent = parseRentDraft(draftMinRent);
+  const parsedMaxRent = parseRentDraft(draftMaxRent);
+  const sortSummary =
+    sortOptions?.find((opt) => opt.value === sort)?.label ?? null;
+  const selectedCampus = draftSlugs[0]
+    ? universities.find((u) => u.slug === draftSlugs[0])
+    : null;
+  const universitySummary = draftSlugs[0]
+    ? selectedCampus?.institutionShortName ??
+      selectedCampus?.mapLabel ??
+      selectedCampus?.name ??
+      "1 selected"
+    : null;
+  const listingTypeSummary =
+    draftTypes.length === 1
+      ? LISTING_TYPE_LABELS[draftTypes[0]!]
+      : draftTypes.length > 1
+        ? `${draftTypes.length} selected`
+        : null;
+  const rentSummary =
+    parsedMinRent != null && parsedMaxRent != null
+      ? `$${parsedMinRent}–$${parsedMaxRent}`
+      : parsedMinRent != null
+        ? `$${parsedMinRent}+`
+        : parsedMaxRent != null
+          ? `Up to $${parsedMaxRent}`
+          : null;
+  const electricitySummary =
+    draftElectricity.length === 1
+      ? ELECTRICITY_LABELS[draftElectricity[0]!]
+      : draftElectricity.length > 1
+        ? `${draftElectricity.length} selected`
+        : null;
+  const waterSummary =
+    draftWater.length === 1
+      ? WATER_LABELS[draftWater[0]!]
+      : draftWater.length > 1
+        ? `${draftWater.length} selected`
+        : null;
+  const genderSummary =
+    draftGender.length === 1
+      ? GENDER_RESTRICTION_LABELS[draftGender[0]!]
+      : draftGender.length > 1
+        ? `${draftGender.length} selected`
+        : null;
+  const extrasCount = (draftWifi ? 1 : 0) + (draftStudentsOnly ? 1 : 0);
+  const extrasSummary =
+    extrasCount === 2
+      ? "2 selected"
+      : draftWifi
+        ? "Wi‑Fi"
+        : draftStudentsOnly
+          ? "Students only"
+          : null;
+  const areaSummary =
+    draftAreas.length === 1
+      ? draftAreas[0]!
+      : draftAreas.length > 1
+        ? `${draftAreas.length} selected`
+        : null;
+
   return (
     <Modal
       visible={mounted}
@@ -515,7 +711,19 @@ export function BrowseFiltersPanel({
       statusBarTranslucent
       onRequestClose={handleRequestClose}
     >
-      <View style={[styles.backdrop, isSheet && styles.backdropSheet]}>
+      <SafeAreaListener
+        style={[styles.backdrop, isSheet && styles.backdropSheet]}
+        onChange={({ insets: next }) =>
+          setModalInsets((current) =>
+            current.top === next.top &&
+            current.bottom === next.bottom &&
+            current.left === next.left &&
+            current.right === next.right
+              ? current
+              : next,
+          )
+        }
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Dismiss filters"
@@ -527,7 +735,6 @@ export function BrowseFiltersPanel({
             isSheet ? styles.panelSheet : styles.panel,
             {
               paddingTop: isSheet ? 8 : insets.top + 8,
-              paddingBottom: isSheet ? 20 : Math.max(insets.bottom, 12),
               transform: isSheet
                 ? [{ translateY: slide }]
                 : [{ translateX: slide }],
@@ -565,19 +772,30 @@ export function BrowseFiltersPanel({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             scrollEnabled={!sliderDragging}
+            onLayout={(e) => {
+              scrollViewportH.current = e.nativeEvent.layout.height;
+            }}
+            onContentSizeChange={(_, h) => {
+              if (scrollViewportH.current > 0) {
+                maxScroll.current = Math.max(0, h - scrollViewportH.current);
+              }
+            }}
             onScroll={handleFormScroll}
             scrollEventThrottle={16}
           >
             {sortOptions && sortOptions.length > 0 && onSortChange ? (
-              <View
-                style={styles.blockSection}
-                onLayout={(e) => {
-                  sectionOffsets.current.sort = e.nativeEvent.layout.y;
+              <FilterSection
+                id="sort"
+                title="Sort"
+                summary={collapsedSections.sort ? sortSummary : null}
+                collapsed={Boolean(collapsedSections.sort)}
+                onToggle={() => toggleSection("sort")}
+                first
+                reduceMotion={reduceMotion}
+                onLayout={(y) => {
+                  sectionOffsets.current.sort = y;
                 }}
               >
-                <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                  Sort
-                </LText>
                 <View style={styles.chipWrap}>
                   {sortOptions.map((opt) => {
                     const on = sort === opt.value;
@@ -599,18 +817,21 @@ export function BrowseFiltersPanel({
                     );
                   })}
                 </View>
-              </View>
+              </FilterSection>
             ) : null}
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.university = e.nativeEvent.layout.y;
+            <FilterSection
+              id="university"
+              title="University"
+              summary={universitySummary}
+              collapsed={Boolean(collapsedSections.university)}
+              onToggle={() => toggleSection("university")}
+              first={!hasSortSection}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.university = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                University
-              </LText>
               <LText variant="caption" tone="muted" style={styles.sectionHint}>
                 Pick a university, then a campus. Required to search near
                 campus.
@@ -624,17 +845,19 @@ export function BrowseFiltersPanel({
                   setDraftSlugs(slug ? [slug] : [])
                 }
               />
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.listingType = e.nativeEvent.layout.y;
+            <FilterSection
+              id="listingType"
+              title="Listing type"
+              summary={listingTypeSummary}
+              collapsed={Boolean(collapsedSections.listingType)}
+              onToggle={() => toggleSection("listingType")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.listingType = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Listing type
-              </LText>
               <View style={styles.chipWrap}>
                 {LISTING_TYPE_OPTIONS.map((key) => {
                   const on = draftTypes.includes(key);
@@ -660,20 +883,22 @@ export function BrowseFiltersPanel({
                   );
                 })}
               </View>
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.rent = e.nativeEvent.layout.y;
+            <FilterSection
+              id="rent"
+              title="Rent (USD / month)"
+              summary={rentSummary}
+              collapsed={Boolean(collapsedSections.rent)}
+              onToggle={() => toggleSection("rent")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.rent = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Rent (USD / month)
-              </LText>
               <BudgetHistogramSlider
-                minRentUsd={parseRentDraft(draftMinRent)}
-                maxRentUsd={parseRentDraft(draftMaxRent)}
+                minRentUsd={parsedMinRent}
+                maxRentUsd={parsedMaxRent}
                 histogram={priceHistogram}
                 error={rentError}
                 onDragStateChange={setSliderDragging}
@@ -683,17 +908,19 @@ export function BrowseFiltersPanel({
                   setRentError(null);
                 }}
               />
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.electricity = e.nativeEvent.layout.y;
+            <FilterSection
+              id="electricity"
+              title="Electricity"
+              summary={electricitySummary}
+              collapsed={Boolean(collapsedSections.electricity)}
+              onToggle={() => toggleSection("electricity")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.electricity = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Electricity
-              </LText>
               <View style={styles.chipWrap}>
                 {ELECTRICITY_OPTIONS.map((key) => {
                   const on = draftElectricity.includes(key);
@@ -719,17 +946,19 @@ export function BrowseFiltersPanel({
                   );
                 })}
               </View>
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.water = e.nativeEvent.layout.y;
+            <FilterSection
+              id="water"
+              title="Water"
+              summary={waterSummary}
+              collapsed={Boolean(collapsedSections.water)}
+              onToggle={() => toggleSection("water")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.water = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Water
-              </LText>
               <View style={styles.chipWrap}>
                 {WATER_OPTIONS.map((key) => {
                   const on = draftWater.includes(key);
@@ -755,17 +984,19 @@ export function BrowseFiltersPanel({
                   );
                 })}
               </View>
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.gender = e.nativeEvent.layout.y;
+            <FilterSection
+              id="gender"
+              title="Gender"
+              summary={genderSummary}
+              collapsed={Boolean(collapsedSections.gender)}
+              onToggle={() => toggleSection("gender")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.gender = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Gender
-              </LText>
               <LText variant="caption" tone="muted" style={styles.sectionHint}>
                 Leave empty for any gender.
               </LText>
@@ -794,17 +1025,19 @@ export function BrowseFiltersPanel({
                   );
                 })}
               </View>
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.extras = e.nativeEvent.layout.y;
+            <FilterSection
+              id="extras"
+              title="Extras"
+              summary={extrasSummary}
+              collapsed={Boolean(collapsedSections.extras)}
+              onToggle={() => toggleSection("extras")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.extras = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Extras
-              </LText>
               <View style={styles.toggleStack}>
                 <FilterToggle
                   label="Wi‑Fi included"
@@ -817,17 +1050,19 @@ export function BrowseFiltersPanel({
                   onToggle={() => setDraftStudentsOnly((v) => !v)}
                 />
               </View>
-            </View>
+            </FilterSection>
 
-            <View
-              style={styles.blockSection}
-              onLayout={(e) => {
-                sectionOffsets.current.area = e.nativeEvent.layout.y;
+            <FilterSection
+              id="area"
+              title="Area"
+              summary={areaSummary}
+              collapsed={Boolean(collapsedSections.area)}
+              onToggle={() => toggleSection("area")}
+              reduceMotion={reduceMotion}
+              onLayout={(y) => {
+                sectionOffsets.current.area = y;
               }}
             >
-              <LText variant="label" tone="muted" style={styles.sectionLabel}>
-                Area
-              </LText>
               <LText variant="caption" tone="muted" style={styles.sectionHint}>
                 Optional — narrow results after campus is set.
               </LText>
@@ -899,10 +1134,13 @@ export function BrowseFiltersPanel({
                   </View>
                 </View>
               ))}
-            </View>
+            </FilterSection>
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View
+            testID="filters-footer"
+            style={[styles.footer, { paddingBottom: footerBottomPad }]}
+          >
             <LButton
               label="Clear"
               variant="ghost"
@@ -953,7 +1191,7 @@ export function BrowseFiltersPanel({
             </View>
           ) : null}
         </Animated.View>
-      </View>
+      </SafeAreaListener>
     </Modal>
   );
 }
@@ -1010,17 +1248,59 @@ const baseStyles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: Studently.space.lg,
-    paddingTop: Studently.space.md,
+    paddingTop: Studently.space.sm,
     paddingBottom: Studently.space.xl,
-    gap: 6,
   },
   blockSection: {
-    marginTop: Studently.space.lg,
-    gap: 6,
+    marginTop: 10,
+    paddingTop: 12,
+    paddingBottom: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Studently.color.border,
   },
-  sectionLabel: {
-    marginTop: Studently.space.sm,
-    marginBottom: 2,
+  blockSectionFirst: {
+    marginTop: 0,
+    paddingTop: 4,
+    borderTopWidth: 0,
+  },
+  blockSectionCollapsed: {
+    paddingBottom: 2,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 36,
+    gap: 10,
+    paddingVertical: 4,
+  },
+  sectionHeaderPressed: {
+    opacity: 0.7,
+  },
+  sectionHeaderLabel: {
+    flexShrink: 1,
+  },
+  sectionHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  sectionSummaryPill: {
+    backgroundColor: Studently.color.primaryMist,
+    borderRadius: Studently.radius.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 2,
+    maxWidth: 160,
+  },
+  sectionSummaryText: {
+    color: Studently.color.primary,
+    fontFamily: Studently.type.bodySemi,
+    fontSize: 12,
+  },
+  sectionBody: {
+    marginTop: 6,
+    gap: 6,
   },
   sectionHint: {
     marginBottom: 8,
@@ -1147,17 +1427,19 @@ const baseStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: Studently.space.lg,
-    paddingTop: Studently.space.md,
+    paddingHorizontal: 20,
+    paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Studently.color.border,
-    backgroundColor: Studently.color.bg,
+    backgroundColor: Studently.color.surface,
   },
   footerBtn: {
     flex: 0.4,
+    minHeight: 46,
   },
   footerBtnPrimary: {
     flex: 1,
+    minHeight: 46,
   },
   confirmLayer: {
     ...StyleSheet.absoluteFill,

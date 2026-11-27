@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,9 +13,14 @@ import {
 import * as Haptics from "expo-haptics";
 import { useUser } from "@clerk/expo";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { FadeIn } from "react-native-reanimated";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { DeviceHistoryMobileSection } from "@/components/profile/DeviceHistoryMobileSection";
+import {
+  CollapsingHeaderBar,
+  useCollapsingHeader,
+} from "@/components/ui/CollapsingHeader";
 import { Studently } from "@/constants/theme";
 import { useAuthSession } from "@/features/auth/AuthSessionProvider";
 import { syncIdentityFromClerk } from "@/features/auth/userApi";
@@ -189,6 +193,8 @@ function PersonalInfoBody({
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [deviceToast, setDeviceToast] = useState<{ key: number; message: string } | null>(null);
+  const deviceToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [code, setCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -200,17 +206,57 @@ function PersonalInfoBody({
   const [nextPassword, setNextPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const header = useCollapsingHeader({
+    defaultThreshold: 46,
+    extraTopOffset: editing ? 12 : 10,
+  });
+
+  useEffect(() => {
+    header.reset();
+  }, [editing, verify, visible, header.reset]);
+
+  const dismissDeviceToast = useCallback(() => {
+    if (deviceToastTimerRef.current) {
+      clearTimeout(deviceToastTimerRef.current);
+      deviceToastTimerRef.current = null;
+    }
+    setDeviceToast(null);
+  }, []);
+
+  const showDeviceToast = useCallback(
+    (message: string) => {
+      if (deviceToastTimerRef.current) {
+        clearTimeout(deviceToastTimerRef.current);
+      }
+      setDeviceToast({ key: Date.now(), message });
+      deviceToastTimerRef.current = setTimeout(() => {
+        setDeviceToast(null);
+        deviceToastTimerRef.current = null;
+      }, 4000);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (deviceToastTimerRef.current) {
+        clearTimeout(deviceToastTimerRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!visible) {
       setEditing(null);
       setVerify(null);
       setError(null);
       setNotice(null);
+      dismissDeviceToast();
       setCode("");
       setBusy(false);
       setResending(false);
     }
-  }, [visible]);
+  }, [visible, dismissDeviceToast]);
 
   const triggerSelectionHaptic = () => {
     if (Platform.OS !== "web") {
@@ -543,50 +589,61 @@ function PersonalInfoBody({
       ]}
     >
       {/* Top chrome */}
-      <View style={styles.topBar}>
-        {editing ? (
+      <CollapsingHeaderBar
+        controller={header}
+        title={editing ? editHeading : "Personal info"}
+        variant="bar"
+        backgroundColor={SURFACE.ground}
+        borderColor={SURFACE.divider}
+        titleColor={SURFACE.ink}
+        titleHorizontalInset={editing ? 88 : 68}
+        testID="personal-info-header"
+        left={
+          editing ? (
+            <Pressable
+              onPress={() => {
+                if (!busy) {
+                  triggerSelectionHaptic();
+                  backToOverview();
+                }
+              }}
+              disabled={busy}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Personal info"
+              style={({ pressed }) => [
+                styles.backBtn,
+                pressed && styles.pressedPill,
+              ]}
+            >
+              <Ionicons name="chevron-back" size={22} color={SURFACE.ink} />
+              <Text style={styles.backBtnText}>Back</Text>
+            </Pressable>
+          ) : undefined
+        }
+        right={
           <Pressable
             onPress={() => {
-              if (!busy) {
-                triggerSelectionHaptic();
-                backToOverview();
-              }
+              if (!busy) onClose();
             }}
             disabled={busy}
             hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Back to Personal info"
+            accessibilityLabel="Close Personal info"
             style={({ pressed }) => [
-              styles.backBtn,
+              styles.closeBtn,
               pressed && styles.pressedPill,
             ]}
           >
-            <Ionicons name="chevron-back" size={20} color={SURFACE.ink} />
-            <Text style={styles.backBtnText}>Back</Text>
+            <Ionicons name="close" size={20} color={SURFACE.ink} />
           </Pressable>
-        ) : (
-          <View style={styles.topBarSpacer} />
-        )}
-
-        <Pressable
-          onPress={() => {
-            if (!busy) onClose();
-          }}
-          disabled={busy}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Close Personal info"
-          style={({ pressed }) => [
-            styles.closeBtn,
-            pressed && styles.pressedPill,
-          ]}
-        >
-          <Ionicons name="close" size={20} color={SURFACE.ink} />
-        </Pressable>
-      </View>
+        }
+      />
 
       {!editing ? (
-        <ScrollView
+        <Animated.ScrollView
+          onScroll={header.onScroll}
+          scrollEventThrottle={header.scrollEventThrottle}
           contentContainerStyle={[
             styles.scrollContent,
             { paddingBottom: Math.max(36, insets.bottom + 24) },
@@ -599,9 +656,13 @@ function PersonalInfoBody({
             {/* Editorial Masthead */}
             <View style={styles.masthead}>
               <View style={styles.mastheadCopy}>
-                <Text style={styles.displayTitle} accessibilityRole="header">
+                <Animated.Text
+                  style={[styles.displayTitle, header.largeTitleStyle]}
+                  onLayout={header.onLargeTitleLayout}
+                  accessibilityRole="header"
+                >
                   Personal info
-                </Text>
+                </Animated.Text>
                 <Text style={styles.mastheadMeta}>
                   {memberSince
                     ? `Member since ${memberSince} · Synced across devices`
@@ -620,7 +681,7 @@ function PersonalInfoBody({
               <View style={styles.successBanner} accessibilityRole="text">
                 <Ionicons
                   name="checkmark-circle"
-                  size={18}
+                  size={20}
                   color={SURFACE.verifiedInk}
                 />
                 <Text style={styles.successText}>{notice}</Text>
@@ -631,7 +692,7 @@ function PersonalInfoBody({
               <View style={styles.errorBanner} accessibilityRole="alert">
                 <Ionicons
                   name="alert-circle-outline"
-                  size={18}
+                  size={20}
                   color={Studently.color.danger}
                 />
                 <Text style={styles.errorText}>{error}</Text>
@@ -700,11 +761,18 @@ function PersonalInfoBody({
               ) : null}
             </View>
 
+            {/* Section 3: Device History */}
+            <DeviceHistoryMobileSection
+              enabled={visible && !editing}
+              variant="modal"
+              onLoggedOut={showDeviceToast}
+            />
+
             {/* Trust Footer */}
             <View style={styles.trustNote}>
               <Ionicons
                 name="shield-checkmark-outline"
-                size={18}
+                size={20}
                 color={SURFACE.muted}
                 style={styles.trustIcon}
               />
@@ -714,10 +782,12 @@ function PersonalInfoBody({
               </Text>
             </View>
           </Animated.View>
-        </ScrollView>
+        </Animated.ScrollView>
       ) : (
         <>
-          <ScrollView
+          <Animated.ScrollView
+            onScroll={header.onScroll}
+            scrollEventThrottle={header.scrollEventThrottle}
             contentContainerStyle={styles.editScrollContent}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
@@ -729,9 +799,13 @@ function PersonalInfoBody({
               style={styles.editContainer}
             >
               <View style={styles.editHeader}>
-                <Text style={styles.editTitle} accessibilityRole="header">
+                <Animated.Text
+                  style={[styles.editTitle, header.largeTitleStyle]}
+                  onLayout={header.onLargeTitleLayout}
+                  accessibilityRole="header"
+                >
                   {editHeading}
-                </Text>
+                </Animated.Text>
                 <Text style={styles.editDescription}>{editDescription}</Text>
               </View>
 
@@ -872,14 +946,14 @@ function PersonalInfoBody({
                 <View style={styles.errorBanner} accessibilityRole="alert">
                   <Ionicons
                     name="alert-circle-outline"
-                    size={18}
+                    size={20}
                     color={Studently.color.danger}
                   />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               ) : null}
             </Animated.View>
-          </ScrollView>
+          </Animated.ScrollView>
 
           {/* Sticky Footer Action Bar */}
           <View
@@ -916,6 +990,40 @@ function PersonalInfoBody({
           </View>
         </>
       )}
+
+      {deviceToast ? (
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.modalToastHost,
+            { top: Platform.OS === "ios" ? 16 : insets.top + 12 },
+          ]}
+        >
+          <Animated.View
+            key={deviceToast.key}
+            entering={reducedMotion ? undefined : FadeIn.duration(180)}
+            exiting={reducedMotion ? undefined : FadeOut.duration(150)}
+            style={styles.modalToastCard}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            testID="device-logout-toast"
+          >
+            <Text style={styles.modalToastText} numberOfLines={2}>
+              {deviceToast.message}
+            </Text>
+            <Pressable
+              onPress={dismissDeviceToast}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss"
+              hitSlop={8}
+              style={styles.modalToastDismiss}
+            >
+              <Text style={styles.modalToastDismissText}>Dismiss</Text>
+            </Pressable>
+            <View pointerEvents="none" style={styles.modalToastAccent} />
+          </Animated.View>
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -969,7 +1077,7 @@ function EditorialRow({
             <View style={styles.verifiedPill}>
               <Ionicons
                 name="checkmark-circle"
-                size={13}
+                size={14}
                 color={SURFACE.verifiedInk}
               />
               <Text style={styles.verifiedText}>Verified</Text>
@@ -1118,18 +1226,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SURFACE.ground,
   },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-  topBarSpacer: {
-    width: 44,
-    height: 44,
-  },
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1140,7 +1236,7 @@ const styles = StyleSheet.create({
   },
   backBtnText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 15,
+    fontSize: 16,
     color: SURFACE.ink,
   },
   closeBtn: {
@@ -1173,28 +1269,28 @@ const styles = StyleSheet.create({
   },
   displayTitle: {
     fontFamily: Studently.type.display,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -0.7,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.8,
     color: SURFACE.ink,
   },
   mastheadMeta: {
     fontFamily: Studently.type.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: SURFACE.muted,
   },
   monogram: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: SURFACE.ink,
     alignItems: "center",
     justifyContent: "center",
   },
   monogramText: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 16,
+    fontSize: 18,
     letterSpacing: 0.5,
     color: "#FFFFFF",
   },
@@ -1202,9 +1298,9 @@ const styles = StyleSheet.create({
   // Sections & Full-Width Editorial Rows
   sectionHeading: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0.2,
+    fontSize: 15,
+    lineHeight: 21,
+    letterSpacing: 0.1,
     color: SURFACE.muted,
     marginTop: 8,
     marginBottom: 10,
@@ -1217,15 +1313,15 @@ const styles = StyleSheet.create({
     borderTopColor: SURFACE.divider,
   },
   editorialRow: {
-    paddingVertical: 18,
-    minHeight: 72,
+    paddingVertical: 20,
+    minHeight: 78,
     justifyContent: "center",
     gap: 6,
     marginHorizontal: -24,
     paddingHorizontal: 24,
   },
   staticRow: {
-    paddingVertical: 18,
+    paddingVertical: 20,
     gap: 6,
   },
   rowBorderBottom: {
@@ -1242,15 +1338,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rowLabel: {
+    flexShrink: 1,
     fontFamily: Studently.type.bodySemi,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 24,
     color: SURFACE.ink,
   },
   rowAction: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
     color: SURFACE.ink,
     textDecorationLine: "underline",
   },
@@ -1266,39 +1363,39 @@ const styles = StyleSheet.create({
   },
   rowValue: {
     fontFamily: Studently.type.body,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 23,
     color: SURFACE.muted,
   },
   rowPlaceholder: {
     fontFamily: Studently.type.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
     color: SURFACE.faint,
   },
   verifiedPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
     borderRadius: Studently.radius.pill,
     backgroundColor: SURFACE.verifiedBg,
   },
   verifiedText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 11,
+    fontSize: 13,
     color: SURFACE.verifiedInk,
   },
   connectedChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: Studently.radius.pill,
     backgroundColor: SURFACE.subtle,
   },
   connectedChipText: {
     fontFamily: Studently.type.bodyMedium,
-    fontSize: 12,
+    fontSize: 13,
     color: SURFACE.muted,
   },
 
@@ -1318,8 +1415,8 @@ const styles = StyleSheet.create({
   trustText: {
     flex: 1,
     fontFamily: Studently.type.body,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 21,
     color: SURFACE.muted,
   },
 
@@ -1337,15 +1434,15 @@ const styles = StyleSheet.create({
   },
   editTitle: {
     fontFamily: Studently.type.display,
-    fontSize: 28,
-    lineHeight: 34,
-    letterSpacing: -0.6,
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -0.7,
     color: SURFACE.ink,
   },
   editDescription: {
     fontFamily: Studently.type.body,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     color: SURFACE.muted,
   },
   formStack: {
@@ -1356,20 +1453,20 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 14,
+    fontSize: 15,
     color: SURFACE.ink,
   },
   fieldHint: {
     fontFamily: Studently.type.body,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: SURFACE.muted,
   },
   input: {
     fontFamily: Studently.type.body,
-    fontSize: 16,
+    fontSize: 17,
     color: SURFACE.ink,
-    minHeight: 52,
+    minHeight: 54,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: SURFACE.border,
@@ -1386,11 +1483,11 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 26,
+    fontSize: 28,
     letterSpacing: 8,
     textAlign: "center",
     color: SURFACE.ink,
-    minHeight: 60,
+    minHeight: 62,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: SURFACE.border,
@@ -1410,18 +1507,18 @@ const styles = StyleSheet.create({
   },
   inlineActionStrong: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 14,
+    fontSize: 15,
     color: SURFACE.ink,
     textDecorationLine: "underline",
   },
   inlineActionMuted: {
     fontFamily: Studently.type.bodyMedium,
-    fontSize: 14,
+    fontSize: 15,
     color: SURFACE.muted,
   },
   codeDot: {
     color: SURFACE.faint,
-    fontSize: 14,
+    fontSize: 15,
   },
   pressedText: {
     opacity: 0.65,
@@ -1433,7 +1530,7 @@ const styles = StyleSheet.create({
   },
   showHide: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 13,
+    fontSize: 14,
     color: SURFACE.ink,
     textDecorationLine: "underline",
   },
@@ -1452,7 +1549,7 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE.ground,
   },
   primaryBtn: {
-    minHeight: 52,
+    minHeight: 54,
     borderRadius: 12,
     backgroundColor: SURFACE.ink,
     alignItems: "center",
@@ -1467,7 +1564,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 16,
+    fontSize: 17,
     color: "#FFFFFF",
   },
   primaryBtnTextDisabled: {
@@ -1488,7 +1585,7 @@ const styles = StyleSheet.create({
   successText: {
     flex: 1,
     fontFamily: Studently.type.bodyMedium,
-    fontSize: 14,
+    fontSize: 15,
     color: SURFACE.verifiedInk,
   },
   errorBanner: {
@@ -1506,8 +1603,61 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontFamily: Studently.type.bodyMedium,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 20,
     color: Studently.color.danger,
+  },
+  modalToastHost: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  modalToastCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  modalToastText: {
+    flex: 1,
+    color: "#121826",
+    fontFamily: Studently.type.bodyMedium,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  modalToastDismiss: {
+    height: 26,
+    paddingHorizontal: 9,
+    borderRadius: 5,
+    backgroundColor: "#121826",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalToastDismissText: {
+    color: "#FFFFFF",
+    fontFamily: Studently.type.bodyMedium,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  modalToastAccent: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 2,
+    backgroundColor: Studently.color.primary,
   },
 });

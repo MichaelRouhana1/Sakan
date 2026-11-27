@@ -9,7 +9,7 @@ import {favoriteColor,favoriteIdleColor,favoritePulse,type FavoriteButtonProps} 
 
 const HEART = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z';
 
-export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,iconSize=20,variant='default',style}:FavoriteButtonProps) {
+export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,iconSize=20,idleColor=favoriteIdleColor,variant='default',style}:FavoriteButtonProps) {
   const reduced=useReducedMotion();
   const [shown,setShown]=useState(saved);
   const previous=useRef(saved);
@@ -56,7 +56,7 @@ export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,
             />
           </Svg>
         ) : (
-          <Ionicons name={shown?'heart':'heart-outline'} size={iconSize} color={shown?favoriteColor:favoriteIdleColor}/>
+          <Ionicons name={shown?'heart':'heart-outline'} size={iconSize} color={shown?favoriteColor:idleColor}/>
         )}
       </Animated.View>
     </Animated.View>

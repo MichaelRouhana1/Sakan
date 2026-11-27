@@ -1,12 +1,14 @@
 import { useDesktopDesign, useLayoutWidth } from "@/components/ui/DesktopDesign";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useIsFocused } from 'expo-router/react-navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { publishListingFeedback } from '@/features/saved/savedToast';
+import { CollapsingHeaderBar, useCollapsingHeader } from '@/components/ui/CollapsingHeader';
 import { SquishSwitch } from '@/components/ui/SquishSwitch';
 import { RubberSegment } from '@/components/ui/RubberSegment';
 import { Studently } from '@/constants/theme';
@@ -92,6 +94,12 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
     return out;
   }, [groups]);
   const narrow = layoutWidth < 600;
+  const mobileHeaderEnabled = Platform.OS !== 'web';
+  const mobileHeader = useCollapsingHeader({
+    defaultThreshold: 50,
+    extraTopOffset: 16,
+    enabled: mobileHeaderEnabled,
+  });
   const known = !loading && (!failed || units.length > 0);
   const placeCount = useMemo(() => new Set(units.map(unit => unit.placeId ?? unit.id)).size, [units]);
   const shortage = units.length > 0 && credits.data?.postCredits === 0;
@@ -171,9 +179,9 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
   const walletCluster = <View style={[s.wallet, narrow && { gap: 8 }]}><View style={s.walletLabel}><Ionicons name="wallet-outline" size={designSize(17)} color={Studently.color.inkMuted} /><Text style={s.smallBold}>{credits.data ? `${credits.data.postCredits} post credits` : credits.isError ? 'Balance unavailable' : 'Checking credits…'}</Text></View><Pressable accessibilityRole="button" onPress={() => router.push('/hosting/credits' as never)} style={s.touch}><Text style={s.textLink}>Buy credits</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Reminder settings" onPress={() => open({ kind: 'reminders' })} style={s.touch}><Text style={s.captionLink}>Reminders</Text></Pressable></View>;
 
   return <View style={s.root} onLayout={event => setWidth(event.nativeEvent.layout.width)} testID="listings-workspace" aria-busy={loading || refreshing}>
-    <ScrollView keyboardShouldPersistTaps="handled" stickyHeaderIndices={narrow ? undefined : [1]} refreshControl={<RefreshControl refreshing={manualRefresh && !loading} onRefresh={refetch} tintColor={Studently.color.primary} />} contentContainerStyle={s.scroll}>
+    <Animated.ScrollView onScroll={mobileHeaderEnabled ? mobileHeader.onScroll : undefined} scrollEventThrottle={mobileHeaderEnabled ? mobileHeader.scrollEventThrottle : undefined} keyboardShouldPersistTaps="handled" stickyHeaderIndices={narrow ? undefined : [1]} refreshControl={<RefreshControl refreshing={manualRefresh && !loading} onRefresh={refetch} tintColor={Studently.color.primary} />} contentContainerStyle={s.scroll}>
       <View style={[s.summary, narrow && s.summaryNarrow]}>
-        <View style={s.headingRow}><View style={s.flex}>{!narrow ? <Text style={s.eyebrow}>HOST WORKSPACE</Text> : null}<Text style={s.title}>Your listings</Text></View><Button label="Add listing" icon="add" primary onPress={() => open({ kind: 'add' })} disabled={createDisabled} /></View>
+        <View style={s.headingRow}><View style={s.flex}>{!narrow ? <Text style={s.eyebrow}>HOST WORKSPACE</Text> : null}<Animated.Text style={[s.title, mobileHeaderEnabled && mobileHeader.largeTitleStyle]} onLayout={mobileHeaderEnabled ? mobileHeader.onLargeTitleLayout : undefined}>Your listings</Animated.Text></View><Button label="Add listing" icon="add" primary onPress={() => open({ kind: 'add' })} disabled={createDisabled} /></View>
         <View style={s.summaryBottom}>
           <View style={s.metrics}>
             <Metric value={known ? counts.Live : null} label="Live" onPress={() => setFilter('Live')} />
@@ -234,7 +242,8 @@ export function HostListingsWorkspace({ listings, drafts, loading, failed, refre
           })}
         </View> : null}
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
+    {mobileHeaderEnabled ? <CollapsingHeaderBar controller={mobileHeader} title="Your listings" variant="overlay" backgroundColor="#FFFFFF" borderColor="#ECEAE6" titleColor="#1A1A1A" testID="host-listings-collapsing-header" /> : null}
 
     {notice ? <View accessibilityLiveRegion="polite" style={s.toast} testID="listings-toast"><Text style={[s.small,s.flex]}>{notice}</Text><IconButton label="Dismiss message" icon="close" onPress={() => setNotice('')} /></View> : null}
     <WorkspaceSheet sheet={sheet} onClose={close}>

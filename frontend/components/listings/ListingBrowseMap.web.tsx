@@ -94,6 +94,8 @@ type Props = {
   focusCampusSlug?: string | null;
   /** Area / suggestion center — pan map (browse search). */
   focusPoint?: { lat: number; lng: number } | null;
+  /** Open map with a specific listing pre-selected (mobile card map button). */
+  focusListingRequest?: { id: string; nonce: number } | null;
   /** When pane is shown after keep-alive hide, trigger resize. */
   active?: boolean;
   /** Confirm switch from an unselected campus pin. */
@@ -283,6 +285,7 @@ export function ListingBrowseMap({
   onHoverFlyComplete,
   focusCampusSlug = null,
   focusPoint = null,
+  focusListingRequest = null,
   active = true,
   onSelectCampus,
 }: Props) {
@@ -525,6 +528,63 @@ export function ListingBrowseMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- membership reset only
   }, [listingIdsKey, campusesKey, universityMode]);
 
+  const handledFocusNonceRef = useRef<number | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    const camera = cameraRef.current;
+    if (!focusListingRequest || !active || !mapReady || !map || !camera) return;
+    if (handledFocusNonceRef.current === focusListingRequest.nonce) return;
+    const listing = mappable.find((item) => item.id === focusListingRequest.id);
+    if (!listing) return;
+    const group = groups.find((item) =>
+      item.listings.some((member) => member.id === listing.id),
+    );
+    if (!group) return;
+    handledFocusNonceRef.current = focusListingRequest.nonce;
+    stickyPreviewListingIdRef.current = listing.id;
+    uniCameraRanForListingRef.current = listing.id;
+    hoverCamLockUntilRef.current = Date.now() + HOVER_CAM_LOCK_MS;
+    setRouteListingId(listing.id);
+    setSheet({ kind: "preview", listingId: listing.id });
+    const intent = camera.begin("selection");
+    intent.after(0, () => {
+      map.resize();
+      if (!mapHasSize(map)) {
+        intent.cancel();
+        return;
+      }
+      const campus = universityModeRef.current
+        ? resolveNearestCampus(listing, campusesRef.current)
+        : null;
+      const targetZoom = campus
+        ? pinSelectZoomForCampusDistance(
+            listing.distanceMeters ??
+              calculateDistanceMeters(
+                campus.lat,
+                campus.lng,
+                group.lat,
+                group.lng,
+              ),
+          )
+        : PIN_SELECT_MIN_ZOOM;
+      const offsetY = mobileWebRef.current
+        ? -map.getContainer().clientHeight * 0.18
+        : 0;
+      intent.run([
+        (data) =>
+          map.easeTo(
+            {
+              center: toLngLat(group),
+              zoom: targetZoom,
+              ...(offsetY ? { offset: [0, offsetY] as [number, number] } : {}),
+              duration: reduceMotionRef.current ? 0 : PIN_SELECT_PAN_MS,
+            },
+            data,
+          ),
+      ]);
+    });
+  }, [focusListingRequest, active, mapReady, mappable, groups]);
+
   const sheetOpen = sheet.kind !== "none";
   const mobileGroup = mobileWeb && sheet.kind === "preview"
     ? groups.find((group) => group.listings.some((listing) => listing.id === sheet.listingId)) ?? null
@@ -573,8 +633,13 @@ export function ListingBrowseMap({
     [campuses, focusCampusSlug],
   );
   const beaconCampus = universityMode ? (focusCampus ?? campuses[0] ?? null) : null;
-  const focusKey = universityMode && focusCampusSlug ? JSON.stringify([mapLocationKey, "campus", focusCampusSlug])
-    : !focusCampusSlug && focusPoint ? JSON.stringify([mapLocationKey, "point", focusPoint.lng, focusPoint.lat]) : null;
+  const focusKey = focusListingRequest
+    ? null
+    : universityMode && focusCampusSlug
+      ? JSON.stringify([mapLocationKey, "campus", focusCampusSlug])
+      : !focusCampusSlug && focusPoint
+        ? JSON.stringify([mapLocationKey, "point", focusPoint.lng, focusPoint.lat])
+        : null;
 
   useEffect(() => {
     if (!focusKey) { focusIntentRef.current?.intent.cancel(); focusIntentRef.current = null; return; }
@@ -1503,7 +1568,7 @@ export function ListingBrowseMap({
 
   const fitKey = mapLocationKey;
   useEffect(() => {
-    if (focusCampusSlug || focusPoint) { fitIntentKeyRef.current = null; return; }
+    if (focusCampusSlug || focusPoint || focusListingRequest) { fitIntentKeyRef.current = null; return; }
     const map = mapRef.current;
     const camera = cameraRef.current;
     if (!mapReady || !active || loading || !map || !camera || fitIntentKeyRef.current === fitKey) return;
@@ -1534,7 +1599,7 @@ export function ListingBrowseMap({
     return () => intent.cancel();
     // Initial/geographic search intent only. Wait for its complete result snapshot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapReady, active, loading, fitKey, focusCampusSlug, focusPoint?.lat, focusPoint?.lng]);
+  }, [mapReady, active, loading, fitKey, focusCampusSlug, focusPoint?.lat, focusPoint?.lng, focusListingRequest]);
 
   const canToggleExpand = Boolean(onExpandedChange) && !fillContainer;
   const showLoading = !mapReady && !tokenMissing;

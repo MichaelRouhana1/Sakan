@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ListingAmberPillView } from "@/components/listings/ListingAmberPill";
 import { ListingAvailabilityBadge } from "@/components/listings/ListingAvailabilityBadge";
 import { ListingCardCarousel } from "@/components/listings/ListingCardCarousel";
+import { ListingMapThumbButton } from "@/components/listings/ListingMapThumbButton";
 import { useCarouselListScroll } from "@/components/listings/carouselListScroll";
 import {
   ListingFeatureBadge,
@@ -64,6 +65,8 @@ type Props = {
   badgeMaxRows?: number;
   /** Grid title clamp. Homepage desktop uses 2; other surfaces stay on one line. */
   titleLines?: number;
+  /** Mobile browse only: opens the map with this listing selected. */
+  onOpenMap?: (listing: Listing) => void;
 };
 
 /** Matches the list and compact grid pill metrics, including the row gap. */
@@ -406,6 +409,7 @@ export function ListingResultCard({
   badgeMaxRows,
   match,
   titleLines = 1,
+  onOpenMap,
 }: Props) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
@@ -472,6 +476,14 @@ export function ListingResultCard({
     (listing.reviewCount ?? 0) > 0 &&
     listing.rating != null &&
     Number.isFinite(listing.rating);
+  const canOpenMap = Boolean(
+    interactive &&
+      onOpenMap &&
+      listing.lat != null &&
+      listing.lng != null &&
+      Number.isFinite(listing.lat) &&
+      Number.isFinite(listing.lng),
+  );
 
   const onCardLayout = match?.top
     ? (event: { nativeEvent: { layout: { width: number } } }) => {
@@ -604,6 +616,13 @@ export function ListingResultCard({
               fill
             />
             <ImageCornerBadge listing={listing} variant="list" />
+            {canOpenMap ? (
+              <ListingMapThumbButton
+                accessibilityLabel={`Show ${title} on map`}
+                onPress={() => onOpenMap?.(listing)}
+                style={styles.gridMapThumb}
+              />
+            ) : null}
           </View>
 
           {renderListBadges ? (
@@ -661,6 +680,14 @@ export function ListingResultCard({
         />
 
         <ImageCornerBadge listing={listing} variant="grid" />
+
+        {canOpenMap ? (
+          <ListingMapThumbButton
+            accessibilityLabel={`Show ${title} on map`}
+            onPress={() => onOpenMap?.(listing)}
+            style={styles.gridMapThumb}
+          />
+        ) : null}
       </View>
 
       <GridCardBody
@@ -941,6 +968,12 @@ const baseStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CARD_BORDER,
     boxShadow: "0 2px 6px rgba(18, 24, 38, 0.12)",
+  },
+  gridMapThumb: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+    zIndex: 10,
   },
   gridBody: {
     backgroundColor: "#FFFFFF",

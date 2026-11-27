@@ -90,6 +90,8 @@ type Props = {
   focusCampusSlug?: string | null;
   /** Area / suggestion center — pan map (browse search). */
   focusPoint?: { lat: number; lng: number } | null;
+  /** Open map with a specific listing pre-selected (mobile card map button). */
+  focusListingRequest?: { id: string; nonce: number } | null;
   /** Confirm switch from an unselected campus pin. */
   onSelectCampus?: (campus: CampusMeta) => void;
 };
@@ -369,6 +371,7 @@ export function ListingBrowseMap({
   onOpenListing,
   focusCampusSlug = null,
   focusPoint = null,
+  focusListingRequest = null,
   onSelectCampus,
 }: Props) {
   const mapRef = useRef<MapView | null>(null);
@@ -779,7 +782,7 @@ export function ListingBrowseMap({
 
   useEffect(() => {
     if (!mapReady) return;
-    if (focusCampusSlug || focusPoint) return;
+    if (focusCampusSlug || focusPoint || focusListingRequest) return;
     if (groups.length === 0 && !(universityMode && campuses.length > 0)) {
       return;
     }
@@ -817,10 +820,11 @@ export function ListingBrowseMap({
     focusCampusSlug,
     focusPoint?.lat,
     focusPoint?.lng,
+    focusListingRequest,
   ]);
 
   useEffect(() => {
-    if (!mapReady || !universityMode || !focusCampusSlug) return;
+    if (!mapReady || !universityMode || !focusCampusSlug || focusListingRequest) return;
     const campus = campuses.find((c) => c.slug === focusCampusSlug);
     if (!campus) return;
     focusCampusOnMap(campus);
@@ -831,6 +835,7 @@ export function ListingBrowseMap({
     focusCampusSlug,
     campuses.find((c) => c.slug === focusCampusSlug)?.lng,
     campuses.find((c) => c.slug === focusCampusSlug)?.lat,
+    focusListingRequest,
   ]);
 
   useEffect(() => {
@@ -838,7 +843,7 @@ export function ListingBrowseMap({
   }, [focusCampusSlug, universityMode]);
 
   useEffect(() => {
-    if (!mapReady || !focusPoint || focusCampusSlug) return;
+    if (!mapReady || !focusPoint || focusCampusSlug || focusListingRequest) return;
     const target = regionForListingFocus(
       focusPoint.lat,
       focusPoint.lng,
@@ -849,7 +854,7 @@ export function ListingBrowseMap({
     );
     scheduleAnim(target, 450);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fly when area/point target changes
-  }, [mapReady, focusPoint?.lat, focusPoint?.lng, focusCampusSlug]);
+  }, [mapReady, focusPoint?.lat, focusPoint?.lng, focusCampusSlug, focusListingRequest]);
 
   function markMarkerPress() {
     ignoreNextMapPress.current = true;
@@ -1075,6 +1080,17 @@ export function ListingBrowseMap({
     flyTimersRef.current.push(t);
   }
 
+  const handledFocusNonceRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!focusListingRequest || !mapReady) return;
+    if (handledFocusNonceRef.current === focusListingRequest.nonce) return;
+    const listing = mappable.find((item) => item.id === focusListingRequest.id);
+    if (!listing) return;
+    handledFocusNonceRef.current = focusListingRequest.nonce;
+    openCarousel(listing.id, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- openCarousel consumes latest mappable/region
+  }, [focusListingRequest, mapReady, mappable]);
+
   function onGroupPress(group: MapPinGroup) {
     markMarkerPress();
     const listing = group.listings[0];
@@ -1127,7 +1143,10 @@ export function ListingBrowseMap({
   }
 
   const canToggleExpand = Boolean(onExpandedChange);
-  const firstCenter = groups[0] ?? campuses[0];
+  const focusedTarget = focusListingRequest
+    ? mappable.find((item) => item.id === focusListingRequest.id) ?? null
+    : null;
+  const firstCenter = focusedTarget ?? groups[0] ?? campuses[0];
   const initialRegion = regionAtZoom11(
     firstCenter?.lat ?? 33.8938,
     firstCenter?.lng ?? 35.5018,

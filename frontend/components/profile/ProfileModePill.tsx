@@ -72,7 +72,7 @@ export function ProfileModePill({ mode, onRequireAuth, webFixed = false }: Props
         pressed && styles.floatingPillPressed,
       ]}
     >
-      <Ionicons name={icon} size={18} color="#ffffff" />
+      <Ionicons name={icon} size={19} color="#ffffff" />
       <Text style={styles.floatingPillText}>{label}</Text>
     </Pressable>
   );
@@ -102,9 +102,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     backgroundColor: "#111928",
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    borderRadius: 26,
     ...studentlyShadow({ color: "#000000", y: 4, blur: 10, opacity: 0.25, elevation: 8 }),
     zIndex: 99,
     ...(Platform.OS === "web" ? ({ cursor: "pointer" } as unknown as ViewStyle) : {}),
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   floatingPillText: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 14,
+    fontSize: 15,
     color: "#ffffff",
     fontWeight: "700",
   },

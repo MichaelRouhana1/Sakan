@@ -113,6 +113,11 @@ export function FindBrowse() {
   };
   const [mapOpen, setMapOpen] = useState(false);
   const [mapMounted, setMapMounted] = useState(false);
+  const mapFocusSeqRef = useRef(0);
+  const [mapFocusListing, setMapFocusListing] = useState<{
+    id: string;
+    nonce: number;
+  } | null>(null);
   const [hoveredListingId, setHoveredListingId] = useState<string | null>(null);
   const [hoverFlyListingId, setHoverFlyListingId] = useState<string | null>(
     null,
@@ -136,6 +141,7 @@ export function FindBrowse() {
 
   const resetSearch = useCallback(() => {
     setFocusPoint(null);
+    setMapFocusListing(null);
     setFilters((prev) => ({
       ...prev,
       areas: [],
@@ -215,6 +221,7 @@ export function FindBrowse() {
   const openMatcher = () => { setFiltersOpen(false); browse.setOpen(true); };
   useEffect(() => {
     if (!browse.applyRevision) return;
+    setMapFocusListing(null);
     setMapOpen(false);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "instant" });
@@ -226,6 +233,7 @@ export function FindBrowse() {
 
   const switchMapCampus = useCallback(
     (campus: CampusMeta) => {
+      setMapFocusListing(null);
       const uni = universities.data?.find((u) => u.slug === campus.slug);
       setFilters((prev) => ({
         ...prev,
@@ -299,10 +307,23 @@ export function FindBrowse() {
     setFilterSection(section);
     setFiltersOpen(true);
   };
-  const clearAll = () => { browse.clear(); setFocusPoint(null); };
+  const clearAll = () => { browse.clear(); setFocusPoint(null); setMapFocusListing(null); };
+
+  const openMapGeneral = useCallback(() => {
+    setMapFocusListing(null);
+    setMapOpen(true);
+  }, []);
+
+  const openMapWithListing = useCallback((listing: Listing) => {
+    setHoveredListingId(null);
+    setHoverFlyListingId(null);
+    setMapFocusListing({ id: listing.id, nonce: ++mapFocusSeqRef.current });
+    setMapOpen(true);
+  }, []);
 
   const applyBrowseFilters = useCallback(
     (next: typeof filters) => {
+      setMapFocusListing(null);
       setFilters(next);
       const uniSlug = next.universitySlugs[0];
       if (uniSlug || next.campusId) {
@@ -501,11 +522,13 @@ export function FindBrowse() {
     [],
   );
 
+  const mobileMapButtonHandler = bp === "mobile" ? openMapWithListing : undefined;
+
   const results = (
     <View style={{ gap: 20 }}>
     {!loading && !isError && featured.length > 0 ? <>
       <LText variant="subtitle">Featured</LText>
-      <FindResultsGrid listings={featured} matches={matching ? ranked.matches : undefined} variant={cardVariant} columns={isMap || cardVariant === "list" ? 1 : isDesktop ? 3 : bp === "tablet" ? 2 : 1} onHoverListing={isMap ? onHoverListing : undefined} />
+      <FindResultsGrid listings={featured} matches={matching ? ranked.matches : undefined} variant={cardVariant} columns={isMap || cardVariant === "list" ? 1 : isDesktop ? 3 : bp === "tablet" ? 2 : 1} onHoverListing={isMap ? onHoverListing : undefined} onOpenListingOnMap={mobileMapButtonHandler} />
       <LText variant="subtitle">All results</LText>
     </> : null}
     {locationError ? <UnknownLocationState onClear={() => { setFocusPoint(null); browse.clearLocation(); }} /> : <FindResultsGrid
@@ -527,6 +550,7 @@ export function FindBrowse() {
                 : 1
       }
       onHoverListing={isMap ? onHoverListing : undefined}
+      onOpenListingOnMap={mobileMapButtonHandler}
       showDistanceSplit={showDistanceSplit}
       universityLabel={universityLabel}
     />}
@@ -580,14 +604,14 @@ export function FindBrowse() {
             {isDesktop ? (
               <FindBrowseSidebar
                 listings={mapListings}
-                onExploreMap={() => setMapOpen(true)}
+                onExploreMap={openMapGeneral}
               />
             ) : null}
           </View>
           {!isDesktop ? (
             <Pressable
               accessibilityRole="button"
-              onPress={() => setMapOpen(true)}
+              onPress={openMapGeneral}
               style={({ hovered }) => [
                 styles.mobileMapCta,
                 hovered && styles.mobileMapCtaHover,
@@ -638,10 +662,12 @@ export function FindBrowse() {
             focusPoint={
               effectiveMode === "university" ? null : focusPoint
             }
+            focusListingRequest={mapFocusListing}
             onSelectCampus={switchMapCampus}
             onClose={() => {
               setHoveredListingId(null);
               setHoverFlyListingId(null);
+              setMapFocusListing(null);
               setMapOpen(false);
             }}
           />

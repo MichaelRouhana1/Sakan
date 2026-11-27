@@ -6,7 +6,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -14,11 +13,16 @@ import {
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InstitutionCampusPicker } from "@/components/auth/InstitutionCampusPicker";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { PersonalInfoModal } from "@/components/profile/PersonalInfoModal";
 import { ProfileModePill, type ProfileMode } from "@/components/profile/ProfileModePill";
+import {
+  CollapsingHeaderBar,
+  useCollapsingHeader,
+} from "@/components/ui/CollapsingHeader";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { InstitutionLogo } from "@/components/universities/InstitutionLogo";
@@ -77,6 +81,24 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
   const [campusError, setCampusError] = useState<string | null>(null);
   const campusSaving = Boolean(savingCampusId);
 
+  const profileHeader = useCollapsingHeader({ defaultThreshold: 52 });
+  const campusHeader = useCollapsingHeader({
+    defaultThreshold: 44,
+    extraTopOffset: 8,
+  });
+  const privacyHeader = useCollapsingHeader({
+    defaultThreshold: 44,
+    extraTopOffset: 8,
+  });
+
+  useEffect(() => {
+    if (!campusOpen) campusHeader.reset();
+  }, [campusOpen, campusHeader.reset]);
+
+  useEffect(() => {
+    if (!privacyOpen) privacyHeader.reset();
+  }, [privacyOpen, privacyHeader.reset]);
+
   useEffect(() => {
     if (isSignedIn) {
       void refreshUser();
@@ -123,18 +145,25 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <HideIosTabScrollFade style={styles.scrollFadeWrap}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: appleTabScrollInset + 88 },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* SCREEN TITLE */}
-          <Text style={styles.pageTitle} accessibilityRole="header">
-            Profile
-          </Text>
+      <View style={styles.scrollStage}>
+        <HideIosTabScrollFade style={styles.scrollFadeWrap}>
+          <Animated.ScrollView
+            onScroll={profileHeader.onScroll}
+            scrollEventThrottle={profileHeader.scrollEventThrottle}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: appleTabScrollInset + 88 },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* SCREEN TITLE */}
+            <Animated.Text
+              style={[styles.pageTitle, profileHeader.largeTitleStyle]}
+              onLayout={profileHeader.onLargeTitleLayout}
+              accessibilityRole="header"
+            >
+              Profile
+            </Animated.Text>
 
           {/* IDENTITY MASTHEAD */}
           {isSignedIn ? (
@@ -168,7 +197,7 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
               </View>
               <Ionicons
                 name="chevron-forward"
-                size={18}
+                size={20}
                 color={SURFACE.faint}
               />
             </Pressable>
@@ -321,14 +350,24 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
             >
               <Ionicons
                 name="log-out-outline"
-                size={18}
+                size={20}
                 color={Studently.color.danger}
               />
               <Text style={styles.logoutText}>Log out</Text>
             </Pressable>
           ) : null}
-        </ScrollView>
-      </HideIosTabScrollFade>
+          </Animated.ScrollView>
+        </HideIosTabScrollFade>
+        <CollapsingHeaderBar
+          controller={profileHeader}
+          title="Profile"
+          variant="overlay"
+          backgroundColor={SURFACE.ground}
+          borderColor={SURFACE.divider}
+          titleColor={SURFACE.ink}
+          testID="profile-collapsing-header"
+        />
+      </View>
 
       <ProfileModePill
         mode={mode}
@@ -362,26 +401,36 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
             { paddingTop: Platform.OS === "ios" ? 10 : insets.top + 8 },
           ]}
         >
-          <View style={styles.sheetTopBar}>
-            <View style={styles.sheetTopSpacer} />
-            <Pressable
-              onPress={() => {
-                if (!campusSaving) setCampusOpen(false);
-              }}
-              disabled={campusSaving}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Close My campus"
-              style={({ pressed }) => [
-                styles.sheetCloseBtn,
-                pressed && styles.pressedOpacity,
-              ]}
-            >
-              <Ionicons name="close" size={20} color={SURFACE.ink} />
-            </Pressable>
-          </View>
+          <CollapsingHeaderBar
+            controller={campusHeader}
+            title="My campus"
+            variant="bar"
+            backgroundColor={SURFACE.ground}
+            borderColor={SURFACE.divider}
+            titleColor={SURFACE.ink}
+            testID="campus-sheet-header"
+            right={
+              <Pressable
+                onPress={() => {
+                  if (!campusSaving) setCampusOpen(false);
+                }}
+                disabled={campusSaving}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close My campus"
+                style={({ pressed }) => [
+                  styles.sheetCloseBtn,
+                  pressed && styles.pressedOpacity,
+                ]}
+              >
+                <Ionicons name="close" size={20} color={SURFACE.ink} />
+              </Pressable>
+            }
+          />
 
-          <ScrollView
+          <Animated.ScrollView
+            onScroll={campusHeader.onScroll}
+            scrollEventThrottle={campusHeader.scrollEventThrottle}
             contentContainerStyle={[
               styles.sheetScrollContent,
               { paddingBottom: Math.max(36, insets.bottom + 24) },
@@ -393,9 +442,13 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
             {campusOpen ? (
               <>
                 <View style={styles.sheetHeaderBlock}>
-                  <Text style={styles.sheetTitle} accessibilityRole="header">
+                  <Animated.Text
+                    style={[styles.sheetTitle, campusHeader.largeTitleStyle]}
+                    onLayout={campusHeader.onLargeTitleLayout}
+                    accessibilityRole="header"
+                  >
                     My campus
-                  </Text>
+                  </Animated.Text>
                   <Text style={styles.sheetSub}>
                     Personalize nearby rooms, walk times, and campus perks.
                   </Text>
@@ -480,7 +533,7 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
                 />
               </>
             ) : null}
-          </ScrollView>
+          </Animated.ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -497,23 +550,33 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
             { paddingTop: Platform.OS === "ios" ? 10 : insets.top + 8 },
           ]}
         >
-          <View style={styles.sheetTopBar}>
-            <View style={styles.sheetTopSpacer} />
-            <Pressable
-              onPress={() => setPrivacyOpen(false)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Close Privacy and data"
-              style={({ pressed }) => [
-                styles.sheetCloseBtn,
-                pressed && styles.pressedOpacity,
-              ]}
-            >
-              <Ionicons name="close" size={20} color={SURFACE.ink} />
-            </Pressable>
-          </View>
+          <CollapsingHeaderBar
+            controller={privacyHeader}
+            title="Privacy & data"
+            variant="bar"
+            backgroundColor={SURFACE.ground}
+            borderColor={SURFACE.divider}
+            titleColor={SURFACE.ink}
+            testID="privacy-sheet-header"
+            right={
+              <Pressable
+                onPress={() => setPrivacyOpen(false)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close Privacy and data"
+                style={({ pressed }) => [
+                  styles.sheetCloseBtn,
+                  pressed && styles.pressedOpacity,
+                ]}
+              >
+                <Ionicons name="close" size={20} color={SURFACE.ink} />
+              </Pressable>
+            }
+          />
 
-          <ScrollView
+          <Animated.ScrollView
+            onScroll={privacyHeader.onScroll}
+            scrollEventThrottle={privacyHeader.scrollEventThrottle}
             contentContainerStyle={[
               styles.sheetScrollContent,
               { paddingBottom: Math.max(36, insets.bottom + 24) },
@@ -521,9 +584,13 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.sheetHeaderBlock}>
-              <Text style={styles.sheetTitle} accessibilityRole="header">
+              <Animated.Text
+                style={[styles.sheetTitle, privacyHeader.largeTitleStyle]}
+                onLayout={privacyHeader.onLargeTitleLayout}
+                accessibilityRole="header"
+              >
                 Privacy & data
-              </Text>
+              </Animated.Text>
               <Text style={styles.sheetSub}>
                 Plain language on how Studently handles your account.
               </Text>
@@ -544,7 +611,7 @@ export function MobileProfileScreen({ mode = "renter" }: { mode?: ProfileMode })
                 last
               />
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
       </Modal>
     </View>
@@ -579,7 +646,7 @@ function ProfileRow({
     >
       <Ionicons
         name={icon}
-        size={21}
+        size={23}
         color={SURFACE.ink}
         style={styles.rowIcon}
       />
@@ -597,7 +664,7 @@ function ProfileRow({
             <Text style={styles.countBadgeText}>{badge}</Text>
           </View>
         ) : null}
-        <Ionicons name="chevron-forward" size={18} color={SURFACE.faint} />
+        <Ionicons name="chevron-forward" size={20} color={SURFACE.faint} />
       </View>
     </Pressable>
   );
@@ -625,6 +692,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SURFACE.ground,
   },
+  scrollStage: {
+    flex: 1,
+    position: "relative",
+  },
   scrollFadeWrap: {
     flex: 1,
   },
@@ -634,8 +705,8 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontFamily: Studently.type.display,
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 34,
+    lineHeight: 40,
     letterSpacing: -0.8,
     color: SURFACE.ink,
     marginBottom: 20,
@@ -655,16 +726,16 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE.pressed,
   },
   monogram: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: SURFACE.ink,
     alignItems: "center",
     justifyContent: "center",
   },
   monogramText: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 19,
+    fontSize: 21,
     letterSpacing: 0.4,
     color: "#FFFFFF",
   },
@@ -675,21 +746,21 @@ const styles = StyleSheet.create({
   },
   identityName: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 19,
-    lineHeight: 24,
+    fontSize: 21,
+    lineHeight: 27,
     letterSpacing: -0.2,
     color: SURFACE.ink,
   },
   identityEmail: {
     fontFamily: Studently.type.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
     color: SURFACE.muted,
   },
   identityMeta: {
     fontFamily: Studently.type.body,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 20,
     color: SURFACE.faint,
     marginTop: 2,
   },
@@ -704,20 +775,20 @@ const styles = StyleSheet.create({
   },
   guestTitle: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 19,
-    lineHeight: 24,
+    fontSize: 21,
+    lineHeight: 27,
     letterSpacing: -0.2,
     color: SURFACE.ink,
   },
   guestBody: {
     fontFamily: Studently.type.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 23,
     color: SURFACE.muted,
   },
   signInBtn: {
     marginTop: 6,
-    minHeight: 48,
+    minHeight: 52,
     borderRadius: 12,
     backgroundColor: SURFACE.ink,
     alignItems: "center",
@@ -729,7 +800,7 @@ const styles = StyleSheet.create({
   },
   signInBtnText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 15,
+    fontSize: 17,
     color: "#FFFFFF",
   },
 
@@ -761,25 +832,25 @@ const styles = StyleSheet.create({
   },
   campusFeatureLabel: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     color: SURFACE.muted,
   },
   campusFeatureValue: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 23,
     color: SURFACE.ink,
   },
   campusFeatureHint: {
     fontFamily: Studently.type.body,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 14,
+    lineHeight: 20,
     color: SURFACE.faint,
   },
   campusActionText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 14,
+    fontSize: 16,
     color: SURFACE.ink,
     textDecorationLine: "underline",
   },
@@ -791,9 +862,9 @@ const styles = StyleSheet.create({
   // SECTIONS & ROWS
   sectionHeading: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0.2,
+    fontSize: 15,
+    lineHeight: 21,
+    letterSpacing: 0.1,
     color: SURFACE.muted,
     marginTop: 24,
     marginBottom: 8,
@@ -809,8 +880,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    minHeight: 64,
-    paddingVertical: 14,
+    minHeight: 68,
+    paddingVertical: 16,
     marginHorizontal: -24,
     paddingHorizontal: 24,
   },
@@ -822,24 +893,24 @@ const styles = StyleSheet.create({
     backgroundColor: SURFACE.pressed,
   },
   rowIcon: {
-    width: 24,
+    width: 26,
     textAlign: "center",
   },
   rowCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 3,
   },
   rowLabel: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 16,
-    lineHeight: 21,
+    fontSize: 18,
+    lineHeight: 24,
     color: SURFACE.ink,
   },
   rowSubtitle: {
     fontFamily: Studently.type.body,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 21,
     color: SURFACE.muted,
   },
   rowRight: {
@@ -848,24 +919,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   countBadge: {
-    minWidth: 24,
-    height: 24,
+    minWidth: 26,
+    height: 26,
     paddingHorizontal: 8,
-    borderRadius: 12,
+    borderRadius: 13,
     backgroundColor: SURFACE.subtle,
     alignItems: "center",
     justifyContent: "center",
   },
   countBadgeText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 12,
+    fontSize: 13,
     color: SURFACE.ink,
   },
 
   // LOGOUT
   logoutBtn: {
     marginTop: 32,
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: 12,
     backgroundColor: SURFACE.dangerBg,
     flexDirection: "row",
@@ -878,7 +949,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 15,
+    fontSize: 17,
     color: Studently.color.danger,
   },
 
@@ -886,18 +957,6 @@ const styles = StyleSheet.create({
   sheetRoot: {
     flex: 1,
     backgroundColor: SURFACE.ground,
-  },
-  sheetTopBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-  sheetTopSpacer: {
-    width: 40,
-    height: 40,
   },
   sheetCloseBtn: {
     width: 40,
@@ -921,15 +980,15 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontFamily: Studently.type.display,
-    fontSize: 30,
-    lineHeight: 36,
-    letterSpacing: -0.7,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.8,
     color: SURFACE.ink,
   },
   sheetSub: {
     fontFamily: Studently.type.body,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     color: SURFACE.muted,
   },
 
@@ -951,20 +1010,20 @@ const styles = StyleSheet.create({
   },
   currentCampusLabel: {
     fontFamily: Studently.type.bodySemi,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: Studently.color.primary,
   },
   currentCampusName: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 23,
     color: SURFACE.ink,
   },
   currentCampusCity: {
     fontFamily: Studently.type.body,
-    fontSize: 13,
+    fontSize: 15,
     color: SURFACE.muted,
   },
   currentCampusBadge: {
@@ -988,8 +1047,8 @@ const styles = StyleSheet.create({
   campusErrorText: {
     flex: 1,
     fontFamily: Studently.type.bodyMedium,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     color: Studently.color.danger,
   },
 
@@ -999,19 +1058,19 @@ const styles = StyleSheet.create({
     borderTopColor: SURFACE.divider,
   },
   privacyItem: {
-    paddingVertical: 18,
-    gap: 6,
+    paddingVertical: 20,
+    gap: 8,
   },
   privacyItemTitle: {
     fontFamily: Studently.type.bodyBold,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 24,
     color: SURFACE.ink,
   },
   privacyItemBody: {
     fontFamily: Studently.type.body,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 24,
     color: SURFACE.muted,
   },
 });

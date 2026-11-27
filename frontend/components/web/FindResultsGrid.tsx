@@ -31,6 +31,8 @@ type Props = {
     id: string | null,
     point?: { x: number; y: number },
   ) => void;
+  /** Mobile browse only: opens the map with this listing selected. */
+  onOpenListingOnMap?: (listing: Listing) => void;
   showDistanceSplit?: boolean;
   universityLabel?: string;
 };
@@ -210,6 +212,7 @@ export function FindResultsGrid({
   variant = "grid",
   columns = 3,
   onHoverListing,
+  onOpenListingOnMap,
   showDistanceSplit = false,
   universityLabel = "",
 }: Props) {
@@ -305,6 +308,7 @@ export function FindResultsGrid({
                 badgeOverflow={mobileHorizontalBadges ? "scroll-x" : "wrap"}
                 badgeLimit={mobileHorizontalBadges ? null : undefined}
                 onHoverListing={onHoverListing}
+                onOpenMap={onOpenListingOnMap}
               />
             </View>
           );

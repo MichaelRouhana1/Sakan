@@ -9,7 +9,7 @@ import './FavoriteButton.css';
 
 const HEART = 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z';
 
-export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,iconSize=20,style}:FavoriteButtonProps) {
+export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,iconSize=20,idleColor=favoriteIdleColor,style}:FavoriteButtonProps) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const styles = resolveStyles(baseStyles);
   const reduced=useReducedMotion();
@@ -76,7 +76,7 @@ export function FavoriteButton({saved,onPress,disabled=false,accessibilityLabel,
       onPointerDown={event=>event.stopPropagation()} onClick={event=>{event.preventDefault();event.stopPropagation();if(!disabled)onPress();}}>
       <span ref={surface} className="studently-favorite-pulse__surface" aria-hidden="true">
         <span ref={outline} className="studently-favorite-pulse__glyph" style={{opacity:saved?0:1}}>
-          <svg width={designSize(iconSize)} height={designSize(iconSize)} viewBox="0 0 24 24" focusable="false" style={{color:favoriteIdleColor}}>
+          <svg width={designSize(iconSize)} height={designSize(iconSize)} viewBox="0 0 24 24" focusable="false" style={{color:idleColor}}>
             <path d={HEART} fill="none" stroke="currentColor" strokeWidth={designSize(1.8)} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
           </svg>
         </span>

@@ -1542,3 +1542,77 @@ test('capture matching marker/layer screenshots on the same camera and results',
   await page.evaluate(async () => { await Promise.all([...document.images].map(image => image.decode())); });
   await page.screenshot({ path: path.join(output, `${info.project.name}-comparison.png`), fullPage: true });
 });
+
+test('mobile-only card mini-map button opens map with listing selected', async ({ page }, info) => {
+  const mobile = info.project.name === 'mobile-web';
+  const state = fixtureState.get(page);
+  state.units = [
+    ...units,
+    { ...unit('no-coords', 'no-coords', 350, null, null), lat: null, lng: null },
+  ];
+  await page.goto('/search');
+  const eastCard = page.getByTestId('result-card-east');
+  await expect(eastCard).toBeVisible({ timeout: 60_000 });
+
+  if (!mobile) {
+    await expect(page.getByTestId('listing-card-map-btn')).toHaveCount(0);
+    await page.setViewportSize({ width: 768, height: 1000 });
+    await page.waitForTimeout(250);
+    await expect(page.getByTestId('listing-card-map-btn')).toHaveCount(0);
+    return;
+  }
+
+  // Mobile-only: shown on cards with coordinates, hidden on cards without coordinates.
+  const eastBtn = eastCard.getByTestId('listing-card-map-btn');
+  await expect(eastBtn).toBeVisible();
+  await expect(page.getByTestId('result-card-no-coords').getByTestId('listing-card-map-btn')).toHaveCount(0);
+
+  // Positioned cleanly in the bottom-right of the image section.
+  const mediaBox = await eastCard.getByTestId('listing-grid-media').boundingBox();
+  const btnBox = await eastBtn.boundingBox();
+  expect(btnBox.width).toBeCloseTo(44, 0);
+  expect(btnBox.height).toBeCloseTo(44, 0);
+  expect(btnBox.x + btnBox.width).toBeLessThanOrEqual(mediaBox.x + mediaBox.width);
+  expect(btnBox.y + btnBox.height).toBeLessThanOrEqual(mediaBox.y + mediaBox.height);
+  expect(btnBox.x).toBeGreaterThan(mediaBox.x + mediaBox.width * 0.65);
+  expect(btnBox.y).toBeGreaterThan(mediaBox.y + mediaBox.height * 0.55);
+  await expect(eastBtn.locator('img')).toHaveCount(1);
+
+  await eastCard.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(output, 'mobile-card-map-btn.png') });
+
+  // Tapping opens the map with `east` pre-selected and focused (does not navigate to listing detail).
+  await activate(eastBtn, true);
+  expect(new URL(page.url()).pathname).toBe('/search');
+  await expect(mapHost(page).locator('.mapboxgl-canvas')).toBeAttached({ timeout: 30_000 });
+  const selection = page.getByTestId('mobile-map-selection');
+  await expect(selection).toBeVisible({ timeout: 30_000 });
+  await expect(selection).toContainText('Baseline east');
+  await expect.poll(async () => (await mapState(page))?.zoom, { timeout: 15_000 }).toBeGreaterThanOrEqual(15.5);
+  await expect.poll(async () => (await mapState(page))?.moving, { timeout: 15_000 }).toBe(false);
+  await expect.poll(async () => (await mapState(page))?.activePins.some(pin => pin.groupId === 'place:east'), { timeout: 15_000 }).toBe(true);
+  await settleMapCapture(page);
+  const eastMap = await mapState(page);
+  expect(eastMap.center[0]).toBeCloseTo(35.54, 2);
+  await page.screenshot({ path: path.join(output, 'mobile-card-map-selected-east.png') });
+
+  // Closing and tapping another listing selects that listing on the kept-alive map.
+  await activate(page.getByRole('button', { name: 'Close map', exact: true }), true);
+  const roomACard = page.getByTestId('result-card-room-a');
+  await expect(roomACard).toBeVisible();
+  await activate(roomACard.getByTestId('listing-card-map-btn'), true);
+  await expect(selection).toBeVisible({ timeout: 15_000 });
+  await expect(selection.locator('.studently-amber-popup-group')).toBeVisible();
+  await expect.poll(async () => (await mapState(page))?.activePins.some(pin => pin.groupId === 'place:shared'), { timeout: 15_000 }).toBe(true);
+
+  // University mode: selecting a listing from its card focuses the listing + draws walking route.
+  await page.goto('/search?universitySlugs=aub');
+  const uniEastCard = page.getByTestId('result-card-east');
+  await expect(uniEastCard).toBeVisible({ timeout: 60_000 });
+  await activate(uniEastCard.getByTestId('listing-card-map-btn'), true);
+  await expect(selection).toBeVisible({ timeout: 30_000 });
+  await expect(selection).toContainText('Baseline east');
+  await expect.poll(async () => (await mapState(page))?.layers.includes('studently-campus-line-layer'), { timeout: 15_000 }).toBe(true);
+  await expect.poll(async () => (await mapState(page))?.moving, { timeout: 15_000 }).toBe(false);
+  expect((await mapState(page)).center[0]).toBeCloseTo(35.54, 2);
+});

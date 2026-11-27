@@ -11,6 +11,11 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
+import {
+  CollapsingHeaderBar,
+  useCollapsingHeader,
+} from "@/components/ui/CollapsingHeader";
 import { HostAnalyticsListingTable } from "@/components/web/host/analytics/HostAnalyticsListingRow";
 import { HostAnalyticsStatCard } from "@/components/web/host/analytics/HostAnalyticsStatCard";
 import {
@@ -38,6 +43,12 @@ export function HostAnalyticsPage() {
   const router = useRouter();
   const bp = useBreakpoint();
   const compact = bp === "mobile" || Platform.OS !== "web";
+  const mobileHeaderEnabled = Platform.OS !== "web";
+  const mobileHeader = useCollapsingHeader({
+    defaultThreshold: 44,
+    extraTopOffset: 16,
+    enabled: mobileHeaderEnabled,
+  });
   const { isSignedIn } = useAuthSession();
   const { data, isLoading, isError, refetch, isFetching } =
     useHostAnalytics(isSignedIn);
@@ -57,23 +68,30 @@ export function HostAnalyticsPage() {
     router.push(href as never);
   }
 
-  return (
-    <ScrollView
-      contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
-      refreshControl={
-        <RefreshControl
-          refreshing={isFetching && !isLoading}
-          onRefresh={() => void refetch()}
-          tintColor={Studently.color.primary}
-          colors={[Studently.color.primary]}
-        />
-      }
-    >
+  const refreshControl = (
+    <RefreshControl
+      refreshing={isFetching && !isLoading}
+      onRefresh={() => void refetch()}
+      tintColor={Studently.color.primary}
+      colors={[Studently.color.primary]}
+    />
+  );
+
+  const pageBody = (
       <View style={[styles.page, compact && styles.pageCompact]}>
         <View style={styles.header}>
-          <Text accessibilityRole="header" style={styles.title}>
+          <Animated.Text
+            accessibilityRole="header"
+            style={[
+              styles.title,
+              mobileHeaderEnabled && mobileHeader.largeTitleStyle,
+            ]}
+            onLayout={
+              mobileHeaderEnabled ? mobileHeader.onLargeTitleLayout : undefined
+            }
+          >
             Analytics
-          </Text>
+          </Animated.Text>
           <Text style={styles.trust}>
             Views count when someone opens the listing. Search appearances
             aren’t counted yet.
@@ -182,11 +200,47 @@ export function HostAnalyticsPage() {
           <Text style={styles.refreshHint}>Refreshing…</Text>
         ) : null}
       </View>
+  );
+
+  if (mobileHeaderEnabled) {
+    return (
+      <View style={styles.nativeStage}>
+        <Animated.ScrollView
+          onScroll={mobileHeader.onScroll}
+          scrollEventThrottle={mobileHeader.scrollEventThrottle}
+          contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
+          refreshControl={refreshControl}
+        >
+          {pageBody}
+        </Animated.ScrollView>
+        <CollapsingHeaderBar
+          controller={mobileHeader}
+          title="Analytics"
+          variant="overlay"
+          backgroundColor={Studently.color.bg}
+          borderColor={Studently.color.border}
+          titleColor={Studently.color.ink}
+          testID="host-analytics-collapsing-header"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
+      refreshControl={refreshControl}
+    >
+      {pageBody}
     </ScrollView>
   );
 }
 
 const baseStyles = StyleSheet.create({
+  nativeStage: {
+    flex: 1,
+    position: "relative",
+  },
   scroll: {
     flexGrow: 1,
     paddingBottom: 64,

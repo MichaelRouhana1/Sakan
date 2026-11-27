@@ -22,6 +22,7 @@ type Props = {
   onHoverFlyComplete?: () => void;
   focusCampusSlug?: string | null;
   focusPoint?: { lat: number; lng: number } | null;
+  focusListingRequest?: { id: string; nonce: number } | null;
   onSelectCampus?: (campus: CampusMeta) => void;
 };
 
@@ -40,6 +41,7 @@ export function FindMapPane({
   onHoverFlyComplete,
   focusCampusSlug = null,
   focusPoint = null,
+  focusListingRequest = null,
   onSelectCampus,
 }: Props) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
@@ -107,6 +109,7 @@ export function FindMapPane({
           onHoverFlyComplete={onHoverFlyComplete}
           focusCampusSlug={focusCampusSlug}
           focusPoint={focusPoint}
+          focusListingRequest={focusListingRequest}
           active={visible}
           onSelectCampus={onSelectCampus}
         />

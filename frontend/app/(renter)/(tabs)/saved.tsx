@@ -2,10 +2,10 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   StyleSheet,
   View,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { StudentlyAuthModal } from "@/components/auth/StudentlyAuthModal";
 import { Enter } from "@/components/lister/Enter";
 import { EmptyState } from "@/components/lister/EmptyState";
@@ -16,6 +16,10 @@ import {
   CarouselListScrollContext,
   useCarouselListScrollController,
 } from "@/components/listings/carouselListScroll";
+import {
+  CollapsingHeaderBar,
+  useCollapsingHeader,
+} from "@/components/ui/CollapsingHeader";
 import { appleTabScrollInset } from "@/components/ui/Glass";
 import { HideIosTabScrollFade } from "@/components/ui/HideIosTabScrollFade";
 import { Studently } from "@/constants/theme";
@@ -60,15 +64,19 @@ export default function SavedScreen() {
   const { data, isLoading, isError, refetch, isFetching } = useSavedListings();
   const carouselScroll = useCarouselListScrollController();
   const [authOpen, setAuthOpen] = useState(false);
+  const header = useCollapsingHeader({ defaultThreshold: 64 });
 
   return (
     <CarouselListScrollContext.Provider value={carouselScroll.value}>
     <ListerScreen>
+      <View style={styles.listStage}>
       <HideIosTabScrollFade style={styles.listFadeWrap}>
-      <FlatList
-        ref={carouselScroll.listRef}
+      <Animated.FlatList
+        ref={carouselScroll.listRef as never}
         data={data ?? []}
         keyExtractor={(item) => item.id}
+        onScroll={header.onScroll}
+        scrollEventThrottle={header.scrollEventThrottle}
         contentContainerStyle={styles.content}
         nestedScrollEnabled
         directionalLockEnabled
@@ -80,7 +88,12 @@ export default function SavedScreen() {
               <LText variant="label" tone="brass">
                 Your shortlist
               </LText>
-              <LText variant="display">Saved</LText>
+              <Animated.View
+                style={header.largeTitleStyle}
+                onLayout={header.onLargeTitleLayout}
+              >
+                <LText variant="display">Saved</LText>
+              </Animated.View>
               <LText variant="body" tone="muted">
                 Synced to your account — tap the heart on any listing to keep
                 it here across devices.
@@ -126,6 +139,16 @@ export default function SavedScreen() {
         ListFooterComponent={<View style={{ height: 24 }} />}
       />
       </HideIosTabScrollFade>
+      <CollapsingHeaderBar
+        controller={header}
+        title="Saved"
+        variant="overlay"
+        backgroundColor={Studently.color.bg}
+        borderColor={Studently.color.border}
+        titleColor={Studently.color.ink}
+        testID="saved-collapsing-header"
+      />
+      </View>
       <StudentlyAuthModal
         visible={authOpen}
         onClose={() => setAuthOpen(false)}
@@ -138,6 +161,10 @@ export default function SavedScreen() {
 }
 
 const styles = StyleSheet.create({
+  listStage: {
+    flex: 1,
+    position: "relative",
+  },
   listFadeWrap: {
     flex: 1,
   },

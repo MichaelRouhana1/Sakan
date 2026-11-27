@@ -2,7 +2,17 @@ import { useDesktopDesign } from "@/components/ui/DesktopDesign";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { Check } from "lucide-react-native";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type LayoutChangeEvent,
+  type ViewStyle,
+} from "react-native";
+import Animated, { type AnimatedStyle } from "react-native-reanimated";
 import { HostCreditsAura } from "@/components/web/host/HostCreditsAura";
 import {
   PopularBadge,
@@ -75,7 +85,15 @@ function payLabel(pack: Pack, paying: boolean) {
   return `Pay ${formatUsdFromCents(pack.amountUsdCents)} with Whish`;
 }
 
-export function HostCreditsPage() {
+type HostCreditsPageProps = {
+  onTitleLayout?: (event: LayoutChangeEvent) => void;
+  titleAnimatedStyle?: AnimatedStyle<ViewStyle>;
+};
+
+export function HostCreditsPage({
+  onTitleLayout,
+  titleAnimatedStyle,
+}: HostCreditsPageProps = {}) {
   const { size: designSize, styles: resolveStyles } = useDesktopDesign();
   const s = resolveStyles(base_s);
   
@@ -106,7 +124,17 @@ export function HostCreditsPage() {
         <Text style={{ fontFamily: Studently.type.bodySemi, color: Studently.color.ink }}>How listing time works</Text>
         <Text style={{ fontFamily: Studently.type.body, color: Studently.color.inkMuted, fontSize: designSize(13), lineHeight: designSize(20), maxWidth: designSize(760) }}>Each unit renewal costs 1 post credit for 30 days. Renew early to add 30 days to your current expiry; renew after expiry to start 30 days from renewal. Optional auto-renew uses your credits in the final hour before expiry. Without credits or a confirmed available-bed count, the unit expires. Bumps and Featured are separate.</Text>
       </View>
-      <Text style={s.title}>Credits, on your terms.</Text>
+      {onTitleLayout || titleAnimatedStyle ? (
+        <Animated.Text
+          style={[s.title, titleAnimatedStyle]}
+          onLayout={onTitleLayout}
+          accessibilityRole="header"
+        >
+          Credits, on your terms.
+        </Animated.Text>
+      ) : (
+        <Text style={s.title}>Credits, on your terms.</Text>
+      )}
       <Text style={s.body}>
         Choose post credits or promotion credits. Pay securely with Whish; credits arrive after
         payment is verified.
